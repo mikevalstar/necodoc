@@ -1,0 +1,12 @@
+node_modules
+dist
+.astro
+.env
+.env.local
+*.log
+.DS_Store
+.tanstack
+
+# Fiberplane local issue tracking
+.fp/*
+!.fp/remote.toml

@@ -1,0 +1,22 @@
+{
+  "name": "necodoc",
+  "private": true,
+  "type": "module",
+  "packageManager": "pnpm@12.5.1",
+  "engines": {
+    "node": ">=24"
+  },
+  "scripts": {
+    "dev": "pnpm -r --parallel --filter './apps/*' dev",
+    "build": "pnpm -r build",
+    "typecheck": "pnpm -r typecheck",
+    "test": "pnpm -r --if-present test",
+    "check": "biome check .",
+    "fix": "biome check --write .",
+    "db:generate": "pnpm --filter @necodoc/api db:generate",
+    "db:migrate": "pnpm --filter @necodoc/api db:migrate"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "^2.5.14"
+  }
+}
