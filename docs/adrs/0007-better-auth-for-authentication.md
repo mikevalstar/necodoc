@@ -11,7 +11,7 @@ generated: { by: okq/0.9.0, at: 2026-09-25T22:50:04Z }
 
 ## Status
 
-Accepted.
+Accepted. Extended by [ADR 0011](0011-role-based-access-with-the-better-auth-admin-plugin.md) (roles and the admin plugin).
 
 ## Context
 

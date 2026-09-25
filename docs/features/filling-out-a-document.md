@@ -44,6 +44,7 @@ they happen, reuses answers, and produces a clean document.
   ([ADR 0005](../adrs/0005-hono-api-on-node-typed-through-its-rpc-client.md)).
   Record the answer as an ADR.
 - **Who authors documents:** do users upload their own PDFs/templates, or does
-  necodoc ship a curated library?
+  necodoc ship a curated library? This shapes the document permissions in
+  [User management and roles](user-management-and-roles.md).
 - **Storage** for uploaded and generated PDFs (S3/R2/disk). Not needed until
   uploads exist.

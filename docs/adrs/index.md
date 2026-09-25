@@ -21,4 +21,5 @@ Add one with `okq new adr "<title>"`.
 | Zod schemas shared between API and app | [0008-zod-schemas-shared-between-api-and-app.md](0008-zod-schemas-shared-between-api-and-app.md) |
 | Biome for linting and formatting | [0009-biome-for-linting-and-formatting.md](0009-biome-for-linting-and-formatting.md) |
 | TypeScript 7 | [0010-typescript-7.md](0010-typescript-7.md) |
+| Role-based access with the Better Auth admin plugin | [0011-role-based-access-with-the-better-auth-admin-plugin.md](0011-role-based-access-with-the-better-auth-admin-plugin.md) |
 <!-- okq:index:end -->

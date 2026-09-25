@@ -1,13 +1,10 @@
+import { parseRoles } from "@necodoc/shared";
 import { Hono } from "hono";
 import { logger } from "hono/logger";
 import { auth } from "./auth";
+import type { AppEnv } from "./middleware";
 
-type Variables = {
-  user: typeof auth.$Infer.Session.user | null;
-  session: typeof auth.$Infer.Session.session | null;
-};
-
-const app = new Hono<{ Variables: Variables }>().basePath("/api");
+const app = new Hono<AppEnv>().basePath("/api");
 
 app.use(logger());
 
@@ -24,7 +21,11 @@ const routes = app
   .get("/health", (c) => c.json({ ok: true }))
   .get("/me", (c) => {
     const user = c.get("user");
-    return user ? c.json({ user }) : c.json({ error: "Unauthorized" }, 401);
+    if (!user) return c.json({ error: "Unauthorized" }, 401);
+    return c.json({
+      user: { ...user, roles: parseRoles(user.role) },
+      impersonatedBy: c.get("session")?.impersonatedBy ?? null,
+    });
   });
 
 export type AppType = typeof routes;

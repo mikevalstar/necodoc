@@ -11,7 +11,7 @@ generated: { by: okq/0.9.0, at: 2026-09-25T22:50:04Z }
 
 ## Status
 
-Accepted.
+Accepted. Amended by [ADR 0011](0011-role-based-access-with-the-better-auth-admin-plugin.md): `shared` may import Better Auth's browser-safe access-control modules (`better-auth/plugins/access` and `better-auth/plugins/admin/access`).
 
 ## Context
 

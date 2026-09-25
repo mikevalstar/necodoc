@@ -62,6 +62,13 @@ Rules:
 - `pnpm --filter @necodoc/api auth:generate`: regenerate Better Auth tables after changing plugins
 - shadcn components: `cd apps/app && pnpm dlx shadcn@latest add <name>`
 
+## Additional tools
+- This app will be running in herder in another pane from the user
+- Agent broweser can be used to test things
+
+## Dev Notes
+When running locally admin@admin.com / admin1234 can  be used as the base admin user for creating/managing more test users 
+
 ## Gotchas
 
 - Local Postgres 18 runs natively through Homebrew (`brew services start

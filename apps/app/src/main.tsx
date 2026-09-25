@@ -4,6 +4,7 @@ import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import { routeTree } from "./routeTree.gen";
 import "./index.css";
+import "./lib/theme"; // keeps the theme in sync with the system setting
 
 const queryClient = new QueryClient();
 const router = createRouter({ routeTree, context: { queryClient } });
