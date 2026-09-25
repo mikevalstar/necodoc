@@ -1,6 +1,6 @@
 # necodoc
 
-pnpm monorepo. See [docs/README.md](docs/README.md) for goals and layout.
+pnpm monorepo. See [AGENTS.md](AGENTS.md) for the architecture and [docs/](docs/index.md) (OKF bundle, browse with `okq`) for goals and decisions.
 
 ## Getting started
 
@@ -24,5 +24,6 @@ pnpm dev                                 # web :4321, app :5173, api :3000
 
 - `pnpm check` / `pnpm fix`: Biome lint + format
 - `pnpm typecheck`, `pnpm test`, `pnpm build`
+- `pnpm docs:check`: validate the docs bundle (needs `okq`)
 - `pnpm db:generate`: Drizzle migration from schema changes
 - `pnpm --filter @necodoc/api auth:generate`: regenerate Better Auth tables after changing auth plugins
