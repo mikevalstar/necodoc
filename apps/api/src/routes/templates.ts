@@ -1,14 +1,20 @@
 import { zValidator } from "@hono/zod-validator";
 import {
+  type CompiledOverlay,
   compileDesignedContent,
   createTemplateSchema,
+  designedContentSchema,
   fieldErrors,
   generateFromTemplateSchema,
   hasPermission,
+  type OverlayContent,
+  overlayContentSchema,
   type Permissions,
+  pageOptionsSchema,
   parseRoles,
   previewTemplateSchema,
   publishTemplateSchema,
+  type RenderInput,
   TemplateCompileError,
   templateDataSchema,
   templateJsonSchema,
@@ -20,7 +26,7 @@ import { Hono } from "hono";
 import { LiquidError } from "liquidjs";
 import { z } from "zod";
 import { db } from "../db";
-import { template, templateVersion, theme, user } from "../db/schema";
+import { pdfSource, template, templateVersion, theme, user } from "../db/schema";
 import { generate, renderPreview } from "../generate";
 import {
   type AppEnv,
@@ -28,7 +34,7 @@ import {
   requirePermission,
   type SignedInEnv,
 } from "../middleware";
-import { liquid } from "../render/liquid";
+import { liquid, plainLiquid } from "../render/liquid";
 import { generationResponse, pdfHeaders } from "./http";
 
 // Specs: docs/features/document-templates.md, docs/features/publishing-and-versions.md,
@@ -88,6 +94,29 @@ async function themeError(themeId: string | null | undefined) {
   if (!themeId) return null;
   const [row] = await db.select({ id: theme.id }).from(theme).where(eq(theme.id, themeId));
   return row ? null : `Theme ${themeId} doesn't exist`;
+}
+
+async function sourceError(content: { sourceId: string } | undefined) {
+  if (!content) return null;
+  const [row] = await db
+    .select({ id: pdfSource.id })
+    .from(pdfSource)
+    .where(eq(pdfSource.id, content.sourceId));
+  return row ? null : "The template's PDF doesn't exist; upload it again";
+}
+
+/** Checks every box's Liquid parses; the overlay's render input, minus data. */
+function compileOverlay(content: OverlayContent) {
+  for (const box of content.boxes) {
+    try {
+      plainLiquid.parse(box.value);
+    } catch (error) {
+      if (!(error instanceof LiquidError)) throw error;
+      return { error: `A box on page ${box.page}: ${error.message}` };
+    }
+  }
+  const compiled: CompiledOverlay = { kind: "overlay", ...content };
+  return { compiled };
 }
 
 /** Compiles the body and bands, checking the Liquid parses, so publish fails early. */
@@ -157,11 +186,16 @@ export const templateRoutes = new Hono<AppEnv>()
   })
   .post("/", canCreate, zValidator("json", createTemplateSchema), async (c) => {
     const body = c.req.valid("json");
-    const error = await themeError(body.themeId);
+    const error =
+      body.kind === "overlay" ? await sourceError(body.content) : await themeError(body.themeId);
     if (error) return c.json({ error }, 422);
+    const values =
+      body.kind === "overlay"
+        ? { ...body, themeId: null, page: pageOptionsSchema.parse({}) }
+        : body;
     const [row] = await db
       .insert(template)
-      .values({ ...body, createdBy: c.get("user").id })
+      .values({ ...values, createdBy: c.get("user").id })
       .returning();
     return c.json(row, 201);
   })
@@ -180,7 +214,15 @@ export const templateRoutes = new Hono<AppEnv>()
         409,
       );
     }
-    const error = await themeError(changes.themeId);
+    const content = changes.content;
+    const overlay = content && "sourceId" in content ? content : undefined;
+    if (content && Boolean(overlay) !== (existing.kind === "overlay")) {
+      return c.json(
+        { error: `This is a ${existing.kind} template; send ${existing.kind} content` },
+        422,
+      );
+    }
+    const error = (await themeError(changes.themeId)) ?? (await sourceError(overlay));
     if (error) return c.json({ error }, 422);
     const [row] = await db.update(template).set(changes).where(eq(template.id, id)).returning();
     return c.json(row, 200);
@@ -236,25 +278,37 @@ export const templateRoutes = new Hono<AppEnv>()
       const body = c.req.valid("json");
       const saved = await findDraft(c.req.valid("param").id);
       if (!saved) return c.json({ error: "Template not found" }, 404);
-      const draft = body.draft ?? saved;
-      const { compiled, error } = compileOrError(draft.content, draft.sections);
-      if (!compiled) return c.json({ error }, 422);
+      const draft = body.draft ?? savedDraft(saved);
+      if (!draft) return c.json({ error: "The saved draft's content doesn't match its kind" }, 422);
       const data = body.data ?? draft.sampleData;
       // Previews render even when the data doesn't fit yet; valid data gets show-ifs applied.
       const parsed = templateDataSchema(draft.sections).safeParse(data);
-      const result = await renderPreview({
-        ...compiled,
-        ...(draft.themeId ? { themeId: draft.themeId } : {}),
-        page: draft.page,
+      const request = {
         data: parsed.success ? parsed.data : data,
         filename: saved.name,
         preview: true,
-      });
+      };
+      let input: RenderInput;
+      if (draft.kind === "overlay") {
+        input = { kind: "overlay", ...draft.content, ...request };
+      } else {
+        const { compiled, error } = compileOrError(draft.content, draft.sections);
+        if (!compiled) return c.json({ error }, 422);
+        input = {
+          ...compiled,
+          ...(draft.themeId ? { themeId: draft.themeId } : {}),
+          page: draft.page,
+          ...request,
+        };
+      }
+      const result = await renderPreview(input);
       if (!result.ok) return c.json({ error: result.error }, 422);
       return c.body(result.pdf, 200, {
         ...pdfHeaders(result.filename),
         "X-Page-Count": String(result.pageCount),
         "X-Data-Valid": String(parsed.success),
+        // Overlay warnings (text cut, unknown form fields), URI-encoded JSON.
+        "X-Render-Warnings": encodeURIComponent(JSON.stringify(result.warnings.slice(0, 20))),
       });
     },
   )
@@ -266,14 +320,21 @@ export const templateRoutes = new Hono<AppEnv>()
     async (c) => {
       const draft = await findDraft(c.req.valid("param").id);
       if (!draft) return c.json({ error: "Template not found" }, 404);
-      const { compiled, error } = compileOrError(draft.content, draft.sections);
-      if (!compiled) return c.json({ error }, 422);
-      const [themeRow] = draft.themeId
-        ? await db
-            .select({ settings: theme.settings, css: theme.css })
-            .from(theme)
-            .where(eq(theme.id, draft.themeId))
-        : [];
+      const typed = savedDraft(draft);
+      if (!typed) return c.json({ error: "The draft's content doesn't match its kind" }, 422);
+      const result =
+        typed.kind === "overlay"
+          ? compileOverlay(typed.content)
+          : compileOrError(typed.content, typed.sections);
+      const { compiled } = result;
+      if (!compiled) return c.json({ error: result.error }, 422);
+      const [themeRow] =
+        typed.kind === "designed" && draft.themeId
+          ? await db
+              .select({ settings: theme.settings, css: theme.css })
+              .from(theme)
+              .where(eq(theme.id, draft.themeId))
+          : [];
       const {
         id: templateId,
         createdBy: _c,
@@ -360,15 +421,7 @@ export const templateRoutes = new Hono<AppEnv>()
         return c.json({ error: "Invalid data", fieldErrors: fieldErrors(parsed.error) }, 422);
       }
       const result = await generate({
-        // Self-contained, theme included, so a re-run from the log renders the same PDF.
-        request: {
-          ...v.compiled,
-          ...(v.theme ? { themeDraft: v.theme } : {}),
-          page: v.page,
-          data: parsed.data,
-          filename: body.filename ?? v.name,
-          preview: false,
-        },
+        request: versionRequest(v, parsed.data, body.filename ?? v.name),
         source: "app",
         userId: c.get("user").id,
         requestId: c.get("requestId"),
@@ -378,6 +431,40 @@ export const templateRoutes = new Hono<AppEnv>()
       return generationResponse(c, result);
     },
   );
+
+/**
+ * What a published version renders with this data. Self-contained (theme included, or the
+ * overlay's source id), so a re-run from the log renders the same PDF.
+ */
+export function versionRequest(
+  v: typeof templateVersion.$inferSelect,
+  data: Record<string, unknown>,
+  filename: string,
+): RenderInput {
+  const { compiled } = v;
+  if ("kind" in compiled) return { ...compiled, data, filename, preview: false };
+  return {
+    ...compiled,
+    ...(v.theme ? { themeDraft: v.theme } : {}),
+    page: v.page,
+    data,
+    filename,
+    preview: false,
+  };
+}
+
+/** The stored draft with its content checked against its kind (content is untyped jsonb). */
+function savedDraft(row: typeof template.$inferSelect) {
+  const { kind, sections, sampleData, themeId, page } = row;
+  if (kind === "overlay") {
+    const content = overlayContentSchema.safeParse(row.content);
+    return content.success ? { kind, sections, sampleData, content: content.data } : null;
+  }
+  const content = designedContentSchema.safeParse(row.content);
+  return content.success
+    ? { kind, sections, sampleData, themeId, page, content: content.data }
+    : null;
+}
 
 function selectVersionSummaries() {
   return db

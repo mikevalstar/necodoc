@@ -24,7 +24,7 @@ import { findFile, openFile } from "../files";
 import { enqueue, pdfFilename, queuedRow } from "../generate";
 import { type AppEnv, requirePermission, type SignedInEnv } from "../middleware";
 import { priorities } from "../queue";
-import { findVersion } from "./templates";
+import { findVersion, versionRequest } from "./templates";
 
 // Spec: docs/features/render-queue-batch-jobs-and-scaling.md (batch jobs). Each row is a
 // generation with the batch's id; batch rows queue behind interactive renders.
@@ -117,14 +117,11 @@ async function createBatch(
       const parsed = schema.safeParse(data);
       const row = {
         ...queuedRow({
-          request: {
-            ...v.compiled,
-            ...(v.theme ? { themeDraft: v.theme } : {}),
-            page: v.page,
-            data: parsed.success ? parsed.data : data,
-            filename: `${base} ${String(i + 1).padStart(digits, "0")}`,
-            preview: false,
-          },
+          request: versionRequest(
+            v,
+            parsed.success ? parsed.data : data,
+            `${base} ${String(i + 1).padStart(digits, "0")}`,
+          ),
           source: "batch",
           userId: actor.id,
           requestId,

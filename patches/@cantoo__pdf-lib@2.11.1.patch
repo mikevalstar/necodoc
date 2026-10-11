@@ -1,0 +1,158 @@
+diff --git a/cjs/api/PDFDocument.js b/cjs/api/PDFDocument.js
+index bb2cd042fb2675f66ae4da0e3e7e5e77d91d9b0b..76ce2748f5d3550049ea2f5329598b2c8035989a 100644
+--- a/cjs/api/PDFDocument.js
++++ b/cjs/api/PDFDocument.js
+@@ -159,8 +159,15 @@ class PDFDocument {
+         this.context = context;
+         this.catalog = context.lookup(context.trailerInfo.Root);
+         if (!!context.lookup(context.trailerInfo.Encrypt) && context.isDecrypted) {
+-            // context.delete(context.trailerInfo.Encrypt);
++            // PATCH(necodoc): the /Encrypt dict is orphaned once decrypted; don't write it back out.
++            if (context.trailerInfo.Encrypt instanceof PDFRef_1.default)
++                context.delete(context.trailerInfo.Encrypt);
+             delete context.trailerInfo.Encrypt;
++            // Stale xref streams carry the old /Encrypt and /Prev; the writer regenerates the xref anyway.
++            for (const [ref, object] of context.enumerateIndirectObjects())
++                if (object instanceof core_1.PDFStream &&
++                    object.dict.get(core_1.PDFName.of('Type')) === core_1.PDFName.of('XRef'))
++                    context.delete(ref);
+         }
+         this.isEncrypted = !!context.lookup(context.trailerInfo.Encrypt);
+         this.pageCache = utils_1.Cache.populatedBy(this.computePages);
+diff --git a/cjs/core/parser/PDFObjectParser.js b/cjs/core/parser/PDFObjectParser.js
+index 1128a45333fa5cbd7c9cb2378dbc8595ca63d6d7..f5d886a307d9025a8022c22a00ee081d35d70621 100644
+--- a/cjs/core/parser/PDFObjectParser.js
++++ b/cjs/core/parser/PDFObjectParser.js
+@@ -112,7 +112,9 @@ class PDFObjectParser extends BaseParser_1.default {
+                 if (this.cryptoFactory && ref) {
+                     const transformer = this.cryptoFactory.createCipherTransform(ref.objectNumber, ref.generationNumber);
+                     const decrypted = transformer.decryptBytes(PDFString_1.default.of(actualValue).asBytes());
+-                    actualValue = (0, utils_1.arrayAsString)(decrypted);
++                    // PATCH(necodoc): decrypted bytes are raw, not escaped literal-string syntax.
++                    // Wrapping them back in PDFString writes unbalanced ( ) \ verbatim and breaks the file.
++                    return PDFHexString_1.default.of(decrypted.reduce((str, byte) => str + byte.toString(16).padStart(2, '0'), ''));
+                 }
+                 // Remove the outer parens so they aren't part of the contents
+                 return PDFString_1.default.of(actualValue);
+@@ -203,12 +205,41 @@ class PDFObjectParser extends BaseParser_1.default {
+             end = this.findEndOfStreamFallback(startPos);
+         }
+         let contents = this.bytes.slice(start, end);
+-        if (this.cryptoFactory && ref) {
++        if (this.cryptoFactory && ref && !this.isStoredInTheClear(dict)) {
+             const transform = this.cryptoFactory.createCipherTransform(ref.objectNumber, ref.generationNumber);
+             contents = transform.decryptBytes(contents);
+         }
+         return PDFRawStream_1.default.of(dict, contents);
+     }
++    // PATCH(necodoc): ISO 32000-2 7.5.8.4 (xref streams are never encrypted), 7.6.5 (Identity
++    // crypt filter) and 7.6.4.4 (EncryptMetadata false). Decrypting these corrupts them.
++    isStoredInTheClear(dict) {
++        const type = dict.get(PDFName_1.default.of('Type'));
++        if (type === PDFName_1.default.of('XRef'))
++            return true;
++        const filter = dict.get(PDFName_1.default.of('Filter'));
++        const parms = dict.get(PDFName_1.default.of('DecodeParms'));
++        const isArray = filter instanceof PDFArray_1.default;
++        if ((isArray ? filter.get(0) : filter) !== PDFName_1.default.of('Crypt'))
++            return type === PDFName_1.default.of('Metadata') &&
++                this.cryptoFactory.algorithm >= 4 &&
++                !this.cryptoFactory.encryptMetadata;
++        const first = parms instanceof PDFArray_1.default ? parms.get(0) : parms;
++        const name = first instanceof PDFDict_1.default ? first.get(PDFName_1.default.of('Name')) : undefined;
++        if (name !== undefined && name !== PDFName_1.default.of('Identity'))
++            return false;
++        // Identity crypt filter: drop it so the decrypted document doesn't advertise it.
++        if (isArray && filter.size() > 1) {
++            filter.remove(0);
++            if (parms instanceof PDFArray_1.default)
++                parms.remove(0);
++        }
++        else {
++            dict.delete(PDFName_1.default.of('Filter'));
++            dict.delete(PDFName_1.default.of('DecodeParms'));
++        }
++        return true;
++    }
+     findEndOfStreamFallback(startPos) {
+         // Move to end of stream, while handling nested streams
+         let nestingLvl = 1;
+diff --git a/es/api/PDFDocument.js b/es/api/PDFDocument.js
+index ccfcc3b9a9f09039b2d9b0d9e0df1bf50e4b628d..5f6662e5a0e55e0d669a6c3a0293bb661f4b9be6 100644
+--- a/es/api/PDFDocument.js
++++ b/es/api/PDFDocument.js
+@@ -157,8 +157,15 @@ export default class PDFDocument {
+         this.context = context;
+         this.catalog = context.lookup(context.trailerInfo.Root);
+         if (!!context.lookup(context.trailerInfo.Encrypt) && context.isDecrypted) {
+-            // context.delete(context.trailerInfo.Encrypt);
++            // PATCH(necodoc): the /Encrypt dict is orphaned once decrypted; don't write it back out.
++            if (context.trailerInfo.Encrypt instanceof PDFRef)
++                context.delete(context.trailerInfo.Encrypt);
+             delete context.trailerInfo.Encrypt;
++            // Stale xref streams carry the old /Encrypt and /Prev; the writer regenerates the xref anyway.
++            for (const [ref, object] of context.enumerateIndirectObjects())
++                if (object instanceof PDFStream &&
++                    object.dict.get(PDFName.of('Type')) === PDFName.of('XRef'))
++                    context.delete(ref);
+         }
+         this.isEncrypted = !!context.lookup(context.trailerInfo.Encrypt);
+         this.pageCache = Cache.populatedBy(this.computePages);
+diff --git a/es/core/parser/PDFObjectParser.js b/es/core/parser/PDFObjectParser.js
+index 2818a5b64b7b924173edd047a85a8e85d864f1d5..bf8d4111fc1a07ff757ab3ff9e8462019d0b8ff8 100644
+--- a/es/core/parser/PDFObjectParser.js
++++ b/es/core/parser/PDFObjectParser.js
+@@ -109,7 +109,9 @@ class PDFObjectParser extends BaseParser {
+                 if (this.cryptoFactory && ref) {
+                     const transformer = this.cryptoFactory.createCipherTransform(ref.objectNumber, ref.generationNumber);
+                     const decrypted = transformer.decryptBytes(PDFString.of(actualValue).asBytes());
+-                    actualValue = arrayAsString(decrypted);
++                    // PATCH(necodoc): decrypted bytes are raw, not escaped literal-string syntax.
++                    // Wrapping them back in PDFString writes unbalanced ( ) \ verbatim and breaks the file.
++                    return PDFHexString.of(decrypted.reduce((str, byte) => str + byte.toString(16).padStart(2, '0'), ''));
+                 }
+                 // Remove the outer parens so they aren't part of the contents
+                 return PDFString.of(actualValue);
+@@ -200,12 +202,41 @@ class PDFObjectParser extends BaseParser {
+             end = this.findEndOfStreamFallback(startPos);
+         }
+         let contents = this.bytes.slice(start, end);
+-        if (this.cryptoFactory && ref) {
++        if (this.cryptoFactory && ref && !this.isStoredInTheClear(dict)) {
+             const transform = this.cryptoFactory.createCipherTransform(ref.objectNumber, ref.generationNumber);
+             contents = transform.decryptBytes(contents);
+         }
+         return PDFRawStream.of(dict, contents);
+     }
++    // PATCH(necodoc): ISO 32000-2 7.5.8.4 (xref streams are never encrypted), 7.6.5 (Identity
++    // crypt filter) and 7.6.4.4 (EncryptMetadata false). Decrypting these corrupts them.
++    isStoredInTheClear(dict) {
++        const type = dict.get(PDFName.of('Type'));
++        if (type === PDFName.of('XRef'))
++            return true;
++        const filter = dict.get(PDFName.of('Filter'));
++        const parms = dict.get(PDFName.of('DecodeParms'));
++        const isArray = filter instanceof PDFArray;
++        if ((isArray ? filter.get(0) : filter) !== PDFName.of('Crypt'))
++            return type === PDFName.of('Metadata') &&
++                this.cryptoFactory.algorithm >= 4 &&
++                !this.cryptoFactory.encryptMetadata;
++        const first = parms instanceof PDFArray ? parms.get(0) : parms;
++        const name = first instanceof PDFDict ? first.get(PDFName.of('Name')) : undefined;
++        if (name !== undefined && name !== PDFName.of('Identity'))
++            return false;
++        // Identity crypt filter: drop it so the decrypted document doesn't advertise it.
++        if (isArray && filter.size() > 1) {
++            filter.remove(0);
++            if (parms instanceof PDFArray)
++                parms.remove(0);
++        }
++        else {
++            dict.delete(PDFName.of('Filter'));
++            dict.delete(PDFName.of('DecodeParms'));
++        }
++        return true;
++    }
+     findEndOfStreamFallback(startPos) {
+         // Move to end of stream, while handling nested streams
+         let nestingLvl = 1;

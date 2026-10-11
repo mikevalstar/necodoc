@@ -1,0 +1,44 @@
+---
+title: necodoc developer docs
+description: Run necodoc, render PDFs from HTML and templates, and operate it on your own infrastructure.
+template: splash
+hero:
+  tagline: Guided forms and templates in, finished PDFs out. Self-hosted.
+  image:
+    file: ../../assets/neko-mark.svg
+  actions:
+    - text: Getting started
+      link: /getting-started/introduction/
+      icon: right-arrow
+    - text: Self-hosting
+      link: /self-hosting/
+      variant: secondary
+    - text: Guides
+      link: /guides/html-to-pdf/
+      variant: minimal
+---
+
+import { CardGrid, LinkCard } from "@astrojs/starlight/components";
+
+<CardGrid>
+  <LinkCard
+    title="Quickstart"
+    description="Run the stack with Docker Compose and render your first PDF."
+    href="/getting-started/quickstart/"
+  />
+  <LinkCard
+    title="Templates and Liquid"
+    description="Fields, the guided form, Liquid filters and publishing."
+    href="/guides/templates-and-liquid/"
+  />
+  <LinkCard
+    title="HTML to PDF"
+    description="Send HTML, CSS, bands and data; get a PDF back."
+    href="/guides/html-to-pdf/"
+  />
+  <LinkCard
+    title="Self-hosting"
+    description="Images, Compose, Helm, scaling, storage, backups and upgrades."
+    href="/self-hosting/"
+  />
+</CardGrid>

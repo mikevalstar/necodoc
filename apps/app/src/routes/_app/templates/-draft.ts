@@ -1,8 +1,11 @@
 import {
+  createTemplateSchema,
   type DesignedContent,
-  designedDraftSchema,
   type FieldSection,
+  type OverlayContent,
   type PageOptions,
+  previewTemplateSchema,
+  type Template,
 } from "@necodoc/shared";
 import type { JSONContent } from "@tiptap/core";
 import type { z } from "zod";
@@ -22,32 +25,44 @@ export type VisualContent = {
 };
 export type EditorContent = VisualContent | CodeContent;
 
-export type DraftValues = {
+/** What both kinds share; the editor's header, fields and sample data tabs change these. */
+type CommonValues = {
   name: string;
   description: string;
   sections: FieldSection[];
   sampleData: Record<string, unknown>;
+};
+export type DesignedDraftValues = CommonValues & {
+  kind: "designed";
   themeId: string | null;
   page: PageOptions;
   content: EditorContent;
 };
+export type OverlayDraftValues = CommonValues & { kind: "overlay"; content: OverlayContent };
+export type DraftValues = DesignedDraftValues | OverlayDraftValues;
+export type CommonChanges = Partial<CommonValues>;
 
 export const emptyDoc: JSONContent = { type: "doc", content: [{ type: "paragraph" }] };
 
-/** What PATCH /templates/:id takes, checked like the API checks it. */
-export const draftSchema = designedDraftSchema.omit({ kind: true });
-export type Draft = z.infer<typeof draftSchema>;
+/** The draft checked like the API checks it; PATCH /templates/:id ignores the `kind`. */
+export const draftSchema = createTemplateSchema;
 
 /** What POST /templates/:id/preview renders: the draft minus its name. */
-export const previewDraftSchema = designedDraftSchema.omit({
-  kind: true,
-  name: true,
-  description: true,
-});
+export const previewDraftSchema = previewTemplateSchema.shape.draft.unwrap();
+export type PreviewDraft = z.infer<typeof previewDraftSchema>;
 
-export function toDraftValues(template: Draft): DraftValues {
-  const { name, description, sections, sampleData, themeId, page, content } = template;
-  return { name, description, sections, sampleData, themeId, page, content };
+export function toDraftValues(template: Template): DraftValues {
+  const { name, description, sections, sampleData } = template;
+  const common = { name, description, sections, sampleData };
+  return template.kind === "overlay"
+    ? { kind: "overlay", ...common, content: template.content }
+    : {
+        kind: "designed",
+        ...common,
+        themeId: template.themeId,
+        page: template.page,
+        content: template.content,
+      };
 }
 
 /** A readable "where" for a draft problem's path, e.g. ["content", "header", ...] → "Header". */
@@ -59,6 +74,7 @@ export function problemArea(path: readonly PropertyKey[]) {
   if (first === "content") {
     if (second === "header") return "Header";
     if (second === "footer") return "Footer";
+    if (second === "boxes") return "Boxes";
     return "Content";
   }
   return String(first ?? "Draft");

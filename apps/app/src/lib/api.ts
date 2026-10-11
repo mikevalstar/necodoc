@@ -112,9 +112,24 @@ export async function previewTemplate({
     pdf: await res.blob(),
     pageCount: Number(res.headers.get("X-Page-Count")),
     dataValid: res.headers.get("X-Data-Valid") === "true",
+    warnings: renderWarnings(res.headers.get("X-Render-Warnings")),
   };
 }
 
-/** Same-origin URLs the browser loads directly (img, iframe, download links). */
+/** X-Render-Warnings: URI-encoded JSON list (overlay templates: text cut, unknown fields). */
+function renderWarnings(header: string | null): string[] {
+  if (!header) return [];
+  try {
+    return z
+      .array(z.string())
+      .catch([])
+      .parse(JSON.parse(decodeURIComponent(header)));
+  } catch {
+    return [];
+  }
+}
+
+/** Same-origin URLs the browser loads directly (img, iframe, download links, pdf.js). */
 export const assetFileUrl = (id: string) => `/api/assets/${id}/file`;
+export const pdfSourceUrl = (id: string) => `/api/pdf-sources/${id}/pdf`;
 export const generationPdfUrl = (id: string) => `/api/generations/${id}/pdf`;

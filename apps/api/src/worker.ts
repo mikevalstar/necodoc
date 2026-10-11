@@ -1,15 +1,16 @@
 import { hostname } from "node:os";
 import { lt } from "drizzle-orm";
-import type { JobWithMetadata } from "pg-boss";
+import type { Job, JobWithMetadata } from "pg-boss";
 import { db } from "./db";
 import { worker } from "./db/schema";
+import { detectFields } from "./detect/detect";
 import { env, runsWorker } from "./env";
-import { markLost, processId, runGeneration } from "./generate";
-import { boss, queues, type RenderJobData } from "./queue";
+import { loadSourceBytes, markLost, processId, runGeneration } from "./generate";
+import { boss, type DetectJobData, queues, type RenderJobData } from "./queue";
 import { runRetention } from "./retention";
 
-// ADR 0020: the worker role. Consumes render jobs with RENDER_CONCURRENCY at a time, and runs the
-// scheduled jobs. Every role heartbeats so Admin > System can list the cluster.
+// ADR 0020: the worker role. Consumes render jobs with RENDER_CONCURRENCY at a time, AI detection
+// jobs (ADR 0028), and the scheduled jobs. Every role heartbeats so Admin > System can list the cluster.
 
 let running = 0;
 
@@ -42,6 +43,16 @@ export async function startWorker() {
   await boss.work<RenderJobData>(queues.renderLost, async (jobs) => {
     for (const job of jobs) await markLost(job.data.generationId);
   });
+  await boss.work(
+    queues.detectFields,
+    { localConcurrency: 2 },
+    async ([job]: Job<DetectJobData>[]) => {
+      if (!job) return;
+      const bytes = await loadSourceBytes(job.data.sourceId);
+      if (!bytes) throw new Error("The PDF is gone");
+      return detectFields(bytes, { known: job.data.known, signal: job.signal });
+    },
+  );
   await boss.work(queues.retention, async () => {
     console.log("retention:", await runRetention());
   });

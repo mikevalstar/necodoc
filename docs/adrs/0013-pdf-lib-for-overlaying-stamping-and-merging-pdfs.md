@@ -13,7 +13,7 @@ generated: { by: okq/0.9.0, at: 2026-10-11T15:36:56Z }
 
 Accepted. Second half of the PDF model answer in
 [Filling out a document](../features/filling-out-a-document.md); the first half
-is [ADR 0012](0012-headless-chromium-for-html-to-pdf.md).
+is [ADR 0012](0012-headless-chromium-for-html-to-pdf.md). Encrypted uploads: superseded by [ADR 0027](0027-encrypted-pdfs-with-an-empty-password-open-through-a-patched-pdf-lib.md) (empty-password PDFs are accepted through a patched pdf-lib, and `@cantoo/fontkit` replaces `@pdf-lib/fontkit`).
 
 ## Context
 

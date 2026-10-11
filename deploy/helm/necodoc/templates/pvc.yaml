@@ -1,0 +1,20 @@
+{{- $disk := .Values.storage.disk -}}
+{{- if and (eq .Values.storage.driver "disk") (not $disk.existingClaim) }}
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: {{ include "necodoc.claimName" . }}
+  labels:
+    {{- include "necodoc.labels" . | nindent 4 }}
+  annotations:
+    # Generated PDFs live here; don't lose them on uninstall.
+    helm.sh/resource-policy: keep
+spec:
+  accessModes: [{{ $disk.accessMode }}]
+  {{- with $disk.storageClassName }}
+  storageClassName: {{ . }}
+  {{- end }}
+  resources:
+    requests:
+      storage: {{ $disk.size }}
+{{- end }}

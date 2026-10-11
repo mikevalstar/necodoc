@@ -20,6 +20,12 @@ export const env = z
     APP_VERSION: z.string().default("dev"),
     /** ADR 0023: `presigned` redirects output downloads to an S3 presigned URL or Azure SAS. */
     STORAGE_REDIRECT: z.enum(["off", "presigned"]).default("off"),
+    /** ADR 0022: AI is on only with a key. An empty value counts as unset. */
+    ANTHROPIC_KEY: z
+      .string()
+      .optional()
+      .transform((key) => key?.trim() || undefined),
+    AI_MODEL: z.string().min(1).default("claude-sonnet-5-5"),
     /** Signs download links; falls back to BETTER_AUTH_SECRET. Changing it voids live links. */
     DOWNLOAD_SIGNING_SECRET: z.string().min(32).optional(),
   })

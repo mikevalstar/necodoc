@@ -48,7 +48,6 @@ const templates: readonly FaqEntry[] = [
       "One draft per template. If someone else saved since you opened it, Save is refused and you have to reload, losing your unsaved changes.",
       "Table column widths aren't carried into the PDF; columns size to their content.",
       "No JavaScript runs in documents, so no client-side charts.",
-      "PDF overlay templates (filling an existing PDF) aren't available yet.",
     ],
     access: [
       { action: "See published templates", needs: view },
@@ -476,5 +475,85 @@ export const faq: readonly FaqEntry[] = [
     ],
     access: [{ action: "Make a link to an entry you can see", needs: view }],
     spec: "docs/features/generation-log.md",
+  },
+  {
+    feature: "PDF overlay templates",
+    group: "Templates",
+    what: "Fill a PDF you already use (a government form, a carrier's bond) instead of rebuilding it. You upload the PDF, place boxes where the answers go, and bind each box to a template field with a Liquid expression. Generation writes the values onto the original pages, so the output looks exactly like the form. Fields, sample data, publishing, versions, batches and the generation log work as for designed templates.",
+    howTo:
+      "Templates › New template › Kind: Fill an existing PDF, pick the file (up to 20 MB, 200 pages). On the Boxes tab, choose a box type in 'Draw', drag on the page, then set its value in the inspector: pick 'Bind to a field' or type a new label and 'Create field'. Click a box to move or resize it; arrow keys nudge it (Shift for 10 pt), Delete removes it, ⌘D duplicates it. The PDF tab has Flatten (no editable fields in the output) and 'Upload a new PDF' for a new revision of the form.",
+    limitations: [
+      "Text never flows from one box to the next. Auto-shrink stops at the minimum size; past it the text is cut and the generation records a warning.",
+      "Signature boxes draw an image. Signer ids are saved for future signing packages but do nothing yet.",
+      "Uploaded fonts must be TTF or OTF; a WOFF2 font falls back to Noto Sans.",
+      "Pure XFA forms and PDFs that need a password to open can't be used.",
+      "No snapping to lines in the editor; use AI detection or the coordinates in the inspector for precise placement.",
+      "Replaced or deleted PDFs stay in the database (published versions may still use them).",
+    ],
+    access: [
+      { action: drafts, needs: { document: ["review"] } },
+      { action: "Create and upload PDFs", needs: create },
+      { action: "Place boxes and edit drafts", needs: edit },
+      { action: "Publish", needs: publish },
+    ],
+    spec: "docs/features/pdf-overlay-templates.md",
+  },
+  {
+    feature: "AcroForm import",
+    group: "Templates",
+    what: "Many PDFs already have fillable form fields. 'Import form fields' turns each one into a box plus a template field in one click: keys and labels come from the field's tooltip or name, types from the field (text, multiline, checkbox, choice, signature) and from words like 'date'. Imported boxes fill the PDF's own field by name instead of drawing over it, so the output stays fillable unless you flatten it.",
+    howTo:
+      "Open an overlay template's Boxes tab and click 'Import form fields (N)'; N counts the fields not mapped yet, so running it again only adds new ones. Rename keys and labels on the Fields tab. Any box can be pointed at a form field in the inspector's 'Form field' menu.",
+    limitations: [
+      "Keys are only as good as the PDF's field names. Tools like Acrobat often name a field after the text before it, which can be the wrong blank; check them.",
+      "Push buttons (print, reset) and read-only fields are skipped.",
+      "A value that isn't one of a dropdown's or radio group's options is skipped with a warning.",
+      "Signature fields can't take a value, so their boxes draw the signature image over them instead.",
+    ],
+    access: [{ action: "Import", needs: edit }],
+    spec: "docs/features/pdf-overlay-templates.md",
+  },
+  {
+    feature: "AI field detection",
+    group: "Templates",
+    what: "For PDFs without form fields, 'Detect with AI' asks Claude (Sonnet) to find the blanks, checkboxes and signature lines on each page and suggest a box, key, label and type for each. The server then snaps every box onto the printed line, cell or square it belongs to. Suggestions show dashed beside your boxes; nothing is saved until you accept them. Only shown when AI is turned on.",
+    howTo:
+      "On an overlay template's Boxes tab, click 'Detect with AI' and wait (5 to 10 seconds a page). Review the list: click one to see it on the page, tick to accept, × to reject. 'Accept all but approximate' takes every box that lined up with something printed; approximate ones are marked ≈. Accepting reuses a field with the same key, or creates it.",
+    limitations: [
+      "Suggestions only: check every box and rename keys; the names are guesses.",
+      "Works best on typed PDFs with drawn lines or boxes. Untested on scans, rotated pages and non-Letter sizes.",
+      "Multi-line answers are sometimes one box, sometimes one per line; several blanks on one line may merge.",
+      "Blanks that are already filled in (a printed $5,000.00) can still be suggested.",
+      "About 1.5 cents a page at Anthropic's prices, and 5 to 10 seconds a page; only the first 20 pages are checked.",
+      "The page images are sent to Anthropic. Text in the PDF is treated as data, and the result is a fixed list you review, but don't use it on documents that mustn't leave your systems.",
+    ],
+    access: [{ action: "Run detection", needs: edit }],
+    spec: "docs/features/pdf-overlay-templates.md",
+  },
+  {
+    feature: "Encrypted PDFs",
+    group: "Templates",
+    what: "Many government forms are encrypted with an empty password: every viewer opens them without asking, and the encryption only carries print and edit restrictions. necodoc accepts these, fills them, and saves the output unencrypted. PDFs that really need a password to open are refused with a message saying so.",
+    howTo:
+      "Nothing to do: upload the form as usual. The PDF tab says when a form was encrypted. To use a password-protected PDF, open it with its password, print or save it as a new PDF, and upload that.",
+    limitations: [
+      "Outputs lose the original's print and edit restrictions.",
+      "Filling invalidates any digital signature in the original form.",
+    ],
+    access: [{ action: "Upload", needs: create }],
+    spec: "docs/features/pdf-overlay-templates.md",
+  },
+  {
+    feature: "Turning AI on and off",
+    group: "Admin",
+    what: "AI features (currently field detection) are on only when the API has an Anthropic key. Without one, every AI button is hidden and the AI endpoints answer 404, so no document content can reach a model.",
+    howTo:
+      "Set ANTHROPIC_KEY on every API and worker process and restart them; workers run the detection jobs. AI_MODEL picks the model (default claude-sonnet-5-5). Remove the key (or set it empty) and restart to turn AI off.",
+    limitations: [
+      "No per-user quota or usage report yet; each run costs money on the key's account.",
+      "One provider (Anthropic) for now.",
+    ],
+    access: [{ action: "Configure", needs: "admin" }],
+    spec: "docs/features/pdf-overlay-templates.md",
   },
 ];

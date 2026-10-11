@@ -1,0 +1,18 @@
+{{- range $role := list "api" "worker" }}
+{{- $v := index $.Values $role }}
+{{- if $v.pdb.enabled }}
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: {{ include "necodoc.fullname" $ }}-{{ $role }}
+  labels:
+    {{- include "necodoc.labels" $ | nindent 4 }}
+    app.kubernetes.io/component: {{ $role }}
+spec:
+  maxUnavailable: {{ $v.pdb.maxUnavailable }}
+  selector:
+    matchLabels:
+      {{- include "necodoc.selector" (dict "root" $ "component" $role) | nindent 6 }}
+{{- end }}
+{{- end }}

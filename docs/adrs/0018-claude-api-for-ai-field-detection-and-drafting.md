@@ -11,7 +11,7 @@ generated: { by: okq/0.9.0, at: 2026-10-11T15:36:56Z }
 
 ## Status
 
-Accepted. The SDK choice is superseded by [ADR 0022](0022-vercel-ai-sdk-for-all-ai-features.md) (Vercel AI SDK with the Anthropic provider); the rest stands.
+Accepted. The SDK choice is superseded by [ADR 0022](0022-vercel-ai-sdk-for-all-ai-features.md) (Vercel AI SDK with the Anthropic provider); the rest stands. How detection gets its inputs (server-side extraction, a queue job, geometry snapping) is superseded by [ADR 0028](0028-server-side-pdf-extraction-and-ai-field-detection-as-a-queue-job.md).
 
 ## Context
 

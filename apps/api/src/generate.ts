@@ -5,19 +5,21 @@ import {
   type GenerationStatus,
   isFinishedStatus,
   MAX_FILE_BYTES,
+  type RenderInput,
   type RenderRequest,
 } from "@necodoc/shared";
 import { and, eq, inArray, sql } from "drizzle-orm";
 import { fromDrizzle } from "pg-boss";
 import { z } from "zod";
 import { db } from "./db";
-import { asset, file, generation, theme } from "./db/schema";
+import { asset, file, generation, pdfSource, theme } from "./db/schema";
 import { env } from "./env";
 import { deleteObjects, StorageError, type WrittenOutput, writeOutput } from "./files";
 import { limiter } from "./limiter";
 import { announceFinished, boss, priorities, queues, waitUntilFinished } from "./queue";
 import type { AssetLoader } from "./render/browser";
 import { isInfrastructureError } from "./render/errors";
+import { renderOverlay, type SourceLoader } from "./render/overlay";
 import { type RenderJob, renderPdf } from "./render/render";
 
 // Specs: docs/features/generation-log.md, docs/features/render-queue-batch-jobs-and-scaling.md.
@@ -38,6 +40,16 @@ export const loadStoredAsset: AssetLoader = async (id) => {
   return row?.bytes ? { bytes: row.bytes, mimeType: row.mimeType } : null;
 };
 
+/** An overlay template's uploaded PDF (base data, in Postgres: ADR 0014). */
+export const loadSourceBytes: SourceLoader = async (sourceId) => {
+  const [row] = await db
+    .select({ bytes: file.bytes })
+    .from(pdfSource)
+    .innerJoin(file, eq(file.id, pdfSource.fileId))
+    .where(eq(pdfSource.id, sourceId));
+  return row?.bytes ?? null;
+};
+
 async function resolveTheme(request: RenderRequest): Promise<RenderJob["theme"]> {
   if (request.themeDraft) return request.themeDraft;
   if (!request.themeId) return undefined;
@@ -51,12 +63,18 @@ async function resolveTheme(request: RenderRequest): Promise<RenderJob["theme"]>
 
 const errorMessage = (error: unknown) => (error instanceof Error ? error.message : String(error));
 
-/** Renders with the theme resolved; refuses PDFs too big to store. */
-async function render(request: RenderRequest) {
-  const rendered = await renderPdf(
-    { ...request, theme: await resolveTheme(request) },
-    loadStoredAsset,
-  );
+/**
+ * HTML through Chromium (theme resolved), or a PDF overlay through pdf-lib. Refuses PDFs too big
+ * to store.
+ */
+async function render(request: RenderInput) {
+  const rendered =
+    "kind" in request
+      ? await renderOverlay(request, loadSourceBytes, loadStoredAsset)
+      : {
+          ...(await renderPdf({ ...request, theme: await resolveTheme(request) }, loadStoredAsset)),
+          warnings: [],
+        };
   if (rendered.pdf.byteLength > MAX_FILE_BYTES) {
     throw new Error(`The PDF is over ${MAX_FILE_BYTES / 1024 / 1024} MB`);
   }
@@ -74,14 +92,20 @@ export function pdfFilename(name: string | undefined) {
 const previewSlot = limiter(() => env.PREVIEW_CONCURRENCY);
 
 export type PreviewResult =
-  | { ok: true; pdf: Uint8Array<ArrayBuffer>; pageCount: number; filename: string }
+  | {
+      ok: true;
+      pdf: Uint8Array<ArrayBuffer>;
+      pageCount: number;
+      filename: string;
+      warnings: string[];
+    }
   | { ok: false; error: string };
 
 /** In-process and unlogged, so editing never waits on the queue (ADR 0020). */
-export async function renderPreview(request: RenderRequest): Promise<PreviewResult> {
+export async function renderPreview(request: RenderInput): Promise<PreviewResult> {
   try {
-    const { pdf, pageCount } = await previewSlot(() => render(request));
-    return { ok: true, pdf, pageCount, filename: pdfFilename(request.filename) };
+    const { pdf, pageCount, warnings } = await previewSlot(() => render(request));
+    return { ok: true, pdf, pageCount, filename: pdfFilename(request.filename), warnings };
   } catch (error) {
     return { ok: false, error: errorMessage(error) };
   }
@@ -91,7 +115,7 @@ export async function renderPreview(request: RenderRequest): Promise<PreviewResu
 // Enqueue and wait (API side)
 
 export type GenerationInput = {
-  request: RenderRequest;
+  request: RenderInput;
   source: GenerationSource;
   userId: string;
   requestId?: string;
@@ -238,6 +262,7 @@ async function finish(
               pageCount: outcome.pageCount,
               size: outcome.output.size,
               timings: outcome.timings,
+              warnings: outcome.warnings,
             }
           : { status: "error" as const, error: outcome.error };
       const [updated] = await tx

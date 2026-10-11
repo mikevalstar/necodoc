@@ -1,8 +1,11 @@
 import {
   designedContentSchema,
   hasPermission,
+  overlayFieldProblems,
+  type Template,
   TemplateCompileError,
   templateFieldProblems,
+  templateSchema,
   toCodeMode,
 } from "@necodoc/shared";
 import {
@@ -44,7 +47,8 @@ import { dayjs } from "@/lib/date";
 import { templatesQuery } from "@/lib/queries";
 import { BandsPanel, BodyPanel, CssPanel } from "./-content-panels";
 import {
-  type Draft,
+  type CommonChanges,
+  type DesignedDraftValues,
   type DraftValues,
   draftSchema,
   type EditorContent,
@@ -53,6 +57,7 @@ import {
   toDraftValues,
 } from "./-draft";
 import { FieldDesigner } from "./-field-designer";
+import { OverlayEditor, OverlayPdfPanel } from "./-overlay-editor";
 import { PagePanel } from "./-page-panel";
 import { SamplePanel } from "./-sample-panel";
 import {
@@ -64,14 +69,16 @@ import {
 } from "./-template-actions";
 import { VersionsPanel, versionQuery, versionsQuery } from "./-versions";
 
-// Specs: docs/features/document-templates.md, docs/features/template-fields-and-guided-form.md,
-// docs/features/publishing-and-versions.md. Editors change the draft; reviewers and publishers
+// Specs: docs/features/document-templates.md, docs/features/pdf-overlay-templates.md,
+// docs/features/template-fields-and-guided-form.md, docs/features/publishing-and-versions.md. Editors change the draft; reviewers and publishers
 // open it read-only; viewers never get here (the API refuses them the draft).
 
 const templateQuery = (id: string) =>
   queryOptions({
     queryKey: ["templates", id],
-    queryFn: async () => (await ok(api.templates[":id"].$get({ param: { id } }))).json(),
+    // Parsed so `kind` narrows `content` (jsonb comes back untyped by kind).
+    queryFn: async () =>
+      templateSchema.parse(await (await ok(api.templates[":id"].$get({ param: { id } }))).json()),
   });
 
 export const Route = createFileRoute("/_app/templates/$id")({
@@ -99,13 +106,11 @@ function TemplatePage() {
   return <TemplateEditor key={`${template.id}:${loads}`} template={template} onReload={reload} />;
 }
 
-type StoredTemplate = Draft & { id: string; updatedAt: string; archivedAt: string | null };
-
 function TemplateEditor({
   template,
   onReload,
 }: {
-  template: StoredTemplate;
+  template: Template;
   onReload: () => Promise<void>;
 }) {
   const { me } = Route.useRouteContext();
@@ -128,18 +133,25 @@ function TemplateEditor({
   const [previewing, setPreviewing] = useState<number | null>(null);
   const [codeError, setCodeError] = useState<string | null>(null);
 
-  const change = (changes: Partial<DraftValues>) => setDraft((d) => ({ ...d, ...changes }));
-  const setContent = (content: EditorContent) => change({ content });
+  const change = (changes: CommonChanges) => setDraft((d) => ({ ...d, ...changes }));
+  const changeDesigned = (changes: Partial<DesignedDraftValues>) =>
+    setDraft((d) => (d.kind === "designed" ? { ...d, ...changes } : d));
+  const setContent = (content: EditorContent) => changeDesigned({ content });
   const current = JSON.stringify(draft);
   const dirty = canEdit && current !== saved;
 
   const parsed = useMemo(() => draftSchema.safeParse(draft), [draft]);
   const problems = useMemo(() => {
-    const content = designedContentSchema.safeParse(draft.content);
-    if (!content.success) return [];
+    const found =
+      draft.kind === "overlay"
+        ? overlayFieldProblems(draft.content, draft.sections)
+        : (() => {
+            const content = designedContentSchema.safeParse(draft.content);
+            return content.success ? templateFieldProblems(content.data, draft.sections) : [];
+          })();
     // One line per distinct problem, however many places it occurs.
-    return [...new Set(templateFieldProblems(content.data, draft.sections).map((p) => p.message))];
-  }, [draft.content, draft.sections]);
+    return [...new Set(found.map((p) => p.message))];
+  }, [draft]);
 
   const save = useMutation({
     mutationFn: async () => {
@@ -158,7 +170,7 @@ function TemplateEditor({
     onSuccess: async ({ row, sent }) => {
       setBaseUpdatedAt(row.updatedAt);
       setSaved(sent);
-      queryClient.setQueryData(templateQuery(template.id).queryKey, row);
+      queryClient.setQueryData(templateQuery(template.id).queryKey, templateSchema.parse(row));
       await queryClient.invalidateQueries({ queryKey: templatesQuery.queryKey, exact: true });
     },
   });
@@ -203,6 +215,7 @@ function TemplateEditor({
 
   /** The draft's content compiled to code mode, or null with the reason shown in the dialog. */
   const codeContent = () => {
+    if (draft.kind !== "designed") return null;
     const content = designedContentSchema.safeParse(draft.content);
     if (!content.success) {
       setCodeError("Fix the content problems first.");
@@ -226,13 +239,10 @@ function TemplateEditor({
   const duplicateAsCode = useMutation({
     mutationFn: async () => {
       const content = codeContent();
-      if (!content || !parsed.success) throw new Error("Fix the problems first.");
-      const json = {
-        ...parsed.data,
-        kind: "designed" as const,
-        name: `${draft.name} (code)`,
-        content,
-      };
+      if (!content || !parsed.success || parsed.data.kind !== "designed") {
+        throw new Error("Fix the problems first.");
+      }
+      const json = { ...parsed.data, name: `${draft.name} (code)`, content };
       return (await ok(api.templates.$post({ json }))).json();
     },
     onSuccess: async (created) => {
@@ -264,7 +274,10 @@ function TemplateEditor({
           onChange={(e) => change({ name: e.target.value })}
         />
         <TemplateStatusBadges template={status} />
-        {draft.content.mode === "code" && <Badge variant="secondary">Code mode</Badge>}
+        {draft.kind === "designed" && draft.content.mode === "code" && (
+          <Badge variant="secondary">Code mode</Badge>
+        )}
+        {draft.kind === "overlay" && <Badge variant="secondary">PDF overlay</Badge>}
         <div className="ml-auto flex items-center gap-2">
           {canEdit && (
             <span role="status" className="text-sm text-muted-foreground">
@@ -326,9 +339,11 @@ function TemplateEditor({
                   {archivedAt ? "Restore" : "Archive"}
                 </DropdownMenuItem>
               )}
-              {(canEdit || can("create")) && draft.content.mode === "visual" && (
-                <DropdownMenuItem onClick={() => setDialog("code")}>Code mode…</DropdownMenuItem>
-              )}
+              {(canEdit || can("create")) &&
+                draft.kind === "designed" &&
+                draft.content.mode === "visual" && (
+                  <DropdownMenuItem onClick={() => setDialog("code")}>Code mode…</DropdownMenuItem>
+                )}
               {canEdit && (
                 <>
                   <DropdownMenuSeparator />
@@ -406,34 +421,87 @@ function TemplateEditor({
         </Alert>
       )}
 
-      <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_minmax(0,0.9fr)]">
+      <div
+        className={
+          draft.kind === "overlay"
+            ? "grid gap-6 xl:grid-cols-[minmax(0,1.5fr)_minmax(0,0.6fr)]"
+            : "grid gap-6 xl:grid-cols-[minmax(0,1fr)_minmax(0,0.9fr)]"
+        }
+      >
         <Tabs defaultValue="content">
           <TabsList className="flex-wrap">
-            <TabsTrigger value="content">Content</TabsTrigger>
-            <TabsTrigger value="bands">Header & footer</TabsTrigger>
+            <TabsTrigger value="content">
+              {draft.kind === "overlay" ? "Boxes" : "Content"}
+            </TabsTrigger>
+            {draft.kind === "designed" && <TabsTrigger value="bands">Header & footer</TabsTrigger>}
             <TabsTrigger value="fields">Fields</TabsTrigger>
             <TabsTrigger value="sample">Sample data</TabsTrigger>
-            <TabsTrigger value="page">Page & theme</TabsTrigger>
-            <TabsTrigger value="css">CSS</TabsTrigger>
+            <TabsTrigger value="page">
+              {draft.kind === "overlay" ? "PDF" : "Page & theme"}
+            </TabsTrigger>
+            {draft.kind === "designed" && <TabsTrigger value="css">CSS</TabsTrigger>}
             <TabsTrigger value="versions">Versions</TabsTrigger>
           </TabsList>
-          {/* Editors stay mounted so their undo history and cursor survive tab switches. */}
-          <TabsContent value="content" keepMounted>
-            <BodyPanel
-              content={draft.content}
-              onChange={setContent}
-              sections={draft.sections}
-              editable={canEdit}
-            />
-          </TabsContent>
-          <TabsContent value="bands" keepMounted>
-            <BandsPanel
-              content={draft.content}
-              onChange={setContent}
-              sections={draft.sections}
-              editable={canEdit}
-            />
-          </TabsContent>
+          {draft.kind === "overlay" ? (
+            <>
+              {/* Kept mounted: the PDF stays loaded and rendered across tab switches. */}
+              <TabsContent value="content" keepMounted>
+                <OverlayEditor
+                  content={draft.content}
+                  sections={draft.sections}
+                  editable={canEdit}
+                  onChange={(changes) =>
+                    setDraft((d) =>
+                      d.kind === "overlay"
+                        ? {
+                            ...d,
+                            content: changes.content ?? d.content,
+                            sections: changes.sections ?? d.sections,
+                          }
+                        : d,
+                    )
+                  }
+                />
+              </TabsContent>
+              <TabsContent value="page">
+                <OverlayPdfPanel
+                  description={draft.description}
+                  content={draft.content}
+                  editable={canEdit}
+                  onDescription={(description) => change({ description })}
+                  onContent={(content) =>
+                    setDraft((d) => (d.kind === "overlay" ? { ...d, content } : d))
+                  }
+                />
+              </TabsContent>
+            </>
+          ) : (
+            <>
+              {/* Editors stay mounted so their undo history and cursor survive tab switches. */}
+              <TabsContent value="content" keepMounted>
+                <BodyPanel
+                  content={draft.content}
+                  onChange={setContent}
+                  sections={draft.sections}
+                  editable={canEdit}
+                />
+              </TabsContent>
+              <TabsContent value="bands" keepMounted>
+                <BandsPanel
+                  content={draft.content}
+                  onChange={setContent}
+                  sections={draft.sections}
+                  editable={canEdit}
+                />
+              </TabsContent>
+              <TabsContent value="page">
+                <PagePanel draft={draft} onChange={changeDesigned} editable={canEdit} />
+              </TabsContent>
+              <TabsContent value="css" keepMounted>
+                <CssPanel content={draft.content} onChange={setContent} editable={canEdit} />
+              </TabsContent>
+            </>
+          )}
           <TabsContent value="fields">
             <FieldDesigner
               sections={draft.sections}
@@ -448,12 +516,6 @@ function TemplateEditor({
               onChange={(sampleData) => change({ sampleData })}
               editable={canEdit}
             />
-          </TabsContent>
-          <TabsContent value="page">
-            <PagePanel draft={draft} onChange={change} editable={canEdit} />
-          </TabsContent>
-          <TabsContent value="css" keepMounted>
-            <CssPanel content={draft.content} onChange={setContent} editable={canEdit} />
           </TabsContent>
           <TabsContent value="versions">
             <VersionsPanel
@@ -491,6 +553,19 @@ function TemplateEditor({
             </span>
           </div>
           <ErrorAlert error={preview.error ?? version.error} />
+          {preview.data && preview.data.warnings.length > 0 && (
+            <Alert>
+              <TriangleAlertIcon />
+              <AlertTitle>Render warnings</AlertTitle>
+              <AlertDescription>
+                <ul className="list-disc pl-4">
+                  {preview.data.warnings.map((warning) => (
+                    <li key={warning}>{warning}</li>
+                  ))}
+                </ul>
+              </AlertDescription>
+            </Alert>
+          )}
           {preview.data ? (
             <PdfFrame pdf={preview.data.pdf} title="Template preview" className="h-[82svh]" />
           ) : (

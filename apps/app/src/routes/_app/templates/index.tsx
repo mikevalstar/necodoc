@@ -36,6 +36,7 @@ import {
 import { api, ok } from "@/lib/api";
 import { dayjs } from "@/lib/date";
 import { templatesQuery } from "@/lib/queries";
+import { uploadPdfSource } from "./-overlay-editor";
 import {
   DeleteTemplateDialog,
   TemplateStatusBadges,
@@ -248,13 +249,29 @@ const createSchema = z.object({
   description: z.string().max(2000),
 });
 
-/** Designed templates only for now; PDF overlay templates come with their own flow. */
+type Kind = "designed" | "overlay";
+
+/** A designed template from scratch, or an overlay template on an uploaded PDF. */
 function CreateTemplateDialog({ onClose }: { onClose: () => void }) {
   const queryClient = useQueryClient();
   const navigate = useNavigate();
+  const [kind, setKind] = useState<Kind>("designed");
+  const [file, setFile] = useState<File | null>(null);
   const create = useMutation({
-    mutationFn: async (json: z.infer<typeof createSchema>) =>
-      (await ok(api.templates.$post({ json: { kind: "designed", ...json } }))).json(),
+    mutationFn: async (json: z.infer<typeof createSchema>) => {
+      if (kind === "designed") {
+        return (await ok(api.templates.$post({ json: { kind: "designed", ...json } }))).json();
+      }
+      if (!file) throw new Error("Pick the PDF to fill");
+      const source = await uploadPdfSource(file);
+      return (
+        await ok(
+          api.templates.$post({
+            json: { kind: "overlay", ...json, content: { sourceId: source.id } },
+          }),
+        )
+      ).json();
+    },
     onSuccess: async (created) => {
       await queryClient.invalidateQueries({ queryKey: templatesQuery.queryKey });
       await navigate({ to: "/templates/$id", params: { id: created.id } });
@@ -278,10 +295,40 @@ function CreateTemplateDialog({ onClose }: { onClose: () => void }) {
           <DialogHeader>
             <DialogTitle>New template</DialogTitle>
             <DialogDescription>
-              Design a document from scratch: content, header and footer, and the fields it needs.
+              {kind === "designed"
+                ? "Design a document from scratch: content, header and footer, and the fields it needs."
+                : "Upload a PDF you already use, then place boxes where the answers go."}
             </DialogDescription>
           </DialogHeader>
           <FieldGroup>
+            <Field>
+              <FieldLabel htmlFor="template-kind">Kind</FieldLabel>
+              <NativeSelect
+                id="template-kind"
+                value={kind}
+                onChange={(e) => setKind(e.target.value === "overlay" ? "overlay" : "designed")}
+              >
+                <NativeSelectOption value="designed">Design from scratch</NativeSelectOption>
+                <NativeSelectOption value="overlay">Fill an existing PDF</NativeSelectOption>
+              </NativeSelect>
+            </Field>
+            {kind === "overlay" && (
+              <Field>
+                <FieldLabel htmlFor="template-pdf">PDF (up to 20 MB)</FieldLabel>
+                <Input
+                  id="template-pdf"
+                  type="file"
+                  accept="application/pdf"
+                  onChange={(e) => {
+                    const picked = e.target.files?.[0] ?? null;
+                    setFile(picked);
+                    if (picked && !form.getFieldValue("name")) {
+                      form.setFieldValue("name", picked.name.replace(/\.pdf$/i, ""));
+                    }
+                  }}
+                />
+              </Field>
+            )}
             <form.AppField name="name">
               {(field) => (
                 <field.TextField label="Name" autoFocus placeholder="Surety bond certificate" />
@@ -294,8 +341,8 @@ function CreateTemplateDialog({ onClose }: { onClose: () => void }) {
           <ErrorAlert error={create.error} />
           <DialogFooter>
             <DialogClose render={<Button type="button" variant="outline" />}>Cancel</DialogClose>
-            <Button type="submit" disabled={create.isPending}>
-              Create and open
+            <Button type="submit" disabled={create.isPending || (kind === "overlay" && !file)}>
+              {create.isPending && kind === "overlay" ? "Uploading…" : "Create and open"}
             </Button>
           </DialogFooter>
         </form>

@@ -12,9 +12,17 @@ export const queues = {
   renderLost: "render-lost",
   /** Scheduled log retention (docs/features/generation-log.md). */
   retention: "retention",
+  /** AI field detection on an uploaded PDF (ADR 0028). The suggestions are the job's output. */
+  detectFields: "detect-fields",
 } as const;
 
 export type RenderJobData = { generationId: string };
+/** Who asked, so only they can read the result; the template's fields, to reuse their keys. */
+export type DetectJobData = {
+  sourceId: string;
+  userId: string;
+  known: { key: string; label: string }[];
+};
 
 /** pg-boss fetches higher numbers first: people waiting on a PDF go ahead of batch rows. */
 export const priorities = { interactive: 10, batch: 0 } as const;
@@ -53,6 +61,14 @@ export async function startQueue() {
     deadLetter: queues.renderLost,
   });
   await boss.createQueue(queues.retention, { policy: "singleton" });
+  await boss.createQueue(queues.detectFields, {
+    notify: true,
+    // A model call that failed is the user's to retry, not ours: each one costs money.
+    retryLimit: 0,
+    // 20 pages at 5 to 10 s each, plus slack. The output is read within minutes, then dropped.
+    expireInSeconds: 300,
+    deleteAfterSeconds: 24 * 60 * 60,
+  });
   queueStatus.started = true;
 }
 

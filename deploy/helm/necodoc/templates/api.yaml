@@ -1,0 +1,16 @@
+{{ include "necodoc.deployment" (dict "root" . "role" "api") }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "necodoc.fullname" . }}-api
+  labels:
+    {{- include "necodoc.labels" . | nindent 4 }}
+    app.kubernetes.io/component: api
+spec:
+  selector:
+    {{- include "necodoc.selector" (dict "root" . "component" "api") | nindent 4 }}
+  ports:
+    - name: http
+      port: 3000
+      targetPort: http

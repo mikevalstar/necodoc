@@ -25,6 +25,7 @@ Add one with `okq new feature "<title>"`.
 | PDF overlay templates | [pdf-overlay-templates.md](pdf-overlay-templates.md) |
 | Publishing and versions | [publishing-and-versions.md](publishing-and-versions.md) |
 | Render queue, batch jobs and scaling | [render-queue-batch-jobs-and-scaling.md](render-queue-batch-jobs-and-scaling.md) |
+| Self-hosting | [self-hosting.md](self-hosting.md) |
 | Share links and data requests | [share-links-and-data-requests.md](share-links-and-data-requests.md) |
 | Snippet library | [snippet-library.md](snippet-library.md) |
 | Template fields and guided form | [template-fields-and-guided-form.md](template-fields-and-guided-form.md) |

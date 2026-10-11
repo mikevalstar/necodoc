@@ -35,4 +35,8 @@ Add one with `okq new adr "<title>"`.
 | Vercel AI SDK for all AI features | [0022-vercel-ai-sdk-for-all-ai-features.md](0022-vercel-ai-sdk-for-all-ai-features.md) |
 | Generated outputs in object storage | [0023-generated-outputs-in-object-storage.md](0023-generated-outputs-in-object-storage.md) |
 | CodeMirror 6 for code mode and raw HTML blocks | [0024-codemirror-6-for-code-mode-and-raw-html-blocks.md](0024-codemirror-6-for-code-mode-and-raw-html-blocks.md) |
+| Container images, Compose and Helm for self-hosting | [0025-container-images-compose-and-helm-for-self-hosting.md](0025-container-images-compose-and-helm-for-self-hosting.md) |
+| Astro Starlight for the developer docs site | [0026-astro-starlight-for-the-developer-docs-site.md](0026-astro-starlight-for-the-developer-docs-site.md) |
+| Encrypted PDFs with an empty password open through a patched pdf-lib | [0027-encrypted-pdfs-with-an-empty-password-open-through-a-patched-pdf-lib.md](0027-encrypted-pdfs-with-an-empty-password-open-through-a-patched-pdf-lib.md) |
+| Server-side PDF extraction and AI field detection as a queue job | [0028-server-side-pdf-extraction-and-ai-field-detection-as-a-queue-job.md](0028-server-side-pdf-extraction-and-ai-field-detection-as-a-queue-job.md) |
 <!-- okq:index:end -->

@@ -3,6 +3,8 @@ export * from "./batch";
 export * from "./compile";
 export * from "./fields";
 export * from "./generation";
+export * from "./overlay";
+export * from "./overlay-import";
 export * from "./render";
 export * from "./roles";
 export * from "./system";

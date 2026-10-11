@@ -19,11 +19,12 @@ const noPartials: FS = {
   resolve: (_dir, file) => file,
 };
 
-export function createLiquid(fs: FS = noPartials) {
+/** `escapeHtml: false` is for PDF overlays: their values are drawn as text, not parsed as HTML. */
+export function createLiquid(fs: FS = noPartials, { escapeHtml = true } = {}) {
   const liquid = new Liquid({
     fs,
     relativeReference: false,
-    outputEscape: "escape",
+    ...(escapeHtml ? { outputEscape: "escape" as const } : {}),
     strictFilters: true,
     ownPropertyOnly: true,
     parseLimit: 1_000_000,
@@ -75,3 +76,5 @@ function barcodeDataUrl(bcid: string, value: unknown) {
 }
 
 export const liquid = createLiquid();
+/** Overlay box values (docs/features/pdf-overlay-templates.md): same filters, no HTML escaping. */
+export const plainLiquid = createLiquid(noPartials, { escapeHtml: false });

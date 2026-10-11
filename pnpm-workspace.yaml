@@ -3,3 +3,5 @@ packages:
   - packages/*
 allowBuilds:
   esbuild: true
+patchedDependencies:
+  '@cantoo/pdf-lib@2.11.1': patches/@cantoo__pdf-lib@2.11.1.patch

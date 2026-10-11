@@ -1,0 +1,2 @@
+{{/* Workers have no Service: they only pull jobs. They still answer /api/health for probes. */}}
+{{ include "necodoc.deployment" (dict "root" . "role" "worker") }}

@@ -1,0 +1,12 @@
+**/node_modules
+**/dist
+**/.astro
+**/.env
+**/.env.*
+!**/.env.example
+**/*.log
+.git
+.fp
+.tanstack
+apps/api/data
+deploy/helm

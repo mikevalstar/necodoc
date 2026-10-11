@@ -1,0 +1,87 @@
+{{- $v := .Values.app -}}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "necodoc.fullname" . }}-app
+  labels:
+    {{- include "necodoc.labels" . | nindent 4 }}
+    app.kubernetes.io/component: app
+spec:
+  replicas: {{ $v.replicas }}
+  selector:
+    matchLabels:
+      {{- include "necodoc.selector" (dict "root" . "component" "app") | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "necodoc.labels" . | nindent 8 }}
+        app.kubernetes.io/component: app
+    spec:
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      securityContext:
+        {{- toYaml .Values.podSecurityContext | nindent 8 }}
+        # nginx-unprivileged's user.
+        runAsUser: 101
+        runAsGroup: 101
+        fsGroup: 101
+      containers:
+        - name: app
+          image: {{ .Values.appImage.repository }}:{{ .Values.appImage.tag | default .Chart.AppVersion }}
+          imagePullPolicy: {{ .Values.appImage.pullPolicy }}
+          env:
+            # The Ingress sends /api straight to the API; this only serves direct hits on the app.
+            # Full name: nginx's resolver ignores DNS search domains.
+            - name: API_URL
+              value: http://{{ include "necodoc.fullname" . }}-api.{{ .Release.Namespace }}.svc.cluster.local:3000
+          ports:
+            - name: http
+              containerPort: 8080
+          livenessProbe:
+            httpGet: { path: /, port: http }
+          readinessProbe:
+            httpGet: { path: /, port: http }
+          resources:
+            {{- toYaml $v.resources | nindent 12 }}
+          securityContext:
+            {{- toYaml .Values.securityContext | nindent 12 }}
+          volumeMounts:
+            # The image writes its rendered config and pid here at start.
+            - name: conf
+              mountPath: /etc/nginx/conf.d
+            - name: tmp
+              mountPath: /tmp
+      volumes:
+        - name: conf
+          emptyDir: {}
+        - name: tmp
+          emptyDir: {}
+      {{- with $v.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with $v.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with $v.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "necodoc.fullname" . }}-app
+  labels:
+    {{- include "necodoc.labels" . | nindent 4 }}
+    app.kubernetes.io/component: app
+spec:
+  selector:
+    {{- include "necodoc.selector" (dict "root" . "component" "app") | nindent 4 }}
+  ports:
+    - name: http
+      port: 80
+      targetPort: http

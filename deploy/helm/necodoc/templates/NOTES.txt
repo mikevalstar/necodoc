@@ -1,0 +1,14 @@
+necodoc {{ .Chart.AppVersion }} is installed as {{ include "necodoc.fullname" . }}.
+
+{{- if .Values.ingress.enabled }}
+Open {{ .Values.publicUrl }} (Ingress host {{ .Values.ingress.host }}). The first account to sign up is the admin.
+{{- else }}
+No Ingress: kubectl port-forward svc/{{ include "necodoc.fullname" . }}-app 8080:80, and set publicUrl to match.
+{{- end }}
+
+Readiness (database, queue, storage, workers online):
+  kubectl exec deploy/{{ include "necodoc.fullname" . }}-api -- node -e "fetch('http://127.0.0.1:3000/api/health/ready').then(r => r.text()).then(console.log)"
+{{- if and (eq .Values.storage.driver "disk") (gt (add .Values.api.replicas .Values.worker.replicas) 1) }}
+
+Disk storage with several pods: the claim must be ReadWriteMany (storage.disk.accessMode).
+{{- end }}

@@ -12,7 +12,7 @@ generated: { by: okq/0.9.0, at: 2026-10-11T15:36:56Z }
 ## Status
 
 Accepted. Builds on
-[ADR 0004](0004-frontend-stack-react-spa-with-tanstack-router-query-form-and-shadcn.md).
+[ADR 0004](0004-frontend-stack-react-spa-with-tanstack-router-query-form-and-shadcn.md). Text and AcroForm extraction moved to the API: see [ADR 0028](0028-server-side-pdf-extraction-and-ai-field-detection-as-a-queue-job.md).
 
 ## Context
 

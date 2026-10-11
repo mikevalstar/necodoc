@@ -50,6 +50,13 @@
       "when": 1791737568679,
       "tag": "0006_output_storage",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1791742292374,
+      "tag": "0007_pdf_sources",
+      "breakpoints": true
     }
   ]
 }

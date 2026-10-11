@@ -1,13 +1,17 @@
 import type {
+  AcroField,
   AssetMime,
+  CompiledOverlay,
   CompiledTemplate,
   DesignedContent,
   FieldSection,
   GenerationSource,
   GenerationStatus,
+  OverlayContent,
   PageOptions,
+  PdfPage,
   ProcessRole,
-  RenderRequest,
+  RenderInput,
   RenderTimings,
   RetentionSettings,
   TemplateKind,
@@ -86,6 +90,25 @@ export const asset = pgTable("asset", {
   createdAt,
 });
 
+// Spec: docs/features/pdf-overlay-templates.md. An uploaded PDF an overlay template fills, with
+// what the API read from it (ADR 0028). Immutable, like its file: a new revision is a new row,
+// so published versions keep pointing at the PDF they were made from.
+export const pdfSource = pgTable("pdf_source", {
+  id: uuid().primaryKey().defaultRandom(),
+  fileId: uuid()
+    .notNull()
+    .references(() => file.id),
+  filename: text().notNull(),
+  pages: jsonb().$type<PdfPage[]>().notNull(),
+  fields: jsonb().$type<AcroField[]>().notNull(),
+  /** Encrypted with an empty password (ADR 0027). */
+  encrypted: boolean().notNull(),
+  /** Hybrid XFA + AcroForm. */
+  xfa: boolean().notNull(),
+  uploadedBy: text().references(() => user.id, { onDelete: "set null" }),
+  createdAt,
+});
+
 // Spec: docs/features/document-themes.md. Built-ins are seeded at boot (src/builtin-themes.ts).
 export const theme = pgTable("theme", {
   id: uuid().primaryKey().defaultRandom(),
@@ -109,7 +132,8 @@ export const template = pgTable("template", {
   sampleData: jsonb().$type<Record<string, unknown>>().notNull(),
   themeId: uuid().references(() => theme.id, { onDelete: "set null" }),
   page: jsonb().$type<PageOptions>().notNull(),
-  content: jsonb().$type<DesignedContent>().notNull(),
+  /** By kind: DesignedContent or OverlayContent (overlays ignore themeId and page). */
+  content: jsonb().$type<DesignedContent | OverlayContent>().notNull(),
   createdBy: text().references(() => user.id, { onDelete: "set null" }),
   archivedAt: timestamp({ withTimezone: true }),
   createdAt,
@@ -135,8 +159,9 @@ export const templateVersion = pgTable(
     themeId: uuid().references(() => theme.id, { onDelete: "set null" }),
     theme: jsonb().$type<ThemeInput | null>(),
     page: jsonb().$type<PageOptions>().notNull(),
-    content: jsonb().$type<DesignedContent>().notNull(),
-    compiled: jsonb().$type<CompiledTemplate>().notNull(),
+    /** By kind: DesignedContent or OverlayContent (overlays ignore themeId and page). */
+    content: jsonb().$type<DesignedContent | OverlayContent>().notNull(),
+    compiled: jsonb().$type<CompiledTemplate | CompiledOverlay>().notNull(),
     note: text(),
     publishedBy: text().references(() => user.id, { onDelete: "set null" }),
     publishedAt: timestamp({ withTimezone: true }).defaultNow().notNull(),
@@ -180,7 +205,7 @@ export const generation = pgTable(
     error: text(),
     warnings: jsonb().$type<string[]>().default(sql`'[]'::jsonb`).notNull(),
     /** Null once retention removed it. */
-    input: jsonb().$type<RenderRequest>(),
+    input: jsonb().$type<RenderInput>(),
     outputFileId: uuid().references(() => file.id, { onDelete: "set null" }),
     queuedAt: timestamp({ withTimezone: true }).defaultNow().notNull(),
     startedAt: timestamp({ withTimezone: true }),

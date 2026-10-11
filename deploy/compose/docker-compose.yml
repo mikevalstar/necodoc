@@ -1,0 +1,109 @@
+# ADR 0025: necodoc on one host. From this directory:
+#   cp .env.example .env   # then set the secrets
+#   docker compose up -d --build
+#   docker compose up -d --scale worker=3          # more render workers
+#   docker compose --profile minio up -d           # S3 storage on a local MinIO (see .env.example)
+# Upgrades: pull or rebuild, then `docker compose up -d` (migrate runs before api and worker start).
+
+name: necodoc
+
+x-necodoc: &necodoc
+  image: ${NECODOC_API_IMAGE:-necodoc-api:local}
+  build: { context: ../.., target: api }
+  env_file: .env
+  environment: &necodoc-env
+    DATABASE_URL: postgres://necodoc:${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}@postgres:5432/necodoc
+  volumes:
+    # Disk storage driver: api and workers must share it (STORAGE_DIR=/data/files in the image).
+    - files:/data/files
+  restart: unless-stopped
+
+services:
+  postgres:
+    image: postgres:18-alpine
+    environment:
+      POSTGRES_USER: necodoc
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: necodoc
+    volumes:
+      - pgdata:/var/lib/postgresql
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "necodoc", "-d", "necodoc"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    restart: unless-stopped
+
+  # One-shot: applies pending migrations, then exits. api and worker wait for it.
+  migrate:
+    <<: *necodoc
+    command: migrate
+    restart: "no"
+    volumes: []
+    depends_on:
+      postgres: { condition: service_healthy }
+
+  api:
+    <<: *necodoc
+    environment:
+      <<: *necodoc-env
+      ROLE: api
+    depends_on:
+      migrate: { condition: service_completed_successfully }
+
+  worker:
+    <<: *necodoc
+    environment:
+      <<: *necodoc-env
+      ROLE: worker
+    depends_on:
+      migrate: { condition: service_completed_successfully }
+
+  app:
+    image: ${NECODOC_APP_IMAGE:-necodoc-app:local}
+    build: { context: ../.., target: app }
+    environment:
+      API_URL: http://api:3000
+    ports:
+      - "${APP_PORT:-8080}:8080"
+    depends_on:
+      - api
+    restart: unless-stopped
+
+  # The marketing site; self-hosters don't need it.
+  site:
+    profiles: [site]
+    image: ${NECODOC_SITE_IMAGE:-necodoc-site:local}
+    build: { context: ../.., target: site }
+    ports:
+      - "${SITE_PORT:-8081}:8080"
+    restart: unless-stopped
+
+  # S3-compatible storage for trying the s3 driver. MinIO no longer publishes images; this is
+  # Chainguard's build from MinIO's source.
+  minio:
+    profiles: [minio]
+    image: cgr.dev/chainguard/minio:latest
+    command: ["server", "/data"]
+    environment:
+      MINIO_ROOT_USER: ${S3_ACCESS_KEY_ID:-necodoc}
+      MINIO_ROOT_PASSWORD: ${S3_SECRET_ACCESS_KEY:-change-me-minio}
+    volumes:
+      - minio:/data
+    restart: unless-stopped
+
+  # Creates the bucket once MinIO answers.
+  minio-bucket:
+    profiles: [minio]
+    image: cgr.dev/chainguard/minio-client:latest
+    environment:
+      MC_HOST_local: http://${S3_ACCESS_KEY_ID:-necodoc}:${S3_SECRET_ACCESS_KEY:-change-me-minio}@minio:9000
+    command: ["mb", "--ignore-existing", "local/${S3_BUCKET:-necodoc}"]
+    depends_on:
+      - minio
+    restart: on-failure
+
+volumes:
+  pgdata:
+  files:
+  minio:

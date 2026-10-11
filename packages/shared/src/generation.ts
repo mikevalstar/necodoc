@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { overlayRenderRequestSchema } from "./overlay";
 import { renderRequestSchema } from "./render";
 
 // Specs: docs/features/generation-log.md, docs/features/render-queue-batch-jobs-and-scaling.md
@@ -27,7 +28,10 @@ export type GenerationStatus = z.infer<typeof generationStatusSchema>;
 export const isFinishedStatus = (status: GenerationStatus) =>
   status === "success" || status === "error" || status === "cancelled";
 
-/** Where a render's time went, in milliseconds. Bands include their Liquid; stamping is pdf-lib. */
+/**
+ * Where a render's time went, in milliseconds. Bands include their Liquid; stamping is pdf-lib.
+ * Overlays use liquidMs (box values) and stampMs (filling, drawing, saving) only.
+ */
 export const renderTimingsSchema = z.object({
   liquidMs: z.number().int(),
   chromiumMs: z.number().int(),
@@ -111,9 +115,13 @@ export const generationSummarySchema = z.object({
 });
 export type GenerationSummary = z.infer<typeof generationSummarySchema>;
 
+/** What a generation renders: HTML (designed templates, the render API) or a PDF overlay. */
+export const generationInputSchema = z.union([overlayRenderRequestSchema, renderRequestSchema]);
+export type RenderInput = z.infer<typeof generationInputSchema>;
+
 export const generationDetailSchema = generationSummarySchema.extend({
   /** Null once the retention setting has removed it. */
-  input: renderRequestSchema.nullable(),
+  input: generationInputSchema.nullable(),
   timings: renderTimingsSchema.nullable(),
   requestId: z.string().nullable(),
 });

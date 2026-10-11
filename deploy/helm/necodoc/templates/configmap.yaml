@@ -1,0 +1,46 @@
+{{- $s := .Values.storage -}}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "necodoc.fullname" . }}-env
+  labels:
+    {{- include "necodoc.labels" . | nindent 4 }}
+data:
+  BETTER_AUTH_URL: {{ required "publicUrl is required" .Values.publicUrl | quote }}
+  PORT: "3000"
+  STORAGE_DRIVER: {{ $s.driver | quote }}
+  {{- if eq $s.driver "disk" }}
+  STORAGE_DIR: /data/files
+  {{- else if eq $s.driver "s3" }}
+  S3_BUCKET: {{ required "storage.s3.bucket is required" $s.s3.bucket | quote }}
+  S3_REGION: {{ $s.s3.region | quote }}
+  S3_FORCE_PATH_STYLE: {{ $s.s3.forcePathStyle | quote }}
+  {{- with $s.s3.endpoint }}
+  S3_ENDPOINT: {{ . | quote }}
+  {{- end }}
+  {{- with $s.s3.prefix }}
+  STORAGE_PREFIX: {{ . | quote }}
+  {{- end }}
+  {{- with $s.s3.sse }}
+  S3_SSE: {{ . | quote }}
+  {{- end }}
+  {{- with $s.s3.kmsKeyId }}
+  S3_KMS_KEY_ID: {{ . | quote }}
+  {{- end }}
+  {{- else if eq $s.driver "azure" }}
+  AZURE_STORAGE_CONTAINER: {{ required "storage.azure.container is required" $s.azure.container | quote }}
+  {{- with $s.azure.account }}
+  AZURE_STORAGE_ACCOUNT: {{ . | quote }}
+  {{- end }}
+  {{- with $s.azure.accountUrl }}
+  AZURE_STORAGE_ACCOUNT_URL: {{ . | quote }}
+  {{- end }}
+  {{- with $s.azure.prefix }}
+  STORAGE_PREFIX: {{ . | quote }}
+  {{- end }}
+  {{- else }}
+  {{- fail "storage.driver must be disk, s3 or azure" }}
+  {{- end }}
+  {{- range $key, $value := .Values.config }}
+  {{ $key }}: {{ $value | quote }}
+  {{- end }}

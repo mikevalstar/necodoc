@@ -1,11 +1,12 @@
 import { z } from "zod";
 import { fieldSectionsSchema } from "./fields";
+import { overlayContentSchema } from "./overlay";
 import { bandSchema, pageOptionsSchema } from "./render";
 import { docSchema } from "./template-doc";
 import { themeInputSchema } from "./theme";
 
 // Specs: docs/features/document-templates.md, docs/features/publishing-and-versions.md.
-// Overlay templates (docs/features/pdf-overlay-templates.md) add their own content in P4.
+// Overlay templates: docs/features/pdf-overlay-templates.md (content in ./overlay.ts).
 
 export const templateKindSchema = z.enum(["designed", "overlay"]);
 export type TemplateKind = z.infer<typeof templateKindSchema>;
@@ -68,13 +69,27 @@ export const designedDraftSchema = z.object({
   content: designedContentSchema.default(emptyDesignedContent),
 });
 
-/** One member per kind; overlay joins in P4. */
-export const createTemplateSchema = z.discriminatedUnion("kind", [designedDraftSchema]);
+/** An uploaded PDF with boxes placed on it. No theme or page setup: the PDF has both. */
+export const overlayDraftSchema = z.object({
+  kind: z.literal("overlay"),
+  name: templateName,
+  description: description.default(""),
+  sections: fieldSectionsSchema.default([]),
+  sampleData: sampleData.default({}),
+  content: overlayContentSchema,
+});
+
+/** One member per kind. */
+export const createTemplateSchema = z.discriminatedUnion("kind", [
+  designedDraftSchema,
+  overlayDraftSchema,
+]);
 export type CreateTemplate = z.infer<typeof createTemplateSchema>;
 export type CreateTemplateInput = z.input<typeof createTemplateSchema>;
 
 /**
- * A partial draft update; `kind` can't change. `baseUpdatedAt` is the draft's `updatedAt` when
+ * A partial draft update; `kind` can't change, and content must be the template's kind (the API
+ * checks). Designed-only settings (theme, page) are ignored on overlay templates. `baseUpdatedAt` is the draft's `updatedAt` when
  * the editor opened it: if someone saved since, the update is refused with 409.
  */
 export const updateTemplateSchema = designedDraftSchema
@@ -85,7 +100,7 @@ export const updateTemplateSchema = designedDraftSchema
     sampleData,
     themeId: z.uuid().nullable(),
     page: pageOptionsSchema,
-    content: designedContentSchema,
+    content: z.union([designedContentSchema, overlayContentSchema]),
     baseUpdatedAt: z.iso.datetime({ offset: true }),
   })
   .partial();
@@ -93,7 +108,12 @@ export type UpdateTemplate = z.infer<typeof updateTemplateSchema>;
 
 /** Renders the draft, or an unsaved draft the editor sends, with sample or given data. */
 export const previewTemplateSchema = z.object({
-  draft: designedDraftSchema.omit({ kind: true, name: true, description: true }).optional(),
+  draft: z
+    .discriminatedUnion("kind", [
+      designedDraftSchema.omit({ name: true, description: true }),
+      overlayDraftSchema.omit({ name: true, description: true }),
+    ])
+    .optional(),
   data: sampleData.optional(),
 });
 
@@ -132,13 +152,18 @@ export const templateSummarySchema = z.object({
 });
 export type TemplateSummary = z.infer<typeof templateSummarySchema>;
 
-/** The draft, as editors and reviewers see it. */
-export const templateSchema = designedDraftSchema.extend({
+const draftMeta = {
   id: z.uuid(),
   createdBy: z.string().nullable(),
   archivedAt: z.iso.datetime().nullable(),
   ...timestamps,
-});
+};
+
+/** The draft, as editors and reviewers see it. */
+export const templateSchema = z.discriminatedUnion("kind", [
+  designedDraftSchema.extend(draftMeta),
+  overlayDraftSchema.extend(draftMeta),
+]);
 export type Template = z.infer<typeof templateSchema>;
 
 export const templateVersionSummarySchema = z.object({
@@ -152,8 +177,11 @@ export const templateVersionSummarySchema = z.object({
 });
 export type TemplateVersionSummary = z.infer<typeof templateVersionSummarySchema>;
 
-/** A published snapshot: the draft as it was, plus the theme it used, frozen. */
-export const templateVersionSchema = templateVersionSummarySchema
-  .extend(designedDraftSchema.shape)
-  .extend({ theme: themeInputSchema.nullable() });
+/** A published snapshot: the draft as it was, plus the theme it used (designed only), frozen. */
+export const templateVersionSchema = z.discriminatedUnion("kind", [
+  templateVersionSummarySchema
+    .extend(designedDraftSchema.shape)
+    .extend({ theme: themeInputSchema.nullable() }),
+  templateVersionSummarySchema.extend(overlayDraftSchema.shape),
+]);
 export type TemplateVersion = z.infer<typeof templateVersionSchema>;

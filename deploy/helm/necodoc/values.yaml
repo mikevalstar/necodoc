@@ -1,0 +1,151 @@
+# necodoc Helm chart (docs/adrs/0025-container-images-compose-and-helm-for-self-hosting.md).
+# Operator guide: apps/devdocs/src/content/docs/self-hosting/kubernetes-helm.md
+
+image:
+  # The Dockerfile's `api` target; runs as the API or a worker depending on ROLE.
+  repository: necodoc-api
+  # Defaults to the chart's appVersion.
+  tag: ""
+  pullPolicy: IfNotPresent
+
+appImage:
+  # The Dockerfile's `app` target: the SPA (and an /api proxy the Ingress doesn't need).
+  repository: necodoc-app
+  tag: ""
+  pullPolicy: IfNotPresent
+
+imagePullSecrets: []
+
+# The URL people open in the browser. Becomes BETTER_AUTH_URL.
+publicUrl: https://necodoc.example.com
+
+# Secret env. Either name an existing Secret holding these keys, or fill them in here.
+# Required: DATABASE_URL, BETTER_AUTH_SECRET (32+ chars). The rest are only for the drivers that
+# need them; empty values are left out.
+secrets:
+  existingSecret: ""
+  DATABASE_URL: ""
+  BETTER_AUTH_SECRET: ""
+  DOWNLOAD_SIGNING_SECRET: ""
+  S3_ACCESS_KEY_ID: ""
+  S3_SECRET_ACCESS_KEY: ""
+  AZURE_STORAGE_CONNECTION_STRING: ""
+  AZURE_STORAGE_KEY: ""
+
+# Non-secret env, shared by every necodoc pod (ConfigMap).
+config:
+  RENDER_CONCURRENCY: "2"
+  RENDER_WAIT_MS: "30000"
+  PREVIEW_CONCURRENCY: "2"
+  STORAGE_REDIRECT: "off"
+
+# Extra env entries for api, worker and migration pods (standard `env` list syntax).
+extraEnv: []
+
+# Output storage (ADR 0023). Every api and worker pod must reach the same storage.
+storage:
+  driver: disk # disk | s3 | azure
+  disk:
+    # Mounted at /data/files on every api and worker pod. With more than one pod the claim must be
+    # ReadWriteMany (NFS, EFS, Azure Files, CephFS).
+    existingClaim: ""
+    storageClassName: ""
+    accessMode: ReadWriteMany
+    size: 20Gi
+  s3:
+    bucket: ""
+    region: us-east-1 # R2: auto
+    endpoint: "" # MinIO, R2 and other S3-compatible stores; empty for AWS
+    forcePathStyle: false
+    prefix: ""
+    sse: "" # AES256 | aws:kms
+    kmsKeyId: ""
+  azure:
+    container: ""
+    account: "" # without a key in secrets, uses DefaultAzureCredential (workload identity)
+    accountUrl: ""
+    prefix: ""
+
+# For IAM roles (IRSA, EKS Pod Identity) or Azure workload identity, annotate the service account.
+serviceAccount:
+  create: true
+  name: ""
+  annotations: {}
+
+api:
+  replicas: 2
+  resources:
+    requests: { cpu: 250m, memory: 512Mi }
+    limits: { memory: 1Gi }
+  pdb: { enabled: true, maxUnavailable: 1 }
+  nodeSelector: {}
+  tolerations: []
+  affinity: {}
+
+worker:
+  replicas: 2
+  # Each worker holds one Chromium with RENDER_CONCURRENCY contexts; size memory for it.
+  resources:
+    requests: { cpu: "1", memory: 1Gi }
+    limits: { memory: 2Gi }
+  # Lets running renders finish on scale-down or rollout.
+  terminationGracePeriodSeconds: 60
+  pdb: { enabled: true, maxUnavailable: 1 }
+  autoscaling:
+    enabled: false
+    minReplicas: 2
+    maxReplicas: 10
+    targetCPUUtilizationPercentage: 70
+  # Optional: scale on render queue depth with KEDA (https://keda.sh) instead of CPU. Needs KEDA
+  # installed; replaces the CPU HPA. Reads pg-boss's job table through DATABASE_URL.
+  keda:
+    enabled: false
+    minReplicas: 1
+    maxReplicas: 20
+    # Queued + running render jobs per worker replica before KEDA adds one.
+    jobsPerReplica: 4
+    pollingInterval: 15
+    cooldownPeriod: 300
+  nodeSelector: {}
+  tolerations: []
+  affinity: {}
+
+app:
+  replicas: 2
+  resources:
+    requests: { cpu: 25m, memory: 32Mi }
+    limits: { memory: 128Mi }
+  nodeSelector: {}
+  tolerations: []
+  affinity: {}
+
+ingress:
+  enabled: true
+  className: ""
+  # Uploads are up to 20 MB and synchronous renders wait up to RENDER_WAIT_MS; raise your
+  # controller's body size and read timeout to match, e.g. for Traefik or HAProxy annotations.
+  annotations: {}
+  host: necodoc.example.com
+  tls: []
+  #  - secretName: necodoc-tls
+  #    hosts: [necodoc.example.com]
+
+# A pre-install/pre-upgrade hook Job that applies database migrations before pods roll.
+migrations:
+  enabled: true
+  backoffLimit: 1
+  resources:
+    requests: { cpu: 100m, memory: 128Mi }
+    limits: { memory: 256Mi }
+
+podSecurityContext:
+  runAsNonRoot: true
+  runAsUser: 1000
+  runAsGroup: 1000
+  fsGroup: 1000
+  seccompProfile: { type: RuntimeDefault }
+
+securityContext:
+  allowPrivilegeEscalation: false
+  readOnlyRootFilesystem: true
+  capabilities: { drop: [ALL] }

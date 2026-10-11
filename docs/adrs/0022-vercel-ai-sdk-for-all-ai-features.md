@@ -11,7 +11,7 @@ generated: { by: okq/0.9.0, at: 2026-10-11T17:36:07Z }
 
 ## Status
 
-Accepted. Supersedes the SDK choice in [ADR 0018](0018-claude-api-for-ai-field-detection-and-drafting.md); the rest of 0018 still holds: Claude Sonnet, AI output is always a suggestion, and page content goes to the model provider. Adds the [AI template assistant](../features/ai-template-assistant.md).
+Accepted. Supersedes the SDK choice in [ADR 0018](0018-claude-api-for-ai-field-detection-and-drafting.md); the rest of 0018 still holds: Claude Sonnet, AI output is always a suggestion, and page content goes to the model provider. Adds the [AI template assistant](../features/ai-template-assistant.md). ai 7.x deprecates `generateObject`; structured output uses `generateText` with `Output.object({ schema })` ([ADR 0028](0028-server-side-pdf-extraction-and-ai-field-detection-as-a-queue-job.md)). The module is [ai.ts](../../apps/api/src/ai.ts).
 
 ## Context
 

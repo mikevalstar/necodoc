@@ -13,7 +13,7 @@ import { Input } from "@/components/ui/input";
 import { NativeSelect, NativeSelectOption } from "@/components/ui/native-select";
 import { Textarea } from "@/components/ui/textarea";
 import { themesQuery } from "@/lib/queries";
-import type { DraftValues } from "./-draft";
+import type { DesignedDraftValues } from "./-draft";
 
 // Spec: docs/features/document-templates.md (page setup, theme).
 
@@ -24,8 +24,8 @@ export function PagePanel({
   onChange,
   editable,
 }: {
-  draft: DraftValues;
-  onChange: (changes: Partial<DraftValues>) => void;
+  draft: DesignedDraftValues;
+  onChange: (changes: Partial<DesignedDraftValues>) => void;
   editable: boolean;
 }) {
   const themes = useQuery(themesQuery);

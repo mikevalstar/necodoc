@@ -2,6 +2,7 @@ import { MAX_FILE_BYTES, parseRoles } from "@necodoc/shared";
 import { Hono } from "hono";
 import { bodyLimit } from "hono/body-limit";
 import { logger } from "hono/logger";
+import { aiModel } from "./ai";
 import { auth } from "./auth";
 import { type AppEnv, requestId } from "./middleware";
 import { assetRoutes } from "./routes/assets";
@@ -9,6 +10,7 @@ import { batchRoutes, templateBatchRoutes } from "./routes/batches";
 import { fileRoutes } from "./routes/files";
 import { generationRoutes } from "./routes/generations";
 import { healthRoutes } from "./routes/health";
+import { pdfSourceRoutes } from "./routes/pdf-sources";
 import { renderRoutes } from "./routes/render";
 import { systemRoutes } from "./routes/system";
 import { templateRoutes } from "./routes/templates";
@@ -45,6 +47,8 @@ const routes = app
     return c.json({
       user: { ...user, roles: parseRoles(user.role) },
       impersonatedBy: c.get("session")?.impersonatedBy ?? null,
+      /** What this deployment has turned on; the app hides controls for what's off. */
+      capabilities: { ai: aiModel !== null },
     });
   })
   .route("/render", renderRoutes)
@@ -53,6 +57,7 @@ const routes = app
   .route("/generations", generationRoutes)
   .route("/templates", templateRoutes)
   .route("/templates", templateBatchRoutes)
+  .route("/pdf-sources", pdfSourceRoutes)
   .route("/batches", batchRoutes)
   .route("/files", fileRoutes)
   .route("/system", systemRoutes);
