@@ -189,12 +189,6 @@ function ReviewPage() {
 
         <section className="space-y-3">
           <h2 className="font-medium">Discussion</h2>
-          {r.note && (
-            <div className="rounded-lg border p-3 text-sm">
-              <div className="text-xs text-muted-foreground">Note from {r.submitterName}</div>
-              <p className="whitespace-pre-wrap">{r.note}</p>
-            </div>
-          )}
           <ol className="space-y-2">
             {r.events.map((e) => (
               <li key={e.id} className="rounded-lg border p-3 text-sm">

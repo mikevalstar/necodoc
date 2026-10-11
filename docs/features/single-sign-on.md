@@ -64,16 +64,16 @@ both protocols work for each.
 
 ## Acceptance criteria
 
-- [ ] An OIDC sign-in against a test IdP creates the user with the mapped roles.
-- [ ] A SAML sign-in against a test IdP does the same.
-- [ ] After a group change at the IdP, the next sign-in updates the roles.
-- [ ] A user in no mapped group, with no default roles, lands on the pending page.
-- [ ] With password sign-in off, the form is hidden and the API refuses email sign-in and sign-up.
-- [ ] An IdP asserting an existing password user's email is refused without `LINK_EXISTING`, and linked with it.
-- [ ] A service account's email can't sign in by SSO.
-- [ ] Header mode signs in from a trusted CIDR and refuses the same request from elsewhere.
-- [ ] Admin › Users shows each user's sign-in methods.
-- [ ] The developer docs have OIDC and SAML setup for Entra ID, Auth0 and SiteMinder, and header mode with its risk.
+- [x] An OIDC sign-in against a test IdP creates the user with the mapped roles.
+- [x] A SAML sign-in against a test IdP does the same.
+- [x] After a group change at the IdP, the next sign-in updates the roles.
+- [x] A user in no mapped group, with no default roles, lands on the pending page.
+- [x] With password sign-in off, the form is hidden and the API refuses email sign-in and sign-up.
+- [x] An IdP asserting an existing password user's email is refused without `LINK_EXISTING`, and linked with it.
+- [x] A service account's email can't sign in by SSO.
+- [x] Header mode signs in from a trusted CIDR and refuses the same request from elsewhere.
+- [x] Admin › Users shows each user's sign-in methods.
+- [x] The developer docs have OIDC and SAML setup for Entra ID, Auth0 and SiteMinder, and header mode with its risk.
 
 ## Known limitations
 

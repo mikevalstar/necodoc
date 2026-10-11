@@ -120,7 +120,7 @@ export function VisualDiff({
                   {changed(p) ? (
                     <Badge variant="destructive" className="px-1.5">
                       {p.before && p.after
-                        ? `${p.changedPercent.toFixed(1)}%`
+                        ? `${p.changedPercent.toFixed(p.changedPercent < 1 ? 2 : 1)}%`
                         : p.after
                           ? "new"
                           : "gone"}
