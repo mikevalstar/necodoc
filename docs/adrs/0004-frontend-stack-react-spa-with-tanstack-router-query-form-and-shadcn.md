@@ -11,7 +11,9 @@ generated: { by: okq/0.9.0, at: 2026-09-25T22:50:04Z }
 
 ## Status
 
-Accepted.
+Accepted. Extended by [ADR 0016](0016-tiptap-for-the-document-editor.md)
+(document editor) and [ADR 0017](0017-pdf-js-for-pdf-rendering-in-the-app.md)
+(PDF rendering).
 
 ## Context
 

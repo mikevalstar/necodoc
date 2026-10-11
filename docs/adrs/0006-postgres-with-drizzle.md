@@ -11,7 +11,8 @@ generated: { by: okq/0.9.0, at: 2026-09-25T22:50:04Z }
 
 ## Status
 
-Accepted.
+Accepted. Extended by [ADR 0014](0014-binary-files-stored-in-postgres.md)
+(binary files).
 
 ## Context
 

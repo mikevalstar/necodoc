@@ -2,8 +2,11 @@
 
 A web tool for filling out documents: users answer a guided form and get a
 completed PDF, similar to GhostDraft
-([spec](docs/features/filling-out-a-document.md)). The PDF model is still open.
-Don't add a PDF library until an ADR settles it.
+([spec](docs/features/filling-out-a-document.md)). It generates PDFs from
+designed HTML templates ([ADR 0012](docs/adrs/0012-headless-chromium-for-html-to-pdf.md))
+and overlays values onto existing PDFs
+([ADR 0013](docs/adrs/0013-pdf-lib-for-overlaying-stamping-and-merging-pdfs.md)).
+The product scope is in [Competitive scope](docs/features/competitive-scope.md).
 
 ## Architecture
 
@@ -68,6 +71,9 @@ Rules:
 
 ## Dev Notes
 When running locally admin@admin.com / admin1234 can  be used as the base admin user for creating/managing more test users 
+
+## AI Tools
+Agent browsaer and herdr are both installed and available; the developer will always be running the app in herdr with a pane open runing the app if looking at logs is required.
 
 ## Gotchas
 

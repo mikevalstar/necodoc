@@ -11,7 +11,9 @@ generated: { by: okq/0.9.0, at: 2026-09-25T22:50:04Z }
 
 ## Status
 
-Accepted. Node is the provisional deploy target (see Consequences).
+Accepted. Node is the provisional deploy target (see Consequences). Settled as
+Node by [ADR 0012](0012-headless-chromium-for-html-to-pdf.md); public API
+versioning in [ADR 0019](0019-better-auth-api-keys-for-the-public-api.md).
 
 ## Context
 

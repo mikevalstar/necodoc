@@ -25,6 +25,10 @@ onboard people and lock them out without touching the database.
 
 ## Roles and permissions
 
+"Document" in the permissions below means templates and the content they use
+(themes, snippets, assets); see
+[Filling out a document](filling-out-a-document.md) for the terms.
+
 Roles are additive: a user's permissions are the union of their roles. Every
 role except admin grants one job plus `view`.
 
@@ -43,8 +47,11 @@ revoke sessions).
 
 **Enforced today:** user management requires admin, and users with no roles
 are pending (below). The document permissions are defined but not enforced
-until document features exist; the API offers a role/permission middleware
-([middleware.ts](../../apps/api/src/middleware.ts)) for those routes.
+yet. The template features enforce them through the API's role/permission
+middleware ([middleware.ts](../../apps/api/src/middleware.ts)) as they ship;
+what each permission allows is in
+[Publishing and versions](publishing-and-versions.md). API keys act with their owner's roles
+([ADR 0019](../adrs/0019-better-auth-api-keys-for-the-public-api.md)).
 
 Definitions: [packages/shared/src/roles.ts](../../packages/shared/src/roles.ts), used by
 [apps/api/src/auth.ts](../../apps/api/src/auth.ts) and
@@ -113,8 +120,5 @@ Definitions: [packages/shared/src/roles.ts](../../packages/shared/src/roles.ts),
 
 - **Email provider:** needed for verification and self-service password reset.
   Record as an ADR when added.
-- **What "document" means for roles:** depends on who authors documents
-  ([Filling out a document](filling-out-a-document.md)). The matrix may change
-  once that's settled.
 - **Orgs/teams:** roles are global today; per-organisation roles would need
   Better Auth's organization plugin.
