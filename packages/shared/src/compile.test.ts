@@ -114,7 +114,7 @@ describe("compileDoc: text blocks", () => {
       "<blockquote><p>q</p></blockquote>",
     );
     expect(html({ type: "horizontalRule" }, { type: "pageBreak" })).toBe(
-      '<hr><div style="break-after:page"></div>',
+      '<hr><div style="break-before:page"></div>',
     );
     expect(html(p(text("a"), { type: "hardBreak" }, text("b")))).toBe("<p>a<br>b</p>");
   });
@@ -371,6 +371,45 @@ describe("compileDesignedContent", () => {
     expect(compileDesignedContent(code, sections)).toEqual(
       compileDesignedContent(visual, sections),
     );
+  });
+
+  it("puts each top-level block on its own line in code mode", () => {
+    const two = designedContentSchema.parse({
+      mode: "visual",
+      body: doc(p(text("One")), p(text("Two"))),
+    });
+    const code = toCodeMode(two, sections);
+    expect(code.mode === "code" && code.body).toBe("<p>One</p>\n<p>Two</p>");
+  });
+
+  it("carries template CSS in both modes", () => {
+    const styled = designedContentSchema.parse({
+      mode: "visual",
+      body: doc(p(text("Body"))),
+      css: "h1 { color: navy; }",
+    });
+    expect(compileDesignedContent(styled, sections).css).toBe("h1 { color: navy; }");
+    expect(compileDesignedContent(toCodeMode(styled, sections), sections).css).toBe(
+      "h1 { color: navy; }",
+    );
+  });
+});
+
+describe("raw HTML blocks", () => {
+  const raw = (value: string) => ({ type: "rawHtml", attrs: { html: value } });
+
+  it("outputs the markup verbatim, Liquid included", () => {
+    expect(html(raw('<div class="x">{{ name | upcase }}</div>'), p(text("<b>")))).toBe(
+      '<div class="x">{{ name | upcase }}</div><p>&lt;b&gt;</p>',
+    );
+  });
+
+  it("isn't checked against the fields", () => {
+    const content = designedContentSchema.parse({
+      mode: "visual",
+      body: doc(raw("{{ not_a_field }}")),
+    });
+    expect(templateFieldProblems(content, sections)).toEqual([]);
   });
 });
 

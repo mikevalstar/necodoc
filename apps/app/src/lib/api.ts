@@ -51,14 +51,52 @@ export async function ok<R extends ApiResponse>(
   throw new ApiError(errorMessage(await res.json().catch(() => null), res.status), res.status);
 }
 
-/** POST /api/render. Previews (`preview: true`) come back without a generation id. */
-export async function renderPdf(request: RenderRequestInput) {
+/**
+ * A finished render, or one still queued or running when the API stopped waiting (HTTP 202,
+ * ADR 0020). A pending one shows up in the generation log; `waitForGeneration` polls it.
+ */
+export type RenderOutcome =
+  | { pending: false; pdf: Blob; pageCount: number; generationId: string | null }
+  | { pending: true; generationId: string };
+
+/** POST /api/render. Logged renders may come back pending; previews never do. */
+export async function renderPdf(request: RenderRequestInput): Promise<RenderOutcome> {
   const res = await ok(api.render.$post({ json: request }));
+  if (res.status === 202) return { pending: true, generationId: (await res.json()).generationId };
   return {
+    pending: false,
     pdf: await res.blob(),
     pageCount: Number(res.headers.get("X-Page-Count")),
     generationId: res.headers.get("X-Generation-Id"),
   };
+}
+
+/** A preview render (not logged, never queued), for live preview panes. */
+export async function previewPdf(request: RenderRequestInput) {
+  const outcome = await renderPdf({ ...request, preview: true });
+  if (outcome.pending) throw new Error("The preview didn't finish");
+  return outcome;
+}
+
+/** Polls a pending generation until it finishes, then fetches its PDF. Throws its error. */
+export async function waitForGeneration(id: string, everyMs = 2000): Promise<RenderOutcome> {
+  for (;;) {
+    const row = await (await ok(api.generations[":id"].$get({ param: { id } }))).json();
+    if (row.status === "success") {
+      const res = await fetch(generationPdfUrl(id));
+      if (!res.ok) throw new ApiError(`Couldn't load the PDF (${res.status})`, res.status);
+      return {
+        pending: false,
+        pdf: await res.blob(),
+        pageCount: row.pageCount ?? 0,
+        generationId: id,
+      };
+    }
+    if (row.status === "error" || row.status === "cancelled") {
+      throw new Error(row.error ?? `The render was ${row.status}`);
+    }
+    await new Promise((resolve) => setTimeout(resolve, everyMs));
+  }
 }
 
 /**

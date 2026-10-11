@@ -8,6 +8,7 @@ import { EditorContent, useEditor } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import {
   BracesIcon,
+  CodeIcon,
   Heading1Icon,
   Heading2Icon,
   ImageIcon,
@@ -34,6 +35,7 @@ import {
   suggestedFilter,
   valueChoices,
 } from "./merge-field";
+import { RawHtml } from "./raw-html";
 import { type InsertItem, SlashCommand, SlashMenu } from "./slash";
 import { ConditionalSection, PageBreak, RepeatingSection } from "./structure";
 import { Toolbar } from "./toolbar";
@@ -110,6 +112,7 @@ function extensions(menu: SlashMenu, items: () => InsertItem[], placeholder: str
     RepeatingSection,
     PageBreak,
     DocImage,
+    RawHtml,
     Placeholder.configure({ placeholder }),
     SlashCommand.configure({ menu, items }),
   ];
@@ -231,6 +234,16 @@ export function DocEditor({
             run: (e: Editor) => e.chain().focus().insertContent({ type: "pageBreak" }).run(),
           },
         ]),
+    {
+      title: "Raw HTML / Liquid",
+      icon: CodeIcon,
+      run: (e) =>
+        e
+          .chain()
+          .focus()
+          .insertContent({ type: "rawHtml", attrs: { html: "" } })
+          .run(),
+    },
     { title: "Divider", icon: MinusIcon, run: (e) => e.chain().focus().setHorizontalRule().run() },
   ];
   items.current = insertItems;

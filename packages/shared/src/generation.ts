@@ -125,3 +125,15 @@ export const pendingGenerationSchema = z.object({
   status: generationStatusSchema,
 });
 export type PendingGeneration = z.infer<typeof pendingGenerationSchema>;
+
+/** Longest a signed download link can live (ADR 0023). */
+export const MAX_DOWNLOAD_LINK_SECONDS = 7 * 24 * 60 * 60;
+
+/** POST /generations/:id/link: a signed link to the PDF that works without a session. */
+export const downloadLinkRequestSchema = z.object({
+  expiresInSeconds: z.int().min(60).max(MAX_DOWNLOAD_LINK_SECONDS).default(3600),
+});
+export type DownloadLinkRequest = z.infer<typeof downloadLinkRequestSchema>;
+
+export const downloadLinkSchema = z.object({ url: z.url(), expiresAt: z.iso.datetime() });
+export type DownloadLink = z.infer<typeof downloadLinkSchema>;

@@ -1,5 +1,6 @@
 import { zValidator } from "@hono/zod-validator";
 import {
+  downloadLinkRequestSchema,
   type GenerationFilter,
   generationFilterSchema,
   generationListQuerySchema,
@@ -23,11 +24,11 @@ import {
 import { Hono } from "hono";
 import { z } from "zod";
 import { db } from "../db";
-import { generation, template, user } from "../db/schema";
-import { deleteFiles, fileBytes } from "../files";
+import { file, generation, template, user } from "../db/schema";
+import { mintLink, serveFile } from "../download";
+import { deleteFiles, deleteObjects } from "../files";
 import { generate } from "../generate";
 import { type AppEnv, requirePermission, requireRole, type SignedInEnv } from "../middleware";
-import { pdfHeaders } from "./http";
 
 // Spec: docs/features/generation-log.md. Admins see every entry; everyone else only their own.
 // Rows are written by src/generate.ts (queued) and the worker that renders them.
@@ -148,20 +149,28 @@ const selectSummaries = () =>
 const idParam = zValidator("param", z.object({ id: z.uuid() }));
 const canView = requirePermission({ document: ["view"] });
 
-/** Deletes entries and their stored PDFs (ADR 0014: the output goes with the row). */
+/** Deletes entries and their stored PDFs: rows first, then the objects once that commits. */
 async function deleteGenerations(where: SQL | undefined) {
-  return db.transaction(async (tx) => {
+  const { deleted, objects } = await db.transaction(async (tx) => {
     const rows = await tx
       .delete(generation)
       .where(where)
       .returning({ outputFileId: generation.outputFileId });
-    await deleteFiles(
-      tx,
-      rows.flatMap((row) => (row.outputFileId ? [row.outputFileId] : [])),
-    );
-    return rows.length;
+    const fileIds = rows.flatMap((row) => (row.outputFileId ? [row.outputFileId] : []));
+    return { deleted: rows.length, objects: await deleteFiles(tx, inArray(file.id, fileIds)) };
   });
+  await deleteObjects(objects);
+  return deleted;
 }
+
+/** The entry's stored PDF, if the actor may see it. */
+const findOutput = async (actor: SignedInUser, id: string) => {
+  const [row] = await db
+    .select({ fileId: generation.outputFileId, filename: generation.filename })
+    .from(generation)
+    .where(visible(actor, id));
+  return row?.fileId ? { fileId: row.fileId, filename: row.filename } : null;
+};
 
 export const generationRoutes = new Hono<AppEnv>()
   .get("/", canView, zValidator("query", generationListQuerySchema), async (c) => {
@@ -224,13 +233,22 @@ export const generationRoutes = new Hono<AppEnv>()
     return row ? c.json(row, 200) : c.json({ error: "Generation not found" }, 404);
   })
   .get("/:id/pdf", canView, idParam, async (c) => {
-    const [row] = await db
-      .select({ fileId: generation.outputFileId, filename: generation.filename })
-      .from(generation)
-      .where(visible(c.get("user"), c.req.valid("param").id));
-    const stored = row?.fileId ? await fileBytes(db, row.fileId) : null;
-    if (!row || !stored) return c.json({ error: "No PDF for this generation" }, 404);
-    return c.body(stored.bytes, 200, pdfHeaders(row.filename));
+    const output = await findOutput(c.get("user"), c.req.valid("param").id);
+    if (!output) return c.json({ error: "No PDF for this generation" }, 404);
+    // Audit hook (docs/features/audit-log.md): record the download here.
+    return serveFile(c, output);
+  })
+  .post("/:id/link", canView, idParam, zValidator("json", downloadLinkRequestSchema), async (c) => {
+    const { id } = c.req.valid("param");
+    const output = await findOutput(c.get("user"), id);
+    if (!output) return c.json({ error: "No PDF for this generation" }, 404);
+    const link = await mintLink({
+      fileId: output.fileId,
+      generationId: id,
+      userId: c.get("user").id,
+      expiresInSeconds: c.req.valid("json").expiresInSeconds,
+    });
+    return c.json(link, 201);
   })
   .post("/:id/rerun", canView, idParam, async (c) => {
     const actor = c.get("user");

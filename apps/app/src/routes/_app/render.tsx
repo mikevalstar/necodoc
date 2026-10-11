@@ -5,16 +5,17 @@ import {
   pageSizeSchema,
   type RenderRequestInput,
 } from "@necodoc/shared";
-import { useMutation, useQuery } from "@tanstack/react-query";
+import { skipToken, useMutation, useQuery } from "@tanstack/react-query";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { z } from "zod";
 import { ErrorAlert, FieldShell, useAppForm, useFieldContext } from "@/components/form";
 import { PdfFrame } from "@/components/pdf-frame";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { FieldDescription, FieldGroup } from "@/components/ui/field";
 import { NativeSelect, NativeSelectOption } from "@/components/ui/native-select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { renderPdf } from "@/lib/api";
+import { renderPdf, waitForGeneration } from "@/lib/api";
 import { themesQuery } from "@/lib/queries";
 import { formatBytes } from "@/lib/utils";
 
@@ -144,6 +145,16 @@ const defaultValues: PlaygroundValues = {
 function RenderPlayground() {
   const themes = useQuery(themesQuery);
   const render = useMutation({ mutationFn: renderPdf });
+  // Over the API's wait (ADR 0020) the render keeps going as a job: poll it, show it when done.
+  const pendingId = render.data?.pending ? render.data.generationId : null;
+  const waited = useQuery({
+    queryKey: ["generation-wait", pendingId],
+    queryFn: pendingId ? () => waitForGeneration(pendingId) : skipToken,
+    retry: false,
+    staleTime: Number.POSITIVE_INFINITY,
+  });
+  const done = [render.data, waited.data].find((o) => o && !o.pending);
+  const result = done && !done.pending ? done : null;
   const form = useAppForm({
     defaultValues,
     validators: { onChange: playgroundSchema },
@@ -326,31 +337,42 @@ function RenderPlayground() {
         </form>
 
         <section className="space-y-2 lg:sticky lg:top-4 lg:self-start">
-          <ErrorAlert error={render.error} />
-          {render.data ? (
+          <ErrorAlert error={render.error ?? waited.error} />
+          {pendingId && !result && (
+            <Alert role="status">
+              <AlertDescription>
+                Still rendering. It'll appear in{" "}
+                <Link to="/generations/$id" params={{ id: pendingId }} className="underline">
+                  Generations
+                </Link>{" "}
+                when it's done, and here if you stay on this page.
+              </AlertDescription>
+            </Alert>
+          )}
+          {result ? (
             <>
               <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-muted-foreground">
                 <span>
-                  {render.data.pageCount} {render.data.pageCount === 1 ? "page" : "pages"} ·{" "}
-                  {formatBytes(render.data.pdf.size)}
+                  {result.pageCount} {result.pageCount === 1 ? "page" : "pages"} ·{" "}
+                  {formatBytes(result.pdf.size)}
                 </span>
-                {render.data.generationId ? (
+                {result.generationId ? (
                   <Link
                     to="/generations/$id"
-                    params={{ id: render.data.generationId }}
+                    params={{ id: result.generationId }}
                     className="font-mono text-xs underline"
                   >
-                    Generation {render.data.generationId}
+                    Generation {result.generationId}
                   </Link>
                 ) : (
                   <span>Preview, not logged</span>
                 )}
               </div>
-              <PdfFrame pdf={render.data.pdf} title="Rendered PDF" className="h-[80svh]" />
+              <PdfFrame pdf={result.pdf} title="Rendered PDF" className="h-[80svh]" />
             </>
           ) : (
             <div className="flex h-[80svh] items-center justify-center rounded-lg border text-sm text-muted-foreground">
-              {render.isPending ? "Rendering…" : "Press Render to see the PDF here."}
+              {render.isPending || pendingId ? "Rendering…" : "Press Render to see the PDF here."}
             </div>
           )}
         </section>

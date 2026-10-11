@@ -1,3 +1,4 @@
+import { buffer } from "node:stream/consumers";
 import { PDFDocument } from "@cantoo/pdf-lib";
 import { zValidator } from "@hono/zod-validator";
 import {
@@ -19,7 +20,7 @@ import { Hono } from "hono";
 import { z } from "zod";
 import { db } from "../db";
 import { batch, generation, user } from "../db/schema";
-import { fileBytes } from "../files";
+import { findFile, openFile } from "../files";
 import { enqueue, pdfFilename, queuedRow } from "../generate";
 import { type AppEnv, requirePermission, type SignedInEnv } from "../middleware";
 import { priorities } from "../queue";
@@ -214,7 +215,7 @@ export const templateBatchRoutes = new Hono<AppEnv>()
     },
   );
 
-/** A batch's stored PDFs in row order. */
+/** A batch's stored PDFs in row order. ZIP and packet are built from them on each download. */
 const outputs = (batchId: string) =>
   db
     .select({ fileId: generation.outputFileId, filename: generation.filename })
@@ -276,11 +277,13 @@ export const batchRoutes = new Hono<AppEnv>()
       async pull() {
         const row = rows[next++];
         if (!row) return zip.end();
-        const stored = row.fileId ? await fileBytes(db, row.fileId) : null;
+        const stored = row.fileId ? await findFile(db, row.fileId) : null;
         if (!stored) return;
         const entry = new ZipPassThrough(row.filename);
         zip.add(entry);
-        entry.push(stored.bytes, true);
+        const chunks: AsyncIterable<Buffer> = await openFile(db, stored);
+        for await (const chunk of chunks) entry.push(chunk);
+        entry.push(new Uint8Array(0), true);
       },
     });
     return c.body(body, 200, {
@@ -296,9 +299,9 @@ export const batchRoutes = new Hono<AppEnv>()
     if (!found) return c.json({ error: "Batch not found" }, 404);
     const packet = await PDFDocument.create();
     for (const row of await outputs(c.req.valid("param").id)) {
-      const stored = row.fileId ? await fileBytes(db, row.fileId) : null;
+      const stored = row.fileId ? await findFile(db, row.fileId) : null;
       if (!stored) continue;
-      const source = await PDFDocument.load(stored.bytes);
+      const source = await PDFDocument.load(await buffer(await openFile(db, stored)));
       for (const page of await packet.copyPages(source, source.getPageIndices())) {
         packet.addPage(page);
       }

@@ -48,7 +48,10 @@ Mechanism: [ADR 0019](../adrs/0019-better-auth-api-keys-for-the-public-api.md).
 - **Combine** (`POST /api/v1/combine`): see
   [Combining PDFs into packets](combining-pdfs-into-packets.md).
 - **Generations** (`GET /api/v1/generations/:id`, `.../pdf`): metadata and the
-  PDF, for the key owner's own generations.
+  PDF, for the key owner's own generations. Downloads stream from storage
+  with ETag and range support, like the app's
+  ([generation log](generation-log.md)); `POST .../link` mints a signed link
+  for systems without the key.
 - **Responses.** `Accept: application/pdf` returns the PDF bytes.
   `Accept: application/json` returns the generation id, page count, size and a
   download path. Errors are JSON with a code and message.

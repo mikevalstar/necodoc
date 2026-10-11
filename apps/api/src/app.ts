@@ -6,6 +6,7 @@ import { auth } from "./auth";
 import { type AppEnv, requestId } from "./middleware";
 import { assetRoutes } from "./routes/assets";
 import { batchRoutes, templateBatchRoutes } from "./routes/batches";
+import { fileRoutes } from "./routes/files";
 import { generationRoutes } from "./routes/generations";
 import { healthRoutes } from "./routes/health";
 import { renderRoutes } from "./routes/render";
@@ -53,6 +54,7 @@ const routes = app
   .route("/templates", templateRoutes)
   .route("/templates", templateBatchRoutes)
   .route("/batches", batchRoutes)
+  .route("/files", fileRoutes)
   .route("/system", systemRoutes);
 
 export type AppType = typeof routes;

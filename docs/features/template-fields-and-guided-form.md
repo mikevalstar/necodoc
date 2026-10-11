@@ -57,6 +57,11 @@ to user-defined data.
   from the UI, the [API](html-to-pdf-api.md) and
   [share links](share-links-and-data-requests.md). The API also exports it as JSON
   Schema per template version.
+- **Guided form.** One component
+  ([guided-form.tsx](../../apps/app/src/components/guided-form.tsx)) renders
+  the fields for sample data, filling and share links, validated with the same
+  schema; the [field designer](../../apps/app/src/routes/_app/templates/-field-designer.tsx)
+  edits the definition.
 - **Sample data.** Each template keeps one sample data set, editable as a form
   or as JSON, used by previews. "Fill with examples" generates plausible values
   from the field types.
@@ -65,7 +70,7 @@ to user-defined data.
 
 ## Acceptance criteria
 
-- [ ] An editor can add, reorder, group and delete fields of every type.
+- [x] An editor can add, reorder, group and delete fields of every type.
 - [ ] The guided form shows sections as steps, help text under each field,
       and errors as the user types.
 - [ ] A show-if field appears and disappears as its condition changes, and a
@@ -74,7 +79,7 @@ to user-defined data.
       errors keyed by field path.
 - [ ] The JSON Schema export validates the same sample data the zod schema
       accepts.
-- [ ] Renaming a field key flags every template expression that still uses the
+- [x] Renaming a field key flags every template expression that still uses the
       old key.
 
 ## Known limitations

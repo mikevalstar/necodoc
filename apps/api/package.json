@@ -17,6 +17,7 @@
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate",
     "db:studio": "drizzle-kit studio",
+    "storage:migrate": "tsx --env-file-if-exists=.env src/storage-migrate.ts",
     "chromium:install": "playwright-core install --only-shell chromium"
   },
   "devDependencies": {
@@ -30,6 +31,11 @@
     "vitest": "^5.0.1"
   },
   "dependencies": {
+    "@aws-sdk/client-s3": "^3.1149.0",
+    "@aws-sdk/lib-storage": "^3.1149.0",
+    "@aws-sdk/s3-request-presigner": "^3.1149.0",
+    "@azure/identity": "^4.13.3",
+    "@azure/storage-blob": "^12.34.0",
     "@cantoo/pdf-lib": "^2.11.1",
     "@fontsource/inter": "^5.3.0",
     "@fontsource/jetbrains-mono": "^5.3.0",

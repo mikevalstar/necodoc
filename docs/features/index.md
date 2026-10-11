@@ -12,6 +12,7 @@ Add one with `okq new feature "<title>"`.
 | Title | File |
 |-------|------|
 | Admin FAQ | [admin-faq.md](admin-faq.md) |
+| AI template assistant | [ai-template-assistant.md](ai-template-assistant.md) |
 | Assets | [assets.md](assets.md) |
 | Audit log | [audit-log.md](audit-log.md) |
 | Combining PDFs into packets | [combining-pdfs-into-packets.md](combining-pdfs-into-packets.md) |

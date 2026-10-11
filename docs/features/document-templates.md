@@ -43,6 +43,9 @@ editor and developers a code mode, on one renderer.
   - repeating section: repeated per item of a repeating group. A table row
     can repeat the same way. Leading rows made only of header cells are the
     header rows.
+  - raw HTML / Liquid block: hand-written markup output verbatim, for what the
+    other blocks can't express, without converting the template to code mode
+    ([ADR 0024](../adrs/0024-codemirror-6-for-code-mode-and-raw-html-blocks.md))
   - [snippet](snippet-library.md) reference
 - The node set is fixed by a shared schema
   ([template-doc.ts](../../packages/shared/src/template-doc.ts)) and compiled by
@@ -61,7 +64,16 @@ editor and developers a code mode, on one renderer.
   edits stop. A render error shows the Liquid or render message instead of a
   blank pane.
 - **Code mode.** An editor can convert a template to raw HTML/Liquid for full
-  control. Converting is one-way; the app warns first.
+  control, edited in a code editor with field and filter completion
+  ([ADR 0024](../adrs/0024-codemirror-6-for-code-mode-and-raw-html-blocks.md)).
+  Converting is one-way; the app warns first and offers to duplicate the
+  template as a code copy instead.
+- **Template CSS.** Each template can add CSS after its theme, in either mode.
+  It styles the body and both bands.
+- **Editor.** [Template pages](../../apps/app/src/routes/_app/templates/),
+  the [rich-text editor](../../apps/app/src/components/editor/doc-editor.tsx)
+  and the [code editor](../../apps/app/src/components/code-editor.tsx). Edits
+  are saved explicitly; leaving with unsaved changes asks first.
 - **AI drafting** (when enabled,
   [ADR 0018](../adrs/0018-claude-api-for-ai-field-detection-and-drafting.md)).
   The editor describes the content they want; the suggestion uses only declared
@@ -72,7 +84,7 @@ editor and developers a code mode, on one renderer.
 
 ## Acceptance criteria
 
-- [ ] An editor can create a template, set page size, orientation and margins,
+- [x] An editor can create a template, set page size, orientation and margins,
       and see them in the preview.
 - [ ] Header and footer render on every page with full HTML (an image and a
       table work), and `{{ page }} of {{ pages }}` shows correct numbers.
@@ -82,7 +94,9 @@ editor and developers a code mode, on one renderer.
       repeat on each page.
 - [x] A conditional section disappears when its condition is false.
 - [x] A manual page break starts a new page.
-- [ ] The preview updates after an edit without a manual refresh.
+- [x] The preview updates after an edit without a manual refresh.
+- [x] A raw HTML / Liquid block renders its markup and Liquid as written.
+- [x] Template CSS applies after the theme, in the body and the bands.
 - [x] A template converted to code mode renders the same PDF as before
       conversion.
 - [ ] `<script>` in a template doesn't run, and a remote image URL doesn't load
@@ -96,6 +110,10 @@ editor and developers a code mode, on one renderer.
 - The editor shows content, not pages. Page layout is only visible in the
   preview.
 - Code mode can't convert back to the visual editor.
+- Raw HTML blocks and code mode aren't checked against the declared fields;
+  only their Liquid syntax is checked, at publish.
+- A choice merge field prints the option's value, not its label.
+- Template CSS can't tell the header from the footer: both are `.necodoc-band`.
 - Repeating sections don't nest (repeating groups don't either).
 - Snippet reference nodes come with the [snippet library](snippet-library.md).
 - Table column widths set in the editor aren't carried into the PDF; columns

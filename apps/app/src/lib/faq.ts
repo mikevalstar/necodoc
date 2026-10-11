@@ -6,6 +6,7 @@ import type { Permissions } from "@necodoc/shared";
 
 /** Grouped like the nav. */
 export const faqGroups = [
+  "Templates",
   "Render",
   "Themes",
   "Assets",
@@ -30,7 +31,173 @@ export type FaqEntry = {
 
 const view = { document: ["view"] } as const;
 
+const edit = { document: ["edit"] } as const;
+const create = { document: ["create"] } as const;
+const publish = { document: ["publish"] } as const;
+const drafts = "Open drafts and their preview read-only";
+
+const templates: readonly FaqEntry[] = [
+  {
+    feature: "Designed templates",
+    group: "Templates",
+    what: "A template is a document designed once and filled in many times: a certificate, quote or letter. It has content, an optional header and footer, page setup, a theme, the fields it needs and one set of sample data. The PDF preview next to the editor is the real renderer, re-run shortly after each edit.",
+    howTo:
+      "Open Templates › New template, give it a name, then build it tab by tab: Content, Header & footer, Fields, Sample data, Page & theme, CSS. Save with the Save button or ⌘/Ctrl+S. The list filters by status (draft, published, unpublished changes, archived) and searches names and descriptions.",
+    limitations: [
+      "The editor shows content, not pages. Page breaks, page numbers and the header/footer layout are only visible in the preview.",
+      "One draft per template. If someone else saved since you opened it, Save is refused and you have to reload, losing your unsaved changes.",
+      "Table column widths aren't carried into the PDF; columns size to their content.",
+      "No JavaScript runs in documents, so no client-side charts.",
+      "PDF overlay templates (filling an existing PDF) aren't available yet.",
+    ],
+    access: [
+      { action: "See published templates", needs: view },
+      { action: drafts, needs: { document: ["review"] } },
+      { action: "Create and duplicate", needs: create },
+      { action: "Edit drafts and delete unpublished ones", needs: edit },
+    ],
+    spec: "docs/features/document-templates.md",
+  },
+  {
+    feature: "Template editor",
+    group: "Templates",
+    what: "A word-processor style editor: headings, paragraphs, bold, italic, underline, strikethrough, colour, links, alignment, lists, quotes, tables, images from the asset library or a field, dividers and page breaks, plus necodoc's merge fields, conditional and repeating sections. Pasted content keeps only what a template can hold.",
+    howTo:
+      "Use the toolbar, the Insert menu, or type / anywhere for the same list. In a table, the second toolbar row adds and removes rows and columns, toggles the header row and makes a row repeat. Click an image to set its width and alt text.",
+    limitations: [
+      "Pasted colours that aren't plain colours, and links that aren't http(s), mailto, tel or #anchors, are dropped.",
+      "Images are block images: no text wrapping around them.",
+      "Leading header rows of a table repeat on every page; there's no other control over table page breaks.",
+    ],
+    access: [{ action: "Edit", needs: edit }],
+    spec: "docs/features/document-templates.md",
+  },
+  {
+    feature: "Merge fields and filters",
+    group: "Templates",
+    what: "A merge field prints a field's value where it sits, shown as a blue chip. A format can be applied: date (pick a style or type dayjs tokens like MMM D, YYYY), number with decimals, currency with a three-letter code, UPPERCASE, lowercase, Capitalise, or keep line breaks for long text. Headers and footers can also print Page number and Total pages.",
+    howTo:
+      "Click Field in the toolbar (or type /field), pick the field and a format, then Insert field. Click a chip to change or remove it. A red chip refers to a field that no longer exists or can't be used there, and the page lists every such reference.",
+    limitations: [
+      "A choice field prints its option value, not its label; give options readable values if you print them.",
+      "Formats are a fixed list. For anything else, use a Raw HTML / Liquid block or code mode.",
+      "A repeating group's own fields can only be used inside a repeating section or repeated row over that group.",
+    ],
+    access: [{ action: "Edit", needs: edit }],
+    spec: "docs/features/document-templates.md",
+  },
+  {
+    feature: "Conditional and repeating sections",
+    group: "Templates",
+    what: "A conditional section (amber) shows its content only when a field matches a rule, e.g. Include rider is ticked. A repeating section (violet) repeats its content once per item of a repeating group, and a table row can repeat the same way, for line-item tables.",
+    howTo:
+      "Put the cursor on a block and choose Insert › Conditional section or Repeating section; the block is wrapped. Pick the field and rule in the section's header. For a table, put the cursor in a row and pick the group in 'Repeat row for each'. The header buttons unwrap the section or delete it with its content.",
+    limitations: [
+      "Repeating sections and rows don't nest, and groups can't contain groups.",
+      "A condition compares one field with one value; there's no AND/OR yet.",
+    ],
+    access: [{ action: "Edit", needs: edit }],
+    spec: "docs/features/document-templates.md",
+  },
+  {
+    feature: "Template headers and footers",
+    group: "Templates",
+    what: "Each template can have a header and a footer, each its own small document with a fixed height in millimetres, inside the page margins. Either can have a different first page, e.g. a letterhead with a logo on page 1 and a slim running header after.",
+    howTo:
+      "Open Header & footer, turn the band on, set its height and write it like the body. Insert Field › Page number and Total pages for 'Page 1 of 3'. Turn on 'Different first page' for the page-1 version.",
+    limitations: [
+      "Content taller than the band is cut off.",
+      "The first-page version has the same height as the band, so a tall letterhead reserves that space on every page.",
+      "CSS can't tell a header from a footer: both are .necodoc-band.",
+    ],
+    access: [{ action: "Edit", needs: edit }],
+    spec: "docs/features/document-templates.md",
+  },
+  {
+    feature: "Fields and the guided form",
+    group: "Templates",
+    what: "Fields are the data a template needs: short and long text, number, date, checkbox, choice (one or several), email, image upload, drawn signature and repeating groups. Each has a key, label, help text, required flag, default and type-specific rules (length, pattern, range, decimals, item counts). Sections group them into the steps of the guided form, and a field or section can show only when an earlier field matches a rule.",
+    howTo:
+      "Open Fields, add a section, then Add field. Click a field to edit it; the key follows the label until you change it. Arrows reorder, the Section menu moves a field to another section. Sample data shows the guided form for the template: 'Fill with examples' generates values, 'Edit as JSON' edits them directly.",
+    limitations: [
+      "A show-if can only refer to an earlier field (inside a group, an earlier sibling), and compares one field with one value.",
+      "Hidden fields are never required, and their values are dropped.",
+      "No computed fields and no cross-field rules (e.g. end date after start date).",
+      "The JSON Schema export for API callers leaves show-ifs out: conditional fields are optional there, and the API still applies the rules.",
+      "Examples for text with a pattern don't match the pattern and need editing.",
+      "Renaming a key flags old uses in the content; it doesn't rewrite them.",
+    ],
+    access: [{ action: "Design fields", needs: edit }],
+    spec: "docs/features/template-fields-and-guided-form.md",
+  },
+  {
+    feature: "Code mode",
+    group: "Templates",
+    what: "For full control, a template's body, header and footer can be edited as HTML and Liquid in a code editor with highlighting, line numbers, bracket matching, search (⌘/Ctrl+F) and completion of field names and necodoc's filters inside {{ }} and {% %}.",
+    howTo:
+      "Choose ⋯ › Code mode. 'Convert this template' switches it after a warning; 'Duplicate as code template' leaves the visual original alone and opens a code copy.",
+    limitations: [
+      "Converting is one way: once saved, a code template can't go back to the visual editor.",
+      "Code isn't checked against the field list. Publishing only checks that the Liquid parses; mistakes show up in the preview.",
+      "No JavaScript runs and nothing loads from the internet; use assets for images and fonts.",
+    ],
+    access: [
+      { action: "Convert", needs: edit },
+      { action: "Duplicate as code", needs: create },
+    ],
+    spec: "docs/features/document-templates.md",
+  },
+  {
+    feature: "Raw HTML / Liquid blocks",
+    group: "Templates",
+    what: "A block in a visual template that holds hand-written HTML and Liquid, output exactly as written: a signature layout, a QR code, anything the toolbar can't do. The editor shows the code; the preview shows the result.",
+    howTo:
+      "Choose Insert › Raw HTML / Liquid (or type /raw), write the code in the dialog and press Apply. The pencil reopens it.",
+    limitations: [
+      "Not checked against the field list; only Liquid syntax is checked, at publish.",
+      "Broken HTML can affect what follows it in the document.",
+      "No JavaScript in renders.",
+    ],
+    access: [{ action: "Add and edit", needs: edit }],
+    spec: "docs/features/document-templates.md",
+  },
+  {
+    feature: "Template CSS",
+    group: "Templates",
+    what: "Each template can carry its own CSS, added after its theme, in visual and code mode alike. It styles the body and both bands.",
+    howTo:
+      "Open the CSS tab. Band pages are .necodoc-band; classes used in Raw HTML blocks can be styled here.",
+    limitations: [
+      "Unrestricted, so it can break layout; check the preview.",
+      "Remote @import and URLs don't load.",
+      "Header and footer share the .necodoc-band class.",
+    ],
+    access: [{ action: "Edit", needs: edit }],
+    spec: "docs/features/document-templates.md",
+  },
+  {
+    feature: "Publishing and versions",
+    group: "Templates",
+    what: "Editors change a draft; publishers turn the saved draft into a numbered version with an optional change note. A version freezes content, fields, page setup, theme and sample data, so documents made from it never change. Archiving hides a template from filling and the API without losing its versions.",
+    howTo:
+      "Save, then Publish (it's off while there are unsaved changes or nothing changed). Versions lists every version with publisher, date and note; Preview shows a version, 'Restore to draft' copies it back into the draft. ⋯ › Archive and Restore hide and show the template.",
+    limitations: [
+      "No approval step: anyone who can publish can publish.",
+      "A template that was ever published can't be deleted, only archived.",
+      "Previewing an old version uses the current theme; the published PDF uses the frozen one.",
+      "There's no diff between the draft and a version yet.",
+    ],
+    access: [
+      { action: drafts, needs: { document: ["review"] } },
+      { action: "Publish, archive and restore", needs: publish },
+      { action: "Restore a version to the draft", needs: edit },
+    ],
+    spec: "docs/features/publishing-and-versions.md",
+  },
+];
+
 export const faq: readonly FaqEntry[] = [
+  ...templates,
   {
     feature: "HTML to PDF rendering",
     group: "Render",
@@ -86,7 +253,7 @@ export const faq: readonly FaqEntry[] = [
       "Remote @import and font URLs don't load.",
       "An uploaded font is a single file, so bold and italic are faked by the browser.",
       "Built-in starters are reset on every server restart; copy them rather than relying on changes to them.",
-      "Themes don't apply to templates yet; templates are coming.",
+      "A template uses its theme as it was when published; later theme edits only reach the draft's preview and the next version.",
     ],
     access: [
       { action: "View and use", needs: view },
@@ -264,5 +431,20 @@ export const faq: readonly FaqEntry[] = [
       { action: "Set and run retention", needs: "admin" },
     ],
     spec: "docs/features/generation-log.md",
+  },
+  {
+    feature: "Render queue view",
+    group: "Admin",
+    what: "A live list of the jobs in the render queue: what is waiting, running, retrying, or recently failed, with the file, batch, worker and timings for each. It refreshes every few seconds.",
+    howTo:
+      "Open Admin › Queue. Click a state to filter by it, or pick a queue. Pause refresh to read in peace. Cancel removes a waiting job, or drops the result of a running one.",
+    limitations: [
+      "It reads the queue library's job table directly, so it may need a fix after a library upgrade.",
+      "Cancelling a running job doesn't stop the browser: the render finishes, but its result is thrown away and the generation shows as cancelled.",
+      "The list has a fixed order (running first, then by priority and age) and can't be sorted.",
+      "Completed jobs are only kept by the queue for 7 days.",
+    ],
+    access: [{ action: "View and cancel jobs", needs: "admin" }],
+    spec: "docs/features/render-queue-batch-jobs-and-scaling.md",
   },
 ];

@@ -124,7 +124,8 @@ export const assetRoutes = new Hono<AppEnv>()
         .delete(asset)
         .where(eq(asset.id, c.req.valid("param").id))
         .returning({ fileId: asset.fileId });
-      if (row) await deleteFiles(tx, [row.fileId]);
+      // Assets keep their bytes in the row (ADR 0014), so there are no objects to delete.
+      if (row) await deleteFiles(tx, eq(file.id, row.fileId));
       return Boolean(row);
     });
     return deleted ? c.body(null, 204) : c.json({ error: "Asset not found" }, 404);

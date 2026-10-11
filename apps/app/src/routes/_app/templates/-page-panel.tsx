@@ -76,16 +76,17 @@ export function PagePanel({
               }}
             >
               {orientationSchema.options.map((o) => (
-                <NativeSelectOption key={o} value={o} className="capitalize">
-                  {o}
+                <NativeSelectOption key={o} value={o}>
+                  {o === "portrait" ? "Portrait" : "Landscape"}
                 </NativeSelectOption>
               ))}
             </NativeSelect>
           </Field>
           {SIDES.map((side) => (
             <Field key={side}>
-              <FieldLabel htmlFor={`margin-${side}`} className="capitalize">
-                {side} margin (mm)
+              <FieldLabel htmlFor={`margin-${side}`}>
+                {side[0]?.toUpperCase()}
+                {side.slice(1)} margin (mm)
               </FieldLabel>
               <Input
                 id={`margin-${side}`}

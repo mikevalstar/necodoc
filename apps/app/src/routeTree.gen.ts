@@ -18,6 +18,7 @@ import { Route as AppAssetsRouteImport } from './routes/_app/assets'
 import { Route as AppRenderRouteImport } from './routes/_app/render'
 import { Route as AppSettingsRouteImport } from './routes/_app/settings'
 import { Route as AppAdminFaqRouteImport } from './routes/_app/admin/faq'
+import { Route as AppAdminQueueRouteImport } from './routes/_app/admin/queue'
 import { Route as AppAdminSystemRouteImport } from './routes/_app/admin/system'
 import { Route as AppAdminUsersRouteImport } from './routes/_app/admin/users'
 import { Route as AppBatchesIndexRouteImport } from './routes/_app/batches/index'
@@ -72,6 +73,11 @@ const AppSettingsRoute = AppSettingsRouteImport.update({
 const AppAdminFaqRoute = AppAdminFaqRouteImport.update({
   id: '/admin/faq',
   path: '/admin/faq',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppAdminQueueRoute = AppAdminQueueRouteImport.update({
+  id: '/admin/queue',
+  path: '/admin/queue',
   getParentRoute: () => AppRoute,
 } as any)
 const AppAdminSystemRoute = AppAdminSystemRouteImport.update({
@@ -139,6 +145,7 @@ export interface FileRoutesByFullPath {
   '/render': typeof AppRenderRoute
   '/settings': typeof AppSettingsRoute
   '/admin/faq': typeof AppAdminFaqRoute
+  '/admin/queue': typeof AppAdminQueueRoute
   '/admin/system': typeof AppAdminSystemRoute
   '/admin/users': typeof AppAdminUsersRoute
   '/batches/$id': typeof AppBatchesIdRoute
@@ -160,6 +167,7 @@ export interface FileRoutesByTo {
   '/settings': typeof AppSettingsRoute
   '/': typeof AppIndexRoute
   '/admin/faq': typeof AppAdminFaqRoute
+  '/admin/queue': typeof AppAdminQueueRoute
   '/admin/system': typeof AppAdminSystemRoute
   '/admin/users': typeof AppAdminUsersRoute
   '/batches/$id': typeof AppBatchesIdRoute
@@ -183,6 +191,7 @@ export interface FileRoutesById {
   '/_app/settings': typeof AppSettingsRoute
   '/_app/': typeof AppIndexRoute
   '/_app/admin/faq': typeof AppAdminFaqRoute
+  '/_app/admin/queue': typeof AppAdminQueueRoute
   '/_app/admin/system': typeof AppAdminSystemRoute
   '/_app/admin/users': typeof AppAdminUsersRoute
   '/_app/batches/$id': typeof AppBatchesIdRoute
@@ -206,6 +215,7 @@ export interface FileRouteTypes {
     | '/render'
     | '/settings'
     | '/admin/faq'
+    | '/admin/queue'
     | '/admin/system'
     | '/admin/users'
     | '/batches/$id'
@@ -227,6 +237,7 @@ export interface FileRouteTypes {
     | '/settings'
     | '/'
     | '/admin/faq'
+    | '/admin/queue'
     | '/admin/system'
     | '/admin/users'
     | '/batches/$id'
@@ -249,6 +260,7 @@ export interface FileRouteTypes {
     | '/_app/settings'
     | '/_app/'
     | '/_app/admin/faq'
+    | '/_app/admin/queue'
     | '/_app/admin/system'
     | '/_app/admin/users'
     | '/_app/batches/$id'
@@ -332,6 +344,13 @@ declare module '@tanstack/react-router' {
       path: '/admin/faq'
       fullPath: '/admin/faq'
       preLoaderRoute: typeof AppAdminFaqRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/admin/queue': {
+      id: '/_app/admin/queue'
+      path: '/admin/queue'
+      fullPath: '/admin/queue'
+      preLoaderRoute: typeof AppAdminQueueRouteImport
       parentRoute: typeof AppRoute
     }
     '/_app/admin/system': {
@@ -420,6 +439,7 @@ interface AppRouteChildren {
   AppSettingsRoute: typeof AppSettingsRoute
   AppIndexRoute: typeof AppIndexRoute
   AppAdminFaqRoute: typeof AppAdminFaqRoute
+  AppAdminQueueRoute: typeof AppAdminQueueRoute
   AppAdminSystemRoute: typeof AppAdminSystemRoute
   AppAdminUsersRoute: typeof AppAdminUsersRoute
   AppBatchesIdRoute: typeof AppBatchesIdRoute
@@ -439,6 +459,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppSettingsRoute: AppSettingsRoute,
   AppIndexRoute: AppIndexRoute,
   AppAdminFaqRoute: AppAdminFaqRoute,
+  AppAdminQueueRoute: AppAdminQueueRoute,
   AppAdminSystemRoute: AppAdminSystemRoute,
   AppAdminUsersRoute: AppAdminUsersRoute,
   AppBatchesIdRoute: AppBatchesIdRoute,

@@ -18,6 +18,7 @@ import { sql } from "drizzle-orm";
 import {
   type AnyPgColumn,
   boolean,
+  check,
   customType,
   index,
   integer,
@@ -28,6 +29,7 @@ import {
   unique,
   uuid,
 } from "drizzle-orm/pg-core";
+import type { StorageDriverName } from "../storage/config";
 import { user } from "./auth-schema";
 
 export * from "./auth-schema";
@@ -45,17 +47,32 @@ const updatedAt = timestamp({ withTimezone: true })
   .$onUpdate(() => new Date())
   .notNull();
 
+/** Where a file's bytes are: in its row, or in a storage driver under `key` (ADR 0023). */
+export type FileStorage = "db" | StorageDriverName;
+
 // Every stored binary: uploads, assets, generated PDFs (ADR 0014). Written once; list queries
-// select metadata only. Other tables point here by id.
-export const file = pgTable("file", {
-  id: uuid().primaryKey().defaultRandom(),
-  ownerId: text().references(() => user.id, { onDelete: "set null" }),
-  mimeType: text().notNull(),
-  size: integer().notNull(),
-  sha256: text().notNull(),
-  bytes: bytea().notNull(),
-  createdAt,
-});
+// select metadata only. Other tables point here by id. Base data keeps its bytes in the row;
+// generated outputs live in the storage driver (ADR 0023). Read and write through src/files.ts.
+export const file = pgTable(
+  "file",
+  {
+    id: uuid().primaryKey().defaultRandom(),
+    ownerId: text().references(() => user.id, { onDelete: "set null" }),
+    mimeType: text().notNull(),
+    size: integer().notNull(),
+    sha256: text().notNull(),
+    storage: text().$type<FileStorage>().default("db").notNull(),
+    key: text(),
+    bytes: bytea(),
+    createdAt,
+  },
+  (t) => [
+    check(
+      "file_location",
+      sql`(${t.storage} = 'db' and ${t.bytes} is not null and ${t.key} is null) or (${t.storage} <> 'db' and ${t.bytes} is null and ${t.key} is not null)`,
+    ),
+  ],
+);
 
 // Spec: docs/features/assets.md
 export const asset = pgTable("asset", {
@@ -230,4 +247,17 @@ export const setting = pgTable("setting", {
   value: jsonb().$type<Settings[keyof Settings]>().notNull(),
   updatedBy: text().references(() => user.id, { onDelete: "set null" }),
   updatedAt,
+});
+
+// Spec: docs/features/generation-log.md (signed links). One row per minted link: who made it and
+// how often it was used. The token itself carries the file id and expiry (src/signed-link.ts).
+export const downloadLink = pgTable("download_link", {
+  id: uuid().primaryKey().defaultRandom(),
+  fileId: uuid().references(() => file.id, { onDelete: "set null" }),
+  generationId: uuid().references(() => generation.id, { onDelete: "set null" }),
+  createdBy: text().references(() => user.id, { onDelete: "set null" }),
+  expiresAt: timestamp({ withTimezone: true }).notNull(),
+  downloads: integer().default(0).notNull(),
+  lastUsedAt: timestamp({ withTimezone: true }),
+  createdAt,
 });

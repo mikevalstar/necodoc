@@ -27,14 +27,16 @@ A month-end run of 10,000 statements must not time out or slow down someone fill
 - **Timing on every render**, stored on the generation: queue wait, Liquid, Chromium, bands, stamping/overlay, total. Shown in the generation detail and filterable/sortable in the log.
 - **Workers.** Each worker reports a heartbeat: host, process id, version, concurrency, jobs running, event-loop lag. Admin > System lists workers online and warns when there are none.
 - **Metrics (Admin > System):** renders per minute, p50/p95/p99 render time, error rate, and queue depth by priority, over selectable windows; breakdown by source and template.
-- **Scaling** is configuration only: `ROLE` and `RENDER_CONCURRENCY` (see ADR 0020). Health endpoints report role and readiness for load balancers and orchestrators.
+- **Output storage.** Workers write each PDF to the storage driver (`STORAGE_DRIVER`: disk, S3-compatible or Azure Blob, see [ADR 0023](../adrs/0023-generated-outputs-in-object-storage.md)). Every API node must reach the same storage: one bucket or container, or a shared mount for disk. Admin > System shows the active driver.
+- **Scaling** is configuration only: `ROLE` and `RENDER_CONCURRENCY` (see ADR 0020). Health endpoints report role and readiness for load balancers and orchestrators; readiness fails when the node can't write and read its storage.
 
 ## Implementation
 
 - Process roles, env and shutdown: [index.ts](../../apps/api/src/index.ts), [env.ts](../../apps/api/src/env.ts). `pnpm --filter @necodoc/api worker` starts a worker locally.
 - Queue setup and the finished-generation channel: [queue.ts](../../apps/api/src/queue.ts). Synchronous callers wake on a Postgres `NOTIFY` when their generation finishes, so pickup is milliseconds, not a poll interval.
 - Enqueue, wait, preview and the worker's run of one job: [generate.ts](../../apps/api/src/generate.ts). Rows and their jobs are written in one transaction. Previews skip the queue and are capped by `PREVIEW_CONCURRENCY`.
-- Worker loop, heartbeats, retention schedule: [worker.ts](../../apps/api/src/worker.ts). Retry rules: [errors.ts](../../apps/api/src/render/errors.ts).
+- Worker loop, heartbeats, retention schedule: [worker.ts](../../apps/api/src/worker.ts).
+- Storage drivers: [storage/](../../apps/api/src/storage/index.ts); file rows and their locations: [files.ts](../../apps/api/src/files.ts); downloads, ranges and signed links: [download.ts](../../apps/api/src/download.ts); moving old outputs out of Postgres: [storage-migrate.ts](../../apps/api/src/storage-migrate.ts). Retry rules: [errors.ts](../../apps/api/src/render/errors.ts).
 - Timing: [render.ts](../../apps/api/src/render/render.ts) reports Liquid (body), Chromium (body pass), bands (their Liquid and print), and stamping (pdf-lib load, stamp, save). The worker adds queue wait (queued to the last attempt's start), run time and total (queued to finished).
 - Routes: [render](../../apps/api/src/routes/render.ts), [batches](../../apps/api/src/routes/batches.ts), [system and live queue](../../apps/api/src/routes/system.ts), [health](../../apps/api/src/routes/health.ts). CSV parsing and column mapping: [batch.ts](../../packages/shared/src/batch.ts).
 - App: [Admin › System](../../apps/app/src/routes/_app/admin/system.tsx), [batches](../../apps/app/src/routes/_app/batches/index.tsx).
@@ -59,7 +61,8 @@ A month-end run of 10,000 statements must not time out or slow down someone fill
 - Render timeouts count as template errors and don't retry. A job that loses its worker three times fails.
 - Each batch row stores its own copy of the compiled template as its input, so large batches take space.
 - Cancelling stops rows that haven't started; running rows finish. Cancelling a single queued job (live queue) drops a running render's result rather than stopping Chromium.
-- The packet download is built in memory; the ZIP streams.
+- The packet download is built in memory; the ZIP streams. Neither is stored; both are rebuilt from the stored PDFs on each download.
+- With `STORAGE_DRIVER=disk` and more than one host, the directory must be a shared mount; readiness catches a node without it, not two nodes with separate disks that both pass.
 - Metrics come from the generation log, so deleted entries drop out of them.
 - The live queue view reads pg-boss's `pgboss.job` table directly (pg-boss has no listing API), so a pg-boss major upgrade may need it adjusted.
 - When the app's Render or template page waits past the timeout, it gets the 202 body instead of a PDF.

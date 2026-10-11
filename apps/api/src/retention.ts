@@ -2,6 +2,7 @@ import type { RetentionSettings } from "@necodoc/shared";
 import { and, eq, inArray, isNotNull, lt } from "drizzle-orm";
 import { db } from "./db";
 import { file, generation, setting } from "./db/schema";
+import { deleteFiles, deleteObjects } from "./files";
 
 // Spec: docs/features/generation-log.md (retention). Runs daily as a pg-boss cron job (ADR 0020)
 // and on demand from Admin > System. Metadata always stays.
@@ -25,23 +26,20 @@ const daysAgo = (days: number) => new Date(Date.now() - days * 24 * 60 * 60 * 10
 /** Deletes outputs and inputs of generations that finished more than N days ago. */
 export async function runRetention() {
   const { outputDays, inputDays } = await retentionSettings();
-  // The FK sets output_file_id to null as the files go.
+  // The FK sets output_file_id to null as the files go; their objects go after (ADR 0023).
   const outputs = outputDays
-    ? (
-        await db
-          .delete(file)
-          .where(
-            inArray(
-              file.id,
-              db
-                .select({ id: generation.outputFileId })
-                .from(generation)
-                .where(lt(generation.finishedAt, daysAgo(outputDays))),
-            ),
-          )
-          .returning({ id: file.id })
-      ).length
-    : 0;
+    ? await deleteFiles(
+        db,
+        inArray(
+          file.id,
+          db
+            .select({ id: generation.outputFileId })
+            .from(generation)
+            .where(lt(generation.finishedAt, daysAgo(outputDays))),
+        ),
+      )
+    : [];
+  await deleteObjects(outputs);
   const inputs = inputDays
     ? (
         await db
@@ -51,5 +49,5 @@ export async function runRetention() {
           .returning({ id: generation.id })
       ).length
     : 0;
-  return { outputsDeleted: outputs, inputsDeleted: inputs };
+  return { outputsDeleted: outputs.length, inputsDeleted: inputs };
 }

@@ -13,9 +13,11 @@ import { Hono } from "hono";
 import { z } from "zod";
 import { db } from "../db";
 import { generation, template, worker } from "../db/schema";
+import { env } from "../env";
 import { type AppEnv, requireRole } from "../middleware";
 import { announceFinished, boss } from "../queue";
 import { retentionSettings, runRetention, saveRetentionSettings } from "../retention";
+import { storage } from "../storage";
 import { onlineSince } from "../worker";
 
 // Spec: docs/features/render-queue-batch-jobs-and-scaling.md (Admin > System). Metrics come from
@@ -120,6 +122,8 @@ export const systemRoutes = new Hono<AppEnv>()
       },
       bySource: bySource.map((row) => ({ ...row, source: row.source as GenerationSource })),
       byTemplate,
+      /** ADR 0023: where this API node writes and reads generated outputs. */
+      storage: { driver: storage.name, target: storage.target, redirect: env.STORAGE_REDIRECT },
     });
   })
   .get("/retention", async (c) => c.json(await retentionSettings()))

@@ -10,3 +10,6 @@ dist
 # Fiberplane local issue tracking
 .fp/*
 !.fp/remote.toml
+
+# Generated outputs on the disk storage driver (ADR 0023)
+apps/api/data

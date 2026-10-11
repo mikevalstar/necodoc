@@ -195,7 +195,9 @@ function blockHtml(node: BlockNode, scope: Scope): string {
     case "horizontalRule":
       return "<hr>";
     case "pageBreak":
-      return '<div style="break-after:page"></div>';
+      // break-before, not break-after: when the page above is exactly full, this empty div lands
+      // on the next page, and a break after it would leave that page blank.
+      return '<div style="break-before:page"></div>';
     case "image": {
       const { assetId, field, alt, width } = node.attrs;
       const attrs = `alt="${escapeHtml(alt ?? "")}"${width ? ` style="width:${width}%"` : ""}`;
@@ -228,6 +230,9 @@ function blockHtml(node: BlockNode, scope: Scope): string {
       const { field } = node.attrs;
       return `{% for ${ITEM} in ${field} %}${blocks(node.content, repeatScope(field, scope))}{% endfor %}`;
     }
+    case "rawHtml":
+      // Verbatim by design: the author asked for markup, not text.
+      return node.attrs.html;
   }
 }
 
@@ -244,24 +249,30 @@ function listPaths(sections: readonly FieldSection[]) {
   return paths;
 }
 
-/** One TipTap doc to HTML + Liquid. Throws TemplateCompileError on misplaced group fields. */
-export function compileDoc(doc: Doc, sections: readonly FieldSection[] = []) {
-  return blocks(doc.content, { lists: listPaths(sections), repeat: null });
+/**
+ * One TipTap doc to HTML + Liquid. Throws TemplateCompileError on misplaced group fields.
+ * `separator` goes between top-level blocks: code mode uses a newline so the HTML is readable.
+ */
+export function compileDoc(doc: Doc, sections: readonly FieldSection[] = [], separator = "") {
+  const scope = { lists: listPaths(sections), repeat: null };
+  return doc.content.map((n) => blockHtml(n, scope)).join(separator);
 }
 
-/** What the renderer needs from a designed template: body HTML and bands. */
-export type CompiledTemplate = { html: string; header?: Band; footer?: Band };
+/** What the renderer needs from a designed template: body HTML, bands and template CSS. */
+export type CompiledTemplate = { html: string; header?: Band; footer?: Band; css?: string };
 
 /** Compiles a designed template's body and bands. Code mode is already compiled. */
 export function compileDesignedContent(
   content: DesignedContent,
   sections: readonly FieldSection[],
 ): CompiledTemplate {
+  const css = content.css ? { css: content.css } : {};
   if (content.mode === "code") {
     return {
       html: content.body,
       ...(content.header ? { header: content.header } : {}),
       ...(content.footer ? { footer: content.footer } : {}),
+      ...css,
     };
   }
   const band = (visual: typeof content.header): Band | undefined =>
@@ -278,16 +289,32 @@ export function compileDesignedContent(
     html: compileDoc(content.body, sections),
     ...(header ? { header } : {}),
     ...(footer ? { footer } : {}),
+    ...css,
   };
 }
 
-/** Converts a visual template to code mode (one way, ADR 0016). */
+/** Converts a visual template to code mode (one way, ADR 0016), one top-level block per line. */
 export function toCodeMode(
   content: DesignedContent,
   sections: readonly FieldSection[],
 ): DesignedContent {
-  const { html, header, footer } = compileDesignedContent(content, sections);
-  return { mode: "code", body: html, header: header ?? null, footer: footer ?? null };
+  if (content.mode === "code") return content;
+  const html = (doc: Doc) => compileDoc(doc, sections, "\n");
+  const band = (visual: typeof content.header): Band | null =>
+    visual
+      ? {
+          height: visual.height,
+          html: html(visual.doc),
+          ...(visual.firstPage ? { firstPageHtml: html(visual.firstPage) } : {}),
+        }
+      : null;
+  return {
+    mode: "code",
+    body: html(content.body),
+    header: band(content.header),
+    footer: band(content.footer),
+    css: content.css,
+  };
 }
 
 export type FieldProblem = { field: string; message: string };
@@ -381,6 +408,8 @@ export function templateFieldProblems(
           break;
         case "horizontalRule":
         case "pageBreak":
+        // Raw HTML isn't checked against the fields; publish only checks its Liquid parses.
+        case "rawHtml":
           break;
       }
     }

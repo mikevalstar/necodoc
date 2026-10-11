@@ -12,7 +12,7 @@ import {
   useQueryClient,
   useSuspenseQuery,
 } from "@tanstack/react-query";
-import { createFileRoute, Link, redirect, useBlocker } from "@tanstack/react-router";
+import { createFileRoute, Link, redirect, useBlocker, useNavigate } from "@tanstack/react-router";
 import { ChevronLeftIcon, MoreHorizontalIcon, TriangleAlertIcon } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { ErrorAlert } from "@/components/form";
@@ -42,7 +42,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ApiError, api, ok, previewTemplate } from "@/lib/api";
 import { dayjs } from "@/lib/date";
 import { templatesQuery } from "@/lib/queries";
-import { BandsPanel, BodyPanel } from "./-content-panels";
+import { BandsPanel, BodyPanel, CssPanel } from "./-content-panels";
 import {
   type Draft,
   type DraftValues,
@@ -114,6 +114,7 @@ function TemplateEditor({
   const canEdit = can("edit");
   const queryClient = useQueryClient();
   const duplicate = useDuplicateTemplate();
+  const navigate = useNavigate();
   const archive = useArchiveTemplate();
   const versions = useQuery(versionsQuery(template.id));
 
@@ -135,7 +136,9 @@ function TemplateEditor({
   const parsed = useMemo(() => draftSchema.safeParse(draft), [draft]);
   const problems = useMemo(() => {
     const content = designedContentSchema.safeParse(draft.content);
-    return content.success ? templateFieldProblems(content.data, draft.sections) : [];
+    if (!content.success) return [];
+    // One line per distinct problem, however many places it occurs.
+    return [...new Set(templateFieldProblems(content.data, draft.sections).map((p) => p.message))];
   }, [draft.content, draft.sections]);
 
   const save = useMutation({
@@ -198,18 +201,47 @@ function TemplateEditor({
     hasUnpublishedChanges: !latest || dayjs(baseUpdatedAt).isAfter(latest.publishedAt) || dirty,
   };
 
-  const convertToCode = () => {
+  /** The draft's content compiled to code mode, or null with the reason shown in the dialog. */
+  const codeContent = () => {
     const content = designedContentSchema.safeParse(draft.content);
-    if (!content.success) return setCodeError("Fix the content problems first.");
+    if (!content.success) {
+      setCodeError("Fix the content problems first.");
+      return null;
+    }
     try {
-      setContent(toCodeMode(content.data, draft.sections));
-      setCodeError(null);
-      setDialog(null);
+      return toCodeMode(content.data, draft.sections);
     } catch (error) {
       if (!(error instanceof TemplateCompileError)) throw error;
       setCodeError(error.message);
+      return null;
     }
   };
+  const convertToCode = () => {
+    const code = codeContent();
+    if (!code) return;
+    setContent(code);
+    setCodeError(null);
+    setDialog(null);
+  };
+  const duplicateAsCode = useMutation({
+    mutationFn: async () => {
+      const content = codeContent();
+      if (!content || !parsed.success) throw new Error("Fix the problems first.");
+      const json = {
+        ...parsed.data,
+        kind: "designed" as const,
+        name: `${draft.name} (code)`,
+        content,
+      };
+      return (await ok(api.templates.$post({ json }))).json();
+    },
+    onSuccess: async (created) => {
+      await queryClient.invalidateQueries({ queryKey: templatesQuery.queryKey });
+      setDialog(null);
+      // The visual original keeps its unsaved edits only if the user stays; the guard asks.
+      await navigate({ to: "/templates/$id", params: { id: created.id } });
+    },
+  });
 
   const issues = parsed.success ? [] : parsed.error.issues.slice(0, 6);
 
@@ -255,9 +287,15 @@ function TemplateEditor({
           {can("publish") && (
             <Button
               variant="outline"
-              disabled={dirty || !!archivedAt}
+              disabled={dirty || !!archivedAt || !status.hasUnpublishedChanges}
               title={
-                dirty ? "Save your changes first" : archivedAt ? "Restore it first" : undefined
+                dirty
+                  ? "Save your changes first"
+                  : archivedAt
+                    ? "Restore it first"
+                    : status.hasUnpublishedChanges
+                      ? undefined
+                      : `Nothing changed since version ${latest?.version}`
               }
               onClick={() => setDialog("publish")}
             >
@@ -288,10 +326,8 @@ function TemplateEditor({
                   {archivedAt ? "Restore" : "Archive"}
                 </DropdownMenuItem>
               )}
-              {canEdit && draft.content.mode === "visual" && (
-                <DropdownMenuItem onClick={() => setDialog("code")}>
-                  Convert to code…
-                </DropdownMenuItem>
+              {(canEdit || can("create")) && draft.content.mode === "visual" && (
+                <DropdownMenuItem onClick={() => setDialog("code")}>Code mode…</DropdownMenuItem>
               )}
               {canEdit && (
                 <>
@@ -362,8 +398,8 @@ function TemplateEditor({
           <AlertTitle>Field references to check</AlertTitle>
           <AlertDescription>
             <ul className="list-disc pl-4">
-              {problems.map((p) => (
-                <li key={`${p.field}:${p.message}`}>{p.message}</li>
+              {problems.map((message) => (
+                <li key={message}>{message}</li>
               ))}
             </ul>
           </AlertDescription>
@@ -378,6 +414,7 @@ function TemplateEditor({
             <TabsTrigger value="fields">Fields</TabsTrigger>
             <TabsTrigger value="sample">Sample data</TabsTrigger>
             <TabsTrigger value="page">Page & theme</TabsTrigger>
+            <TabsTrigger value="css">CSS</TabsTrigger>
             <TabsTrigger value="versions">Versions</TabsTrigger>
           </TabsList>
           {/* Editors stay mounted so their undo history and cursor survive tab switches. */}
@@ -414,6 +451,9 @@ function TemplateEditor({
           </TabsContent>
           <TabsContent value="page">
             <PagePanel draft={draft} onChange={change} editable={canEdit} />
+          </TabsContent>
+          <TabsContent value="css" keepMounted>
+            <CssPanel content={draft.content} onChange={setContent} editable={canEdit} />
           </TabsContent>
           <TabsContent value="versions">
             <VersionsPanel
@@ -479,13 +519,23 @@ function TemplateEditor({
       )}
       {dialog === "code" && (
         <AlertDialog open onOpenChange={(open) => !open && setDialog(null)}>
-          <AlertDialogContent>
+          <AlertDialogContent className="sm:max-w-lg!">
             <AlertDialogHeader>
-              <AlertDialogTitle>Convert to code?</AlertDialogTitle>
-              <AlertDialogDescription>
-                The body, header and footer become HTML and Liquid you edit by hand. Once you save,
-                there's no way back to the visual editor: arbitrary HTML doesn't map onto its
-                blocks. Published versions aren't affected.
+              <AlertDialogTitle>Switch to code mode?</AlertDialogTitle>
+              <AlertDialogDescription className="space-y-2">
+                <span className="block">
+                  The body, header and footer are compiled to HTML and Liquid that you edit by hand
+                  in a code editor. The PDF stays the same.
+                </span>
+                <span className="block font-medium text-foreground">
+                  It's one way. Once saved, this template can't go back to the visual editor:
+                  arbitrary HTML doesn't map onto its blocks.
+                </span>
+                <span className="block">
+                  To keep the visual original, duplicate it as a separate code template instead. For
+                  a few advanced bits, a Raw HTML / Liquid block (Insert menu) avoids switching at
+                  all. Published versions aren't affected either way.
+                </span>
               </AlertDialogDescription>
             </AlertDialogHeader>
             {codeError && (
@@ -493,11 +543,23 @@ function TemplateEditor({
                 <AlertDescription>{codeError}</AlertDescription>
               </Alert>
             )}
+            <ErrorAlert error={duplicateAsCode.error} />
             <AlertDialogFooter>
               <AlertDialogCancel>Cancel</AlertDialogCancel>
-              <AlertDialogAction variant="destructive" onClick={convertToCode}>
-                Convert to code
-              </AlertDialogAction>
+              {can("create") && (
+                <Button
+                  variant="outline"
+                  disabled={duplicateAsCode.isPending}
+                  onClick={() => duplicateAsCode.mutate()}
+                >
+                  Duplicate as code template
+                </Button>
+              )}
+              {canEdit && (
+                <AlertDialogAction variant="destructive" onClick={convertToCode}>
+                  Convert this template
+                </AlertDialogAction>
+              )}
             </AlertDialogFooter>
           </AlertDialogContent>
         </AlertDialog>

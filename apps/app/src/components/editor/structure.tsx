@@ -79,7 +79,7 @@ export const RepeatingSection = Node.create({
   },
 });
 
-/** Compiles to `break-after: page`. Shown as a labelled rule (styled in index.css). */
+/** Compiles to `break-before: page`. Shown as a labelled rule (styled in index.css). */
 export const PageBreak = Node.create({
   name: "pageBreak",
   group: "block",

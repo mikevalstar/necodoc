@@ -77,6 +77,8 @@ document permissions in
   opened.
 - Review is not a gate. No approval step before publishing yet.
 - The content diff is textual, not visual.
+- Previewing an old version in the editor renders it with the current theme;
+  the published version itself keeps its frozen theme.
 
 ## Open questions
 

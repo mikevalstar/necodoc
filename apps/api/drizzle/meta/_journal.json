@@ -43,6 +43,13 @@
       "when": 1791736563597,
       "tag": "0005_generation_log_indexes",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1791737568679,
+      "tag": "0006_output_storage",
+      "breakpoints": true
     }
   ]
 }

@@ -13,7 +13,9 @@ generated: { by: okq/0.9.0, at: 2026-10-11T15:36:56Z }
 
 Accepted. Answers the storage question in
 [Filling out a document](../features/filling-out-a-document.md). Builds on
-[ADR 0006](0006-postgres-with-drizzle.md).
+[ADR 0006](0006-postgres-with-drizzle.md). Extended by
+[ADR 0023](0023-generated-outputs-in-object-storage.md): generated outputs
+move to a storage driver; base data stays here.
 
 ## Context
 

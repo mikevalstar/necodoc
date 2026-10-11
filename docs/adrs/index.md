@@ -32,4 +32,7 @@ Add one with `okq new adr "<title>"`.
 | Better Auth API keys for the public API | [0019-better-auth-api-keys-for-the-public-api.md](0019-better-auth-api-keys-for-the-public-api.md) |
 | pg-boss job queue and separate render worker processes | [0020-pg-boss-job-queue-and-separate-render-worker-processes.md](0020-pg-boss-job-queue-and-separate-render-worker-processes.md) |
 | TanStack Table for server-side data tables | [0021-tanstack-table-for-server-side-data-tables.md](0021-tanstack-table-for-server-side-data-tables.md) |
+| Vercel AI SDK for all AI features | [0022-vercel-ai-sdk-for-all-ai-features.md](0022-vercel-ai-sdk-for-all-ai-features.md) |
+| Generated outputs in object storage | [0023-generated-outputs-in-object-storage.md](0023-generated-outputs-in-object-storage.md) |
+| CodeMirror 6 for code mode and raw HTML blocks | [0024-codemirror-6-for-code-mode-and-raw-html-blocks.md](0024-codemirror-6-for-code-mode-and-raw-html-blocks.md) |
 <!-- okq:index:end -->

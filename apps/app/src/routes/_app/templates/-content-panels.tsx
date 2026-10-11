@@ -1,9 +1,9 @@
 import { bandSchema, type FieldSection } from "@necodoc/shared";
+import { CodeEditor } from "@/components/code-editor";
 import { DocEditor } from "@/components/editor/doc-editor";
 import { Field, FieldDescription, FieldGroup, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
-import { Textarea } from "@/components/ui/textarea";
 import { type CodeBand, type EditorBand, type EditorContent, emptyDoc } from "./-draft";
 
 // Spec: docs/features/document-templates.md. Body and bands, in the visual editor or as code.
@@ -19,15 +19,15 @@ export function BodyPanel({ content, onChange, sections, editable }: Props) {
   if (content.mode === "code") {
     return (
       <Field>
-        <FieldLabel htmlFor="code-body">Body HTML (Liquid)</FieldLabel>
-        <Textarea
-          id="code-body"
-          rows={28}
-          spellCheck={false}
-          className="font-mono text-xs"
+        <FieldLabel>Body HTML (Liquid)</FieldLabel>
+        <CodeEditor
+          label="Body HTML (Liquid)"
+          language="liquid"
+          sections={sections}
           readOnly={!editable}
           value={content.body}
-          onChange={(e) => onChange({ ...content, body: e.target.value })}
+          onChange={(body) => onChange({ ...content, body })}
+          className="[&_.cm-editor]:min-h-[60svh]"
         />
         <FieldDescription>
           Fields are Liquid variables: {"{{ client_name }}"}, {"{% if %}"},{" "}
@@ -112,14 +112,13 @@ export function BandsPanel({ content, onChange, sections, editable }: Props) {
                     disabled={!editable}
                     onChange={(height) => set({ ...band, height })}
                   />
-                  <Textarea
-                    aria-label={`${label} HTML`}
-                    rows={6}
-                    spellCheck={false}
-                    className="font-mono text-xs"
+                  <CodeEditor
+                    label={`${label} HTML`}
+                    language="liquid"
+                    sections={sections}
                     readOnly={!editable}
                     value={band.html}
-                    onChange={(e) => set({ ...band, html: e.target.value })}
+                    onChange={(html) => set({ ...band, html })}
                   />
                   <Field orientation="horizontal">
                     <Switch
@@ -134,14 +133,13 @@ export function BandsPanel({ content, onChange, sections, editable }: Props) {
                     <FieldLabel htmlFor={`${name}-first`}>Different first page</FieldLabel>
                   </Field>
                   {band.firstPageHtml !== undefined && (
-                    <Textarea
-                      aria-label={`First page ${name} HTML`}
-                      rows={6}
-                      spellCheck={false}
-                      className="font-mono text-xs"
+                    <CodeEditor
+                      label={`First page ${name} HTML`}
+                      language="liquid"
+                      sections={sections}
                       readOnly={!editable}
                       value={band.firstPageHtml}
-                      onChange={(e) => set({ ...band, firstPageHtml: e.target.value })}
+                      onChange={(firstPageHtml) => set({ ...band, firstPageHtml })}
                     />
                   )}
                 </>
@@ -221,5 +219,29 @@ export function BandsPanel({ content, onChange, sections, editable }: Props) {
         );
       })}
     </div>
+  );
+}
+
+/** Template CSS: added after the theme, in the body and both bands, in either mode. */
+export function CssPanel({ content, onChange, editable }: Omit<Props, "sections">) {
+  return (
+    <Field>
+      <FieldLabel>Template CSS</FieldLabel>
+      <CodeEditor
+        label="Template CSS"
+        language="css"
+        readOnly={!editable}
+        value={content.css}
+        placeholder={
+          "table td { border-bottom: 1px solid #ddd; }\n.necodoc-band { padding-top: 4mm; }"
+        }
+        onChange={(css) => onChange({ ...content, css })}
+        className="[&_.cm-editor]:min-h-[40svh]"
+      />
+      <FieldDescription>
+        Applied after the theme, to the body and to the header and footer (each band page is a
+        .necodoc-band). Remote URLs and @import don't load; use assets.
+      </FieldDescription>
+    </Field>
   );
 }

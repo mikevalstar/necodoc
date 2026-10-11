@@ -1,7 +1,8 @@
 import type { Context } from "hono";
+import { serveFile } from "../download";
 import type { GenerationResult } from "../generate";
 
-/** Headers for serving a stored PDF inline, with a filename for "save as". */
+/** Headers for serving a preview PDF inline, with a filename for "save as". */
 export const pdfHeaders = (filename: string) => ({
   "Content-Type": "application/pdf",
   "Content-Disposition": `inline; filename="${filename.replace(/["\\\r\n]/g, "_")}"`,
@@ -19,16 +20,21 @@ export const fileHeaders = (mimeType: string) => ({
 });
 
 /**
- * How a generate call answers (ADR 0020): the PDF once it's rendered, 422 with the error, or 202
- * with the generation id to poll while it's still queued or running.
+ * How a generate call answers (ADR 0020): the PDF once it's rendered (streamed from storage, ADR
+ * 0023), 422 with the error, or 202 with the generation id to poll while it's still queued or
+ * running.
  */
-export function generationResponse(c: Context, result: GenerationResult) {
+export async function generationResponse(c: Context, result: GenerationResult) {
   switch (result.status) {
     case "success":
-      return c.body(result.pdf, 200, {
-        ...pdfHeaders(result.filename),
-        "X-Page-Count": String(result.pageCount),
-        "X-Generation-Id": result.generationId,
+      return serveFile(c, {
+        fileId: result.fileId,
+        filename: result.filename,
+        redirect: false,
+        headers: {
+          "X-Page-Count": String(result.pageCount),
+          "X-Generation-Id": result.generationId,
+        },
       });
     case "error":
       return c.json({ error: result.error, generationId: result.generationId }, 422);

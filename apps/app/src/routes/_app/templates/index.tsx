@@ -171,7 +171,10 @@ function Templates() {
                 )}
               </TableCell>
               <TableCell>
-                <TemplateStatusBadges template={t} />
+                {/* Draft state is editors' business; viewers see the published version. */}
+                <TemplateStatusBadges
+                  template={seesDrafts ? t : { ...t, hasUnpublishedChanges: false }}
+                />
               </TableCell>
               <TableCell className="hidden text-muted-foreground sm:table-cell">
                 {dayjs(seesDrafts ? t.updatedAt : (t.publishedAt ?? t.updatedAt)).fromNow()}

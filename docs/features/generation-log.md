@@ -36,7 +36,8 @@ needs counting.
   - worker that ran it, attempt count, batch it belongs to, request id
   - page count, size
   - input payload (data or HTML)
-  - output PDF ([ADR 0014](../adrs/0014-binary-files-stored-in-postgres.md))
+  - output PDF, in the configured storage driver: disk, S3-compatible or
+    Azure Blob ([ADR 0023](../adrs/0023-generated-outputs-in-object-storage.md))
 - Live previews while editing are not logged.
 - **Generations page** ([generations](../../apps/app/src/routes/_app/generations/index.tsx)):
   admins see every entry and filter by source, status, user, template, batch,
@@ -52,11 +53,17 @@ needs counting.
 - **Retention** (admin setting): delete outputs, and optionally inputs, older
   than N days while keeping the metadata. Runs as a scheduled job; changes are
   recorded in the [audit log](audit-log.md).
-- **Download** the output PDF.
+- **Download** the output PDF (`GET /api/generations/:id/pdf`), inline or as
+  an attachment with `?download=1`. Downloads stream from the driver and
+  support ETag revalidation and range requests.
+- **Signed link** (`POST /api/generations/:id/link`): anyone who can see an
+  entry can mint a link to its PDF that works without a session until it
+  expires (up to 7 days), for emails, webhooks or handing a PDF to another
+  system. Each link records who minted it and how often it was used.
 - **Re-run** renders the same input against the same template version and
   logs a new entry that links to the original.
-- **Delete** removes the entry, its input and its output. Admins can bulk
-  delete by filter.
+- **Delete** removes the entry, its input and its output, including the
+  stored object. Admins can bulk delete by filter.
 - **Non-admins** see the same page as "My generations", without the user
   filter or bulk delete, for their own entries.
 
@@ -68,12 +75,19 @@ needs counting.
       their own entries.
 - [ ] A re-run produces the same PDF as the original for an unchanged version.
 - [x] Deleting removes the stored PDF bytes too.
+- [x] A signed link downloads the PDF without a session and stops working
+      after it expires.
+- [x] A download answers range requests with 206 and a matching ETag with 304.
 
 ## Known limitations
 
 - Inputs can hold personal data and are kept until deleted or removed by the
   retention setting.
-- Generated PDFs fill the database over time.
+- Outputs rendered before the storage driver existed stay in Postgres until
+  `pnpm --filter @necodoc/api storage:migrate` moves them.
+- Signed links can't be revoked before they expire, except by deleting the
+  entry.
+- Downloads aren't counted or audited yet, only signed-link use.
 - Re-running an API render that used a since-deleted asset or theme fails.
 - A re-run matches the original page for page, not byte for byte: Chromium stamps
   each PDF with its creation time.

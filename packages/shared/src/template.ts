@@ -18,6 +18,9 @@ export const visualBandSchema = z.object({
 });
 export type VisualBand = z.infer<typeof visualBandSchema>;
 
+/** Template CSS, added after the theme's in body and bands. Lives in content: no extra column. */
+const templateCss = z.string().max(200_000).default("");
+
 /**
  * Visual templates store TipTap JSON (compiled on render); code mode stores the compiled
  * HTML/Liquid, and can't go back (ADR 0016). Bands are null when the template has none.
@@ -28,12 +31,14 @@ export const designedContentSchema = z.discriminatedUnion("mode", [
     body: docSchema,
     header: visualBandSchema.nullable().default(null),
     footer: visualBandSchema.nullable().default(null),
+    css: templateCss,
   }),
   z.object({
     mode: z.literal("code"),
     body: z.string().max(2_000_000),
     header: bandSchema.nullable().default(null),
     footer: bandSchema.nullable().default(null),
+    css: templateCss,
   }),
 ]);
 export type DesignedContent = z.infer<typeof designedContentSchema>;
@@ -43,6 +48,7 @@ export const emptyDesignedContent: DesignedContent = {
   body: { type: "doc", content: [{ type: "paragraph" }] },
   header: null,
   footer: null,
+  css: "",
 };
 
 const templateName = z.string().trim().min(1, "Enter a name").max(200);

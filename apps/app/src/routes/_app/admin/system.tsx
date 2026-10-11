@@ -131,6 +131,10 @@ function System() {
             <Stat label="Queue wait p50 / p95 / p99" wide>
               {pct(data.metrics.queueWaitMs)}
             </Stat>
+            <Stat label={`Output storage: ${data.storage.target}`} wide>
+              {data.storage.driver}
+              {data.storage.redirect === "presigned" ? " (presigned redirects)" : ""}
+            </Stat>
           </div>
 
           <section className="space-y-2">

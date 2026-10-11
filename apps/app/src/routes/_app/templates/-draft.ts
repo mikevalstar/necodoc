@@ -18,6 +18,7 @@ export type VisualContent = {
   body: JSONContent;
   header: EditorBand | null;
   footer: EditorBand | null;
+  css: string;
 };
 export type EditorContent = VisualContent | CodeContent;
 

@@ -1,5 +1,6 @@
 import { processRoleSchema } from "@necodoc/shared";
 import { z } from "zod";
+import { storageEnvSchema } from "./storage/config";
 
 export const env = z
   .object({
@@ -17,8 +18,15 @@ export const env = z
     PREVIEW_CONCURRENCY: z.coerce.number().int().min(1).max(32).default(2),
     /** Reported in worker heartbeats, to spot mixed versions mid-deploy. */
     APP_VERSION: z.string().default("dev"),
+    /** ADR 0023: `presigned` redirects output downloads to an S3 presigned URL or Azure SAS. */
+    STORAGE_REDIRECT: z.enum(["off", "presigned"]).default("off"),
+    /** Signs download links; falls back to BETTER_AUTH_SECRET. Changing it voids live links. */
+    DOWNLOAD_SIGNING_SECRET: z.string().min(32).optional(),
   })
   .parse(process.env);
+
+/** ADR 0023: where generated outputs go (src/storage). */
+export const storageConfig = storageEnvSchema.parse(process.env);
 
 export const servesApi = env.ROLE !== "worker";
 export const runsWorker = env.ROLE !== "api";

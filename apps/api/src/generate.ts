@@ -1,4 +1,5 @@
 import { hostname } from "node:os";
+import { Readable } from "node:stream";
 import {
   type GenerationSource,
   type GenerationStatus,
@@ -12,7 +13,7 @@ import { z } from "zod";
 import { db } from "./db";
 import { asset, file, generation, theme } from "./db/schema";
 import { env } from "./env";
-import { fileBytes, storeFile } from "./files";
+import { deleteObjects, StorageError, type WrittenOutput, writeOutput } from "./files";
 import { limiter } from "./limiter";
 import { announceFinished, boss, priorities, queues, waitUntilFinished } from "./queue";
 import type { AssetLoader } from "./render/browser";
@@ -34,7 +35,7 @@ export const loadStoredAsset: AssetLoader = async (id) => {
     .from(asset)
     .innerJoin(file, eq(file.id, asset.fileId))
     .where(eq(asset.id, id));
-  return row ?? null;
+  return row?.bytes ? { bytes: row.bytes, mimeType: row.mimeType } : null;
 };
 
 async function resolveTheme(request: RenderRequest): Promise<RenderJob["theme"]> {
@@ -148,7 +149,8 @@ export type GenerationResult =
   | {
       status: "success";
       generationId: string;
-      pdf: Uint8Array<ArrayBuffer>;
+      /** Served from storage by src/download.ts. */
+      fileId: string;
       pageCount: number;
       filename: string;
     }
@@ -158,7 +160,7 @@ export type GenerationResult =
 
 /**
  * Logs and queues a render. With `wait`, holds on for the worker up to RENDER_WAIT_MS and returns
- * the PDF; otherwise (or past the wait) returns the generation id to poll.
+ * the stored PDF's id; otherwise (or past the wait) returns the generation id to poll.
  */
 export async function generate(
   input: GenerationInput & { wait: boolean },
@@ -189,14 +191,13 @@ export async function generate(
   if (!current) return { status: "error", generationId, error: "The generation was deleted" };
   const { status } = current;
   if (status !== "success" && status !== "error") return { status, generationId };
-  const stored = current.fileId ? await fileBytes(db, current.fileId) : null;
-  if (status === "error" || !stored) {
+  if (status === "error" || !current.fileId) {
     return { status: "error", generationId, error: current.error ?? "No PDF was stored" };
   }
   return {
     status,
     generationId,
-    pdf: stored.bytes,
+    fileId: current.fileId,
     pageCount: current.pageCount ?? 0,
     filename: current.filename,
   };
@@ -207,12 +208,17 @@ export async function generate(
 
 const unfinished = inArray(generation.status, ["queued", "running"]);
 
-/** Records how an attempt ended, unless a later attempt took the row over. */
+type Outcome = (Awaited<ReturnType<typeof render>> & { output: WrittenOutput }) | { error: string };
+
+/**
+ * Records how an attempt ended, unless a later attempt took the row over. The output is already
+ * in storage; if the row isn't updated, the object is deleted again.
+ */
 async function finish(
   generationId: string,
   attempt: number,
-  outcome: Awaited<ReturnType<typeof render>> | { error: string },
-  started: { at: Date; queuedAt: Date; userId: string | null },
+  outcome: Outcome,
+  started: { at: Date; queuedAt: Date },
 ) {
   const finishedAt = new Date();
   const durations = {
@@ -223,17 +229,14 @@ async function finish(
   };
   await db
     .transaction(async (tx) => {
+      if ("output" in outcome) await tx.insert(file).values(outcome.output);
       const output =
-        "pdf" in outcome
+        "output" in outcome
           ? {
               status: "success" as const,
-              outputFileId: await storeFile(tx, {
-                bytes: outcome.pdf,
-                mimeType: "application/pdf",
-                ownerId: started.userId,
-              }),
+              outputFileId: outcome.output.id,
               pageCount: outcome.pageCount,
-              size: outcome.pdf.byteLength,
+              size: outcome.output.size,
               timings: outcome.timings,
             }
           : { status: "error" as const, error: outcome.error };
@@ -245,7 +248,8 @@ async function finish(
       // Superseded (a retry took over) or deleted: keep nothing from this attempt.
       if (!updated) tx.rollback();
     })
-    .catch((error: unknown) => {
+    .catch(async (error: unknown) => {
+      if ("output" in outcome) await deleteObjects([outcome.output]);
       if (!(error instanceof Error && error.name === "TransactionRollbackError")) throw error;
     });
   await announceFinished(generationId);
@@ -268,16 +272,23 @@ export async function runGeneration(generationId: string, attempt: number, retri
     });
   // Cancelled, deleted or already finished.
   if (!row) return;
-  const started = { at: startedAt, queuedAt: row.queuedAt, userId: row.userId };
+  const started = { at: startedAt, queuedAt: row.queuedAt };
   if (!row.input) {
     await finish(generationId, attempt, { error: "The input was removed by retention" }, started);
     return;
   }
-  let outcome: Parameters<typeof finish>[2];
+  let outcome: Outcome;
   try {
-    outcome = await render(row.input);
+    const rendered = await render(row.input);
+    // Streamed to the driver (ADR 0023); the PDF itself comes out of pdf-lib whole.
+    const output = await writeOutput({
+      body: Readable.from([rendered.pdf]),
+      mimeType: "application/pdf",
+      ownerId: row.userId,
+    });
+    outcome = { ...rendered, output };
   } catch (error) {
-    if (retriesLeft && isInfrastructureError(error)) throw error;
+    if (retriesLeft && (isInfrastructureError(error) || error instanceof StorageError)) throw error;
     outcome = { error: errorMessage(error) };
   }
   await finish(generationId, attempt, outcome, started);

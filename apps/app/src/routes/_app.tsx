@@ -97,6 +97,7 @@ function AdminMenu() {
       <DropdownMenuContent align="start">
         <DropdownMenuItem render={<Link to="/admin/users" />}>Users</DropdownMenuItem>
         <DropdownMenuItem render={<Link to="/admin/system" />}>System</DropdownMenuItem>
+        <DropdownMenuItem render={<Link to="/admin/queue" />}>Queue</DropdownMenuItem>
         <DropdownMenuItem render={<Link to="/admin/faq" />}>FAQ</DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
