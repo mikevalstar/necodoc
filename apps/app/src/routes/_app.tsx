@@ -1,5 +1,6 @@
 import { createFileRoute, Link, Outlet, redirect, useLocation } from "@tanstack/react-router";
 import { ChevronDownIcon } from "lucide-react";
+import { Logo } from "@/components/logo";
 import { RoleBadges } from "@/components/role-badges";
 import { Button } from "@/components/ui/button";
 import {
@@ -41,7 +42,8 @@ function AppShell() {
     <div className="min-h-svh">
       <header className="border-b">
         <nav className="mx-auto flex h-14 max-w-6xl items-center gap-4 overflow-x-auto px-4 sm:gap-6">
-          <Link to="/" className="font-semibold">
+          <Link to="/" className="flex items-center gap-2 font-semibold">
+            <Logo />
             necodoc
           </Link>
           {me.user.roles.length > 0 && (

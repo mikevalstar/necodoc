@@ -3,6 +3,7 @@ import { useMutation } from "@tanstack/react-query";
 import { createFileRoute, Link, redirect } from "@tanstack/react-router";
 import type { z } from "zod";
 import { ErrorAlert, useAppForm } from "@/components/form";
+import { Logo } from "@/components/logo";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { FieldGroup } from "@/components/ui/field";
@@ -29,6 +30,7 @@ function Register() {
 
   return (
     <main className="mx-auto flex min-h-svh max-w-sm flex-col justify-center p-4">
+      <Logo className="mx-auto mb-6 size-12" />
       <Card>
         <CardHeader>
           <CardTitle>Create an account</CardTitle>
