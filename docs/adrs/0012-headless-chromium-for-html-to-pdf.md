@@ -19,6 +19,8 @@ values onto existing PDFs
 the deploy target left open in
 [ADR 0005](0005-hono-api-on-node-typed-through-its-rpc-client.md): Node.
 
+Extended by [ADR 0020](0020-pg-boss-job-queue-and-separate-render-worker-processes.md): logged renders run on queue worker processes.
+
 ## Context
 
 [Document templates](../features/document-templates.md),

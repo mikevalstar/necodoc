@@ -38,7 +38,8 @@ template carries its own CSS and they drift apart.
   [designed templates](document-templates.md), and [API](html-to-pdf-api.md) renders
   that name a theme. Overlay templates don't use themes.
 - **Preview.** The theme editor shows a sample document rendered with the
-  theme.
+  theme as it's edited, without logging a generation
+  ([theme editor](../../apps/app/src/routes/_app/themes/$id.tsx)).
 - Publishing a template snapshots its theme's CSS
   ([Publishing and versions](publishing-and-versions.md)). Editing a theme
   shows which published templates use an older copy.
@@ -47,7 +48,7 @@ template carries its own CSS and they drift apart.
 
 ## Acceptance criteria
 
-- [ ] An editor can create a theme from a starter, change its settings and free
+- [x] An editor can create a theme from a starter, change its settings and free
       CSS, and see the sample update.
 - [ ] A template using the theme renders with its fonts and colours in body
       and bands.

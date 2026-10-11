@@ -30,40 +30,51 @@ needs counting.
   - template and version, if any
   - status (success or error), error message, warnings (e.g. text cut in an
     overlay box)
-  - started at, duration, page count, size
+  - queued at, started at, duration, and a timing breakdown (queue wait,
+    Liquid, Chromium, bands, stamping/overlay) from the
+    [render queue](render-queue-batch-jobs-and-scaling.md)
+  - worker that ran it, attempt count, batch it belongs to, request id
+  - page count, size
   - input payload (data or HTML)
   - output PDF ([ADR 0014](../adrs/0014-binary-files-stored-in-postgres.md))
 - Live previews while editing are not logged.
-- **Admin page** (Admin > Generations): filter by source, status, user,
-  template and date range; sort by date or duration; open one to see its
-  input, error and output.
+- **Generations page** ([generations](../../apps/app/src/routes/_app/generations/index.tsx)):
+  admins see every entry and filter by source, status, user, template and
+  date range; sort by date or duration; open one to see its input, error and
+  output.
+- **Export** the filtered list (metadata, not PDFs) as CSV.
+- **Retention** (admin setting): delete outputs, and optionally inputs, older
+  than N days while keeping the metadata. Runs as a scheduled job; changes are
+  recorded in the [audit log](audit-log.md).
 - **Download** the output PDF.
 - **Re-run** renders the same input against the same template version and
   logs a new entry that links to the original.
 - **Delete** removes the entry, its input and its output. Admins can bulk
   delete by filter.
-- **Non-admins** see a "My generations" list with the same view, re-run and
-  download for their own entries.
+- **Non-admins** see the same page as "My generations", without the user
+  filter or bulk delete, for their own entries.
 
 ## Acceptance criteria
 
 - [ ] A generation from each source appears with every field above.
-- [ ] A failed render shows its error and has no output.
-- [ ] An admin can filter, download, re-run and delete; a non-admin sees only
+- [x] A failed render shows its error and has no output.
+- [x] An admin can filter, download, re-run and delete; a non-admin sees only
       their own entries.
 - [ ] A re-run produces the same PDF as the original for an unchanged version.
 - [x] Deleting removes the stored PDF bytes too.
 
 ## Known limitations
 
-- Inputs can hold personal data and are kept until someone deletes them. There
-  is no automatic retention yet.
+- Inputs can hold personal data and are kept until deleted or removed by the
+  retention setting.
 - Generated PDFs fill the database over time.
 - Re-running an API render that used a since-deleted asset or theme fails.
 - A re-run matches the original page for page, not byte for byte: Chromium stamps
   each PDF with its creation time.
 - Bulk delete needs at least one filter, so one request can't wipe the whole log.
 
-## Open questions
+## Acceptance criteria (enterprise)
 
-- A retention setting (e.g. delete outputs after N days, keep metadata)?
+- [ ] Every generation shows its timing breakdown, worker and attempts.
+- [ ] The filtered log exports as CSV.
+- [ ] A retention of N days removes older outputs and keeps their metadata.

@@ -37,6 +37,8 @@ anything we skip has a reason.
 | REST API | DocSpring, Anvil | [HTML to PDF API](html-to-pdf-api.md) |
 | Webhooks | DocSpring, Anvil | [Webhooks](webhooks.md) |
 | QR codes, barcodes, images, drawn signatures | DocSpring | [PDF overlay templates](pdf-overlay-templates.md), [ADR 0015](../adrs/0015-liquidjs-for-templating.md) |
+| Async and batch generation | DocSpring, Anvil | [Render queue, batch jobs and scaling](render-queue-batch-jobs-and-scaling.md) |
+| Change history / audit trail | GhostDraft | [Audit log](audit-log.md) |
 
 ## Where we aim to beat them
 
@@ -49,7 +51,12 @@ anything we skip has a reason.
 - **Traceability.** Every render logged with input and output, re-runnable
   against the exact version ([Generation log](generation-log.md)).
 - **AI drafting** in the editor, not only field detection.
-- **Self-hostable**, one Node service and one Postgres.
+- **Enterprise operations.** Horizontally scaled render workers, queued
+  batches, per-render timing breakdowns, cluster metrics, an append-only audit
+  log and log retention
+  ([Render queue](render-queue-batch-jobs-and-scaling.md),
+  [Audit log](audit-log.md)).
+- **Self-hostable**, one Node codebase (API and worker roles) and one Postgres.
 
 ## Out of scope
 
@@ -61,9 +68,9 @@ anything we skip has a reason.
   layout rules. PDF is the product.
 - **Prebuilt industry form libraries** (GhostDraft's ISO/AAIS forms). Content,
   not software.
-- **Async and batch generation, official SDKs, embedded editor.** Not now.
-  Each needs its own ADR when demand shows
-  ([ADR 0019](../adrs/0019-better-auth-api-keys-for-the-public-api.md)).
+- **Official SDKs, embedded editor.** Not now. Each needs its own ADR when
+  demand shows. (Async and batch generation moved in scope with
+  [ADR 0020](../adrs/0020-pg-boss-job-queue-and-separate-render-worker-processes.md).)
 
 ## Known limitations
 

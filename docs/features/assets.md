@@ -26,8 +26,10 @@ same logo.
 - **Types:** PNG, JPEG, SVG and WebP images; TTF, OTF and WOFF2 fonts. Up to
   20 MB each ([ADR 0014](../adrs/0014-binary-files-stored-in-postgres.md)).
   The API checks the file's real type, not just its extension.
-- **Library page.** List, search, preview, rename and delete assets, with
-  name, type, size and uploader.
+- **Library page** ([assets.tsx](../../apps/app/src/routes/_app/assets.tsx)).
+  Upload by drag and drop or picker; list, search, preview, rename and delete
+  assets, with name, type, size and uploader; copy the snippet that references
+  one.
 - **Use.** The editors insert assets from a picker. Templates reference them by
   id through the `asset_url` filter
   ([ADR 0015](../adrs/0015-liquidjs-for-templating.md)), so renaming is safe.

@@ -57,6 +57,9 @@ Mechanism: [ADR 0019](../adrs/0019-better-auth-api-keys-for-the-public-api.md).
   URLs.
 - Every call that renders is logged in the [generation log](generation-log.md)
   with the key used.
+- **Render page** in the app ([render.tsx](../../apps/app/src/routes/_app/render.tsx)):
+  the same request field by field, for trying HTML, bands, data and themes.
+  Its preview mode isn't logged.
 - **API docs page** in the app: every endpoint with its request and response
   schema (generated from the shared zod schemas), curl examples, and error
   codes.
@@ -79,8 +82,9 @@ Mechanism: [ADR 0019](../adrs/0019-better-auth-api-keys-for-the-public-api.md).
 
 ## Known limitations
 
-- Synchronous only. Long renders hit the timeout; there are no async jobs or
-  batch endpoints.
+- Synchronous calls wait up to a timeout, then return `202` with the
+  generation id; async mode and batches are in
+  [Render queue, batch jobs and scaling](render-queue-batch-jobs-and-scaling.md).
 - No official SDKs. Plain HTTP and the docs page.
 - No JavaScript in submitted HTML.
 - No URL-to-PDF; the API never fetches a page for you.

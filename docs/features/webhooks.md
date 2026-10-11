@@ -58,6 +58,8 @@ offer them.
 
 ## Known limitations
 
-- Retries live in the API process. A restart drops pending retries.
+- Retries run on the job queue
+  ([ADR 0020](../adrs/0020-pg-boss-job-queue-and-separate-render-worker-processes.md)),
+  so they survive restarts.
 - No manual redelivery of an old event, beyond re-running the generation.
 - Delivery order is not guaranteed.

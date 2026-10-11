@@ -1,4 +1,4 @@
-import { createFileRoute, Link, Outlet, redirect } from "@tanstack/react-router";
+import { createFileRoute, Link, Outlet, redirect, useLocation } from "@tanstack/react-router";
 import { ChevronDownIcon } from "lucide-react";
 import { RoleBadges } from "@/components/role-badges";
 import { Button } from "@/components/ui/button";
@@ -12,6 +12,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { type Me, meQuery, useSignOut } from "@/lib/auth";
+import { cn } from "@/lib/utils";
 
 // Signed-in users with at least one role; everyone else is sent to /login or /pending.
 // Pending users may still open /settings (docs/features/user-preferences.md).
@@ -35,23 +36,35 @@ const navLink = {
 
 function AppShell() {
   const { me } = Route.useRouteContext();
+  const isAdmin = me.user.roles.includes("admin");
   return (
     <div className="min-h-svh">
       <header className="border-b">
-        <nav className="mx-auto flex h-14 max-w-6xl items-center gap-4 px-4 sm:gap-6">
+        <nav className="mx-auto flex h-14 max-w-6xl items-center gap-4 overflow-x-auto px-4 sm:gap-6">
           <Link to="/" className="font-semibold">
             necodoc
           </Link>
           {me.user.roles.length > 0 && (
-            <Link to="/" activeOptions={{ exact: true }} {...navLink}>
-              Documents
-            </Link>
+            <>
+              <Link to="/" activeOptions={{ exact: true }} {...navLink}>
+                Documents
+              </Link>
+              {/* Templates (docs/features/document-templates.md) goes here. */}
+              <Link to="/themes" {...navLink}>
+                Themes
+              </Link>
+              <Link to="/assets" {...navLink}>
+                Assets
+              </Link>
+              <Link to="/render" {...navLink}>
+                Render
+              </Link>
+              <Link to="/generations" {...navLink}>
+                {isAdmin ? "Generations" : "My generations"}
+              </Link>
+            </>
           )}
-          {me.user.roles.includes("admin") && (
-            <Link to="/admin/users" {...navLink}>
-              Admin › Users
-            </Link>
-          )}
+          {isAdmin && <AdminMenu />}
           <div className="ml-auto">
             <UserMenu me={me} />
           </div>
@@ -59,6 +72,28 @@ function AppShell() {
       </header>
       <Outlet />
     </div>
+  );
+}
+
+function AdminMenu() {
+  const active = useLocation({ select: (location) => location.pathname.startsWith("/admin") });
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger
+        className={cn(
+          navLink.className,
+          "flex items-center gap-1",
+          active ? navLink.activeProps.className : navLink.inactiveProps.className,
+        )}
+      >
+        Admin
+        <ChevronDownIcon className="size-4" />
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="start">
+        <DropdownMenuItem render={<Link to="/admin/users" />}>Users</DropdownMenuItem>
+        <DropdownMenuItem render={<Link to="/admin/faq" />}>FAQ</DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
   );
 }
 

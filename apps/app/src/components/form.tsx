@@ -1,12 +1,47 @@
 import { type Role, roleSchema } from "@necodoc/shared";
 import { createFormHook, createFormHookContexts } from "@tanstack/react-form";
-import type { ComponentProps } from "react";
+import type { ComponentProps, ReactNode } from "react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Field, FieldError, FieldLabel, FieldLegend, FieldSet } from "@/components/ui/field";
+import {
+  Field,
+  FieldDescription,
+  FieldError,
+  FieldLabel,
+  FieldLegend,
+  FieldSet,
+} from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
+import { Switch } from "@/components/ui/switch";
+import { Textarea } from "@/components/ui/textarea";
+import { cn } from "@/lib/utils";
 
 const { fieldContext, formContext, useFieldContext } = createFormHookContexts();
+
+/** For one-off field components that live next to the form using them. */
+export { useFieldContext };
+
+/** Label, the control, then the field's errors once touched. */
+export function FieldShell({
+  label,
+  description,
+  children,
+}: {
+  label: string;
+  description?: string;
+  children: (props: { id: string; invalid: boolean; onBlur: () => void }) => ReactNode;
+}) {
+  const field = useFieldContext<unknown>();
+  const invalid = field.state.meta.isTouched && !field.state.meta.isValid;
+  return (
+    <Field data-invalid={invalid}>
+      <FieldLabel htmlFor={field.name}>{label}</FieldLabel>
+      {children({ id: field.name, invalid, onBlur: field.handleBlur })}
+      {description && <FieldDescription>{description}</FieldDescription>}
+      {invalid && <FieldError errors={field.state.meta.errors} />}
+    </Field>
+  );
+}
 
 function TextField({
   label,
@@ -76,6 +111,101 @@ function CheckboxField({ label }: { label: string }) {
   );
 }
 
+/** Numbers as typed; an empty or partial entry becomes NaN and fails the schema. */
+function NumberField({ label, step = 0.5 }: { label: string; step?: number }) {
+  const field = useFieldContext<number>();
+  return (
+    <FieldShell label={label}>
+      {({ id, invalid, onBlur }) => (
+        <Input
+          id={id}
+          type="number"
+          step={step}
+          value={Number.isNaN(field.state.value) ? "" : field.state.value}
+          onChange={(e) => field.handleChange(e.target.valueAsNumber)}
+          onBlur={onBlur}
+          aria-invalid={invalid}
+        />
+      )}
+    </FieldShell>
+  );
+}
+
+/** Code and long text. `mono` for HTML, CSS and JSON. */
+function TextareaField({
+  label,
+  description,
+  mono,
+  rows = 6,
+}: {
+  label: string;
+  description?: string;
+  mono?: boolean;
+  rows?: number;
+}) {
+  const field = useFieldContext<string>();
+  return (
+    <FieldShell label={label} description={description}>
+      {({ id, invalid, onBlur }) => (
+        <Textarea
+          id={id}
+          rows={rows}
+          spellCheck={!mono}
+          className={cn(mono && "font-mono text-xs")}
+          value={field.state.value}
+          onChange={(e) => field.handleChange(e.target.value)}
+          onBlur={onBlur}
+          aria-invalid={invalid}
+        />
+      )}
+    </FieldShell>
+  );
+}
+
+/** A `#rrggbb` colour: swatch picker plus the hex text. */
+function ColorField({ label }: { label: string }) {
+  const field = useFieldContext<string>();
+  return (
+    <FieldShell label={label}>
+      {({ id, invalid, onBlur }) => (
+        <div className="flex gap-2">
+          <input
+            type="color"
+            aria-label={`${label} swatch`}
+            className="h-8 w-10 shrink-0 cursor-pointer rounded-lg border border-input bg-transparent p-1"
+            value={/^#[0-9a-f]{6}$/i.test(field.state.value) ? field.state.value : "#000000"}
+            onChange={(e) => field.handleChange(e.target.value)}
+          />
+          <Input
+            id={id}
+            className="font-mono"
+            value={field.state.value}
+            onChange={(e) => field.handleChange(e.target.value)}
+            onBlur={onBlur}
+            aria-invalid={invalid}
+          />
+        </div>
+      )}
+    </FieldShell>
+  );
+}
+
+function SwitchField({ label }: { label: string }) {
+  const field = useFieldContext<boolean>();
+  return (
+    <Field orientation="horizontal">
+      <Switch
+        id={field.name}
+        checked={field.state.value}
+        onCheckedChange={(checked) => field.handleChange(checked)}
+      />
+      <FieldLabel htmlFor={field.name} className="font-normal">
+        {label}
+      </FieldLabel>
+    </Field>
+  );
+}
+
 /** Shows a failed request's message (e.g. the API's last-admin guard). */
 export function ErrorAlert({ error }: { error: Error | null }) {
   if (!error) return null;
@@ -89,6 +219,14 @@ export function ErrorAlert({ error }: { error: Error | null }) {
 export const { useAppForm } = createFormHook({
   fieldContext,
   formContext,
-  fieldComponents: { TextField, RolesField, CheckboxField },
+  fieldComponents: {
+    TextField,
+    RolesField,
+    CheckboxField,
+    NumberField,
+    TextareaField,
+    ColorField,
+    SwitchField,
+  },
   formComponents: {},
 });

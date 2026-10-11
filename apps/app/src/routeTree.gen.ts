@@ -14,8 +14,15 @@ import { Route as LoginRouteImport } from './routes/login'
 import { Route as PendingRouteImport } from './routes/pending'
 import { Route as RegisterRouteImport } from './routes/register'
 import { Route as AppIndexRouteImport } from './routes/_app/index'
+import { Route as AppAssetsRouteImport } from './routes/_app/assets'
+import { Route as AppRenderRouteImport } from './routes/_app/render'
 import { Route as AppSettingsRouteImport } from './routes/_app/settings'
+import { Route as AppAdminFaqRouteImport } from './routes/_app/admin/faq'
 import { Route as AppAdminUsersRouteImport } from './routes/_app/admin/users'
+import { Route as AppGenerationsIndexRouteImport } from './routes/_app/generations/index'
+import { Route as AppGenerationsIdRouteImport } from './routes/_app/generations/$id'
+import { Route as AppThemesIndexRouteImport } from './routes/_app/themes/index'
+import { Route as AppThemesIdRouteImport } from './routes/_app/themes/$id'
 
 const AppRoute = AppRouteImport.update({
   id: '/_app',
@@ -41,14 +48,49 @@ const AppIndexRoute = AppIndexRouteImport.update({
   path: '/',
   getParentRoute: () => AppRoute,
 } as any)
+const AppAssetsRoute = AppAssetsRouteImport.update({
+  id: '/assets',
+  path: '/assets',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppRenderRoute = AppRenderRouteImport.update({
+  id: '/render',
+  path: '/render',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppSettingsRoute = AppSettingsRouteImport.update({
   id: '/settings',
   path: '/settings',
   getParentRoute: () => AppRoute,
 } as any)
+const AppAdminFaqRoute = AppAdminFaqRouteImport.update({
+  id: '/admin/faq',
+  path: '/admin/faq',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppAdminUsersRoute = AppAdminUsersRouteImport.update({
   id: '/admin/users',
   path: '/admin/users',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppGenerationsIndexRoute = AppGenerationsIndexRouteImport.update({
+  id: '/generations/',
+  path: '/generations/',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppGenerationsIdRoute = AppGenerationsIdRouteImport.update({
+  id: '/generations/$id',
+  path: '/generations/$id',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppThemesIndexRoute = AppThemesIndexRouteImport.update({
+  id: '/themes/',
+  path: '/themes/',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppThemesIdRoute = AppThemesIdRouteImport.update({
+  id: '/themes/$id',
+  path: '/themes/$id',
   getParentRoute: () => AppRoute,
 } as any)
 
@@ -57,16 +99,30 @@ export interface FileRoutesByFullPath {
   '/login': typeof LoginRoute
   '/pending': typeof PendingRoute
   '/register': typeof RegisterRoute
+  '/assets': typeof AppAssetsRoute
+  '/render': typeof AppRenderRoute
   '/settings': typeof AppSettingsRoute
+  '/admin/faq': typeof AppAdminFaqRoute
   '/admin/users': typeof AppAdminUsersRoute
+  '/generations/$id': typeof AppGenerationsIdRoute
+  '/themes/$id': typeof AppThemesIdRoute
+  '/generations/': typeof AppGenerationsIndexRoute
+  '/themes/': typeof AppThemesIndexRoute
 }
 export interface FileRoutesByTo {
   '/login': typeof LoginRoute
   '/pending': typeof PendingRoute
   '/register': typeof RegisterRoute
+  '/assets': typeof AppAssetsRoute
+  '/render': typeof AppRenderRoute
   '/settings': typeof AppSettingsRoute
   '/': typeof AppIndexRoute
+  '/admin/faq': typeof AppAdminFaqRoute
   '/admin/users': typeof AppAdminUsersRoute
+  '/generations/$id': typeof AppGenerationsIdRoute
+  '/themes/$id': typeof AppThemesIdRoute
+  '/generations': typeof AppGenerationsIndexRoute
+  '/themes': typeof AppThemesIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -74,25 +130,64 @@ export interface FileRoutesById {
   '/login': typeof LoginRoute
   '/pending': typeof PendingRoute
   '/register': typeof RegisterRoute
+  '/_app/assets': typeof AppAssetsRoute
+  '/_app/render': typeof AppRenderRoute
   '/_app/settings': typeof AppSettingsRoute
   '/_app/': typeof AppIndexRoute
+  '/_app/admin/faq': typeof AppAdminFaqRoute
   '/_app/admin/users': typeof AppAdminUsersRoute
+  '/_app/generations/$id': typeof AppGenerationsIdRoute
+  '/_app/themes/$id': typeof AppThemesIdRoute
+  '/_app/generations/': typeof AppGenerationsIndexRoute
+  '/_app/themes/': typeof AppThemesIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
-    '/' | '/login' | '/pending' | '/register' | '/settings' | '/admin/users'
+    | '/'
+    | '/login'
+    | '/pending'
+    | '/register'
+    | '/assets'
+    | '/render'
+    | '/settings'
+    | '/admin/faq'
+    | '/admin/users'
+    | '/generations/$id'
+    | '/themes/$id'
+    | '/generations/'
+    | '/themes/'
   fileRoutesByTo: FileRoutesByTo
-  to: '/login' | '/pending' | '/register' | '/settings' | '/' | '/admin/users'
+  to:
+    | '/login'
+    | '/pending'
+    | '/register'
+    | '/assets'
+    | '/render'
+    | '/settings'
+    | '/'
+    | '/admin/faq'
+    | '/admin/users'
+    | '/generations/$id'
+    | '/themes/$id'
+    | '/generations'
+    | '/themes'
   id:
     | '__root__'
     | '/_app'
     | '/login'
     | '/pending'
     | '/register'
+    | '/_app/assets'
+    | '/_app/render'
     | '/_app/settings'
     | '/_app/'
+    | '/_app/admin/faq'
     | '/_app/admin/users'
+    | '/_app/generations/$id'
+    | '/_app/themes/$id'
+    | '/_app/generations/'
+    | '/_app/themes/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -139,11 +234,32 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppIndexRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_app/assets': {
+      id: '/_app/assets'
+      path: '/assets'
+      fullPath: '/assets'
+      preLoaderRoute: typeof AppAssetsRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/render': {
+      id: '/_app/render'
+      path: '/render'
+      fullPath: '/render'
+      preLoaderRoute: typeof AppRenderRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/_app/settings': {
       id: '/_app/settings'
       path: '/settings'
       fullPath: '/settings'
       preLoaderRoute: typeof AppSettingsRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/admin/faq': {
+      id: '/_app/admin/faq'
+      path: '/admin/faq'
+      fullPath: '/admin/faq'
+      preLoaderRoute: typeof AppAdminFaqRouteImport
       parentRoute: typeof AppRoute
     }
     '/_app/admin/users': {
@@ -153,19 +269,61 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppAdminUsersRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_app/generations/': {
+      id: '/_app/generations/'
+      path: '/generations'
+      fullPath: '/generations/'
+      preLoaderRoute: typeof AppGenerationsIndexRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/generations/$id': {
+      id: '/_app/generations/$id'
+      path: '/generations/$id'
+      fullPath: '/generations/$id'
+      preLoaderRoute: typeof AppGenerationsIdRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/themes/': {
+      id: '/_app/themes/'
+      path: '/themes'
+      fullPath: '/themes/'
+      preLoaderRoute: typeof AppThemesIndexRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/themes/$id': {
+      id: '/_app/themes/$id'
+      path: '/themes/$id'
+      fullPath: '/themes/$id'
+      preLoaderRoute: typeof AppThemesIdRouteImport
+      parentRoute: typeof AppRoute
+    }
   }
 }
 
 interface AppRouteChildren {
+  AppAssetsRoute: typeof AppAssetsRoute
+  AppRenderRoute: typeof AppRenderRoute
   AppSettingsRoute: typeof AppSettingsRoute
   AppIndexRoute: typeof AppIndexRoute
+  AppAdminFaqRoute: typeof AppAdminFaqRoute
   AppAdminUsersRoute: typeof AppAdminUsersRoute
+  AppGenerationsIdRoute: typeof AppGenerationsIdRoute
+  AppThemesIdRoute: typeof AppThemesIdRoute
+  AppGenerationsIndexRoute: typeof AppGenerationsIndexRoute
+  AppThemesIndexRoute: typeof AppThemesIndexRoute
 }
 
 const AppRouteChildren: AppRouteChildren = {
+  AppAssetsRoute: AppAssetsRoute,
+  AppRenderRoute: AppRenderRoute,
   AppSettingsRoute: AppSettingsRoute,
   AppIndexRoute: AppIndexRoute,
+  AppAdminFaqRoute: AppAdminFaqRoute,
   AppAdminUsersRoute: AppAdminUsersRoute,
+  AppGenerationsIdRoute: AppGenerationsIdRoute,
+  AppThemesIdRoute: AppThemesIdRoute,
+  AppGenerationsIndexRoute: AppGenerationsIndexRoute,
+  AppThemesIndexRoute: AppThemesIndexRoute,
 }
 
 const AppRouteWithChildren = AppRoute._addFileChildren(AppRouteChildren)

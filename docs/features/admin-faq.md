@@ -26,7 +26,9 @@ work. Admins need the shipped truth inside the app.
 - One entry per shipped feature: name, what it does (a few sentences), known
   limitations, and who can use it (roles).
 - Searchable, and grouped the same way the app's nav is.
-- Content lives in one data file in the app, versioned with the code.
+- Content lives in one data file in the app, versioned with the code
+  ([faq.ts](../../apps/app/src/lib/faq.ts)). "Who can use it" is derived from
+  the [roles](../../packages/shared/src/roles.ts), so it can't drift.
 
 ## Rule
 
@@ -36,10 +38,10 @@ limitations", in plain words. Reviewers reject feature PRs that don't.
 
 ## Acceptance criteria
 
-- [ ] Admins see Admin > FAQ; non-admins get no link and a 403 from its data.
-- [ ] Every feature spec whose feature has shipped has an entry.
-- [ ] Each entry lists limitations and roles.
-- [ ] Search finds an entry by a word in its text.
+- [x] Admins see Admin > FAQ; non-admins get no link and are redirected away. The content ships in the app bundle: it describes features and limitations, not secrets.
+- [x] Every feature spec whose feature has shipped has an entry.
+- [x] Each entry lists limitations and roles.
+- [x] Search finds an entry by a word in its text.
 
 ## Known limitations
 

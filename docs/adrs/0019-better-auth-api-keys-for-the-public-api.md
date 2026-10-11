@@ -13,7 +13,9 @@ generated: { by: okq/0.9.0, at: 2026-10-11T15:36:56Z }
 
 Accepted. Extends [ADR 0007](0007-better-auth-for-authentication.md) and
 [ADR 0005](0005-hono-api-on-node-typed-through-its-rpc-client.md). Behaviour is
-in [HTML to PDF API](../features/html-to-pdf-api.md).
+in [HTML to PDF API](../features/html-to-pdf-api.md). Extended by
+[ADR 0020](0020-pg-boss-job-queue-and-separate-render-worker-processes.md):
+calls can also run async or past a wait timeout (`202` with a generation id).
 
 ## Context
 
