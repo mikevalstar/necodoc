@@ -16,7 +16,7 @@ import {
 } from "@necodoc/shared";
 import { and, asc, desc, eq, isNotNull, isNull, max, type SQL, sql } from "drizzle-orm";
 import { Zip, ZipPassThrough } from "fflate";
-import { Hono } from "hono";
+import { type Context, Hono } from "hono";
 import { z } from "zod";
 import { db } from "../db";
 import { batch, generation, user } from "../db/schema";
@@ -24,6 +24,7 @@ import { findFile, openFile } from "../files";
 import { enqueue, pdfFilename, queuedRow } from "../generate";
 import { type AppEnv, requirePermission, type SignedInEnv } from "../middleware";
 import { priorities } from "../queue";
+import { completeBatch } from "../webhooks";
 import { findVersion, versionRequest } from "./templates";
 
 // Spec: docs/features/render-queue-batch-jobs-and-scaling.md (batch jobs). Each row is a
@@ -41,7 +42,7 @@ const counted = (status: "success" | "error" | "cancelled") =>
     Number,
   );
 
-async function batchSummaries(where: SQL | undefined) {
+export async function batchSummaries(where: SQL | undefined) {
   const rows = await db
     .select({
       id: batch.id,
@@ -83,13 +84,15 @@ const formatFieldErrors = (errors: Record<string, string[]>) =>
 
 /**
  * Validates every row against the version's fields and queues the valid ones. Invalid rows are
- * logged as failed generations with their field errors, so the rest still run.
+ * logged as failed generations with their field errors, so the rest still run. `apiKeyId` marks
+ * batches started through /api/v1.
  */
-async function createBatch(
+export async function createBatch(
   actor: SignedInUser,
   { id, version }: { id: string; version: "latest" | number },
   { rows, filename }: { rows: Record<string, unknown>[]; filename?: string },
   requestId: string,
+  apiKeyId?: string,
 ) {
   const found = await findVersion(actor, id, version);
   if (!found) return { error: "Version not found", status: 404 } as const;
@@ -110,6 +113,7 @@ async function createBatch(
         version: v.version,
         total: rows.length,
         requestId,
+        apiKeyId,
       })
       .returning({ id: batch.id });
     if (!created) throw new Error("Batch insert returned no row");
@@ -124,6 +128,7 @@ async function createBatch(
           ),
           source: "batch",
           userId: actor.id,
+          apiKeyId,
           requestId,
           template: { id, versionId: v.id },
         }),
@@ -143,6 +148,8 @@ async function createBatch(
     await enqueue(tx, generations, priorities.batch);
     return created.id;
   });
+  // A batch whose every row was invalid has nothing left to run.
+  await completeBatch(batchId);
   const [summary] = await batchSummaries(eq(batch.id, batchId));
   return { summary };
 }
@@ -249,63 +256,73 @@ export const batchRoutes = new Hono<AppEnv>()
         .set({ status: "cancelled", finishedAt: new Date() })
         .where(and(eq(generation.batchId, id), eq(generation.status, "queued")));
     });
+    await completeBatch(id);
     const [summary] = await batchSummaries(eq(batch.id, id));
     return c.json(summary, 200);
   })
   .get("/:id/zip", canView, idParam, async (c) => {
     const [found] = await db
-      .select({ name: batch.templateName })
+      .select({ id: batch.id, name: batch.templateName })
       .from(batch)
       .where(visible(c.get("user"), c.req.valid("param").id));
-    if (!found) return c.json({ error: "Batch not found" }, 404);
-    const rows = await outputs(c.req.valid("param").id);
-    // Streams one PDF per pull, so a large batch never sits in memory whole. PDFs are already
-    // compressed; entries are stored, not deflated.
-    let next = 0;
-    let zip: Zip;
-    const body = new ReadableStream<Uint8Array>({
-      start(controller) {
-        zip = new Zip((error, chunk, final) => {
-          if (error) return controller.error(error);
-          controller.enqueue(chunk);
-          if (final) controller.close();
-        });
-      },
-      async pull() {
-        const row = rows[next++];
-        if (!row) return zip.end();
-        const stored = row.fileId ? await findFile(db, row.fileId) : null;
-        if (!stored) return;
-        const entry = new ZipPassThrough(row.filename);
-        zip.add(entry);
-        const chunks: AsyncIterable<Buffer> = await openFile(db, stored);
-        for await (const chunk of chunks) entry.push(chunk);
-        entry.push(new Uint8Array(0), true);
-      },
-    });
-    return c.body(body, 200, {
-      "Content-Type": "application/zip",
-      "Content-Disposition": attachment(pdfFilename(found.name).replace(/\.pdf$/, ".zip")),
-    });
+    return found ? batchZip(c, found) : c.json({ error: "Batch not found" }, 404);
   })
   .get("/:id/packet", canView, idParam, async (c) => {
     const [found] = await db
-      .select({ name: batch.templateName })
+      .select({ id: batch.id, name: batch.templateName })
       .from(batch)
       .where(visible(c.get("user"), c.req.valid("param").id));
-    if (!found) return c.json({ error: "Batch not found" }, 404);
-    const packet = await PDFDocument.create();
-    for (const row of await outputs(c.req.valid("param").id)) {
-      const stored = row.fileId ? await findFile(db, row.fileId) : null;
-      if (!stored) continue;
-      const source = await PDFDocument.load(await buffer(await openFile(db, stored)));
-      for (const page of await packet.copyPages(source, source.getPageIndices())) {
-        packet.addPage(page);
-      }
-    }
-    if (!packet.getPageCount()) return c.json({ error: "This batch has no PDFs yet" }, 404);
-    return c.body(new Uint8Array(await packet.save()), 200, {
-      "Content-Type": "application/pdf",
-      "Content-Disposition": attachment(pdfFilename(`${found.name} packet`)),
-    });
+    return found ? batchPacket(c, found) : c.json({ error: "Batch not found" }, 404);
   });
+
+/**
+ * Streams a batch's PDFs as a ZIP, one PDF per pull, so a large batch never sits in memory whole.
+ * PDFs are already compressed; entries are stored, not deflated. The caller checks access.
+ */
+export async function batchZip(c: Context, found: { id: string; name: string }) {
+  const rows = await outputs(found.id);
+  let next = 0;
+  let zip: Zip;
+  const body = new ReadableStream<Uint8Array>({
+    start(controller) {
+      zip = new Zip((error, chunk, final) => {
+        if (error) return controller.error(error);
+        controller.enqueue(chunk);
+        if (final) controller.close();
+      });
+    },
+    async pull() {
+      const row = rows[next++];
+      if (!row) return zip.end();
+      const stored = row.fileId ? await findFile(db, row.fileId) : null;
+      if (!stored) return;
+      const entry = new ZipPassThrough(row.filename);
+      zip.add(entry);
+      const chunks: AsyncIterable<Buffer> = await openFile(db, stored);
+      for await (const chunk of chunks) entry.push(chunk);
+      entry.push(new Uint8Array(0), true);
+    },
+  });
+  return c.body(body, 200, {
+    "Content-Type": "application/zip",
+    "Content-Disposition": attachment(pdfFilename(found.name).replace(/\.pdf$/, ".zip")),
+  });
+}
+
+/** Merges a batch's PDFs into one packet, in memory. The caller checks access. */
+export async function batchPacket(c: Context, found: { id: string; name: string }) {
+  const packet = await PDFDocument.create();
+  for (const row of await outputs(found.id)) {
+    const stored = row.fileId ? await findFile(db, row.fileId) : null;
+    if (!stored) continue;
+    const source = await PDFDocument.load(await buffer(await openFile(db, stored)));
+    for (const page of await packet.copyPages(source, source.getPageIndices())) {
+      packet.addPage(page);
+    }
+  }
+  if (!packet.getPageCount()) return c.json({ error: "This batch has no PDFs yet" }, 404);
+  return c.body(new Uint8Array(await packet.save()), 200, {
+    "Content-Type": "application/pdf",
+    "Content-Disposition": attachment(pdfFilename(`${found.name} packet`)),
+  });
+}

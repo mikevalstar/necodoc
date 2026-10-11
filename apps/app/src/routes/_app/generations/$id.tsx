@@ -120,7 +120,12 @@ function GenerationDetail() {
         </Meta>
         <Meta label="API key">
           {generation.apiKeyId ? (
-            <span className="font-mono text-xs break-all">{generation.apiKeyId}</span>
+            <>
+              {generation.apiKeyName ?? "Deleted key"}{" "}
+              <span className="font-mono text-xs break-all text-muted-foreground">
+                {generation.apiKeyId}
+              </span>
+            </>
           ) : (
             "None"
           )}

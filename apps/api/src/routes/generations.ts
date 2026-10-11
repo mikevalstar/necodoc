@@ -21,10 +21,11 @@ import {
   or,
   type SQL,
 } from "drizzle-orm";
+import type { SelectedFields } from "drizzle-orm/pg-core";
 import { Hono } from "hono";
 import { z } from "zod";
 import { db } from "../db";
-import { file, generation, template, user } from "../db/schema";
+import { apikey, file, generation, template, user } from "../db/schema";
 import { mintLink, serveFile } from "../download";
 import { deleteFiles, deleteObjects } from "../files";
 import { generate } from "../generate";
@@ -45,6 +46,7 @@ function filterWhere(actor: SignedInUser, filter: GenerationFilter) {
     filter.status ? eq(generation.status, filter.status) : undefined,
     filter.templateId ? eq(generation.templateId, filter.templateId) : undefined,
     filter.batchId ? eq(generation.batchId, filter.batchId) : undefined,
+    filter.apiKeyId ? eq(generation.apiKeyId, filter.apiKeyId) : undefined,
     filter.from ? gte(generation.queuedAt, new Date(filter.from)) : undefined,
     filter.to ? lte(generation.queuedAt, new Date(filter.to)) : undefined,
     filter.q ? textMatch(filter.q) : undefined,
@@ -80,13 +82,14 @@ const visible = (actor: SignedInUser, id: string) =>
     ? eq(generation.id, id)
     : and(eq(generation.id, id), eq(generation.userId, actor.id));
 
-const summaryColumns = {
+export const summaryColumns = {
   id: generation.id,
   source: generation.source,
   status: generation.status,
   userId: generation.userId,
   userName: user.name,
   apiKeyId: generation.apiKeyId,
+  apiKeyName: apikey.name,
   templateId: generation.templateId,
   templateVersionId: generation.templateVersionId,
   templateName: template.name,
@@ -119,6 +122,8 @@ const exportColumns = [
   "status",
   "userName",
   "userId",
+  "apiKeyId",
+  "apiKeyName",
   "templateId",
   "templateVersionId",
   "templateName",
@@ -139,11 +144,13 @@ const exportColumns = [
 
 const EXPORT_LIMIT = 100_000;
 
-const selectSummaries = () =>
+/** Generations with their user, key and template names; `extra` adds columns (detail views). */
+export const selectSummaries = <T extends SelectedFields>(extra: T = {} as T) =>
   db
-    .select(summaryColumns)
+    .select({ ...summaryColumns, ...extra })
     .from(generation)
     .leftJoin(user, eq(user.id, generation.userId))
+    .leftJoin(apikey, eq(apikey.id, generation.apiKeyId))
     .leftJoin(template, eq(template.id, generation.templateId));
 
 const idParam = zValidator("param", z.object({ id: z.uuid() }));
@@ -219,17 +226,11 @@ export const generationRoutes = new Hono<AppEnv>()
     return c.json({ deleted }, 200);
   })
   .get("/:id", canView, idParam, async (c) => {
-    const [row] = await db
-      .select({
-        ...summaryColumns,
-        input: generation.input,
-        timings: generation.timings,
-        requestId: generation.requestId,
-      })
-      .from(generation)
-      .leftJoin(user, eq(user.id, generation.userId))
-      .leftJoin(template, eq(template.id, generation.templateId))
-      .where(visible(c.get("user"), c.req.valid("param").id));
+    const [row] = await selectSummaries({
+      input: generation.input,
+      timings: generation.timings,
+      requestId: generation.requestId,
+    }).where(visible(c.get("user"), c.req.valid("param").id));
     return row ? c.json(row, 200) : c.json({ error: "Generation not found" }, 404);
   })
   .get("/:id/pdf", canView, idParam, async (c) => {

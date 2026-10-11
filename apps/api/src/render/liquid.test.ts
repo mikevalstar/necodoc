@@ -1,6 +1,6 @@
 import { ASSET_ORIGIN } from "@necodoc/shared";
 import { describe, expect, it } from "vitest";
-import { liquid } from "./liquid";
+import { createLiquid, liquid, partialsFs } from "./liquid";
 
 const render = (template: string, data: Record<string, unknown> = {}) =>
   liquid.parseAndRender(template, data);
@@ -23,6 +23,19 @@ describe("liquid", () => {
   it("loads no partials", async () => {
     await expect(render("{% include '/etc/hosts' %}")).rejects.toThrow(/Failed to lookup/);
     await expect(render("{% render 'package.json' %}")).rejects.toThrow(/Failed to lookup/);
+  });
+
+  it("renders in-memory partials that see the data through globals", async () => {
+    const withPartials = createLiquid(partialsFs({ clause: "<p>{{ name }} {{ who }}</p>" }));
+    const data = { name: "<Ann>" };
+    expect(
+      await withPartials.parseAndRender("{% render 'clause', who: 'Bob' %}", data, {
+        globals: data,
+      }),
+    ).toBe("<p>&lt;Ann&gt; Bob</p>");
+    await expect(withPartials.parseAndRender("{% render 'other' %}")).rejects.toThrow(
+      /Failed to lookup/,
+    );
   });
 
   it("formats dates with dayjs tokens", async () => {

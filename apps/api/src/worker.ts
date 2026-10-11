@@ -6,11 +6,12 @@ import { worker } from "./db/schema";
 import { detectFields } from "./detect/detect";
 import { env, runsWorker } from "./env";
 import { loadSourceBytes, markLost, processId, runGeneration } from "./generate";
-import { boss, type DetectJobData, queues, type RenderJobData } from "./queue";
+import { boss, type DetectJobData, queues, type RenderJobData, type WebhookJobData } from "./queue";
 import { runRetention } from "./retention";
+import { deliver } from "./webhooks";
 
 // ADR 0020: the worker role. Consumes render jobs with RENDER_CONCURRENCY at a time, AI detection
-// jobs (ADR 0028), and the scheduled jobs. Every role heartbeats so Admin > System can list the cluster.
+// jobs (ADR 0028), webhook deliveries (docs/features/webhooks.md), and the scheduled jobs. Every role heartbeats so Admin > System can list the cluster.
 
 let running = 0;
 
@@ -51,6 +52,13 @@ export async function startWorker() {
       const bytes = await loadSourceBytes(job.data.sourceId);
       if (!bytes) throw new Error("The PDF is gone");
       return detectFields(bytes, { known: job.data.known, signal: job.signal });
+    },
+  );
+  await boss.work(
+    queues.webhook,
+    { localConcurrency: 4, includeMetadata: true },
+    async ([job]: JobWithMetadata<WebhookJobData>[]) => {
+      if (job) await deliver(job.data.deliveryId, job.retryCount < job.retryLimit);
     },
   );
   await boss.work(queues.retention, async () => {

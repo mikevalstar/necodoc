@@ -97,20 +97,26 @@ export async function serveFile(
   return c.body(body, 200, { ...headers, "Content-Length": String(stored.size) });
 }
 
-/** Records the link (who minted it, for which generation) and returns its URL. */
-export async function mintLink({
-  fileId,
-  generationId,
-  userId,
-  expiresInSeconds,
-}: {
-  fileId: string;
-  generationId: string;
-  userId: string;
-  expiresInSeconds: number;
-}) {
+/**
+ * Records the link (who minted it, for which generation) and returns its URL. `executor` lets a
+ * caller mint inside its transaction (webhook payloads).
+ */
+export async function mintLink(
+  {
+    fileId,
+    generationId,
+    userId,
+    expiresInSeconds,
+  }: {
+    fileId: string;
+    generationId: string;
+    userId: string | null;
+    expiresInSeconds: number;
+  },
+  executor: Pick<typeof db, "insert"> = db,
+) {
   const expiresAt = Math.floor(Date.now() / 1000) + expiresInSeconds;
-  const [link] = await db
+  const [link] = await executor
     .insert(downloadLink)
     .values({ fileId, generationId, createdBy: userId, expiresAt: new Date(expiresAt * 1000) })
     .returning({ id: downloadLink.id });

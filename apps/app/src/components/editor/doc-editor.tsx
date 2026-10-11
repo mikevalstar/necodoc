@@ -15,6 +15,7 @@ import {
   ListIcon,
   ListOrderedIcon,
   MinusIcon,
+  PuzzleIcon,
   QuoteIcon,
   RepeatIcon,
   ScissorsLineDashedIcon,
@@ -37,6 +38,7 @@ import {
 } from "./merge-field";
 import { RawHtml } from "./raw-html";
 import { type InsertItem, SlashCommand, SlashMenu } from "./slash";
+import { SnippetBlock, SnippetPicker } from "./snippet";
 import { ConditionalSection, PageBreak, RepeatingSection } from "./structure";
 import { Toolbar } from "./toolbar";
 
@@ -113,6 +115,7 @@ function extensions(menu: SlashMenu, items: () => InsertItem[], placeholder: str
     PageBreak,
     DocImage,
     RawHtml,
+    SnippetBlock,
     Placeholder.configure({ placeholder }),
     SlashCommand.configure({ menu, items }),
   ];
@@ -126,6 +129,7 @@ export function DocEditor({
   editable,
   placeholder = "Write, or type / to insert a field, table or section…",
   className,
+  snippetId,
 }: {
   /** The starting content. Later changes to it are ignored; remount (key) to load new content. */
   value: JSONContent;
@@ -136,8 +140,11 @@ export function DocEditor({
   editable: boolean;
   placeholder?: string;
   className?: string;
+  /** Set when editing a snippet: the picker leaves it out, so it can't include itself. */
+  snippetId?: string;
 }) {
   const [menu] = useState(() => new SlashMenu());
+  const [snippetOpen, setSnippetOpen] = useState(false);
   const [fieldOpen, setFieldOpen] = useState(false);
   const [imageOpen, setImageOpen] = useState(false);
   const [draftField, setDraftField] = useState<MergeFieldAttrs>({ field: "", filter: null });
@@ -244,6 +251,7 @@ export function DocEditor({
           .insertContent({ type: "rawHtml", attrs: { html: "" } })
           .run(),
     },
+    { title: "Snippet", icon: PuzzleIcon, run: () => setSnippetOpen(true) },
     { title: "Divider", icon: MinusIcon, run: (e) => e.chain().focus().setHorizontalRule().run() },
   ];
   items.current = insertItems;
@@ -341,6 +349,19 @@ export function DocEditor({
         onPick={(attrs) => {
           editor.chain().focus().insertContent({ type: "image", attrs }).run();
           setImageOpen(false);
+        }}
+      />
+      <SnippetPicker
+        open={snippetOpen}
+        onOpenChange={setSnippetOpen}
+        exclude={snippetId}
+        onPick={(id) => {
+          editor
+            .chain()
+            .focus()
+            .insertContent({ type: "snippet", attrs: { snippetId: id } })
+            .run();
+          setSnippetOpen(false);
         }}
       />
     </EditorFieldsContext.Provider>

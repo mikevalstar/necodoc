@@ -1,4 +1,4 @@
-import type { assetListQuerySchema } from "@necodoc/shared";
+import type { assetListQuerySchema, SubmissionListQuery } from "@necodoc/shared";
 import { keepPreviousData, queryOptions } from "@tanstack/react-query";
 import type { z } from "zod";
 import { api, ok } from "./api";
@@ -28,4 +28,29 @@ export const templatesQuery = queryOptions({
 export const batchesQuery = queryOptions({
   queryKey: ["batches"],
   queryFn: async () => (await ok(api.batches.$get())).json(),
+});
+
+/** The user's documents (home page, "start from a previous document"). Detail keys nest under it. */
+export const submissionsQuery = (query: SubmissionListQuery = {}) =>
+  queryOptions({
+    queryKey: ["submissions", "list", query],
+    queryFn: async () => (await ok(api.submissions.$get({ query }))).json(),
+  });
+
+export const submissionQuery = (id: string) =>
+  queryOptions({
+    queryKey: ["submissions", id],
+    queryFn: async () => (await ok(api.submissions[":id"].$get({ param: { id } }))).json(),
+  });
+
+/** The publisher's share links, with response counts (list page and the nav's unseen badge). */
+export const shareLinksQuery = queryOptions({
+  queryKey: ["share-links"],
+  queryFn: async () => (await ok(api["share-links"].$get())).json(),
+});
+
+/** The snippet library (snippet pages, the editor's snippet blocks and picker, field checks). */
+export const snippetsQuery = queryOptions({
+  queryKey: ["snippets"],
+  queryFn: async () => (await ok(api.snippets.$get())).json(),
 });

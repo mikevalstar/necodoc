@@ -43,10 +43,28 @@ they happen, reuses answers, and produces a clean document.
   validated by the same rules the API applies
   ([ADR 0008](../adrs/0008-zod-schemas-shared-between-api-and-app.md),
   [Template fields and guided form](template-fields-and-guided-form.md)).
-- Answers are saved to the user's account so they can come back and finish. A
+- **Documents area** (the app's home page): "My documents" lists the user's
+  drafts and finished documents with template, version and last edit; open,
+  continue, duplicate or delete each. "New document" opens a picker of
+  published, non-archived templates with search and descriptions.
+- **Interview.** One section per step with progress, Back and Next, show-if
+  and repeating groups, then a review step summarising every answer with a
+  way back to each step. Finish validates strictly and generates the PDF.
+- **Autosave.** Answers save as the user types, with a visible saved/saving
+  state; drafts are checked leniently (unknown keys dropped), so a
+  half-finished document survives a reload and reopens on its step. A
   document stays on the template version it was started from.
-- When the form is complete, the user generates and downloads the PDF. Each
-  generation is recorded in the [generation log](generation-log.md).
+- **Finish** generates the PDF through the
+  [render queue](render-queue-batch-jobs-and-scaling.md), recorded in the
+  [generation log](generation-log.md) and linked to the document. The
+  document shows a preview and a download; it can be regenerated, or reopened
+  for editing (it goes back to draft until finished again).
+- **Reuse answers.** A new document can start from a previous one's answers:
+  fields with the same key carry over, across templates too. Duplicate does
+  the same on the template's latest version.
+- Deleting a document keeps its generations in the log.
+- API: [routes/submissions.ts](../../apps/api/src/routes/submissions.ts);
+  app: [documents](../../apps/app/src/routes/_app/documents/$id.tsx).
 - Outside people can fill a template without an account through a
   [share link](share-links-and-data-requests.md).
 - Admins can read what has shipped and its limits in the
@@ -54,17 +72,27 @@ they happen, reuses answers, and produces a clean document.
 
 ## Acceptance criteria
 
-- [ ] A user can fill out at least one document end to end and download the PDF.
-- [ ] Invalid answers are rejected in the form and again by the API.
-- [ ] A half-finished document survives a reload.
-- [ ] Both template kinds (designed and overlay) can be filled and generated.
-- [ ] A document started on version 1 still generates from version 1 after
+- [x] A user can fill out at least one document end to end and download the PDF.
+- [x] Invalid answers are rejected in the form and again by the API.
+- [x] A half-finished document survives a reload.
+- [x] Both template kinds (designed and overlay) can be filled and generated.
+- [x] A document started on version 1 still generates from version 1 after
       version 2 is published.
 
 ## Known limitations
 
 - Templates are global. There are no organisations or teams, so every user
   with `document: view` sees every published template.
+- Documents are private to their owner; admins don't see other users'
+  documents (they see their generations in the log).
+- Documents on a template that was archived later can still be finished.
+- A finished document's answers can be reopened, but the previous PDF stays
+  only in the generation log.
+- Templates have no categories yet; the picker searches name and description.
+- Two tabs on the same draft overwrite each other; the last save wins.
+- Changes made just before closing the tab go out as a keepalive request,
+  which browsers cap at 64 KB, so a large image or signature can be lost.
+- My documents lists the 1,000 most recently edited; there is no paging yet.
 
 ## Resolved questions
 
@@ -77,6 +105,4 @@ they happen, reuses answers, and produces a clean document.
 - **Storage.** Postgres `bytea`
   ([ADR 0014](../adrs/0014-binary-files-stored-in-postgres.md)).
 
-## Open questions
-
-- Should a user be able to start a new document from a previous one's answers?
+- **Reusing answers.** Yes: start from a previous document (see Behavior).

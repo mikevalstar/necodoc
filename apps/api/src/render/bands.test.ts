@@ -2,6 +2,7 @@ import { PDFDocument, StandardFonts } from "@cantoo/pdf-lib";
 import { getDocument } from "pdfjs-dist/legacy/build/pdf.mjs";
 import { describe, expect, it } from "vitest";
 import { bandBody, stampBand } from "./bands";
+import { liquid } from "./liquid";
 import { MM_TO_PT } from "./page";
 
 /** A PDF of `count` pages, each with "<label> N" at its bottom-left corner. */
@@ -56,6 +57,7 @@ describe("stampBand", () => {
 describe("bandBody", () => {
   it("renders one section per page with page tokens and the first-page variant", async () => {
     const html = await bandBody(
+      liquid,
       { html: "{{ page }}/{{ pages }} {{ who }}", firstPageHtml: "First {{ who }}", height: 10 },
       3,
       { who: "<Ann>" },

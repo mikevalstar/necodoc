@@ -6,11 +6,13 @@ import type { Permissions } from "@necodoc/shared";
 
 /** Grouped like the nav. */
 export const faqGroups = [
+  "Documents",
   "Templates",
   "Render",
   "Themes",
   "Assets",
   "Generations",
+  "API",
   "Settings",
   "Admin",
 ] as const;
@@ -193,6 +195,27 @@ const templates: readonly FaqEntry[] = [
     ],
     spec: "docs/features/publishing-and-versions.md",
   },
+  {
+    feature: "Snippet library",
+    group: "Templates",
+    what: "A snippet is a named block of content (a clause, a disclaimer, a signature block) written once and used in many templates. It's edited in the same editor as templates, or as HTML/Liquid, can use merge fields and include other snippets. Drafts always show the snippet as it is now; publishing a template freezes a copy, so a snippet edit never changes a published version. The snippet's page lists the templates using it and flags published versions that have an older copy.",
+    howTo:
+      "Open Snippets › New snippet, write the content and list the field keys it expects. In a template, Insert › Snippet (or type /snippet) adds it as a block; code templates and API HTML write {% render 'key' %}. After editing a snippet, its 'Used by' list shows which templates to open and republish.",
+    limitations: [
+      "Snippets are global: no folders or per-snippet permissions.",
+      "No bulk republish: open each out-of-date template and publish it.",
+      "Snippets don't work in PDF overlay templates.",
+      "Inside a repeating section a snippet sees only top-level fields, not the repeated item.",
+      "Expected fields are checked one level deep; snippets included by a snippet aren't checked against the template.",
+      "The key can't change after creation. A snippet used by a draft or another snippet can't be deleted; archive it instead.",
+    ],
+    access: [
+      { action: "See snippets", needs: { document: ["review"] } },
+      { action: "Create", needs: create },
+      { action: "Edit, archive and delete", needs: edit },
+    ],
+    spec: "docs/features/snippet-library.md",
+  },
 ];
 
 export const faq: readonly FaqEntry[] = [
@@ -235,7 +258,7 @@ export const faq: readonly FaqEntry[] = [
     limitations: [
       "Dates use dayjs tokens (YYYY-MM-DD), not the strftime codes (%Y) other Liquid tools use.",
       "An unknown filter is an error, not a blank.",
-      "No reusable snippets or partials yet ({% render %} fails).",
+      "{% render 'key' %} includes a snippet from the library; partials can't come from anywhere else.",
       "Logic is limited to Liquid's if/for and the filters above; there are no custom functions.",
     ],
     access: [{ action: "Use Liquid", needs: view }],
@@ -555,5 +578,195 @@ export const faq: readonly FaqEntry[] = [
     ],
     access: [{ action: "Configure", needs: "admin" }],
     spec: "docs/features/pdf-overlay-templates.md",
+  },
+  {
+    feature: "Filling out a document",
+    group: "Documents",
+    what: "Anyone with a role can fill in a published template and get the finished PDF. The questions come one section at a time, with progress, help text and errors as you type; questions that don't apply stay hidden, and repeating questions (like a list of contracts) can be added as many times as needed. Each document stays on the template version it was started on, even after a newer one is published.",
+    howTo:
+      "On My documents (the home page), click New document, search for the template and click Start. Answer each step and click Next; Back goes to the previous one. My documents lists drafts and finished documents with the template, version and when they were last edited; open, continue, duplicate or delete each from its menu.",
+    limitations: [
+      "Documents are private to whoever filled them; admins see the PDFs in the generation log, not the documents.",
+      "Templates have no categories; the picker searches names and descriptions.",
+      "A document started before its template was archived can still be finished.",
+    ],
+    access: [{ action: "Fill and keep your own documents", needs: view }],
+    spec: "docs/features/filling-out-a-document.md",
+  },
+  {
+    feature: "Drafts and autosave",
+    group: "Documents",
+    what: "A document saves as you type: the line under its name says Saving…, Saved, or that saving failed. Close the tab or reload and it reopens as a draft on the step you were on. The document name can be changed by clicking it.",
+    howTo:
+      "Nothing to do. To continue a draft, open it from My documents (filter by Drafts). If saving fails, the next change retries; keep the tab open until it says Saved.",
+    limitations: [
+      "Changes made in the last second before closing the tab are sent as the page closes; very large answers (big images or signatures) may not make it.",
+      "Two tabs on the same document overwrite each other; the last save wins.",
+    ],
+    access: [{ action: "Autosave", needs: view }],
+    spec: "docs/features/filling-out-a-document.md",
+  },
+  {
+    feature: "Review and finish",
+    group: "Documents",
+    what: "After the last section, a review step lists every answer by section, leaving out questions that were hidden. Finishing checks everything again on the server, makes the PDF, and shows it with a download button. Every PDF is also recorded in the generation log.",
+    howTo:
+      "On the review step, click Edit next to a section to change it, then Next back to the review. Click Finish and make PDF. On the finished document, Download PDF saves it; Regenerate makes it again with the same answers; Edit answers reopens it as a draft until you finish again.",
+    limitations: [
+      "Reopening and finishing again makes a new PDF; the previous one stays only in the generation log.",
+      "Deleting a document keeps its PDFs in the generation log.",
+    ],
+    access: [{ action: "Finish, download and regenerate your documents", needs: view }],
+    spec: "docs/features/filling-out-a-document.md",
+  },
+  {
+    feature: "Reusing answers",
+    group: "Documents",
+    what: "A new document can start from a previous one's answers, so the same principal, address or amount isn't typed again. Answers carry over for questions with the same field name, also between different templates.",
+    howTo:
+      "In a document's menu on My documents, Duplicate starts a copy on the template's latest version; 'Reuse answers in another template' opens the picker with that document chosen. On New document, 'Start from a previous document' picks the source before you click Start.",
+    limitations: [
+      "Matching is by field name only: a field called client_name in one template and customer in another doesn't carry over.",
+      "Answers that don't fit the new template's rules (e.g. an option it doesn't have) are copied but flagged until fixed.",
+    ],
+    access: [{ action: "Reuse your own documents", needs: view }],
+    spec: "docs/features/filling-out-a-document.md",
+  },
+  {
+    feature: "Share links",
+    group: "Documents",
+    what: "A public link to a published template, for people without an account: a customer's intake form, a supplier's details. They fill the same guided form under the necodoc mark and submit; their answers arrive as your document with its PDF, marked 'Share link'. Options: a label, a pinned version or the latest, an expiry date, a maximum number of submissions (1 for a single-use request), asking for the filler's email, letting them download their PDF, and prefilled answers you can lock.",
+    howTo:
+      "Open Share links › New share link, pick the template, set the options and Create link, then Copy link and send it. Adding ?field_name=value to the link prefills unlocked fields. Responses shows each submission; the nav and the list count new ones. Disable stops the link at once, Enable turns it back on; Delete removes the link but keeps its responses in My documents.",
+    limitations: [
+      "No email: necodoc doesn't send the link or tell you about responses; watch the count in the app.",
+      "Anyone with the link can submit; there's no identity check or CAPTCHA, only a per-address rate limit (10 at once, then one a minute).",
+      "The rate limit is kept per API server and resets on restart. Behind a reverse proxy, TRUST_PROXY=true must be set or every filler shares one limit.",
+      "Progress is kept in the filler's browser only; they can't continue on another device.",
+      "The filler's download link lasts 24 hours. If the PDF takes too long, they get the confirmation without a download.",
+      "Prefill and locking cover top-level questions, not questions inside a repeating group.",
+      "No CSV export or webhooks yet.",
+    ],
+    // Filling needs no account at all, which the access list can't express; `what` says so.
+    access: [{ action: "Create and manage share links, see their responses", needs: publish }],
+    spec: "docs/features/share-links-and-data-requests.md",
+  },
+  {
+    feature: "Public API (/api/v1)",
+    group: "API",
+    what: "Other systems call necodoc over HTTP with an API key: render HTML to PDF, list published templates and read their JSON Schema, generate from a template, start batches and download their ZIP or packet, read generations and download PDFs, and combine PDFs into one packet. Every call that renders is in the generation log with source API (or Combine) and the key's name.",
+    howTo:
+      'Create a key (Settings › API keys, or on a service account), then send it in the x-api-key header to /api/v1/… Render and generate return the PDF by default; send response: "json" for the generation id and a signed download link, or async: true to get 202 at once and poll the generation. Every response has an X-Request-Id for support.',
+    limitations: [
+      "A render still running when the wait runs out answers 202 with the generation id; poll it or use a webhook.",
+      "Keys see only their own account's generations and batches.",
+      "Combine takes generation ids and uploaded PDFs, not template data; uploaded inputs stay stored after the packet is made.",
+      "No JavaScript in submitted HTML, and no URL-to-PDF.",
+      "Only a TypeScript SDK so far; other languages use plain HTTP.",
+    ],
+    access: [{ action: "Call the API with your own key", needs: view }],
+    spec: "docs/features/html-to-pdf-api.md",
+  },
+  {
+    feature: "API keys and scopes",
+    group: "API",
+    what: "A key acts as its owner (you, or a service account) but only for the scopes it was given: render:html, templates:read, templates:generate, batches:write, batches:read, generations:read, combine:write. It can also be limited to some templates. It never signs in to the app. A key can't be given scopes its owner's roles don't allow, and it loses them as soon as the owner loses the role; a banned owner's keys stop at once.",
+    howTo:
+      "Settings › API keys › Create key: name it after what uses it, tick only the scopes it needs, pick an expiry (30, 90, 365 days or never) and optionally templates, an IP allowlist and a rate limit. Copy the key from the dialog: it's shown once. The list shows each key's first characters, expiry (with a warning 14 days before), last use and IP, and request count. Admin › API keys lists every key, filters by owner and status, revokes any, and links to the generation log for each key.",
+    limitations: [
+      "Scopes, templates, allowlist and rate limit can't be edited; rotate the key (same settings) or make a new one.",
+      "A lost key can't be shown again.",
+      "Key creation, rotation and revocation aren't in an audit log yet.",
+    ],
+    access: [
+      { action: "Create, rotate and revoke your own keys", needs: view },
+      { action: "See and revoke everyone's keys", needs: "admin" },
+    ],
+    spec: "docs/features/html-to-pdf-api.md",
+  },
+  {
+    feature: "Service accounts",
+    group: "Admin",
+    what: "A service account is an identity for a system (billing, a CRM, a nightly job), not a person. It has a name, description, an owner or contact, and roles, and it owns API keys, so an integration keeps working when the person who set it up leaves. It can't sign in, be impersonated or have a password, and it doesn't appear in Admin › Users.",
+    howTo:
+      "Admin › Service accounts › Create service account: name it after the system, enter who to ask about it, pick its roles (not admin). On its page, create keys and webhooks for it. Disable stops every one of its keys at once (401); Enable restores them. Edit changes its name, contact, description and roles; removing a role takes the matching scopes away from its keys.",
+    limitations: [
+      "Service accounts can't be deleted yet; disable them instead.",
+      "Their generations show the service account as the user, so the generation log's user filter finds them.",
+      "Changes aren't in an audit log yet.",
+    ],
+    access: [{ action: "Create, edit, disable and manage their keys", needs: "admin" }],
+    spec: "docs/features/html-to-pdf-api.md",
+  },
+  {
+    feature: "Rotating an API key",
+    group: "API",
+    what: "Rotation replaces a key without downtime: a new key with the same scopes, templates, allowlist and rate limit, while the old one keeps working for an overlap window and then expires. Revoking stops a key immediately. Expired and revoked keys stay listed, and the generation log keeps their names.",
+    howTo:
+      "In the key's menu choose Rotate…, pick the overlap (none, 1 hour, 24 hours, 7 days or 30 days), copy the new key, deploy it, and let the old one run out. To stop a leaked key now, choose Revoke…. A key that had an expiry gets the same lifetime again.",
+    limitations: [
+      "People rotate their own keys; admins rotate service accounts' keys (and can revoke anyone's).",
+      "Nobody is notified before a key expires; the warning only shows in the key lists.",
+    ],
+    access: [{ action: "Rotate and revoke your own keys", needs: view }],
+    spec: "docs/features/html-to-pdf-api.md",
+  },
+  {
+    feature: "IP allowlists",
+    group: "API",
+    what: "A key can be limited to the addresses its system calls from. Calls from anywhere else get 403 (ip_not_allowed), even with the right key.",
+    howTo:
+      "When creating a key, list one address or CIDR range per line under IP allowlist, like 203.0.113.7 or 10.0.0.0/8 (IPv6 works too). Leave it empty to allow any address. Behind a reverse proxy, set TRUST_PROXY=true on the API so it reads the client address from X-Forwarded-For.",
+    limitations: [
+      "Without TRUST_PROXY behind a proxy, every call seems to come from the proxy.",
+      "The list is set when the key is made; rotate or make a new key to change it.",
+    ],
+    access: [{ action: "Restrict your own keys", needs: view }],
+    spec: "docs/features/html-to-pdf-api.md",
+  },
+  {
+    feature: "API rate limits",
+    group: "API",
+    what: "Each key has its own limit, in requests per minute (120 unless set otherwise, up to 6,000). Past it, calls get 429 with a Retry-After header in seconds.",
+    howTo:
+      "Set the limit when creating the key. If a system keeps hitting 429, rotate to a new key with a higher limit, or spread its calls out; batches are one call for thousands of documents.",
+    limitations: [
+      "The window starts again a minute after the last allowed call, so a key that keeps calling at the limit waits a full minute.",
+      "Every call counts, including ones refused for a missing scope.",
+      "No per-account quotas yet.",
+    ],
+    access: [{ action: "Set your own keys' limits", needs: view }],
+    spec: "docs/features/html-to-pdf-api.md",
+  },
+  {
+    feature: "API reference and OpenAPI",
+    group: "API",
+    what: "The API page in the app lists every /api/v1 endpoint with its request and response schemas, generated from the code so it can't drift, and can send test calls with a key. The same OpenAPI 3.1 document is at /api/v1/openapi.json for code generators, and the developer docs site renders it too. A TypeScript SDK is generated from it.",
+    howTo:
+      "Click API in the nav. Paste a key under Authentication to try calls from the browser; they're real calls and are logged. Point Postman, Insomnia or an OpenAPI generator at /api/v1/openapi.json.",
+    limitations: [
+      "Try-it calls run against this deployment and its real data.",
+      "Only a TypeScript SDK so far; Python, .NET and Java are planned.",
+    ],
+    access: [{ action: "Read the reference", needs: view }],
+    spec: "docs/features/html-to-pdf-api.md",
+  },
+  {
+    feature: "Webhooks",
+    group: "API",
+    what: "necodoc can POST to your system when a generation succeeds or fails, or a batch completes, so it doesn't have to poll. A webhook belongs to an account and fires for every API call it makes, for one of its keys, or for one template (any source). Each request is signed (Necodoc-Signature: an HMAC-SHA256 of the timestamp and body with the webhook's secret) and carries a 24-hour signed download link, never the PDF itself.",
+    howTo:
+      "Settings › API keys › Add webhook (or on a service account's page): enter an HTTPS URL, tick events, optionally pick a key or template, and copy the signing secret (shown once). Send test fires a webhook.test event. Deliveries shows every attempt with its HTTP status and time; failures retry 5 times with backoff over several minutes. The developer docs show how to check the signature.",
+    limitations: [
+      "HTTPS only, and never to private, loopback or link-local addresses (checked again before every send). WEBHOOK_ALLOW_LOCALHOST lifts that for local development only.",
+      "No manual redelivery; order isn't guaranteed and an event can arrive twice, so deduplicate on Necodoc-Delivery.",
+      "The secret can't be shown again or changed; delete and re-add the webhook.",
+      "App renders (not through a key) only fire template webhooks. Share-link submissions don't fire webhooks yet.",
+    ],
+    access: [
+      { action: "Webhooks for your own keys and account", needs: view },
+      { action: "A template webhook (any source)", needs: edit },
+    ],
+    spec: "docs/features/webhooks.md",
   },
 ];

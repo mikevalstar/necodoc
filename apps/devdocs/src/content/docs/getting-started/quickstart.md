@@ -1,6 +1,6 @@
 ---
 title: Quickstart
-description: Run necodoc locally with Docker Compose, create the admin account and render a first PDF.
+description: Run necodoc locally with Docker Compose, create the admin account and an API key, and render a first PDF.
 sidebar:
   order: 3
 ---
@@ -21,32 +21,23 @@ Anyone who signs up after that has no roles, so they can sign in but do nothing 
 
 Open **Render**. It takes the same request the API does, field by field: HTML, CSS, theme, header and footer, page options and Liquid data. Preview mode renders without logging. Rendering for real logs a generation you can find under **Generations**.
 
-## 4. Render a PDF with curl
+## 4. Create an API key
 
-The app's own API takes a session cookie. Sign in and keep the cookie:
+Under **Settings › API keys**, create a key with the `render:html` scope. Copy the secret (it starts with `nd_`); it's shown once. For a system rather than a person, an admin can create a service account under **Admin › Service accounts** and give the key to it instead. See [API keys and errors](/guides/api-keys/).
 
-```sh
-curl -c cookies.txt -H 'Content-Type: application/json' \
-  -H 'Origin: http://localhost:8080' \
-  -d '{"email":"admin@example.com","password":"your-password"}' \
-  http://localhost:8080/api/auth/sign-in/email
-```
-
-Then render:
+## 5. Render a PDF with curl
 
 ```sh
-curl -b cookies.txt -H 'Content-Type: application/json' \
-  -H 'Origin: http://localhost:8080' \
+export NECODOC_API_KEY=nd_...
+curl -H "x-api-key: $NECODOC_API_KEY" -H 'Content-Type: application/json' \
   -d '{"html":"<h1>Hello {{ name }}</h1>","data":{"name":"world"}}' \
   -o hello.pdf -D - \
-  http://localhost:8080/api/render
+  http://localhost:8080/api/v1/render
 ```
 
-The response headers include `X-Generation-Id` and `X-Page-Count`.
+The response headers include `X-Generation-Id` and `X-Page-Count`, and the render shows under **Generations** with your key's name. Add `"response":"json"` to get the generation id and a download link instead of the bytes. See [HTML to PDF](/guides/html-to-pdf/).
 
-:::caution
-`/api/render` is the app's internal, session-authenticated API. The public API, with API keys under `/api/v1`, is coming; paths and payloads may change. See [HTML to PDF](/guides/html-to-pdf/).
-:::
+The app's **API** page lists every endpoint and can send requests with your key.
 
 ## Next
 

@@ -12,7 +12,7 @@ Every logged render is a job on a queue that worker processes consume. Any gener
 - **Synchronous** (default): the call waits for the PDF, up to `RENDER_WAIT_MS` (30 s by default). Past that it answers `202 { "generationId", "status" }` and the render carries on.
 - **Async** (`"async": true`): the call answers `202` with the generation id at once.
 
-Either way, poll `GET /api/generations/:id` until `status` is `success`, `error` or `cancelled`, then fetch `GET /api/generations/:id/pdf`. Webhooks for completion are [coming](/guides/webhooks/).
+Either way, poll the generation until `status` is `success`, `error` or `cancelled`, then fetch its PDF: `GET /api/v1/generations/:id` and `.../pdf` with an [API key](/guides/api-keys/), or `GET /api/generations/:id` and `.../pdf` from the app. To skip polling, subscribe a [webhook](/guides/webhooks/).
 
 **Priorities.** Interactive renders (the app, single API calls) go ahead of batch rows, so a large batch doesn't block someone waiting on one PDF.
 
@@ -21,6 +21,27 @@ Either way, poll `GET /api/generations/:id` until `status` is `success`, `error`
 ## Batches
 
 A batch generates one document per row from one published template version. Every row is validated against the version's fields; invalid rows fail on their own with their field errors, and the rest run.
+
+### With an API key
+
+The public API takes JSON batches:
+
+| Call | Scope |
+| --- | --- |
+| `POST /api/v1/templates/:id/versions/:version/batch` | `batches:write` |
+| `GET /api/v1/batches/:id` | `batches:read` |
+| `GET /api/v1/batches/:id/zip` | `batches:read` |
+| `GET /api/v1/batches/:id/packet` | `batches:read` |
+
+The body is the same `{ rows, filename }` as below; it answers `202` with the batch summary. A [webhook](/guides/webhooks/) on `batch.completed` fires once the last row finishes.
+
+```sh
+curl -H "x-api-key: $NECODOC_API_KEY" -H 'Content-Type: application/json' \
+  -d '{"rows":[{"client_name":"Ada Lovelace"},{"client_name":"Grace Hopper"}]}' \
+  https://necodoc.example.com/api/v1/templates/$TEMPLATE_ID/versions/latest/batch
+```
+
+The sections below use the app's session-authenticated routes (`/api/...`), which also take CSV and can cancel.
 
 ### JSON
 

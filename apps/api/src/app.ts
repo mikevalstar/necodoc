@@ -5,6 +5,7 @@ import { logger } from "hono/logger";
 import { aiModel } from "./ai";
 import { auth } from "./auth";
 import { type AppEnv, requestId } from "./middleware";
+import { apiKeyRoutes } from "./routes/api-keys";
 import { assetRoutes } from "./routes/assets";
 import { batchRoutes, templateBatchRoutes } from "./routes/batches";
 import { fileRoutes } from "./routes/files";
@@ -12,9 +13,15 @@ import { generationRoutes } from "./routes/generations";
 import { healthRoutes } from "./routes/health";
 import { pdfSourceRoutes } from "./routes/pdf-sources";
 import { renderRoutes } from "./routes/render";
+import { serviceAccountRoutes } from "./routes/service-accounts";
+import { publicShareRoutes, shareLinkRoutes } from "./routes/share-links";
+import { snippetRoutes } from "./routes/snippets";
+import { submissionRoutes } from "./routes/submissions";
 import { systemRoutes } from "./routes/system";
 import { templateRoutes } from "./routes/templates";
 import { themeRoutes } from "./routes/themes";
+import { v1Routes } from "./routes/v1";
+import { webhookRoutes } from "./routes/webhooks";
 
 const app = new Hono<AppEnv>().basePath("/api");
 
@@ -57,10 +64,19 @@ const routes = app
   .route("/generations", generationRoutes)
   .route("/templates", templateRoutes)
   .route("/templates", templateBatchRoutes)
+  .route("/snippets", snippetRoutes)
   .route("/pdf-sources", pdfSourceRoutes)
   .route("/batches", batchRoutes)
   .route("/files", fileRoutes)
-  .route("/system", systemRoutes);
+  .route("/system", systemRoutes)
+  .route("/api-keys", apiKeyRoutes)
+  .route("/service-accounts", serviceAccountRoutes)
+  .route("/webhooks", webhookRoutes)
+  // Public, API keys only (docs/features/html-to-pdf-api.md).
+  .route("/v1", v1Routes)
+  .route("/submissions", submissionRoutes)
+  .route("/share-links", shareLinkRoutes)
+  .route("/share", publicShareRoutes);
 
 export type AppType = typeof routes;
 export default app;

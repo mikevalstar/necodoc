@@ -2,6 +2,7 @@ import { zValidator } from "@hono/zod-validator";
 import {
   type CompiledOverlay,
   compileDesignedContent,
+  compiledSources,
   createTemplateSchema,
   designedContentSchema,
   fieldErrors,
@@ -35,6 +36,7 @@ import {
   type SignedInEnv,
 } from "../middleware";
 import { liquid, plainLiquid } from "../render/liquid";
+import { loadPartials, PartialError } from "../render/partials";
 import { generationResponse, pdfHeaders } from "./http";
 
 // Specs: docs/features/document-templates.md, docs/features/publishing-and-versions.md,
@@ -60,7 +62,7 @@ const canPublish = requirePermission({ document: ["publish"] });
 const idParam = zValidator("param", z.object({ id: z.uuid() }));
 const versionParam = zValidator("param", z.object({ id: z.uuid(), version: versionParamSchema }));
 
-const latest = db
+export const latest = db
   .select({
     templateId: templateVersion.templateId,
     version: max(templateVersion.version).as("latest_version"),
@@ -123,16 +125,7 @@ function compileOverlay(content: OverlayContent) {
 function compileOrError(...args: Parameters<typeof compileDesignedContent>) {
   try {
     const compiled = compileDesignedContent(...args);
-    const { html, header, footer } = compiled;
-    for (const part of [
-      html,
-      header?.html,
-      header?.firstPageHtml,
-      footer?.html,
-      footer?.firstPageHtml,
-    ]) {
-      if (part) liquid.parse(part);
-    }
+    for (const part of compiledSources(compiled)) liquid.parse(part);
     return { compiled };
   } catch (error) {
     if (error instanceof TemplateCompileError || error instanceof LiquidError) {
@@ -326,8 +319,17 @@ export const templateRoutes = new Hono<AppEnv>()
         typed.kind === "overlay"
           ? compileOverlay(typed.content)
           : compileOrError(typed.content, typed.sections);
-      const { compiled } = result;
-      if (!compiled) return c.json({ error: result.error }, 422);
+      if (!result.compiled) return c.json({ error: result.error }, 422);
+      let compiled = result.compiled;
+      if (!("kind" in compiled)) {
+        // Frozen with the version: later snippet edits don't change it.
+        try {
+          compiled = { ...compiled, partials: await loadPartials(compiledSources(compiled)) };
+        } catch (error) {
+          if (error instanceof PartialError) return c.json({ error: error.message }, 422);
+          throw error;
+        }
+      }
       const [themeRow] =
         typed.kind === "designed" && draft.themeId
           ? await db

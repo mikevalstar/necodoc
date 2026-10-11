@@ -50,6 +50,11 @@ export const renderRequestSchema = z
     filename: z.string().trim().min(1).max(200).optional(),
     /** Previews render without a generation log entry. */
     preview: z.boolean().default(false),
+    /**
+     * HTML for `{% render 'name' %}`, by name. Published template versions send the snippets
+     * they were published with; without it, current snippets are loaded by key or id.
+     */
+    partials: z.record(z.string(), z.string()).optional(),
   })
   .refine((r) => !(r.themeId && r.themeDraft), {
     message: "Send themeId or themeDraft, not both",

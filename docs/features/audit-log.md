@@ -22,7 +22,8 @@ Compliance reviews ask for change history. When a published document is wrong, t
 - **Recorded events** (actor, impersonator if any, action, target type and id, target name, time, IP, user agent, and a before/after diff of changed fields where it applies):
   - templates: create, edit, duplicate, delete, publish ([versions](publishing-and-versions.md))
   - themes, assets, snippets: create, edit, delete
-  - API keys: create, revoke ([HTML to PDF API](html-to-pdf-api.md))
+  - API keys: create, rotate, revoke ([HTML to PDF API](html-to-pdf-api.md))
+  - service accounts: create, edit (roles included), disable, enable
   - share links and webhooks: create, edit, disable, delete
   - users ([user management](user-management-and-roles.md)): create, role change, ban, unban, delete, password set, sessions revoked, impersonation start/stop
   - batch jobs: start, cancel ([render queue](render-queue-batch-jobs-and-scaling.md))

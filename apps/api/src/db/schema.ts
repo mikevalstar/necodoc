@@ -1,5 +1,6 @@
 import type {
   AcroField,
+  ApiScope,
   AssetMime,
   CompiledOverlay,
   CompiledTemplate,
@@ -14,9 +15,15 @@ import type {
   RenderInput,
   RenderTimings,
   RetentionSettings,
+  SnippetContent,
+  SubmissionSource,
+  SubmissionStatus,
   TemplateKind,
   ThemeInput,
   ThemeSettings,
+  WebhookAttempt,
+  WebhookDeliveryStatus,
+  WebhookEvent,
 } from "@necodoc/shared";
 import { sql } from "drizzle-orm";
 import {
@@ -34,7 +41,7 @@ import {
   uuid,
 } from "drizzle-orm/pg-core";
 import type { StorageDriverName } from "../storage/config";
-import { user } from "./auth-schema";
+import { apikey, user } from "./auth-schema";
 
 export * from "./auth-schema";
 
@@ -169,6 +176,24 @@ export const templateVersion = pgTable(
   (t) => [unique().on(t.templateId, t.version)],
 );
 
+// Spec: docs/features/snippet-library.md. Current content only: published template versions keep
+// their own compiled copy (compiled.partials), so editing a snippet never changes one.
+export const snippet = pgTable("snippet", {
+  id: uuid().primaryKey().defaultRandom(),
+  /** Set once; `{% render 'key' %}` names it. */
+  key: text().notNull().unique(),
+  name: text().notNull(),
+  description: text().default("").notNull(),
+  tags: text().array().default(sql`'{}'::text[]`).notNull(),
+  /** Top-level field keys it expects. */
+  fields: jsonb().$type<string[]>().notNull(),
+  content: jsonb().$type<SnippetContent>().notNull(),
+  createdBy: text().references(() => user.id, { onDelete: "set null" }),
+  archivedAt: timestamp({ withTimezone: true }),
+  createdAt,
+  updatedAt,
+});
+
 // Spec: docs/features/render-queue-batch-jobs-and-scaling.md. One request that generates many
 // documents; each row is a generation pointing here. Progress and status are counted from those.
 export const batch = pgTable("batch", {
@@ -180,12 +205,15 @@ export const batch = pgTable("batch", {
   version: integer().notNull(),
   total: integer().notNull(),
   requestId: text(),
+  /** Started through /api/v1 with this key (docs/features/webhooks.md). */
+  apiKeyId: text().references(() => apikey.id, { onDelete: "set null" }),
   cancelledAt: timestamp({ withTimezone: true }),
+  /** Set once, by whoever finished the last row; that call fires batch.completed. */
+  completedAt: timestamp({ withTimezone: true }),
   createdAt,
 });
 
-// Spec: docs/features/generation-log.md. API key ids have no FK yet; the API key phase adds it.
-// Rows are written queued by the API node and filled in by the worker that renders them (ADR 0020).
+// Spec: docs/features/generation-log.md. Rows are written queued by the API node and filled in by the worker that renders them (ADR 0020).
 export const generation = pgTable(
   "generation",
   {
@@ -193,7 +221,7 @@ export const generation = pgTable(
     source: text().$type<GenerationSource>().notNull(),
     status: text().$type<GenerationStatus>().notNull(),
     userId: text().references(() => user.id, { onDelete: "set null" }),
-    apiKeyId: text(),
+    apiKeyId: text().references(() => apikey.id, { onDelete: "set null" }),
     templateId: uuid().references(() => template.id, { onDelete: "set null" }),
     templateVersionId: uuid().references(() => templateVersion.id, { onDelete: "set null" }),
     rerunOfId: uuid().references((): AnyPgColumn => generation.id, { onDelete: "set null" }),
@@ -241,6 +269,7 @@ export const generation = pgTable(
     index().on(t.templateId, t.queuedAt),
     index().on(t.status, t.queuedAt),
     index().on(t.source, t.queuedAt),
+    index().on(t.apiKeyId, t.queuedAt),
     // Free-text search (`q`): substring matches need trigrams (migration enables pg_trgm).
     index("generation_filename_trgm_index").using("gin", t.filename.op("gin_trgm_ops")),
     index("generation_error_trgm_index").using("gin", t.error.op("gin_trgm_ops")),
@@ -274,6 +303,89 @@ export const setting = pgTable("setting", {
   updatedAt,
 });
 
+// ADR 0029: what a service account is beyond its user row (marked `serviceAccount`, which can't
+// sign in). Its roles, name and disabled state (a ban) live on the user row like anyone's.
+export const serviceAccount = pgTable("service_account", {
+  userId: text()
+    .primaryKey()
+    .references(() => user.id, { onDelete: "cascade" }),
+  description: text().default("").notNull(),
+  /** Who to ask about it: a team, a person, an email or a channel. */
+  contact: text().notNull(),
+  createdBy: text().references(() => user.id, { onDelete: "set null" }),
+  createdAt,
+  updatedAt,
+});
+
+// ADR 0029: the policy for one Better Auth key, and the source of truth for whether it may be
+// used. Expired and revoked keys keep their rows, so lists and the generation log still name them.
+export const apiKeyPolicy = pgTable("api_key_policy", {
+  apiKeyId: text()
+    .primaryKey()
+    .references(() => apikey.id, { onDelete: "cascade" }),
+  scopes: jsonb().$type<ApiScope[]>().notNull(),
+  /** Empty: every template the owner can see. */
+  templateIds: jsonb().$type<string[]>().default(sql`'[]'::jsonb`).notNull(),
+  /** Addresses and CIDR ranges; empty allows any. */
+  ipAllowlist: jsonb().$type<string[]>().default(sql`'[]'::jsonb`).notNull(),
+  expiresAt: timestamp({ withTimezone: true }),
+  revokedAt: timestamp({ withTimezone: true }),
+  revokedBy: text().references(() => user.id, { onDelete: "set null" }),
+  /** The key this one replaced, when it was made by rotating. */
+  rotatedFromId: text().references(() => apikey.id, { onDelete: "set null" }),
+  createdBy: text().references(() => user.id, { onDelete: "set null" }),
+  /** Every authenticated call, ever (the plugin's own count resets each rate-limit window). */
+  requests: integer().default(0).notNull(),
+  lastUsedAt: timestamp({ withTimezone: true }),
+  lastUsedIp: text(),
+  createdAt,
+});
+
+// Spec: docs/features/webhooks.md. Fires for its owner's API generations, narrowed to one key
+// and/or one template; a template webhook alone fires for every generation of the template.
+export const webhook = pgTable(
+  "webhook",
+  {
+    id: uuid().primaryKey().defaultRandom(),
+    ownerId: text()
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    url: text().notNull(),
+    description: text().default("").notNull(),
+    /** Signs every request; shown once. Kept in plain text because signing needs it. */
+    secret: text().notNull(),
+    events: jsonb().$type<WebhookEvent[]>().notNull(),
+    apiKeyId: text().references(() => apikey.id, { onDelete: "cascade" }),
+    templateId: uuid().references(() => template.id, { onDelete: "cascade" }),
+    enabled: boolean().default(true).notNull(),
+    createdBy: text().references(() => user.id, { onDelete: "set null" }),
+    createdAt,
+    updatedAt,
+  },
+  (t) => [index().on(t.ownerId), index().on(t.apiKeyId), index().on(t.templateId)],
+);
+
+// One event for one webhook; each POST is an entry in `attempts`. Sent from a pg-boss queue.
+export const webhookDelivery = pgTable(
+  "webhook_delivery",
+  {
+    id: uuid().primaryKey().defaultRandom(),
+    webhookId: uuid()
+      .notNull()
+      .references(() => webhook.id, { onDelete: "cascade" }),
+    event: text().notNull(),
+    /** The JSON body, signed as sent. */
+    payload: jsonb().$type<Record<string, unknown>>().notNull(),
+    status: text().$type<WebhookDeliveryStatus>().default("pending").notNull(),
+    attempts: jsonb().$type<WebhookAttempt[]>().default(sql`'[]'::jsonb`).notNull(),
+    generationId: uuid().references(() => generation.id, { onDelete: "set null" }),
+    batchId: uuid().references(() => batch.id, { onDelete: "set null" }),
+    createdAt,
+    finishedAt: timestamp({ withTimezone: true }),
+  },
+  (t) => [index().on(t.webhookId, t.createdAt)],
+);
+
 // Spec: docs/features/generation-log.md (signed links). One row per minted link: who made it and
 // how often it was used. The token itself carries the file id and expiry (src/signed-link.ts).
 export const downloadLink = pgTable("download_link", {
@@ -286,3 +398,63 @@ export const downloadLink = pgTable("download_link", {
   lastUsedAt: timestamp({ withTimezone: true }),
   createdAt,
 });
+
+// Spec: docs/features/share-links-and-data-requests.md. A public link to a published template;
+// whoever has the token can submit. Submissions become the owner's documents.
+export const shareLink = pgTable("share_link", {
+  id: uuid().primaryKey().defaultRandom(),
+  /** 32 random bytes, base64url: the only secret. */
+  token: text().notNull().unique(),
+  ownerId: text()
+    .notNull()
+    .references(() => user.id, { onDelete: "cascade" }),
+  templateId: uuid()
+    .notNull()
+    .references(() => template.id),
+  /** Pinned version; null follows the latest published one. */
+  templateVersionId: uuid().references(() => templateVersion.id),
+  label: text().notNull(),
+  expiresAt: timestamp({ withTimezone: true }),
+  maxSubmissions: integer(),
+  requireEmail: boolean().default(false).notNull(),
+  allowDownload: boolean().default(true).notNull(),
+  prefill: jsonb().$type<Record<string, unknown>>().default({}).notNull(),
+  lockedKeys: jsonb().$type<string[]>().default([]).notNull(),
+  disabledAt: timestamp({ withTimezone: true }),
+  /** When the owner last opened the responses; later ones count as unseen. */
+  seenAt: timestamp({ withTimezone: true }).defaultNow().notNull(),
+  createdAt,
+  updatedAt,
+});
+
+// Spec: docs/features/filling-out-a-document.md. One document being filled: raw answers (checked
+// only for shape until finished), pinned to the version it was started on. `generationId` is its
+// current PDF; regenerating points it at the new entry.
+export const submission = pgTable(
+  "submission",
+  {
+    id: uuid().primaryKey().defaultRandom(),
+    ownerId: text()
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    templateId: uuid()
+      .notNull()
+      .references(() => template.id),
+    templateVersionId: uuid()
+      .notNull()
+      .references(() => templateVersion.id),
+    name: text().notNull(),
+    status: text().$type<SubmissionStatus>().default("draft").notNull(),
+    source: text().$type<SubmissionSource>().default("app").notNull(),
+    shareLinkId: uuid().references(() => shareLink.id, { onDelete: "set null" }),
+    /** The share-link filler's address, when the link asked for one. */
+    respondentEmail: text(),
+    data: jsonb().$type<Record<string, unknown>>().default({}).notNull(),
+    step: integer().default(0).notNull(),
+    generationId: uuid().references(() => generation.id, { onDelete: "set null" }),
+    finishedAt: timestamp({ withTimezone: true }),
+    createdAt,
+    updatedAt,
+  },
+  (t) => [index().on(t.ownerId, t.updatedAt), index().on(t.shareLinkId, t.createdAt)],
+);

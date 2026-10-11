@@ -14,9 +14,12 @@ export const queues = {
   retention: "retention",
   /** AI field detection on an uploaded PDF (ADR 0028). The suggestions are the job's output. */
   detectFields: "detect-fields",
+  /** One webhook delivery (docs/features/webhooks.md); a failed POST throws and is retried. */
+  webhook: "webhook",
 } as const;
 
 export type RenderJobData = { generationId: string };
+export type WebhookJobData = { deliveryId: string };
 /** Who asked, so only they can read the result; the template's fields, to reuse their keys. */
 export type DetectJobData = {
   sourceId: string;
@@ -68,6 +71,17 @@ export async function startQueue() {
     // 20 pages at 5 to 10 s each, plus slack. The output is read within minutes, then dropped.
     expireInSeconds: 300,
     deleteAfterSeconds: 24 * 60 * 60,
+  });
+  await boss.createQueue(queues.webhook, {
+    notify: true,
+    // 5 retries, each wait doubling from 20 to 40 s (pg-boss jitters within each step): about
+    // 10 to 20 minutes from the first attempt to the last.
+    retryLimit: 5,
+    retryDelay: 10,
+    retryBackoff: true,
+    // A 10 s request timeout, plus slack.
+    expireInSeconds: 60,
+    deleteAfterSeconds: 7 * 24 * 60 * 60,
   });
   queueStatus.started = true;
 }

@@ -47,6 +47,7 @@ export const generationFilterSchema = z.object({
   userId: z.string().optional(),
   templateId: z.uuid().optional(),
   batchId: z.uuid().optional(),
+  apiKeyId: z.string().optional(),
   from: z.iso.datetime({ offset: true }).optional(),
   to: z.iso.datetime({ offset: true }).optional(),
   /** Free text: filename, template name, error or request id (substring), or a generation id. */
@@ -89,6 +90,8 @@ export const generationSummarySchema = z.object({
   userId: z.string().nullable(),
   userName: z.string().nullable(),
   apiKeyId: z.string().nullable(),
+  /** The key's name, as it is now. */
+  apiKeyName: z.string().nullable(),
   templateId: z.uuid().nullable(),
   templateVersionId: z.uuid().nullable(),
   /** The template's current name (null for HTML renders or deleted templates). */
@@ -115,8 +118,24 @@ export const generationSummarySchema = z.object({
 });
 export type GenerationSummary = z.infer<typeof generationSummarySchema>;
 
-/** What a generation renders: HTML (designed templates, the render API) or a PDF overlay. */
-export const generationInputSchema = z.union([overlayRenderRequestSchema, renderRequestSchema]);
+/**
+ * A packet (docs/features/combining-pdfs-into-packets.md): stored PDFs merged in order. Each part
+ * is a file; parts that came from the log keep their generation id.
+ */
+export const combineRenderRequestSchema = z.object({
+  kind: z.literal("combine"),
+  parts: z.array(z.object({ fileId: z.uuid(), generationId: z.uuid().optional() })).min(1),
+  filename: z.string().trim().min(1).max(200).optional(),
+  preview: z.boolean().default(false),
+});
+export type CombineRenderRequest = z.infer<typeof combineRenderRequestSchema>;
+
+/** What a generation renders: HTML (designed templates, the render API), a PDF overlay, or a packet. */
+export const generationInputSchema = z.union([
+  overlayRenderRequestSchema,
+  combineRenderRequestSchema,
+  renderRequestSchema,
+]);
 export type RenderInput = z.infer<typeof generationInputSchema>;
 
 export const generationDetailSchema = generationSummarySchema.extend({

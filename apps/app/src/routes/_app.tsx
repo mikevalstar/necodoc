@@ -1,3 +1,5 @@
+import { hasPermission } from "@necodoc/shared";
+import { useQuery } from "@tanstack/react-query";
 import { createFileRoute, Link, Outlet, redirect, useLocation } from "@tanstack/react-router";
 import { ChevronDownIcon } from "lucide-react";
 import { Logo } from "@/components/logo";
@@ -13,6 +15,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { type Me, meQuery, useSignOut } from "@/lib/auth";
+import { shareLinksQuery } from "@/lib/queries";
 import { cn } from "@/lib/utils";
 
 // Signed-in users with at least one role; everyone else is sent to /login or /pending.
@@ -51,9 +54,17 @@ function AppShell() {
               <Link to="/" activeOptions={{ exact: true }} {...navLink}>
                 Documents
               </Link>
+              {hasPermission(me.user.roles, { document: ["publish"] }) && <ShareLinksNav />}
               <Link to="/templates" {...navLink}>
                 Templates
               </Link>
+              {(["create", "edit", "review", "publish"] as const).some((action) =>
+                hasPermission(me.user.roles, { document: [action] }),
+              ) && (
+                <Link to="/snippets" {...navLink}>
+                  Snippets
+                </Link>
+              )}
               <Link to="/themes" {...navLink}>
                 Themes
               </Link>
@@ -69,6 +80,9 @@ function AppShell() {
               <Link to="/batches" {...navLink}>
                 Batches
               </Link>
+              <Link to="/developers" {...navLink}>
+                API
+              </Link>
             </>
           )}
           {isAdmin && <AdminMenu />}
@@ -79,6 +93,22 @@ function AppShell() {
       </header>
       <Outlet />
     </div>
+  );
+}
+
+/** Share links, with how many responses arrived since each link was last opened. */
+function ShareLinksNav() {
+  const links = useQuery({ ...shareLinksQuery, refetchInterval: 60_000 });
+  const unseen = links.data?.reduce((sum, link) => sum + link.unseen, 0) ?? 0;
+  return (
+    <Link to="/share-links" {...navLink}>
+      Share links
+      {unseen > 0 && (
+        <span className="ml-1 rounded-full bg-primary px-1.5 text-xs text-primary-foreground">
+          {unseen}
+        </span>
+      )}
+    </Link>
   );
 }
 
@@ -100,6 +130,10 @@ function AdminMenu() {
         <DropdownMenuItem render={<Link to="/admin/users" />}>Users</DropdownMenuItem>
         <DropdownMenuItem render={<Link to="/admin/system" />}>System</DropdownMenuItem>
         <DropdownMenuItem render={<Link to="/admin/queue" />}>Queue</DropdownMenuItem>
+        <DropdownMenuItem render={<Link to="/admin/service-accounts" />}>
+          Service accounts
+        </DropdownMenuItem>
+        <DropdownMenuItem render={<Link to="/admin/api-keys" />}>API keys</DropdownMenuItem>
         <DropdownMenuItem render={<Link to="/admin/faq" />}>FAQ</DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
@@ -126,6 +160,9 @@ function UserMenu({ me }: { me: Me }) {
         </DropdownMenuGroup>
         <DropdownMenuSeparator />
         <DropdownMenuItem render={<Link to="/settings" />}>Settings</DropdownMenuItem>
+        {me.user.roles.length > 0 && (
+          <DropdownMenuItem render={<Link to="/settings/api-keys" />}>API keys</DropdownMenuItem>
+        )}
         <DropdownMenuItem disabled={signOut.isPending} onClick={() => signOut.mutate()}>
           Sign out
         </DropdownMenuItem>

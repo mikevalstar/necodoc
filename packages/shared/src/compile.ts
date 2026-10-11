@@ -233,6 +233,8 @@ function blockHtml(node: BlockNode, scope: Scope): string {
     case "rawHtml":
       // Verbatim by design: the author asked for markup, not text.
       return node.attrs.html;
+    case "snippet":
+      return `{% render ${liquidString(node.attrs.snippetId)} %}`;
   }
 }
 
@@ -258,8 +260,43 @@ export function compileDoc(doc: Doc, sections: readonly FieldSection[] = [], sep
   return doc.content.map((n) => blockHtml(n, scope)).join(separator);
 }
 
-/** What the renderer needs from a designed template: body HTML, bands and template CSS. */
-export type CompiledTemplate = { html: string; header?: Band; footer?: Band; css?: string };
+/**
+ * What the renderer needs from a designed template: body HTML, bands and template CSS. Published
+ * versions add `partials`, the snippet HTML they were published with.
+ */
+export type CompiledTemplate = {
+  html: string;
+  header?: Band;
+  footer?: Band;
+  css?: string;
+  partials?: Record<string, string>;
+};
+
+/** Every HTML/Liquid source a compiled template renders: body, then each band's variants. */
+export const compiledSources = ({
+  html,
+  header,
+  footer,
+}: {
+  html: string;
+  header?: Band | null;
+  footer?: Band | null;
+}) =>
+  [html, header?.html, header?.firstPageHtml, footer?.html, footer?.firstPageHtml].filter(
+    (part): part is string => part !== undefined,
+  );
+
+/** `{% render 'name' %}` and `{% include 'name' %}` with a literal name. */
+const PARTIAL_TAG = /\{%-?\s*(?:render|include)\s+(?:'([^']*)'|"([^"]*)")/g;
+
+/**
+ * The partials (snippet keys or ids) a Liquid source names, in order, without repeats. Only
+ * literal names: a partial named by a variable isn't found.
+ */
+export function partialNames(source: string): string[] {
+  const names = [...source.matchAll(PARTIAL_TAG)].map((m) => m[1] ?? m[2] ?? "");
+  return [...new Set(names.filter(Boolean))];
+}
 
 /** Compiles a designed template's body and bands. Code mode is already compiled. */
 export function compileDesignedContent(
@@ -319,21 +356,44 @@ export function toCodeMode(
 
 export type FieldProblem = { field: string; message: string };
 
+/** What field checks need to know about a snippet (docs/features/snippet-library.md). */
+export type SnippetRef = { id: string; key: string; name: string; fields: readonly string[] };
+
 /**
- * Field references in a visual template that don't fit its fields: undeclared keys (e.g. after
- * a rename), group fields outside their repeating section, wrong field types, and page tokens
- * outside bands. The editor flags these; rendering doesn't block on them.
+ * Field references in a template that don't fit its fields: undeclared keys (e.g. after a
+ * rename), group fields outside their repeating section, wrong field types, page tokens outside
+ * bands, and fields a used snippet expects but the template lacks. Code mode only gets the
+ * snippet check. `snippets` is the library; leave it out to skip snippet checks. The editor flags
+ * these; rendering doesn't block on them.
  */
 export function templateFieldProblems(
   content: DesignedContent,
   sections: readonly FieldSection[],
+  snippets?: readonly SnippetRef[],
 ): FieldProblem[] {
-  if (content.mode === "code") return [];
   const topLevel = new Map(sections.flatMap((s) => s.fields).map((f) => [f.key, f]));
   const problems: FieldProblem[] = [];
   const flag = (field: string, message: string): void => {
     problems.push({ field, message });
   };
+
+  /** `name` is a snippet id (visual blocks) or key (code). */
+  const checkSnippet = (name: string) => {
+    if (!snippets) return;
+    const found = snippets.find((s) => s.id === name || s.key === name);
+    if (!found) return flag(name, `Snippet "${name}" doesn't exist`);
+    for (const key of found.fields) {
+      if (!topLevel.has(key)) {
+        flag(key, `Snippet "${found.name}" expects "${key}", which isn't a declared field`);
+      }
+    }
+  };
+
+  if (content.mode === "code") {
+    const parts = compiledSources({ ...content, html: content.body });
+    for (const name of new Set(parts.flatMap(partialNames))) checkSnippet(name);
+    return problems;
+  }
 
   type Use = "value" | "image" | "condition";
   const check = (path: string, use: Use, repeat: string | null, inBand: boolean) => {
@@ -405,6 +465,9 @@ export function templateFieldProblems(
         case "repeatingSection":
           checkRepeat(node.attrs.field, repeat);
           walk(node.content, node.attrs.field, inBand);
+          break;
+        case "snippet":
+          checkSnippet(node.attrs.snippetId);
           break;
         case "horizontalRule":
         case "pageBreak":

@@ -9,8 +9,8 @@ import {
   templateDataSchema,
 } from "@necodoc/shared";
 import { useStore } from "@tanstack/react-form";
-import { ImageIcon, PlusIcon, Trash2Icon } from "lucide-react";
-import { type ReactNode, useMemo, useState } from "react";
+import { ImageIcon, PencilIcon, PlusIcon, Trash2Icon } from "lucide-react";
+import { type ReactNode, useMemo, useRef, useState } from "react";
 import { useAppForm } from "@/components/form";
 import { SignaturePad } from "@/components/signature-pad";
 import { Button } from "@/components/ui/button";
@@ -27,6 +27,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { NativeSelect, NativeSelectOption } from "@/components/ui/native-select";
 import { Textarea } from "@/components/ui/textarea";
+import { dayjs } from "@/lib/date";
 
 // Spec: docs/features/template-fields-and-guided-form.md. Renders a template's fields as a form,
 // validated with the same templateDataSchema the API applies, so what passes here passes there.
@@ -96,6 +97,13 @@ export type GuidedFormProps = {
   disabled?: boolean;
   /** Show every error from the start, not only on touched fields (sample data). */
   revealErrors?: boolean;
+  /** Steps only: a last step summarising the answers before submit (filling documents). */
+  review?: boolean;
+  /** Steps only: where to start (e.g. a saved draft's step), and every step change. */
+  initialStep?: number;
+  onStepChange?: (step: number) => void;
+  /** Top-level fields shown but not editable (a share link's locked prefill). */
+  lockedKeys?: readonly string[];
 };
 
 export function GuidedForm({
@@ -107,11 +115,23 @@ export function GuidedForm({
   submitLabel = "Submit",
   disabled,
   revealErrors = false,
+  review = false,
+  initialStep = 0,
+  onStepChange,
+  lockedKeys = [],
 }: GuidedFormProps) {
   const schema = useMemo(() => templateDataSchema(sections), [sections]);
   /** Shows every error, touched or not, after a blocked Next or submit. */
   const [reveal, setReveal] = useState(revealErrors);
-  const [step, setStep] = useState(0);
+  const [step, setStepState] = useState(initialStep);
+  const top = useRef<HTMLFormElement>(null);
+  const setStep = (next: number) => {
+    setStepState(next);
+    onStepChange?.(next);
+    // Long steps on a phone: start the next one at its top.
+    top.current?.scrollIntoView({ block: "nearest" });
+  };
+  const locked = new Set(lockedKeys);
   const form = useAppForm({
     defaultValues: initialValues(sections, defaultValues),
     listeners: { onChange: ({ formApi }) => onChange?.(formApi.state.values) },
@@ -139,7 +159,7 @@ export function GuidedForm({
     );
   }
 
-  const scalar = (field: ScalarField, name: string, errorKey: string) => (
+  const scalar = (field: ScalarField, name: string, errorKey: string, readOnly = false) => (
     <form.Field key={name} name={name}>
       {(api) => {
         const messages = errors[errorKey];
@@ -155,7 +175,7 @@ export function GuidedForm({
             }}
             onBlur={api.handleBlur}
             invalid={invalid}
-            disabled={disabled}
+            disabled={disabled || readOnly}
           />
         );
         return (
@@ -170,6 +190,7 @@ export function GuidedForm({
             </FieldLabel>
             {field.type !== "boolean" && input}
             {field.help && <FieldDescription>{field.help}</FieldDescription>}
+            {readOnly && <FieldDescription>Filled in for you.</FieldDescription>}
             {invalid && <FieldError errors={messages.map((message) => ({ message }))} />}
           </FieldBox>
         );
@@ -180,6 +201,7 @@ export function GuidedForm({
   const group = (field: Extract<Field, { type: "group" }>) => (
     <form.Field key={field.key} name={field.key}>
       {(api) => {
+        const readOnly = disabled || locked.has(field.key);
         const items = Array.isArray(api.state.value) ? api.state.value : [];
         const messages = errors[field.key];
         const full = field.maxItems !== undefined && items.length >= field.maxItems;
@@ -201,7 +223,7 @@ export function GuidedForm({
                     <span>
                       {field.label} {i + 1}
                     </span>
-                    {!disabled && (
+                    {!readOnly && (
                       <Button
                         type="button"
                         variant="ghost"
@@ -220,12 +242,13 @@ export function GuidedForm({
                         child,
                         `${field.key}[${i}].${child.key}`,
                         `${field.key}.${i}.${child.key}`,
+                        readOnly,
                       ),
                     )}
                 </div>
               );
             })}
-            {!disabled && (
+            {!readOnly && (
               <Button
                 type="button"
                 variant="outline"
@@ -258,7 +281,9 @@ export function GuidedForm({
           {fields
             .filter((field) => shown.has(field.key))
             .map((field) =>
-              field.type === "group" ? group(field) : scalar(field, field.key, field.key),
+              field.type === "group"
+                ? group(field)
+                : scalar(field, field.key, field.key, locked.has(field.key)),
             )}
         </FieldGroup>
       </FieldSet>
@@ -266,9 +291,12 @@ export function GuidedForm({
   };
 
   const steps = sections.flatMap((_, i) => (visible[i]?.open ? [i] : []));
-  const current = Math.min(step, steps.length - 1);
+  /** The review step, when there is one, comes after the sections. */
+  const total = steps.length + (review ? 1 : 0);
+  const current = Math.max(0, Math.min(step, total - 1));
+  const reviewing = review && current === steps.length;
   const currentIndex = steps[current] ?? 0;
-  const last = current === steps.length - 1;
+  const last = current === total - 1;
   /** Errors in the current step's fields block Next. */
   const stepHasErrors = () => {
     const keys = new Set(sections[currentIndex]?.fields.map((f) => f.key));
@@ -299,19 +327,27 @@ export function GuidedForm({
         <div className="space-y-1.5">
           <div className="flex justify-between text-xs text-muted-foreground">
             <span>
-              Step {current + 1} of {steps.length}
+              Step {current + 1} of {total}
             </span>
-            <span>{sections[currentIndex]?.title}</span>
+            <span>{reviewing ? "Review" : sections[currentIndex]?.title}</span>
           </div>
           <div className="h-1 overflow-hidden rounded-full bg-muted">
             <div
               className="h-full bg-primary transition-all"
-              style={{ width: `${((current + 1) / steps.length) * 100}%` }}
+              style={{ width: `${((current + 1) / total) * 100}%` }}
             />
           </div>
         </div>
-        {section(currentIndex)}
-        <div className="flex gap-2">
+        {reviewing ? (
+          <FieldSet>
+            <FieldLegend>Review your answers</FieldLegend>
+            <FieldDescription>Check everything before you finish.</FieldDescription>
+            <AnswerSummary sections={sections} values={values} onEdit={(i) => setStep(i)} />
+          </FieldSet>
+        ) : (
+          section(currentIndex)
+        )}
+        <div className="flex flex-wrap gap-2">
           {current > 0 && (
             <Button type="button" variant="outline" onClick={() => setStep(current - 1)}>
               Back
@@ -337,7 +373,8 @@ export function GuidedForm({
 
   return (
     <form
-      className="space-y-6"
+      ref={top}
+      className="scroll-mt-4 space-y-6"
       noValidate
       onSubmit={(e) => {
         e.preventDefault();
@@ -542,4 +579,117 @@ function ImageInput({
       )}
     </div>
   );
+}
+
+/**
+ * The answers as a read-only list, one block per visible section, hidden fields left out like the
+ * API drops them. `onEdit` gets the section's step number (review step); without it, no buttons.
+ */
+export function AnswerSummary({
+  sections,
+  values,
+  onEdit,
+}: {
+  sections: readonly FieldSection[];
+  values: Readonly<Values>;
+  onEdit?: (step: number) => void;
+}) {
+  const shown = visibility(sections, values);
+  const open = sections.flatMap((section, i) => {
+    const v = shown[i];
+    return v?.open ? [{ section, shown: v.shown }] : [];
+  });
+  return (
+    <div className="space-y-4">
+      {open.map(({ section, shown }, step) => (
+        <section key={section.title + String(step)} className="rounded-lg border p-3 sm:p-4">
+          <div className="mb-2 flex items-center justify-between gap-2">
+            <h3 className="font-medium">{section.title}</h3>
+            {onEdit && (
+              <Button type="button" variant="ghost" size="sm" onClick={() => onEdit(step)}>
+                <PencilIcon />
+                Edit
+              </Button>
+            )}
+          </div>
+          <dl className="grid gap-x-4 gap-y-2 text-sm sm:grid-cols-[minmax(8rem,1fr)_2fr]">
+            {section.fields
+              .filter((field) => shown.has(field.key))
+              .map((field) => (
+                <div key={field.key} className="contents">
+                  <dt className="text-muted-foreground">{field.label}</dt>
+                  <dd className="min-w-0 break-words">
+                    {field.type === "group" ? (
+                      <GroupAnswer field={field} value={values[field.key]} />
+                    ) : (
+                      <ScalarAnswer field={field} value={values[field.key]} />
+                    )}
+                  </dd>
+                </div>
+              ))}
+          </dl>
+        </section>
+      ))}
+    </div>
+  );
+}
+
+function GroupAnswer({
+  field,
+  value,
+}: {
+  field: Extract<Field, { type: "group" }>;
+  value: unknown;
+}) {
+  const items = Array.isArray(value) ? value.filter(isRecord) : [];
+  if (!items.length) return <span className="text-muted-foreground">None</span>;
+  return (
+    <ol className="space-y-2">
+      {items.map((item, i) => {
+        const shown = shownKeys(field.fields, item, {});
+        return (
+          // biome-ignore lint/suspicious/noArrayIndexKey: items have no ids
+          <li key={i} className="rounded-md bg-muted/50 p-2">
+            <div className="text-xs text-muted-foreground">
+              {field.label} {i + 1}
+            </div>
+            {field.fields
+              .filter((child) => shown.has(child.key))
+              .map((child) => (
+                <div key={child.key}>
+                  <span className="text-muted-foreground">{child.label}: </span>
+                  <ScalarAnswer field={child} value={item[child.key]} />
+                </div>
+              ))}
+          </li>
+        );
+      })}
+    </ol>
+  );
+}
+
+function ScalarAnswer({ field, value }: { field: ScalarField; value: unknown }) {
+  if (isEmptyValue(value) && field.type !== "boolean") {
+    return <span className="text-muted-foreground">Not answered</span>;
+  }
+  switch (field.type) {
+    case "boolean":
+      return <>{value === true ? "Yes" : "No"}</>;
+    case "date":
+      return <>{typeof value === "string" ? dayjs(value).format("MMM D, YYYY") : null}</>;
+    case "choice": {
+      const picked = Array.isArray(value) ? value : [value];
+      const label = (v: unknown) => field.options.find((o) => o.value === v)?.label ?? String(v);
+      return <>{picked.map(label).join(", ")}</>;
+    }
+    case "image":
+    case "signature":
+      return typeof value === "string" ? (
+        <img src={value} alt={field.label} className="max-h-16 rounded border bg-white" />
+      ) : null;
+    case "long_text":
+      return <span className="whitespace-pre-line">{String(value)}</span>;
+    default:
+      return <>{String(value)}</>;
+  }
 }

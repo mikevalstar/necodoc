@@ -4,12 +4,12 @@ import type { RenderRequest, RenderTimings } from "@necodoc/shared";
 import { bandBody, bandCss, stampBand } from "./bands";
 import { type AssetLoader, printPdf } from "./browser";
 import { bundledFontFiles, htmlDocument, themeCss } from "./document";
-import { liquid } from "./liquid";
+import { createLiquid, partialsFs } from "./liquid";
 import { pageLayout } from "./page";
 
 export type RenderJob = Pick<
   RenderRequest,
-  "html" | "css" | "header" | "footer" | "page" | "data"
+  "html" | "css" | "header" | "footer" | "page" | "data" | "partials"
 > & {
   /** The theme, already resolved from an id or a draft. */
   theme?: NonNullable<RenderRequest["themeDraft"]>;
@@ -40,7 +40,11 @@ export async function renderPdf(job: RenderJob, loadStoredAsset: AssetLoader) {
   const layout = pageLayout(page, header, footer);
   const css = [job.theme ? themeCss(job.theme.settings, job.theme.css) : "", job.css ?? ""];
 
-  const body = await timed(timings, "liquidMs", () => liquid.parseAndRender(job.html, data));
+  // Snippets come from memory; `globals` lets them see the data, since {% render %} doesn't.
+  const liquid = createLiquid(partialsFs(job.partials));
+  const body = await timed(timings, "liquidMs", () =>
+    liquid.parseAndRender(job.html, data, { globals: data }),
+  );
   const bodyPdf = await timed(timings, "chromiumMs", () =>
     printPdf(
       htmlDocument({ body, css }),
@@ -63,7 +67,10 @@ export async function renderPdf(job: RenderJob, loadStoredAsset: AssetLoader) {
       bands.map(async ({ band, at }) => ({
         at,
         pdf: await printPdf(
-          htmlDocument({ body: await bandBody(band, pages, data), css: [...css, bandCss(band)] }),
+          htmlDocument({
+            body: await bandBody(liquid, band, pages, data),
+            css: [...css, bandCss(band)],
+          }),
           {
             width: layout.width,
             height: band.height,

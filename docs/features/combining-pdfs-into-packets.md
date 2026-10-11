@@ -29,8 +29,10 @@ tool after every generation.
   - new generations from a template and data, rendered as part of the request
 - **App.** Select generations from "My generations" (or Admin > Generations),
   add uploads, drag to reorder, combine, download.
-- **API.** `POST /api/v1/combine` with the same inputs
-  ([HTML to PDF API](html-to-pdf-api.md)).
+- **API.** `POST /api/v1/combine` with generation ids (the key owner's) and
+  base64-encoded PDFs, in order ([HTML to PDF API](html-to-pdf-api.md)). It
+  runs as a queued job like any render and answers like render: the PDF, JSON
+  with a download link, or `202`.
 - Merging uses pdf-lib
   ([ADR 0013](../adrs/0013-pdf-lib-for-overlaying-stamping-and-merging-pdfs.md)).
   Inputs are flattened first.
@@ -43,8 +45,9 @@ tool after every generation.
 - [ ] Combining two generations and one upload produces one PDF with all pages
       in the chosen order.
 - [ ] The API combine accepts all three input kinds in one request.
-- [ ] A user can't combine generations they aren't allowed to see.
-- [ ] The combined PDF appears in the generation log with its inputs.
+- [x] A user can't combine generations they aren't allowed to see. (API: a
+      key can combine only its account's generations.)
+- [x] The combined PDF appears in the generation log with its inputs.
 
 ## Known limitations
 
@@ -52,3 +55,6 @@ tool after every generation.
 - Form fields from inputs are flattened.
 - Encrypted PDFs can't be inputs.
 - No saved packet definitions. Each combine is a one-off.
+- The API doesn't yet take template-and-data inputs; generate first
+  (`response: "json"`), then combine the generation ids.
+- The app side (selecting generations to combine) isn't built yet.

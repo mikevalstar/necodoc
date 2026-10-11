@@ -1,7 +1,10 @@
 import { randomUUID } from "node:crypto";
+import { getConnInfo } from "@hono/node-server/conninfo";
 import { hasPermission, type Permissions, parseRoles, type Role } from "@necodoc/shared";
+import type { Context } from "hono";
 import { createMiddleware } from "hono/factory";
 import type { auth } from "./auth";
+import { env } from "./env";
 
 export type AppEnv = {
   Variables: {
@@ -46,3 +49,9 @@ export const requestId = createMiddleware<AppEnv>(async (c, next) => {
   c.header("X-Request-Id", id);
   await next();
 });
+
+/** The socket's address, or the last X-Forwarded-For hop (added by our proxy) with TRUST_PROXY. */
+export function clientIp(c: Context) {
+  const hops = env.TRUST_PROXY ? c.req.header("X-Forwarded-For")?.split(",") : undefined;
+  return hops?.at(-1)?.trim() || getConnInfo(c).remote.address || "unknown";
+}

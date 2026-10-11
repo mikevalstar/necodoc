@@ -41,6 +41,11 @@ role except admin grants one job plus `view`.
 | document: publish     |   ✓   |     ✓     |          |        |        |
 | user management       |   ✓   |           |          |        |        |
 
+Filling documents needs `document: view`; each user sees only their own
+documents ([Filling out a document](filling-out-a-document.md)). Share links
+need `document: publish`
+([Share links and data requests](share-links-and-data-requests.md)).
+
 "User management" is the admin plugin's default `user` and `session`
 statements (create, list, set role, ban, impersonate, delete, set password,
 revoke sessions).
@@ -51,8 +56,10 @@ are pending (below). Templates enforce the document permissions
 template features enforce them through the API's role/permission
 middleware ([middleware.ts](../../apps/api/src/middleware.ts)) as they ship;
 what each permission allows is in
-[Publishing and versions](publishing-and-versions.md). API keys act with their owner's roles
-([ADR 0019](../adrs/0019-better-auth-api-keys-for-the-public-api.md)).
+[Publishing and versions](publishing-and-versions.md). API keys act with their owner's roles,
+narrowed by their scopes
+([ADR 0019](../adrs/0019-better-auth-api-keys-for-the-public-api.md),
+[ADR 0029](../adrs/0029-service-accounts-and-scoped-api-keys.md)).
 
 Definitions: [packages/shared/src/roles.ts](../../packages/shared/src/roles.ts), used by
 [apps/api/src/auth.ts](../../apps/api/src/auth.ts) and
@@ -94,6 +101,10 @@ Definitions: [packages/shared/src/roles.ts](../../packages/shared/src/roles.ts),
   - nobody can remove admin from, ban, or delete the last admin
   - a guarded request the API can't read is refused, not let through
 - **Banned users** are told to ask an admin; there is no support contact.
+- **Service accounts** (Admin › Service accounts) hold roles like users but
+  can't sign in; they own API keys for integrations. Admin › Users doesn't
+  list them, and the admin endpoints refuse to impersonate them or set their
+  password. See [HTML to PDF API](html-to-pdf-api.md#keys).
 - **Own account:** every signed-in user, pending ones included, manages their
   own name, password, sessions and account deletion from Settings
   ([User preferences](user-preferences.md)). The last active admin can't

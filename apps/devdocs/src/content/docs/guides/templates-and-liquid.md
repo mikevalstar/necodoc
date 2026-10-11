@@ -130,15 +130,20 @@ Archiving hides a template from the fill list; its versions stay for history and
 
 ## Generating from a template
 
-`POST /api/templates/:id/versions/:version/generate`, where `:version` is a number or `latest`. This is the app's session-authenticated API; the API-key version under `/api/v1` is coming.
+`POST /api/v1/templates/:id/versions/:version/generate` with an [API key](/guides/api-keys/) (scope `templates:generate`), where `:version` is a number or `latest`. The app uses the same body at `/api/templates/...` with a session.
 
-```json
-{ "data": { "client_name": "Ada Lovelace", "start_date": "2026-11-01" }, "filename": "engagement-letter", "async": false }
+```sh
+curl -H "x-api-key: $NECODOC_API_KEY" -H 'Content-Type: application/json' \
+  -d '{"data":{"client_name":"Ada Lovelace","start_date":"2026-11-01"},"filename":"engagement-letter"}' \
+  -o letter.pdf \
+  https://necodoc.example.com/api/v1/templates/$TEMPLATE_ID/versions/latest/generate
 ```
+
+`GET /api/v1/templates` lists published templates and `GET /api/v1/templates/:id/versions/:version/schema` returns a version's JSON Schema (scope `templates:read`), so callers can validate before sending.
 
 - `data` is validated against the version's fields. Invalid data returns `422` with `{ "error": "Invalid data", "fieldErrors": { "<path>": ["..."] } }`.
 - `filename` defaults to the template name.
-- Responses match [HTML to PDF](/guides/html-to-pdf/#responses): the PDF, `202` with the generation id, or `422`.
+- `response: "json"` and `async: true` work as in [HTML to PDF](/guides/html-to-pdf/#responses): the PDF, JSON with a download link, `202` with the generation id, or `422`.
 - An archived template answers `409`.
 
 To generate many documents at once, see [Batches and async renders](/guides/batches-and-async/).

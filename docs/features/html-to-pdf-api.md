@@ -1,7 +1,7 @@
 ---
 type: feature
 title: HTML to PDF API
-description: A versioned public API (/api/v1) that turns HTML with optional CSS, theme, header/footer bands, page options and Liquid data into a PDF, generates from published templates, and combines PDFs. Per-user API keys and an in-app docs page.
+description: A versioned public API (/api/v1) that turns HTML into PDFs, generates from published templates singly or in batches, and combines PDFs. Scoped API keys for people and service accounts, an OpenAPI document, an in-app docs page and a TypeScript SDK.
 tags: [product, api, pdf]
 status: draft
 generated: { by: okq/0.9.0, at: 2026-10-11T15:36:56Z }
@@ -11,86 +11,164 @@ generated: { by: okq/0.9.0, at: 2026-10-11T15:36:56Z }
 
 ## Summary
 
-Developers send HTML or template data and get a PDF back in the same
-response. The same renderer as the app, so API output matches previews.
+Developers and the systems they run send HTML or template data and get a PDF
+back. The same renderer as the app, so API output matches previews.
 
 ## Motivation
 
 Anvil and DocSpring both sell HTML to PDF as an API. Ours gets full-HTML
 headers and footers with page numbers and a first-page variant, which
 Chromium's own header templates can't do. Exposing the renderer lets necodoc
-sit inside other products.
+sit inside other products. Enterprise integrations need keys that outlive the
+person who made them, and that can do only what the integration needs.
 
 ## Behavior
 
-Mechanism: [ADR 0019](../adrs/0019-better-auth-api-keys-for-the-public-api.md).
+Mechanism: [ADR 0019](../adrs/0019-better-auth-api-keys-for-the-public-api.md),
+[ADR 0029](../adrs/0029-service-accounts-and-scoped-api-keys.md) (service
+accounts, scopes), [ADR 0030](../adrs/0030-openapi-for-the-public-api-with-hono-openapi.md)
+(OpenAPI). Routes: [routes/v1.ts](../../apps/api/src/routes/v1.ts); key checks:
+[api-keys.ts](../../apps/api/src/api-keys.ts).
 
-- **API keys.** In Settings, each user with a role creates, names, lists and
-  revokes their own keys, with an optional expiry. A key is shown once and acts
-  with its owner's roles. Admins can list and revoke any user's keys.
-- **Render HTML** (`POST /api/v1/render/html`):
-  - `html` (required), Liquid allowed, rendered with `data`
-  - optional `css`, appended after the theme
-  - optional `theme` id ([Document themes](document-themes.md))
-  - optional `header` and `footer`: `html`, `height`, optional `firstPageHtml`
-  - optional page options: size (Letter, A4, Legal), orientation, margins
-  - margins and band heights are millimetres
-  - Liquid's `date` filter takes dayjs format tokens (`MMMM D, YYYY`), like the
-    app, not strftime ([liquid.ts](../../apps/api/src/render/liquid.ts))
-  - optional `filename`
-- **Generate from a template** (`POST /api/v1/templates/:id/generate`): `data`
-  validated against the template's fields
-  ([Template fields and guided form](template-fields-and-guided-form.md)),
-  optional `version` (default: latest published). Invalid data returns 422 with
-  field errors.
-- **Template schema** (`GET /api/v1/templates/:id/schema`): the JSON Schema for a
-  version's data.
-- **Combine** (`POST /api/v1/combine`): see
+### Keys
+
+- **Personal keys** (Settings › API keys): every user with a role creates,
+  lists, rotates and revokes their own. **Service-account keys** are managed
+  by admins under Admin › Service accounts.
+- **Service accounts**: non-human identities with a name, description, owner
+  contact and roles. They can't sign in. Admins create, edit and disable them;
+  a disabled account's keys stop working. Admin › Users doesn't list them.
+- A key has a name, **scopes**, an optional expiry, an optional list of
+  templates it may use, an optional **IP/CIDR allowlist**, and a rate limit.
+  Scopes:
+  - `render:html`: render HTML
+  - `templates:read`: list templates, read versions and their JSON Schema
+  - `templates:generate`: generate from a template
+  - `batches:write` / `batches:read`: start batches / read them and download
+    their ZIP or packet
+  - `generations:read`: read generations and download their PDFs
+  - `combine:write`: combine PDFs
+- Every scope needs `document: view`; a key can't be given scopes its
+  owner's roles don't allow, and it loses them when the owner loses the role.
+- The secret is shown once, at creation, and starts with `nd_`. Lists show
+  its first characters, created, expires, last used (time and IP) and total
+  requests, and warn about keys expiring within 14 days.
+- **Rotate** creates a replacement with the same settings (secret shown once)
+  and makes the old key expire after an overlap window (default 24 hours).
+- **Revoke** stops a key at once. Revoked and expired keys stay listed.
+- **Admin › API keys** lists every key across users and service accounts,
+  filters by owner and status, revokes, shows usage, and links to the
+  generation log filtered by key.
+- Keys never create sessions and work only on `/api/v1`. A banned owner's keys
+  stop working.
+
+### Endpoints
+
+All under `/api/v1`, authenticated with the `x-api-key` header.
+
+- `POST /render` (`render:html`): `html` (Liquid with `data`), optional `css`,
+  `themeId` ([Document themes](document-themes.md)), `header`/`footer` bands
+  (`html`, `height`, optional `firstPageHtml`), `page` (size, orientation,
+  margins in mm), `filename`. Liquid's `date` filter takes dayjs tokens
+  ([liquid.ts](../../apps/api/src/render/liquid.ts)).
+- `GET /templates`, `GET /templates/:id` (`templates:read`): published,
+  non-archived templates and their versions.
+- `GET /templates/:id/versions/:version/schema` (`templates:read`): the JSON
+  Schema for that version's data; `version` is a number or `latest`.
+- `POST /templates/:id/versions/:version/generate` (`templates:generate`):
+  `data` validated against the version's fields
+  ([Template fields and guided form](template-fields-and-guided-form.md));
+  invalid data returns 422 with every field error.
+- `POST /templates/:id/versions/:version/batch` (`batches:write`): JSON rows;
+  returns the batch. `GET /batches/:id`, `.../zip`, `.../packet`
+  (`batches:read`). See
+  [Render queue, batch jobs and scaling](render-queue-batch-jobs-and-scaling.md).
+- `GET /generations/:id`, `GET /generations/:id/pdf`,
+  `POST /generations/:id/link` (`generations:read`): the key owner's own
+  generations; downloads stream from storage with ETag and range support like
+  the app's ([generation log](generation-log.md)); the link works without a
+  key until it expires.
+- `POST /combine` (`combine:write`): see
   [Combining PDFs into packets](combining-pdfs-into-packets.md).
-- **Generations** (`GET /api/v1/generations/:id`, `.../pdf`): metadata and the
-  PDF, for the key owner's own generations. Downloads stream from storage
-  with ETag and range support, like the app's
-  ([generation log](generation-log.md)); `POST .../link` mints a signed link
-  for systems without the key.
-- **Responses.** `Accept: application/pdf` returns the PDF bytes.
-  `Accept: application/json` returns the generation id, page count, size and a
-  download path. Errors are JSON with a code and message.
-- **Limits.** Request bodies up to 20 MB, a render timeout, a per-key rate
-  limit. Remote URLs in the HTML don't load; use [assets](assets.md) or `data:`
-  URLs.
+- `GET /openapi.json`: the OpenAPI 3.1 document, no key needed.
+
+### Responses
+
+- Render, generate and combine wait for the PDF. `response: "pdf"` (default)
+  returns the bytes with `X-Generation-Id` and `X-Page-Count`;
+  `response: "json"` returns the generation id, page count, size and a signed
+  `downloadUrl`. `async: true`, or a render still queued when the wait runs
+  out, returns `202` with the generation id to poll.
+- Errors are JSON `{ error, code }`, plus `fieldErrors` for invalid data.
+  401: missing, unknown, revoked or expired key, or a banned owner. 403: scope
+  missing, owner's roles don't allow it, template not allowed, or IP not
+  allowed. 429: rate limit, with `Retry-After` in seconds.
+- Every response carries `X-Request-Id` (an incoming one is kept).
+
+### Limits and logging
+
+- Request bodies up to 20 MB, a render timeout, a per-key rate limit
+  (requests per minute, set at creation, default 120). Remote URLs in the HTML
+  don't load; use [assets](assets.md) or `data:` URLs.
 - Every call that renders is logged in the [generation log](generation-log.md)
-  with the key used.
+  with source "API" and the key; the log shows the key's name and filters by
+  key.
+
+### Docs and SDK
+
+- **API page** in the app (nav: API): the OpenAPI document rendered with
+  Scalar, listing every endpoint with request and response schemas, and a
+  try-it client.
+- The [developer docs](../adrs/0026-astro-starlight-for-the-developer-docs-site.md)
+  reference is generated from the same document, with curl guides.
+- A TypeScript SDK ([packages/sdk-ts](../../packages/sdk-ts)) is generated from
+  it.
 - **Render page** in the app ([render.tsx](../../apps/app/src/routes/_app/render.tsx)):
   the same request field by field, for trying HTML, bands, data and themes.
   Its preview mode isn't logged.
-- **API docs page** in the app: every endpoint with its request and response
-  schema (generated from the shared zod schemas), curl examples, and error
-  codes.
-- Optional [webhooks](webhooks.md) per key.
+- Optional [webhooks](webhooks.md) per key or service account.
 
 ## Acceptance criteria
 
-- [ ] A user can create a key, call render with it, and get a PDF; after
+- [x] A user can create a key, call render with it, and get a PDF; after
       revoking the key, the call returns 401.
-- [ ] A key from a user without `document: view` gets 403.
+- [x] A key from a user without `document: view` gets 403.
+- [x] A key without the scope an endpoint needs gets 403.
+- [x] A service account's key keeps working when the admin who made it is
+      banned, and stops when the service account is disabled.
+- [x] A rotated key works alongside its replacement until the overlap ends,
+      then returns 401.
+- [x] A call from an address outside the key's allowlist gets 403.
 - [ ] HTML with a header, footer, first-page header and page tokens renders
       like the same design in a designed template.
-- [ ] Generating from a template with invalid data returns 422 with every
+- [x] Generating from a template with invalid data returns 422 with every
       failing field.
-- [ ] `Accept: application/json` returns a generation id whose PDF downloads.
-- [ ] Exceeding the rate limit returns 429.
-- [ ] A request that references `http://169.254.169.254/` renders without
+- [x] `response: "json"` returns a generation id whose PDF downloads.
+- [x] Exceeding the rate limit returns 429 with `Retry-After`.
+- [x] A request that references `http://169.254.169.254/` renders without
       fetching it.
-- [ ] The docs page lists every `/api/v1` endpoint.
+- [x] The docs page lists every `/api/v1` endpoint.
 
 ## Known limitations
 
 - Synchronous calls wait up to a timeout, then return `202` with the
-  generation id; async mode and batches are in
-  [Render queue, batch jobs and scaling](render-queue-batch-jobs-and-scaling.md).
-- No official SDKs. Plain HTTP and the docs page.
-- No JavaScript in submitted HTML.
-- No URL-to-PDF; the API never fetches a page for you.
+  generation id.
+- Only a TypeScript SDK; other languages use plain HTTP and the OpenAPI
+  document.
+- No JavaScript in submitted HTML, and no URL-to-PDF.
+- Scopes, allowlist and templates are set when a key is made; to change them,
+  rotate or make a new key.
+- The rate limit is a fixed count per window per key; after it's used up the
+  key waits out the window from its last allowed request.
+- The IP allowlist sees the reverse proxy's address unless `TRUST_PROXY` is
+  set.
+- Key creation, rotation and revocation aren't in an audit log yet (there is
+  none; see [Audit log](audit-log.md)).
+- Service accounts can't be deleted, only disabled.
+- PDFs uploaded to `/combine` are stored as files of their own and aren't
+  removed with the packet's generation.
+- Every call that passes the secret check counts toward the rate limit and
+  usage, including calls refused afterwards (scope, IP).
 - Chromium rounds page sizes given in millimetres up by under a point (A4 comes out
   595.9 × 841.9 pt rather than 595.3 × 841.9). Bands are positioned from each
   page's real size, so they still line up.

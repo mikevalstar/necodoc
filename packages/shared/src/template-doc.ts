@@ -3,7 +3,7 @@ import { conditionSchema, fieldKeySchema, fieldPathSchema } from "./fields";
 
 // The TipTap JSON the template editor stores (ADR 0016). Node and mark names are TipTap's own
 // (StarterKit, Table, Image, TextAlign, TextStyle + Color, Link) plus necodoc's custom nodes:
-// mergeField, conditionalSection, repeatingSection, pageBreak and rawHtml. Anything else is rejected, so
+// mergeField, conditionalSection, repeatingSection, pageBreak, rawHtml and snippet. Anything else is rejected, so
 // the editor and the compiler (compile.ts) can't drift apart silently. Unknown attrs are dropped.
 
 const colour = z.string().regex(/^#[0-9a-fA-F]{6}$/, "Use a #rrggbb colour");
@@ -81,6 +81,15 @@ export const pageBreakNodeSchema = z.object({ type: z.literal("pageBreak") });
 export const rawHtmlNodeSchema = z.object({
   type: z.literal("rawHtml"),
   attrs: z.object({ html: z.string().max(200_000) }),
+});
+
+/**
+ * A snippet from the library (docs/features/snippet-library.md), by id so renaming it doesn't
+ * break the reference. Compiles to `{% render '<id>' %}`.
+ */
+export const snippetNodeSchema = z.object({
+  type: z.literal("snippet"),
+  attrs: z.object({ snippetId: z.uuid() }),
 });
 
 /** Block image: an uploaded asset, or the value of an image/signature field. Exactly one. */
@@ -177,6 +186,7 @@ type BlockNodeSchema = z.ZodDiscriminatedUnion<
     typeof conditionalSectionNodeSchema,
     typeof repeatingSectionNodeSchema,
     typeof rawHtmlNodeSchema,
+    typeof snippetNodeSchema,
   ]
 >;
 
@@ -193,6 +203,7 @@ export const blockNodeSchema: BlockNodeSchema = z.discriminatedUnion("type", [
   conditionalSectionNodeSchema,
   repeatingSectionNodeSchema,
   rawHtmlNodeSchema,
+  snippetNodeSchema,
 ]);
 export type BlockNode = z.infer<typeof blockNodeSchema>;
 export type TableRowNode = z.infer<typeof tableRowNodeSchema>;

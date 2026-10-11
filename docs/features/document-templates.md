@@ -115,7 +115,6 @@ editor and developers a code mode, on one renderer.
 - A choice merge field prints the option's value, not its label.
 - Template CSS can't tell the header from the footer: both are `.necodoc-band`.
 - Repeating sections don't nest (repeating groups don't either).
-- Snippet reference nodes come with the [snippet library](snippet-library.md).
 - Table column widths set in the editor aren't carried into the PDF; columns
   size to their content.
 - No JavaScript in templates, so no client-side charts.

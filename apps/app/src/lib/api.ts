@@ -133,3 +133,4 @@ function renderWarnings(header: string | null): string[] {
 export const assetFileUrl = (id: string) => `/api/assets/${id}/file`;
 export const pdfSourceUrl = (id: string) => `/api/pdf-sources/${id}/pdf`;
 export const generationPdfUrl = (id: string) => `/api/generations/${id}/pdf`;
+export const submissionPdfUrl = (id: string) => `/api/submissions/${id}/pdf`;

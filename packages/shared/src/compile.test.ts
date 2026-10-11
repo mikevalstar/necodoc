@@ -4,6 +4,7 @@ import {
   compileDoc,
   escapeHtml,
   liquidString,
+  partialNames,
   TemplateCompileError,
   templateFieldProblems,
   toCodeMode,
@@ -477,5 +478,41 @@ describe("templateFieldProblems", () => {
   it("ignores code mode", () => {
     const code = designedContentSchema.parse({ mode: "code", body: "{{ whatever }}" });
     expect(templateFieldProblems(code, sections)).toEqual([]);
+  });
+});
+
+describe("snippets", () => {
+  const id = "3f1c2a4b-1d2e-4f50-8a6b-7c8d9e0f1a2b";
+  const library = [
+    { id, key: "indemnity", name: "Indemnity", fields: ["name", "surety_name"] },
+  ] as const;
+  const block = { type: "snippet", attrs: { snippetId: id } };
+
+  it("compiles a snippet block to a render tag by id", () => {
+    expect(html(block)).toBe(`{% render "${id}" %}`);
+  });
+
+  it("finds literal partial names, once each", () => {
+    expect(
+      partialNames(`{% render 'a' %}{%- include "b", x: 1 -%}{% render 'a' %}{% render var %}`),
+    ).toEqual(["a", "b"]);
+  });
+
+  it("flags fields a used snippet expects but the template lacks", () => {
+    const visual = designedContentSchema.parse({ mode: "visual", body: doc(block) });
+    const code = designedContentSchema.parse({
+      mode: "code",
+      body: "{% render 'indemnity' %}{% render 'gone' %}",
+    });
+    const expected = 'Snippet "Indemnity" expects "surety_name", which isn\'t a declared field';
+    expect(templateFieldProblems(visual, sections, library).map((x) => x.message)).toEqual([
+      expected,
+    ]);
+    expect(templateFieldProblems(code, sections, library).map((x) => x.message)).toEqual([
+      expected,
+      'Snippet "gone" doesn\'t exist',
+    ]);
+    // Without the library, snippets aren't checked.
+    expect(templateFieldProblems(visual, sections)).toEqual([]);
   });
 });

@@ -60,7 +60,9 @@ to user-defined data.
 - **Guided form.** One component
   ([guided-form.tsx](../../apps/app/src/components/guided-form.tsx)) renders
   the fields for sample data, filling and share links, validated with the same
-  schema; the [field designer](../../apps/app/src/routes/_app/templates/-field-designer.tsx)
+  schema. When filling, a review step after the last section summarises the
+  answers before finishing, and fields a share link prefills can be locked;
+  the [field designer](../../apps/app/src/routes/_app/templates/-field-designer.tsx)
   edits the definition.
 - **Sample data.** Each template keeps one sample data set, editable as a form
   or as JSON, used by previews. "Fill with examples" generates plausible values
@@ -71,9 +73,9 @@ to user-defined data.
 ## Acceptance criteria
 
 - [x] An editor can add, reorder, group and delete fields of every type.
-- [ ] The guided form shows sections as steps, help text under each field,
+- [x] The guided form shows sections as steps, help text under each field,
       and errors as the user types.
-- [ ] A show-if field appears and disappears as its condition changes, and a
+- [x] A show-if field appears and disappears as its condition changes, and a
       hidden required field doesn't block submission.
 - [x] The API rejects data that the form would reject, with field-level
       errors keyed by field path.

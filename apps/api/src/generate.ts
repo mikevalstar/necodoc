@@ -1,6 +1,8 @@
 import { hostname } from "node:os";
 import { Readable } from "node:stream";
+import { buffer } from "node:stream/consumers";
 import {
+  compiledSources,
   type GenerationSource,
   type GenerationStatus,
   isFinishedStatus,
@@ -14,13 +16,23 @@ import { z } from "zod";
 import { db } from "./db";
 import { asset, file, generation, pdfSource, theme } from "./db/schema";
 import { env } from "./env";
-import { deleteObjects, StorageError, type WrittenOutput, writeOutput } from "./files";
+import {
+  deleteObjects,
+  findFile,
+  openFile,
+  StorageError,
+  type WrittenOutput,
+  writeOutput,
+} from "./files";
 import { limiter } from "./limiter";
 import { announceFinished, boss, priorities, queues, waitUntilFinished } from "./queue";
 import type { AssetLoader } from "./render/browser";
+import { type FileLoader, renderCombine } from "./render/combine";
 import { isInfrastructureError } from "./render/errors";
 import { renderOverlay, type SourceLoader } from "./render/overlay";
+import { loadPartials } from "./render/partials";
 import { type RenderJob, renderPdf } from "./render/render";
+import { completeBatch, queueGenerationEvents } from "./webhooks";
 
 // Specs: docs/features/generation-log.md, docs/features/render-queue-batch-jobs-and-scaling.md.
 // ADR 0020: a logged render is a generation row plus a queued job; a worker renders it. Previews
@@ -50,6 +62,12 @@ export const loadSourceBytes: SourceLoader = async (sourceId) => {
   return row?.bytes ?? null;
 };
 
+/** A packet's inputs: stored generation outputs and uploaded PDFs, wherever their bytes are. */
+const loadFileBytes: FileLoader = async (fileId) => {
+  const stored = await findFile(db, fileId);
+  return stored ? new Uint8Array(await buffer(await openFile(db, stored))) : null;
+};
+
 async function resolveTheme(request: RenderRequest): Promise<RenderJob["theme"]> {
   if (request.themeDraft) return request.themeDraft;
   if (!request.themeId) return undefined;
@@ -61,20 +79,32 @@ async function resolveTheme(request: RenderRequest): Promise<RenderJob["theme"]>
   return row;
 }
 
+/** A published version's frozen snippets, or the current ones (drafts, API HTML). */
+const resolvePartials = (request: RenderRequest) =>
+  request.partials ?? loadPartials(compiledSources(request));
+
 const errorMessage = (error: unknown) => (error instanceof Error ? error.message : String(error));
 
 /**
- * HTML through Chromium (theme resolved), or a PDF overlay through pdf-lib. Refuses PDFs too big
- * to store.
+ * HTML through Chromium (theme and snippets resolved), a PDF overlay through pdf-lib, or a packet of stored
+ * PDFs. Refuses PDFs too big to store.
  */
 async function render(request: RenderInput) {
-  const rendered =
-    "kind" in request
+  const rendered = !("kind" in request)
+    ? {
+        ...(await renderPdf(
+          {
+            ...request,
+            theme: await resolveTheme(request),
+            partials: await resolvePartials(request),
+          },
+          loadStoredAsset,
+        )),
+        warnings: [],
+      }
+    : request.kind === "overlay"
       ? await renderOverlay(request, loadSourceBytes, loadStoredAsset)
-      : {
-          ...(await renderPdf({ ...request, theme: await resolveTheme(request) }, loadStoredAsset)),
-          warnings: [],
-        };
+      : await renderCombine(request, loadFileBytes);
   if (rendered.pdf.byteLength > MAX_FILE_BYTES) {
     throw new Error(`The PDF is over ${MAX_FILE_BYTES / 1024 / 1024} MB`);
   }
@@ -118,6 +148,8 @@ export type GenerationInput = {
   request: RenderInput;
   source: GenerationSource;
   userId: string;
+  /** Made through /api/v1 with this key (docs/features/html-to-pdf-api.md). */
+  apiKeyId?: string;
   requestId?: string;
   rerunOfId?: string;
   /** The published template version the request was built from. */
@@ -129,6 +161,7 @@ export const queuedRow = ({
   request,
   source,
   userId,
+  apiKeyId,
   requestId,
   rerunOfId,
   template,
@@ -137,6 +170,7 @@ export const queuedRow = ({
     source,
     status: "queued",
     userId,
+    apiKeyId,
     requestId,
     rerunOfId,
     templateId: template?.id,
@@ -145,7 +179,7 @@ export const queuedRow = ({
     input: { ...request, preview: false },
   }) satisfies typeof generation.$inferInsert;
 
-type Tx = Parameters<Parameters<typeof db.transaction>[0]>[0];
+export type Tx = Parameters<Parameters<typeof db.transaction>[0]>[0];
 
 /**
  * Inserts generations and a render job for each queued one, in the caller's transaction, so a row
@@ -176,6 +210,7 @@ export type GenerationResult =
       /** Served from storage by src/download.ts. */
       fileId: string;
       pageCount: number;
+      size: number;
       filename: string;
     }
   | { status: "error"; generationId: string; error: string }
@@ -203,6 +238,7 @@ export async function generate(
         fileId: generation.outputFileId,
         filename: generation.filename,
         pageCount: generation.pageCount,
+        size: generation.size,
       })
       .from(generation)
       .where(eq(generation.id, generationId))
@@ -223,6 +259,7 @@ export async function generate(
     generationId,
     fileId: current.fileId,
     pageCount: current.pageCount ?? 0,
+    size: current.size ?? 0,
     filename: current.filename,
   };
 }
@@ -235,14 +272,15 @@ const unfinished = inArray(generation.status, ["queued", "running"]);
 type Outcome = (Awaited<ReturnType<typeof render>> & { output: WrittenOutput }) | { error: string };
 
 /**
- * Records how an attempt ended, unless a later attempt took the row over. The output is already
- * in storage; if the row isn't updated, the object is deleted again.
+ * Records how an attempt ended, unless a later attempt took the row over, and queues its webhooks
+ * in the same transaction. The output is already in storage; if the row isn't updated, the object
+ * is deleted again.
  */
 async function finish(
   generationId: string,
   attempt: number,
   outcome: Outcome,
-  started: { at: Date; queuedAt: Date },
+  started: { at: Date; queuedAt: Date; batchId: string | null },
 ) {
   const finishedAt = new Date();
   const durations = {
@@ -272,12 +310,15 @@ async function finish(
         .returning({ id: generation.id });
       // Superseded (a retry took over) or deleted: keep nothing from this attempt.
       if (!updated) tx.rollback();
+      await queueGenerationEvents(tx, generationId);
     })
     .catch(async (error: unknown) => {
       if ("output" in outcome) await deleteObjects([outcome.output]);
       if (!(error instanceof Error && error.name === "TransactionRollbackError")) throw error;
     });
   await announceFinished(generationId);
+  // After the commit, so the batch's last row sees every other row finished.
+  if (started.batchId) await completeBatch(started.batchId);
 }
 
 /**
@@ -294,10 +335,11 @@ export async function runGeneration(generationId: string, attempt: number, retri
       input: generation.input,
       queuedAt: generation.queuedAt,
       userId: generation.userId,
+      batchId: generation.batchId,
     });
   // Cancelled, deleted or already finished.
   if (!row) return;
-  const started = { at: startedAt, queuedAt: row.queuedAt };
+  const started = { at: startedAt, queuedAt: row.queuedAt, batchId: row.batchId };
   if (!row.input) {
     await finish(generationId, attempt, { error: "The input was removed by retention" }, started);
     return;
@@ -321,14 +363,20 @@ export async function runGeneration(generationId: string, attempt: number, retri
 
 /** A job that ran out of attempts without recording an outcome: its workers kept dying. */
 export async function markLost(generationId: string) {
-  const [row] = await db
-    .update(generation)
-    .set({
-      status: "error",
-      error: "The render was lost: its worker stopped responding on every attempt",
-      finishedAt: new Date(),
-    })
-    .where(and(eq(generation.id, generationId), unfinished))
-    .returning({ id: generation.id });
-  if (row) await announceFinished(generationId);
+  const row = await db.transaction(async (tx) => {
+    const [lost] = await tx
+      .update(generation)
+      .set({
+        status: "error",
+        error: "The render was lost: its worker stopped responding on every attempt",
+        finishedAt: new Date(),
+      })
+      .where(and(eq(generation.id, generationId), unfinished))
+      .returning({ id: generation.id, batchId: generation.batchId });
+    if (lost) await queueGenerationEvents(tx, generationId);
+    return lost;
+  });
+  if (!row) return;
+  await announceFinished(generationId);
+  if (row.batchId) await completeBatch(row.batchId);
 }

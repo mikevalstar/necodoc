@@ -89,3 +89,13 @@ export function emailChangeTarget(path: string, body: unknown): string | null {
   const { userId, data } = parsed.data;
   return typeof data === "object" && data !== null && "email" in data ? userId : null;
 }
+
+/**
+ * The target of an admin endpoint that mustn't touch service accounts (ADR 0029): they're
+ * managed from their own routes, have no password, and can't be impersonated or edited here.
+ */
+export function serviceAccountTarget(path: string, body: unknown): string | null {
+  if (!path.startsWith("/admin/") || path === "/admin/list-users") return null;
+  const parsed = guardedBody.safeParse(body);
+  return parsed.success ? parsed.data.userId : null;
+}

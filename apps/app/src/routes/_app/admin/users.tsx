@@ -58,6 +58,10 @@ function usersQuery({ q, field, page }: UsersSearch) {
             searchValue: q || undefined,
             searchField: field,
             searchOperator: "contains",
+            // Service accounts have their own page (ADR 0029).
+            filterField: "serviceAccount",
+            filterValue: false,
+            filterOperator: "eq",
             limit: PAGE_SIZE,
             offset: (page - 1) * PAGE_SIZE,
             sortBy: "createdAt",

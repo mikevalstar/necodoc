@@ -26,7 +26,8 @@ needs counting.
   [API](html-to-pdf-api.md), [share links](share-links-and-data-requests.md),
   [packets](combining-pdfs-into-packets.md) and re-runs:
   - source: app, API, share link, combine, re-run
-  - user, and API key when there was one
+  - user, and API key when there was one (shown by name; the log filters
+    by key, which Admin › API keys links to)
   - template and version, if any
   - status (success or error), error message, warnings (e.g. text cut in an
     overlay box)

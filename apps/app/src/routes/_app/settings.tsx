@@ -1,6 +1,6 @@
 import { changePasswordSchema, deleteAccountSchema, updateProfileSchema } from "@necodoc/shared";
 import { queryOptions, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState } from "react";
 import type { z } from "zod";
 import { ErrorAlert, useAppForm } from "@/components/form";
@@ -49,6 +49,7 @@ function Settings() {
           <SessionsCard />
         </>
       )}
+      {me.user.roles.length > 0 && <ApiKeysCard />}
       <ThemeCard />
       {!me.impersonatedBy && <DeleteAccountCard />}
     </main>
@@ -282,6 +283,24 @@ function SessionsCard() {
           onClick={() => revoke.mutate(undefined)}
         >
           Sign out all other devices
+        </Button>
+      </CardContent>
+    </Card>
+  );
+}
+
+function ApiKeysCard() {
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>API keys</CardTitle>
+        <CardDescription>
+          Personal keys and webhooks for calling necodoc from your own code.
+        </CardDescription>
+      </CardHeader>
+      <CardContent>
+        <Button variant="outline" render={<Link to="/settings/api-keys" />}>
+          Manage API keys
         </Button>
       </CardContent>
     </Card>

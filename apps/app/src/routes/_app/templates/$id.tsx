@@ -44,7 +44,7 @@ import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ApiError, api, ok, previewTemplate } from "@/lib/api";
 import { dayjs } from "@/lib/date";
-import { templatesQuery } from "@/lib/queries";
+import { snippetsQuery, templatesQuery } from "@/lib/queries";
 import { BandsPanel, BodyPanel, CssPanel } from "./-content-panels";
 import {
   type CommonChanges,
@@ -141,17 +141,20 @@ function TemplateEditor({
   const dirty = canEdit && current !== saved;
 
   const parsed = useMemo(() => draftSchema.safeParse(draft), [draft]);
+  const snippets = useQuery(snippetsQuery).data;
   const problems = useMemo(() => {
     const found =
       draft.kind === "overlay"
         ? overlayFieldProblems(draft.content, draft.sections)
         : (() => {
             const content = designedContentSchema.safeParse(draft.content);
-            return content.success ? templateFieldProblems(content.data, draft.sections) : [];
+            return content.success
+              ? templateFieldProblems(content.data, draft.sections, snippets)
+              : [];
           })();
     // One line per distinct problem, however many places it occurs.
     return [...new Set(found.map((p) => p.message))];
-  }, [draft]);
+  }, [draft, snippets]);
 
   const save = useMutation({
     mutationFn: async () => {

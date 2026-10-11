@@ -1,18 +1,24 @@
 import { PDFDocument } from "@cantoo/pdf-lib";
 import type { Band } from "@necodoc/shared";
-import { liquid } from "./liquid";
+import type { Liquid } from "liquidjs";
 import { MM_TO_PT } from "./page";
 
 /**
  * The body of a band document: one fixed-height, clipped section per body page, with
  * `{{ page }}` / `{{ pages }}` set per page and the first-page variant on page 1 (ADR 0012).
  */
-export async function bandBody(band: Band, pages: number, data: Record<string, unknown>) {
+export async function bandBody(
+  liquid: Liquid,
+  band: Band,
+  pages: number,
+  data: Record<string, unknown>,
+) {
   const main = liquid.parse(band.html);
   const first = band.firstPageHtml === undefined ? main : liquid.parse(band.firstPageHtml);
   const sections: string[] = [];
   for (let page = 1; page <= pages; page++) {
-    const html = await liquid.render(page === 1 ? first : main, { ...data, page, pages });
+    const scope = { ...data, page, pages };
+    const html = await liquid.render(page === 1 ? first : main, scope, { globals: scope });
     sections.push(`<div class="necodoc-band">${html}</div>`);
   }
   return sections.join("");

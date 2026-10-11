@@ -17,6 +17,7 @@ import type { InferResponseType } from "hono/client";
 import { DownloadIcon, MoreHorizontalIcon } from "lucide-react";
 import { useState } from "react";
 import { z } from "zod";
+import { apiKeysQuery } from "@/components/api-keys";
 import {
   DataTable,
   type DataTableFeatures,
@@ -85,6 +86,8 @@ const searchSchema = dataTableSearchSchema(sortable, "queuedAt").extend({
   userId: z.string().optional(),
   templateId: z.uuid().optional(),
   batchId: z.uuid().optional(),
+  /** Admin › API keys links here to show one key's calls. */
+  apiKeyId: z.string().optional(),
   /** Inclusive days, YYYY-MM-DD in local time. */
   from: day.optional(),
   to: day.optional(),
@@ -95,7 +98,7 @@ type GenerationsSearch = z.infer<typeof searchSchema>;
 
 /** The API filter for the URL's filters: whole local days become instants. */
 function toFilter(search: GenerationsSearch) {
-  const { q, source, status, userId, templateId, batchId, from, to, slowerThan } = search;
+  const { q, source, status, userId, templateId, batchId, apiKeyId, from, to, slowerThan } = search;
   return {
     q: q?.trim() || undefined,
     source,
@@ -103,6 +106,7 @@ function toFilter(search: GenerationsSearch) {
     userId,
     templateId,
     batchId,
+    apiKeyId,
     from: from && dayjs(from).startOf("day").toISOString(),
     to: to && dayjs(to).endOf("day").toISOString(),
     // Query strings; the API coerces.
@@ -187,6 +191,12 @@ const allColumns = column.columns([
   column.accessor("userName", {
     header: "User",
     cell: ({ getValue }) => getValue() ?? "—",
+  }),
+  column.accessor("apiKeyName", {
+    header: "API key",
+    cell: ({ row: { original } }) =>
+      original.apiKeyName ?? (original.apiKeyId ? "Deleted key" : "—"),
+    meta: { className: "max-w-40 truncate" },
   }),
   column.accessor("templateName", {
     header: "Template",
@@ -276,6 +286,7 @@ function Generations() {
   const users = useQuery({ ...usersQuery, enabled: isAdmin });
   const templates = useQuery(templatesQuery);
   const batches = useQuery(batchesQuery);
+  const keys = useQuery(apiKeysQuery(isAdmin ? { all: "true" } : {}));
   const rerun = useRerun();
   const [dialog, setDialog] = useState<Dialog | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
@@ -439,6 +450,15 @@ function Generations() {
                 label: `${batch.templateName} · ${dayjs(batch.createdAt).format("YYYY-MM-DD HH:mm")}`,
               }))}
               onChange={(value) => setFilter({ batchId: z.uuid().safeParse(value).data })}
+            />
+            <FilterSelect
+              label="API key"
+              value={search.apiKeyId}
+              options={(keys.data ?? []).map((key) => ({
+                value: key.id,
+                label: isAdmin ? `${key.name} (${key.ownerName})` : (key.name ?? key.id),
+              }))}
+              onChange={(value) => setFilter({ apiKeyId: value || undefined })}
             />
             <Field className="w-auto">
               <FieldLabel htmlFor="from">From</FieldLabel>

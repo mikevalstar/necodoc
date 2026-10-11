@@ -6,21 +6,27 @@ import { type FS, Liquid } from "liquidjs";
 // ADR 0015: one Liquid engine for templates, bands and API HTML. Escapes output by default
 // (`| raw` opts out), errors on unknown filters, and reads only own properties of the data.
 
-/** No partials yet. Snippets (docs/features/snippet-library.md) replace this with a DB-backed FS. */
-const noPartials: FS = {
-  exists: async () => false,
-  existsSync: () => false,
-  readFile: async (file) => {
-    throw new Error(`Partial "${file}" not found`);
-  },
-  readFileSync: (file) => {
-    throw new Error(`Partial "${file}" not found`);
-  },
-  resolve: (_dir, file) => file,
-};
+/**
+ * Partials from memory: snippets loaded by render/partials.ts (or frozen in a published version).
+ * Nothing is read from disk.
+ */
+export function partialsFs(partials: Readonly<Record<string, string>> = {}): FS {
+  const read = (file: string) => {
+    const html = Object.hasOwn(partials, file) ? partials[file] : undefined;
+    if (html === undefined) throw new Error(`Snippet "${file}" doesn't exist`);
+    return html;
+  };
+  return {
+    exists: async (file) => Object.hasOwn(partials, file),
+    existsSync: (file) => Object.hasOwn(partials, file),
+    readFile: async (file) => read(file),
+    readFileSync: read,
+    resolve: (_dir, file) => file,
+  };
+}
 
 /** `escapeHtml: false` is for PDF overlays: their values are drawn as text, not parsed as HTML. */
-export function createLiquid(fs: FS = noPartials, { escapeHtml = true } = {}) {
+export function createLiquid(fs: FS = partialsFs(), { escapeHtml = true } = {}) {
   const liquid = new Liquid({
     fs,
     relativeReference: false,
@@ -77,4 +83,4 @@ function barcodeDataUrl(bcid: string, value: unknown) {
 
 export const liquid = createLiquid();
 /** Overlay box values (docs/features/pdf-overlay-templates.md): same filters, no HTML escaping. */
-export const plainLiquid = createLiquid(noPartials, { escapeHtml: false });
+export const plainLiquid = createLiquid(partialsFs(), { escapeHtml: false });

@@ -15,7 +15,8 @@ Accepted. Hosts the operator docs from
 [ADR 0025](0025-container-images-compose-and-helm-for-self-hosting.md). The
 public API it documents is
 [ADR 0019](0019-better-auth-api-keys-for-the-public-api.md) and the
-[HTML to PDF API](../features/html-to-pdf-api.md).
+[HTML to PDF API](../features/html-to-pdf-api.md). The reference's OpenAPI
+document comes from [ADR 0030](0030-openapi-for-the-public-api-with-hono-openapi.md).
 
 ## Context
 

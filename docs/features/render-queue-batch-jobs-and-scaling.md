@@ -69,5 +69,5 @@ A month-end run of 10,000 statements must not time out or slow down someone fill
 
 ## Open questions
 
-- Per-user or per-key rate limits and quotas.
+- Per-user quotas. (Per-key rate limits exist: [HTML to PDF API](html-to-pdf-api.md#limits-and-logging).)
 - Autoscaling hints (e.g. exposing queue depth as a Prometheus metric).

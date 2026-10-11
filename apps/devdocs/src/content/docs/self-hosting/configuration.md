@@ -21,6 +21,8 @@ The API and worker read their configuration from the environment and validate it
 | `PREVIEW_CONCURRENCY` | `2` | Live previews one API process renders at once (1–32). Previews skip the queue. |
 | `APP_VERSION` | `dev` | Reported in worker heartbeats, to spot mixed versions mid-deploy. The image sets it from the `APP_VERSION` build arg; the chart sets it from the image tag. |
 | `DOWNLOAD_SIGNING_SECRET` | `BETTER_AUTH_SECRET` | At least 32 characters. Signs download links. Changing it voids live links. |
+| `TRUST_PROXY` | `false` | `true` behind a reverse proxy: the client address is the last `X-Forwarded-For` hop. Used by API key IP allowlists and share-link rate limits. Leave it off when clients can reach the API directly, or they can spoof their address. |
+| `WEBHOOK_ALLOW_LOCALHOST` | `false` | Development only. `true` lets [webhooks](/guides/webhooks/) use `http://` and loopback URLs, for a receiver on the same machine. Never set it in production. |
 | `STORAGE_REDIRECT` | `off` | `presigned` answers downloads with a redirect to a short-lived S3 presigned URL or Azure SAS instead of streaming through the API. Browsers must reach the bucket. |
 
 ## Storage

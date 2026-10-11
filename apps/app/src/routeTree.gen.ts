@@ -15,8 +15,11 @@ import { Route as PendingRouteImport } from './routes/pending'
 import { Route as RegisterRouteImport } from './routes/register'
 import { Route as AppIndexRouteImport } from './routes/_app/index'
 import { Route as AppAssetsRouteImport } from './routes/_app/assets'
+import { Route as AppDevelopersRouteImport } from './routes/_app/developers'
 import { Route as AppRenderRouteImport } from './routes/_app/render'
 import { Route as AppSettingsRouteImport } from './routes/_app/settings'
+import { Route as STokenRouteImport } from './routes/s.$token'
+import { Route as AppAdminApiKeysRouteImport } from './routes/_app/admin/api-keys'
 import { Route as AppAdminFaqRouteImport } from './routes/_app/admin/faq'
 import { Route as AppAdminQueueRouteImport } from './routes/_app/admin/queue'
 import { Route as AppAdminSystemRouteImport } from './routes/_app/admin/system'
@@ -24,12 +27,21 @@ import { Route as AppAdminUsersRouteImport } from './routes/_app/admin/users'
 import { Route as AppBatchesIndexRouteImport } from './routes/_app/batches/index'
 import { Route as AppBatchesIdRouteImport } from './routes/_app/batches/$id'
 import { Route as AppBatchesNewRouteImport } from './routes/_app/batches/new'
+import { Route as AppDocumentsIdRouteImport } from './routes/_app/documents/$id'
+import { Route as AppDocumentsNewRouteImport } from './routes/_app/documents/new'
 import { Route as AppGenerationsIndexRouteImport } from './routes/_app/generations/index'
 import { Route as AppGenerationsIdRouteImport } from './routes/_app/generations/$id'
+import { Route as AppSettingsApiKeysRouteImport } from './routes/_app/settings_.api-keys'
+import { Route as AppShareLinksIndexRouteImport } from './routes/_app/share-links/index'
+import { Route as AppShareLinksIdRouteImport } from './routes/_app/share-links/$id'
+import { Route as AppSnippetsIndexRouteImport } from './routes/_app/snippets/index'
+import { Route as AppSnippetsIdRouteImport } from './routes/_app/snippets/$id'
 import { Route as AppTemplatesIndexRouteImport } from './routes/_app/templates/index'
 import { Route as AppTemplatesIdRouteImport } from './routes/_app/templates/$id'
 import { Route as AppThemesIndexRouteImport } from './routes/_app/themes/index'
 import { Route as AppThemesIdRouteImport } from './routes/_app/themes/$id'
+import { Route as AppAdminServiceAccountsIndexRouteImport } from './routes/_app/admin/service-accounts/index'
+import { Route as AppAdminServiceAccountsIdRouteImport } from './routes/_app/admin/service-accounts/$id'
 
 const AppRoute = AppRouteImport.update({
   id: '/_app',
@@ -60,6 +72,11 @@ const AppAssetsRoute = AppAssetsRouteImport.update({
   path: '/assets',
   getParentRoute: () => AppRoute,
 } as any)
+const AppDevelopersRoute = AppDevelopersRouteImport.update({
+  id: '/developers',
+  path: '/developers',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppRenderRoute = AppRenderRouteImport.update({
   id: '/render',
   path: '/render',
@@ -68,6 +85,16 @@ const AppRenderRoute = AppRenderRouteImport.update({
 const AppSettingsRoute = AppSettingsRouteImport.update({
   id: '/settings',
   path: '/settings',
+  getParentRoute: () => AppRoute,
+} as any)
+const STokenRoute = STokenRouteImport.update({
+  id: '/s/$token',
+  path: '/s/$token',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AppAdminApiKeysRoute = AppAdminApiKeysRouteImport.update({
+  id: '/admin/api-keys',
+  path: '/admin/api-keys',
   getParentRoute: () => AppRoute,
 } as any)
 const AppAdminFaqRoute = AppAdminFaqRouteImport.update({
@@ -105,6 +132,16 @@ const AppBatchesNewRoute = AppBatchesNewRouteImport.update({
   path: '/batches/new',
   getParentRoute: () => AppRoute,
 } as any)
+const AppDocumentsIdRoute = AppDocumentsIdRouteImport.update({
+  id: '/documents/$id',
+  path: '/documents/$id',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppDocumentsNewRoute = AppDocumentsNewRouteImport.update({
+  id: '/documents/new',
+  path: '/documents/new',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppGenerationsIndexRoute = AppGenerationsIndexRouteImport.update({
   id: '/generations/',
   path: '/generations/',
@@ -113,6 +150,31 @@ const AppGenerationsIndexRoute = AppGenerationsIndexRouteImport.update({
 const AppGenerationsIdRoute = AppGenerationsIdRouteImport.update({
   id: '/generations/$id',
   path: '/generations/$id',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppSettingsApiKeysRoute = AppSettingsApiKeysRouteImport.update({
+  id: '/settings_/api-keys',
+  path: '/settings/api-keys',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppShareLinksIndexRoute = AppShareLinksIndexRouteImport.update({
+  id: '/share-links/',
+  path: '/share-links/',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppShareLinksIdRoute = AppShareLinksIdRouteImport.update({
+  id: '/share-links/$id',
+  path: '/share-links/$id',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppSnippetsIndexRoute = AppSnippetsIndexRouteImport.update({
+  id: '/snippets/',
+  path: '/snippets/',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppSnippetsIdRoute = AppSnippetsIdRouteImport.update({
+  id: '/snippets/$id',
+  path: '/snippets/$id',
   getParentRoute: () => AppRoute,
 } as any)
 const AppTemplatesIndexRoute = AppTemplatesIndexRouteImport.update({
@@ -135,6 +197,18 @@ const AppThemesIdRoute = AppThemesIdRouteImport.update({
   path: '/themes/$id',
   getParentRoute: () => AppRoute,
 } as any)
+const AppAdminServiceAccountsIndexRoute =
+  AppAdminServiceAccountsIndexRouteImport.update({
+    id: '/admin/service-accounts/',
+    path: '/admin/service-accounts/',
+    getParentRoute: () => AppRoute,
+  } as any)
+const AppAdminServiceAccountsIdRoute =
+  AppAdminServiceAccountsIdRouteImport.update({
+    id: '/admin/service-accounts/$id',
+    path: '/admin/service-accounts/$id',
+    getParentRoute: () => AppRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof AppIndexRoute
@@ -142,43 +216,67 @@ export interface FileRoutesByFullPath {
   '/pending': typeof PendingRoute
   '/register': typeof RegisterRoute
   '/assets': typeof AppAssetsRoute
+  '/developers': typeof AppDevelopersRoute
   '/render': typeof AppRenderRoute
   '/settings': typeof AppSettingsRoute
+  '/s/$token': typeof STokenRoute
+  '/admin/api-keys': typeof AppAdminApiKeysRoute
   '/admin/faq': typeof AppAdminFaqRoute
   '/admin/queue': typeof AppAdminQueueRoute
   '/admin/system': typeof AppAdminSystemRoute
   '/admin/users': typeof AppAdminUsersRoute
   '/batches/$id': typeof AppBatchesIdRoute
   '/batches/new': typeof AppBatchesNewRoute
+  '/documents/$id': typeof AppDocumentsIdRoute
+  '/documents/new': typeof AppDocumentsNewRoute
   '/generations/$id': typeof AppGenerationsIdRoute
+  '/settings/api-keys': typeof AppSettingsApiKeysRoute
+  '/share-links/$id': typeof AppShareLinksIdRoute
+  '/snippets/$id': typeof AppSnippetsIdRoute
   '/templates/$id': typeof AppTemplatesIdRoute
   '/themes/$id': typeof AppThemesIdRoute
   '/batches/': typeof AppBatchesIndexRoute
   '/generations/': typeof AppGenerationsIndexRoute
+  '/share-links/': typeof AppShareLinksIndexRoute
+  '/snippets/': typeof AppSnippetsIndexRoute
   '/templates/': typeof AppTemplatesIndexRoute
   '/themes/': typeof AppThemesIndexRoute
+  '/admin/service-accounts/$id': typeof AppAdminServiceAccountsIdRoute
+  '/admin/service-accounts/': typeof AppAdminServiceAccountsIndexRoute
 }
 export interface FileRoutesByTo {
   '/login': typeof LoginRoute
   '/pending': typeof PendingRoute
   '/register': typeof RegisterRoute
   '/assets': typeof AppAssetsRoute
+  '/developers': typeof AppDevelopersRoute
   '/render': typeof AppRenderRoute
   '/settings': typeof AppSettingsRoute
+  '/s/$token': typeof STokenRoute
   '/': typeof AppIndexRoute
+  '/admin/api-keys': typeof AppAdminApiKeysRoute
   '/admin/faq': typeof AppAdminFaqRoute
   '/admin/queue': typeof AppAdminQueueRoute
   '/admin/system': typeof AppAdminSystemRoute
   '/admin/users': typeof AppAdminUsersRoute
   '/batches/$id': typeof AppBatchesIdRoute
   '/batches/new': typeof AppBatchesNewRoute
+  '/documents/$id': typeof AppDocumentsIdRoute
+  '/documents/new': typeof AppDocumentsNewRoute
   '/generations/$id': typeof AppGenerationsIdRoute
+  '/settings/api-keys': typeof AppSettingsApiKeysRoute
+  '/share-links/$id': typeof AppShareLinksIdRoute
+  '/snippets/$id': typeof AppSnippetsIdRoute
   '/templates/$id': typeof AppTemplatesIdRoute
   '/themes/$id': typeof AppThemesIdRoute
   '/batches': typeof AppBatchesIndexRoute
   '/generations': typeof AppGenerationsIndexRoute
+  '/share-links': typeof AppShareLinksIndexRoute
+  '/snippets': typeof AppSnippetsIndexRoute
   '/templates': typeof AppTemplatesIndexRoute
   '/themes': typeof AppThemesIndexRoute
+  '/admin/service-accounts/$id': typeof AppAdminServiceAccountsIdRoute
+  '/admin/service-accounts': typeof AppAdminServiceAccountsIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -187,22 +285,34 @@ export interface FileRoutesById {
   '/pending': typeof PendingRoute
   '/register': typeof RegisterRoute
   '/_app/assets': typeof AppAssetsRoute
+  '/_app/developers': typeof AppDevelopersRoute
   '/_app/render': typeof AppRenderRoute
   '/_app/settings': typeof AppSettingsRoute
+  '/s/$token': typeof STokenRoute
   '/_app/': typeof AppIndexRoute
+  '/_app/admin/api-keys': typeof AppAdminApiKeysRoute
   '/_app/admin/faq': typeof AppAdminFaqRoute
   '/_app/admin/queue': typeof AppAdminQueueRoute
   '/_app/admin/system': typeof AppAdminSystemRoute
   '/_app/admin/users': typeof AppAdminUsersRoute
   '/_app/batches/$id': typeof AppBatchesIdRoute
   '/_app/batches/new': typeof AppBatchesNewRoute
+  '/_app/documents/$id': typeof AppDocumentsIdRoute
+  '/_app/documents/new': typeof AppDocumentsNewRoute
   '/_app/generations/$id': typeof AppGenerationsIdRoute
+  '/_app/settings_/api-keys': typeof AppSettingsApiKeysRoute
+  '/_app/share-links/$id': typeof AppShareLinksIdRoute
+  '/_app/snippets/$id': typeof AppSnippetsIdRoute
   '/_app/templates/$id': typeof AppTemplatesIdRoute
   '/_app/themes/$id': typeof AppThemesIdRoute
   '/_app/batches/': typeof AppBatchesIndexRoute
   '/_app/generations/': typeof AppGenerationsIndexRoute
+  '/_app/share-links/': typeof AppShareLinksIndexRoute
+  '/_app/snippets/': typeof AppSnippetsIndexRoute
   '/_app/templates/': typeof AppTemplatesIndexRoute
   '/_app/themes/': typeof AppThemesIndexRoute
+  '/_app/admin/service-accounts/$id': typeof AppAdminServiceAccountsIdRoute
+  '/_app/admin/service-accounts/': typeof AppAdminServiceAccountsIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -212,43 +322,67 @@ export interface FileRouteTypes {
     | '/pending'
     | '/register'
     | '/assets'
+    | '/developers'
     | '/render'
     | '/settings'
+    | '/s/$token'
+    | '/admin/api-keys'
     | '/admin/faq'
     | '/admin/queue'
     | '/admin/system'
     | '/admin/users'
     | '/batches/$id'
     | '/batches/new'
+    | '/documents/$id'
+    | '/documents/new'
     | '/generations/$id'
+    | '/settings/api-keys'
+    | '/share-links/$id'
+    | '/snippets/$id'
     | '/templates/$id'
     | '/themes/$id'
     | '/batches/'
     | '/generations/'
+    | '/share-links/'
+    | '/snippets/'
     | '/templates/'
     | '/themes/'
+    | '/admin/service-accounts/$id'
+    | '/admin/service-accounts/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/login'
     | '/pending'
     | '/register'
     | '/assets'
+    | '/developers'
     | '/render'
     | '/settings'
+    | '/s/$token'
     | '/'
+    | '/admin/api-keys'
     | '/admin/faq'
     | '/admin/queue'
     | '/admin/system'
     | '/admin/users'
     | '/batches/$id'
     | '/batches/new'
+    | '/documents/$id'
+    | '/documents/new'
     | '/generations/$id'
+    | '/settings/api-keys'
+    | '/share-links/$id'
+    | '/snippets/$id'
     | '/templates/$id'
     | '/themes/$id'
     | '/batches'
     | '/generations'
+    | '/share-links'
+    | '/snippets'
     | '/templates'
     | '/themes'
+    | '/admin/service-accounts/$id'
+    | '/admin/service-accounts'
   id:
     | '__root__'
     | '/_app'
@@ -256,22 +390,34 @@ export interface FileRouteTypes {
     | '/pending'
     | '/register'
     | '/_app/assets'
+    | '/_app/developers'
     | '/_app/render'
     | '/_app/settings'
+    | '/s/$token'
     | '/_app/'
+    | '/_app/admin/api-keys'
     | '/_app/admin/faq'
     | '/_app/admin/queue'
     | '/_app/admin/system'
     | '/_app/admin/users'
     | '/_app/batches/$id'
     | '/_app/batches/new'
+    | '/_app/documents/$id'
+    | '/_app/documents/new'
     | '/_app/generations/$id'
+    | '/_app/settings_/api-keys'
+    | '/_app/share-links/$id'
+    | '/_app/snippets/$id'
     | '/_app/templates/$id'
     | '/_app/themes/$id'
     | '/_app/batches/'
     | '/_app/generations/'
+    | '/_app/share-links/'
+    | '/_app/snippets/'
     | '/_app/templates/'
     | '/_app/themes/'
+    | '/_app/admin/service-accounts/$id'
+    | '/_app/admin/service-accounts/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -279,6 +425,7 @@ export interface RootRouteChildren {
   LoginRoute: typeof LoginRoute
   PendingRoute: typeof PendingRoute
   RegisterRoute: typeof RegisterRoute
+  STokenRoute: typeof STokenRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -325,6 +472,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppAssetsRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_app/developers': {
+      id: '/_app/developers'
+      path: '/developers'
+      fullPath: '/developers'
+      preLoaderRoute: typeof AppDevelopersRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/_app/render': {
       id: '/_app/render'
       path: '/render'
@@ -337,6 +491,20 @@ declare module '@tanstack/react-router' {
       path: '/settings'
       fullPath: '/settings'
       preLoaderRoute: typeof AppSettingsRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/s/$token': {
+      id: '/s/$token'
+      path: '/s/$token'
+      fullPath: '/s/$token'
+      preLoaderRoute: typeof STokenRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/_app/admin/api-keys': {
+      id: '/_app/admin/api-keys'
+      path: '/admin/api-keys'
+      fullPath: '/admin/api-keys'
+      preLoaderRoute: typeof AppAdminApiKeysRouteImport
       parentRoute: typeof AppRoute
     }
     '/_app/admin/faq': {
@@ -388,6 +556,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppBatchesNewRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_app/documents/$id': {
+      id: '/_app/documents/$id'
+      path: '/documents/$id'
+      fullPath: '/documents/$id'
+      preLoaderRoute: typeof AppDocumentsIdRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/documents/new': {
+      id: '/_app/documents/new'
+      path: '/documents/new'
+      fullPath: '/documents/new'
+      preLoaderRoute: typeof AppDocumentsNewRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/_app/generations/': {
       id: '/_app/generations/'
       path: '/generations'
@@ -400,6 +582,41 @@ declare module '@tanstack/react-router' {
       path: '/generations/$id'
       fullPath: '/generations/$id'
       preLoaderRoute: typeof AppGenerationsIdRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/settings_/api-keys': {
+      id: '/_app/settings_/api-keys'
+      path: '/settings/api-keys'
+      fullPath: '/settings/api-keys'
+      preLoaderRoute: typeof AppSettingsApiKeysRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/share-links/': {
+      id: '/_app/share-links/'
+      path: '/share-links'
+      fullPath: '/share-links/'
+      preLoaderRoute: typeof AppShareLinksIndexRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/share-links/$id': {
+      id: '/_app/share-links/$id'
+      path: '/share-links/$id'
+      fullPath: '/share-links/$id'
+      preLoaderRoute: typeof AppShareLinksIdRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/snippets/': {
+      id: '/_app/snippets/'
+      path: '/snippets'
+      fullPath: '/snippets/'
+      preLoaderRoute: typeof AppSnippetsIndexRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/snippets/$id': {
+      id: '/_app/snippets/$id'
+      path: '/snippets/$id'
+      fullPath: '/snippets/$id'
+      preLoaderRoute: typeof AppSnippetsIdRouteImport
       parentRoute: typeof AppRoute
     }
     '/_app/templates/': {
@@ -430,47 +647,83 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppThemesIdRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_app/admin/service-accounts/': {
+      id: '/_app/admin/service-accounts/'
+      path: '/admin/service-accounts'
+      fullPath: '/admin/service-accounts/'
+      preLoaderRoute: typeof AppAdminServiceAccountsIndexRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/admin/service-accounts/$id': {
+      id: '/_app/admin/service-accounts/$id'
+      path: '/admin/service-accounts/$id'
+      fullPath: '/admin/service-accounts/$id'
+      preLoaderRoute: typeof AppAdminServiceAccountsIdRouteImport
+      parentRoute: typeof AppRoute
+    }
   }
 }
 
 interface AppRouteChildren {
   AppAssetsRoute: typeof AppAssetsRoute
+  AppDevelopersRoute: typeof AppDevelopersRoute
   AppRenderRoute: typeof AppRenderRoute
   AppSettingsRoute: typeof AppSettingsRoute
   AppIndexRoute: typeof AppIndexRoute
+  AppAdminApiKeysRoute: typeof AppAdminApiKeysRoute
   AppAdminFaqRoute: typeof AppAdminFaqRoute
   AppAdminQueueRoute: typeof AppAdminQueueRoute
   AppAdminSystemRoute: typeof AppAdminSystemRoute
   AppAdminUsersRoute: typeof AppAdminUsersRoute
   AppBatchesIdRoute: typeof AppBatchesIdRoute
   AppBatchesNewRoute: typeof AppBatchesNewRoute
+  AppDocumentsIdRoute: typeof AppDocumentsIdRoute
+  AppDocumentsNewRoute: typeof AppDocumentsNewRoute
   AppGenerationsIdRoute: typeof AppGenerationsIdRoute
+  AppSettingsApiKeysRoute: typeof AppSettingsApiKeysRoute
+  AppShareLinksIdRoute: typeof AppShareLinksIdRoute
+  AppSnippetsIdRoute: typeof AppSnippetsIdRoute
   AppTemplatesIdRoute: typeof AppTemplatesIdRoute
   AppThemesIdRoute: typeof AppThemesIdRoute
   AppBatchesIndexRoute: typeof AppBatchesIndexRoute
   AppGenerationsIndexRoute: typeof AppGenerationsIndexRoute
+  AppShareLinksIndexRoute: typeof AppShareLinksIndexRoute
+  AppSnippetsIndexRoute: typeof AppSnippetsIndexRoute
   AppTemplatesIndexRoute: typeof AppTemplatesIndexRoute
   AppThemesIndexRoute: typeof AppThemesIndexRoute
+  AppAdminServiceAccountsIdRoute: typeof AppAdminServiceAccountsIdRoute
+  AppAdminServiceAccountsIndexRoute: typeof AppAdminServiceAccountsIndexRoute
 }
 
 const AppRouteChildren: AppRouteChildren = {
   AppAssetsRoute: AppAssetsRoute,
+  AppDevelopersRoute: AppDevelopersRoute,
   AppRenderRoute: AppRenderRoute,
   AppSettingsRoute: AppSettingsRoute,
   AppIndexRoute: AppIndexRoute,
+  AppAdminApiKeysRoute: AppAdminApiKeysRoute,
   AppAdminFaqRoute: AppAdminFaqRoute,
   AppAdminQueueRoute: AppAdminQueueRoute,
   AppAdminSystemRoute: AppAdminSystemRoute,
   AppAdminUsersRoute: AppAdminUsersRoute,
   AppBatchesIdRoute: AppBatchesIdRoute,
   AppBatchesNewRoute: AppBatchesNewRoute,
+  AppDocumentsIdRoute: AppDocumentsIdRoute,
+  AppDocumentsNewRoute: AppDocumentsNewRoute,
   AppGenerationsIdRoute: AppGenerationsIdRoute,
+  AppSettingsApiKeysRoute: AppSettingsApiKeysRoute,
+  AppShareLinksIdRoute: AppShareLinksIdRoute,
+  AppSnippetsIdRoute: AppSnippetsIdRoute,
   AppTemplatesIdRoute: AppTemplatesIdRoute,
   AppThemesIdRoute: AppThemesIdRoute,
   AppBatchesIndexRoute: AppBatchesIndexRoute,
   AppGenerationsIndexRoute: AppGenerationsIndexRoute,
+  AppShareLinksIndexRoute: AppShareLinksIndexRoute,
+  AppSnippetsIndexRoute: AppSnippetsIndexRoute,
   AppTemplatesIndexRoute: AppTemplatesIndexRoute,
   AppThemesIndexRoute: AppThemesIndexRoute,
+  AppAdminServiceAccountsIdRoute: AppAdminServiceAccountsIdRoute,
+  AppAdminServiceAccountsIndexRoute: AppAdminServiceAccountsIndexRoute,
 }
 
 const AppRouteWithChildren = AppRoute._addFileChildren(AppRouteChildren)
@@ -480,6 +733,7 @@ const rootRouteChildren: RootRouteChildren = {
   LoginRoute: LoginRoute,
   PendingRoute: PendingRoute,
   RegisterRoute: RegisterRoute,
+  STokenRoute: STokenRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

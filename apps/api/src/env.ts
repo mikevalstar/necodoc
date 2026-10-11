@@ -28,6 +28,13 @@ export const env = z
     AI_MODEL: z.string().min(1).default("claude-sonnet-5-5"),
     /** Signs download links; falls back to BETTER_AUTH_SECRET. Changing it voids live links. */
     DOWNLOAD_SIGNING_SECRET: z.string().min(32).optional(),
+    /** Behind a reverse proxy: take the client address from the last X-Forwarded-For hop. */
+    TRUST_PROXY: z.stringbool().default(false),
+    /**
+     * Development only (docs/features/webhooks.md): lets webhooks use http:// and loopback
+     * addresses, for a receiver on this machine. Never set it in production.
+     */
+    WEBHOOK_ALLOW_LOCALHOST: z.stringbool().default(false),
   })
   .parse(process.env);
 

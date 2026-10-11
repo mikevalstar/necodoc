@@ -15,6 +15,8 @@ It does three things:
 
 Every render is recorded in the [generation log](/guides/generation-log/) with its input, timings and output.
 
+Other systems call the public API, `/api/v1`, with scoped [API keys](/guides/api-keys/) owned by a person or a service account, and hear back through signed [webhooks](/guides/webhooks/). The [API reference](/reference/api/) and the [TypeScript SDK](/reference/sdks/typescript/) are generated from its OpenAPI document.
+
 ## Self-hosted
 
 necodoc runs on your infrastructure: a Postgres database, the API and worker processes, and a static web app. Generated PDFs go to local disk, an S3-compatible bucket or Azure Blob storage. See [Self-hosting](/self-hosting/).
