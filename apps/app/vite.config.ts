@@ -8,6 +8,7 @@ export default defineConfig({
   resolve: { tsconfigPaths: true },
   server: {
     // Same-origin /api keeps Better Auth cookies simple.
-    proxy: { "/api": "http://localhost:3000" },
+    // API_PROXY: a second API on another port (e.g. SSO testing).
+    proxy: { "/api": process.env.API_PROXY ?? "http://localhost:3000" },
   },
 });

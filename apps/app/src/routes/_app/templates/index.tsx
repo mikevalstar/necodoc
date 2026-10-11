@@ -37,6 +37,7 @@ import { api, ok } from "@/lib/api";
 import { dayjs } from "@/lib/date";
 import { templatesQuery } from "@/lib/queries";
 import { uploadPdfSource } from "./-overlay-editor";
+import { ReviewsLink } from "./-review";
 import {
   DeleteTemplateDialog,
   TemplateStatusBadges,
@@ -94,12 +95,15 @@ function Templates() {
               : "Published templates you can fill in."}
           </p>
         </div>
-        {can("create") && (
-          <Button onClick={() => setCreating(true)}>
-            <PlusIcon />
-            New template
-          </Button>
-        )}
+        <div className="flex gap-2">
+          {seesDrafts && <ReviewsLink />}
+          {can("create") && (
+            <Button onClick={() => setCreating(true)}>
+              <PlusIcon />
+              New template
+            </Button>
+          )}
+        </div>
       </div>
 
       <div className="flex flex-wrap items-end gap-3">

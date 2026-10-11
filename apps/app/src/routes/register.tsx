@@ -7,11 +7,14 @@ import { Logo } from "@/components/logo";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { FieldGroup } from "@/components/ui/field";
-import { authClient, meQuery, unwrap, useSessionChange } from "@/lib/auth";
+import { authClient, meQuery, signInOptionsQuery, unwrap, useSessionChange } from "@/lib/auth";
 
 export const Route = createFileRoute("/register")({
   beforeLoad: async ({ context }) => {
     if (await context.queryClient.ensureQueryData(meQuery)) throw redirect({ to: "/" });
+    // SSO-only installs (docs/features/single-sign-on.md) have no self-registration.
+    const options = await context.queryClient.ensureQueryData(signInOptionsQuery);
+    if (!options.password) throw redirect({ to: "/login" });
   },
   component: Register,
 });

@@ -8,13 +8,7 @@ import {
   templateSchema,
   toCodeMode,
 } from "@necodoc/shared";
-import {
-  queryOptions,
-  useMutation,
-  useQuery,
-  useQueryClient,
-  useSuspenseQuery,
-} from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient, useSuspenseQuery } from "@tanstack/react-query";
 import { createFileRoute, Link, redirect, useBlocker, useNavigate } from "@tanstack/react-router";
 import { ChevronLeftIcon, MoreHorizontalIcon, TriangleAlertIcon } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
@@ -54,11 +48,13 @@ import {
   type EditorContent,
   previewDraftSchema,
   problemArea,
+  templateQuery,
   toDraftValues,
 } from "./-draft";
 import { FieldDesigner } from "./-field-designer";
 import { OverlayEditor, OverlayPdfPanel } from "./-overlay-editor";
 import { PagePanel } from "./-page-panel";
+import { ReviewStatusBadge, ReviewsPanel, reviewStateQuery, SubmitReviewDialog } from "./-review";
 import { SamplePanel } from "./-sample-panel";
 import {
   DeleteTemplateDialog,
@@ -67,19 +63,12 @@ import {
   useArchiveTemplate,
   useDuplicateTemplate,
 } from "./-template-actions";
+import { TestsPanel } from "./-tests";
 import { VersionsPanel, versionQuery, versionsQuery } from "./-versions";
 
 // Specs: docs/features/document-templates.md, docs/features/pdf-overlay-templates.md,
 // docs/features/template-fields-and-guided-form.md, docs/features/publishing-and-versions.md. Editors change the draft; reviewers and publishers
 // open it read-only; viewers never get here (the API refuses them the draft).
-
-const templateQuery = (id: string) =>
-  queryOptions({
-    queryKey: ["templates", id],
-    // Parsed so `kind` narrows `content` (jsonb comes back untyped by kind).
-    queryFn: async () =>
-      templateSchema.parse(await (await ok(api.templates[":id"].$get({ param: { id } }))).json()),
-  });
 
 export const Route = createFileRoute("/_app/templates/$id")({
   beforeLoad: ({ context }) => {
@@ -122,13 +111,14 @@ function TemplateEditor({
   const navigate = useNavigate();
   const archive = useArchiveTemplate();
   const versions = useQuery(versionsQuery(template.id));
+  const review = useQuery(reviewStateQuery(template.id)).data;
 
   const [draft, setDraft] = useState<DraftValues>(() => toDraftValues(template));
   const [saved, setSaved] = useState(() => JSON.stringify(toDraftValues(template)));
   /** The draft's updatedAt when this editor loaded or last saved it: the 409 guard. */
   const [baseUpdatedAt, setBaseUpdatedAt] = useState(template.updatedAt);
   const [archivedAt, setArchivedAt] = useState(template.archivedAt);
-  const [dialog, setDialog] = useState<"publish" | "delete" | "code" | null>(null);
+  const [dialog, setDialog] = useState<"publish" | "review" | "delete" | "code" | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const [previewing, setPreviewing] = useState<number | null>(null);
   const [codeError, setCodeError] = useState<string | null>(null);
@@ -175,6 +165,8 @@ function TemplateEditor({
       setSaved(sent);
       queryClient.setQueryData(templateQuery(template.id).queryKey, templateSchema.parse(row));
       await queryClient.invalidateQueries({ queryKey: templatesQuery.queryKey, exact: true });
+      // An open review may have gone stale.
+      await queryClient.invalidateQueries({ queryKey: reviewStateQuery(template.id).queryKey });
     },
   });
   const conflict = save.error instanceof ApiError && save.error.status === 409;
@@ -281,6 +273,9 @@ function TemplateEditor({
           <Badge variant="secondary">Code mode</Badge>
         )}
         {draft.kind === "overlay" && <Badge variant="secondary">PDF overlay</Badge>}
+        {review?.current && (
+          <ReviewStatusBadge status={review.current.status} stale={review.current.stale} />
+        )}
         <div className="ml-auto flex items-center gap-2">
           {canEdit && (
             <span role="status" className="text-sm text-muted-foreground">
@@ -298,6 +293,16 @@ function TemplateEditor({
               onClick={() => save.mutate()}
             >
               Save
+            </Button>
+          )}
+          {canEdit && (
+            <Button
+              variant="outline"
+              disabled={dirty || !!archivedAt}
+              title={dirty ? "Save your changes first" : undefined}
+              onClick={() => setDialog("review")}
+            >
+              {review?.current ? "Resubmit for review" : "Submit for review"}
             </Button>
           )}
           {can("publish") && (
@@ -443,6 +448,8 @@ function TemplateEditor({
               {draft.kind === "overlay" ? "PDF" : "Page & theme"}
             </TabsTrigger>
             {draft.kind === "designed" && <TabsTrigger value="css">CSS</TabsTrigger>}
+            <TabsTrigger value="tests">Tests</TabsTrigger>
+            <TabsTrigger value="reviews">Reviews</TabsTrigger>
             <TabsTrigger value="versions">Versions</TabsTrigger>
           </TabsList>
           {draft.kind === "overlay" ? (
@@ -520,6 +527,17 @@ function TemplateEditor({
               editable={canEdit}
             />
           </TabsContent>
+          <TabsContent value="tests">
+            <TestsPanel
+              id={template.id}
+              draftUpdatedAt={baseUpdatedAt}
+              canEdit={canEdit}
+              dirty={dirty}
+            />
+          </TabsContent>
+          <TabsContent value="reviews">
+            <ReviewsPanel templateId={template.id} canEdit={canEdit} dirty={dirty} />
+          </TabsContent>
           <TabsContent value="versions">
             <VersionsPanel
               id={template.id}
@@ -581,12 +599,24 @@ function TemplateEditor({
 
       {dialog === "publish" && (
         <PublishDialog
-          template={{ id: template.id, name: draft.name, latestVersion: latest?.version ?? null }}
+          template={{
+            id: template.id,
+            name: draft.name,
+            latestVersion: latest?.version ?? null,
+            updatedAt: baseUpdatedAt,
+          }}
           onClose={() => setDialog(null)}
           onPublished={(v) => {
             setDialog(null);
             setNotice(`Published version ${v}.`);
           }}
+        />
+      )}
+      {dialog === "review" && (
+        <SubmitReviewDialog
+          templateId={template.id}
+          resubmit={!!review?.current}
+          onClose={() => setDialog(null)}
         />
       )}
       {dialog === "delete" && (

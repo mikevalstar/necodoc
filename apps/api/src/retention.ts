@@ -1,4 +1,4 @@
-import type { RetentionSettings } from "@necodoc/shared";
+import { type RetentionSettings, retentionSettingsSchema } from "@necodoc/shared";
 import { and, eq, inArray, isNotNull, lt } from "drizzle-orm";
 import { db } from "./db";
 import { file, generation, setting } from "./db/schema";
@@ -11,7 +11,7 @@ const KEEP_FOREVER: RetentionSettings = { outputDays: null, inputDays: null };
 
 export async function retentionSettings(): Promise<RetentionSettings> {
   const [row] = await db.select().from(setting).where(eq(setting.key, "retention"));
-  return row?.value ?? KEEP_FOREVER;
+  return row ? retentionSettingsSchema.parse(row.value) : KEEP_FOREVER;
 }
 
 export async function saveRetentionSettings(value: RetentionSettings, userId: string) {

@@ -8,17 +8,23 @@ import type {
   FieldSection,
   GenerationSource,
   GenerationStatus,
+  NotificationKind,
   OverlayContent,
   PageOptions,
   PdfPage,
   ProcessRole,
+  PublishingSettings,
   RenderInput,
   RenderTimings,
   RetentionSettings,
+  ReviewEventKind,
+  ReviewStatus,
   SnippetContent,
   SubmissionSource,
   SubmissionStatus,
   TemplateKind,
+  TestAssertions,
+  TestCaseSource,
   ThemeInput,
   ThemeSettings,
   WebhookAttempt,
@@ -38,6 +44,7 @@ import {
   text,
   timestamp,
   unique,
+  uniqueIndex,
   uuid,
 } from "drizzle-orm/pg-core";
 import type { StorageDriverName } from "../storage/config";
@@ -294,7 +301,7 @@ export const worker = pgTable("worker", {
 });
 
 /** Admin settings, one typed row per key. */
-type Settings = { retention: RetentionSettings };
+type Settings = { retention: RetentionSettings; publishing: PublishingSettings };
 
 export const setting = pgTable("setting", {
   key: text().$type<keyof Settings>().primaryKey(),
@@ -457,4 +464,91 @@ export const submission = pgTable(
     updatedAt,
   },
   (t) => [index().on(t.ownerId, t.updatedAt), index().on(t.shareLinkId, t.createdAt)],
+);
+
+// Spec: docs/features/review-and-approval.md. One submission of a template's draft. `fingerprint`
+// hashes what publishing would freeze (src/publish.ts): a draft whose fingerprint moved on since
+// is stale. At most one open review (pending, changes requested, approved) per template.
+export const templateReview = pgTable(
+  "template_review",
+  {
+    id: uuid().primaryKey().defaultRandom(),
+    templateId: uuid()
+      .notNull()
+      .references(() => template.id, { onDelete: "cascade" }),
+    status: text().$type<ReviewStatus>().default("pending").notNull(),
+    fingerprint: text().notNull(),
+    /** The latest published version when submitted; what the diff compares with. */
+    baseVersion: integer(),
+    note: text(),
+    submittedBy: text().references(() => user.id, { onDelete: "set null" }),
+    submittedAt: timestamp({ withTimezone: true }).defaultNow().notNull(),
+    decidedBy: text().references(() => user.id, { onDelete: "set null" }),
+    decidedAt: timestamp({ withTimezone: true }),
+    templateVersionId: uuid().references(() => templateVersion.id, { onDelete: "set null" }),
+    createdAt,
+    updatedAt,
+  },
+  (t) => [
+    index().on(t.templateId, t.createdAt),
+    index().on(t.status),
+    uniqueIndex("template_review_open_index")
+      .on(t.templateId)
+      .where(sql`${t.status} in ('pending', 'changes_requested', 'approved')`),
+  ],
+);
+
+// The review's thread: comments, and every state change with the comment that came with it.
+export const templateReviewEvent = pgTable(
+  "template_review_event",
+  {
+    id: uuid().primaryKey().defaultRandom(),
+    reviewId: uuid()
+      .notNull()
+      .references(() => templateReview.id, { onDelete: "cascade" }),
+    kind: text().$type<ReviewEventKind>().notNull(),
+    body: text(),
+    authorId: text().references(() => user.id, { onDelete: "set null" }),
+    createdAt,
+  },
+  (t) => [index().on(t.reviewId, t.createdAt)],
+);
+
+// In-app notifications (the nav bell), polled. Spec: docs/features/review-and-approval.md.
+export const notification = pgTable(
+  "notification",
+  {
+    id: uuid().primaryKey().defaultRandom(),
+    userId: text()
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    kind: text().$type<NotificationKind>().notNull(),
+    message: text().notNull(),
+    actorId: text().references(() => user.id, { onDelete: "set null" }),
+    templateId: uuid().references(() => template.id, { onDelete: "cascade" }),
+    reviewId: uuid().references(() => templateReview.id, { onDelete: "cascade" }),
+    readAt: timestamp({ withTimezone: true }),
+    createdAt,
+  },
+  (t) => [index().on(t.userId, t.createdAt)],
+);
+
+// Spec: docs/features/template-test-cases-and-visual-diff.md. Named data a template is checked
+// with before review and publish.
+export const templateTestCase = pgTable(
+  "template_test_case",
+  {
+    id: uuid().primaryKey().defaultRandom(),
+    templateId: uuid()
+      .notNull()
+      .references(() => template.id, { onDelete: "cascade" }),
+    name: text().notNull(),
+    data: jsonb().$type<Record<string, unknown>>().notNull(),
+    assertions: jsonb().$type<TestAssertions>().notNull(),
+    source: text().$type<TestCaseSource>().notNull(),
+    createdBy: text().references(() => user.id, { onDelete: "set null" }),
+    createdAt,
+    updatedAt,
+  },
+  (t) => [unique().on(t.templateId, t.name)],
 );

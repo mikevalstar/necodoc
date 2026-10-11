@@ -1,5 +1,6 @@
 import { processRoleSchema } from "@necodoc/shared";
 import { z } from "zod";
+import { parseSsoProviders } from "./sso-config";
 import { storageEnvSchema } from "./storage/config";
 
 export const env = z
@@ -7,6 +8,8 @@ export const env = z
     DATABASE_URL: z.url(),
     BETTER_AUTH_SECRET: z.string().min(32),
     BETTER_AUTH_URL: z.url(),
+    /** ADR 0031: `false` hides and refuses email/password sign-in and sign-up (SSO only). */
+    AUTH_PASSWORD_ENABLED: z.stringbool().default(true),
     PORT: z.coerce.number().default(3000),
     /** ADR 0020: `api` serves HTTP, `worker` renders queued jobs, `all` does both. */
     ROLE: processRoleSchema.default("all"),
@@ -40,6 +43,12 @@ export const env = z
 
 /** ADR 0023: where generated outputs go (src/storage). */
 export const storageConfig = storageEnvSchema.parse(process.env);
+
+/** ADR 0031: identity providers from SSO_PROVIDERS and SSO_<ID>_* (src/sso-config.ts). */
+export const ssoProviders = parseSsoProviders(process.env, env.BETTER_AUTH_URL);
+if (!env.AUTH_PASSWORD_ENABLED && !ssoProviders.length) {
+  throw new Error("AUTH_PASSWORD_ENABLED=false needs at least one provider in SSO_PROVIDERS");
+}
 
 export const servesApi = env.ROLE !== "worker";
 export const runsWorker = env.ROLE !== "api";

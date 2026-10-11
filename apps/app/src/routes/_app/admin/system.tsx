@@ -2,6 +2,8 @@ import {
   type MetricsWindow,
   metricsWindowSchema,
   type Percentiles,
+  type PublishingSettings,
+  publishingSettingsSchema,
   type RetentionSettings,
 } from "@necodoc/shared";
 import {
@@ -21,6 +23,7 @@ import { Button } from "@/components/ui/button";
 import { Field, FieldDescription, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { NativeSelect, NativeSelectOption } from "@/components/ui/native-select";
+import { Switch } from "@/components/ui/switch";
 import {
   Table,
   TableBody,
@@ -33,8 +36,9 @@ import { api, ok } from "@/lib/api";
 import { dayjs } from "@/lib/date";
 import { formatMs, sourceLabels } from "../generations/-generation-actions";
 
-// Spec: docs/features/render-queue-batch-jobs-and-scaling.md (Admin > System), and the retention
-// setting from docs/features/generation-log.md.
+// Spec: docs/features/render-queue-batch-jobs-and-scaling.md (Admin > System), the retention
+// setting from docs/features/generation-log.md, and the publishing settings from
+// docs/features/review-and-approval.md.
 
 const systemQuery = (window: MetricsWindow) =>
   queryOptions({
@@ -48,6 +52,26 @@ const retentionQuery = queryOptions({
   queryKey: ["system", "retention"],
   queryFn: async () => (await ok(api.system.retention.$get())).json(),
 });
+
+const publishingQuery = queryOptions({
+  queryKey: ["system", "publishing"],
+  queryFn: async () => (await ok(api.system.publishing.$get())).json(),
+});
+
+const publishingLabels: Record<keyof PublishingSettings, { label: string; description: string }> = {
+  requireReview: {
+    label: "Require review before publish",
+    description: "Only a draft matching an approved review can be published.",
+  },
+  allowSelfApproval: {
+    label: "Allow self-approval",
+    description: "Reviewers may approve drafts they submitted themselves.",
+  },
+  blockOnFailingTests: {
+    label: "Block publish when tests fail",
+    description: "Publishing runs the template's test cases and stops if one fails.",
+  },
+};
 
 const windowLabels = {
   "15m": "Last 15 minutes",
@@ -193,6 +217,7 @@ function System() {
         </>
       )}
 
+      <PublishingSection />
       <RetentionSection />
     </main>
   );
@@ -333,6 +358,44 @@ function RetentionForm({ saved }: { saved: RetentionSettings }) {
           Deleted {run.data.outputsDeleted} PDFs and {run.data.inputsDeleted} inputs.
         </p>
       )}
+    </section>
+  );
+}
+
+/** Each switch saves on change. */
+function PublishingSection() {
+  const queryClient = useQueryClient();
+  const settings = useQuery(publishingQuery);
+  const save = useMutation({
+    mutationFn: async (json: PublishingSettings) =>
+      (await ok(api.system.publishing.$put({ json }))).json(),
+    onSuccess: (data) => queryClient.setQueryData(publishingQuery.queryKey, data),
+  });
+  const current = settings.data;
+  return (
+    <section className="space-y-3 rounded-lg border p-4">
+      <div className="space-y-1">
+        <h2 className="font-medium">Publishing</h2>
+        <p className="text-sm text-muted-foreground">
+          Review and test gates for publishing template versions.
+        </p>
+      </div>
+      <ErrorAlert error={settings.error ?? save.error} />
+      {current &&
+        publishingSettingsSchema.keyof().options.map((key) => (
+          <Field key={key} orientation="horizontal">
+            <Switch
+              id={`publishing-${key}`}
+              checked={current[key]}
+              disabled={save.isPending}
+              onCheckedChange={(checked) => save.mutate({ ...current, [key]: checked })}
+            />
+            <div className="space-y-0.5">
+              <FieldLabel htmlFor={`publishing-${key}`}>{publishingLabels[key].label}</FieldLabel>
+              <FieldDescription>{publishingLabels[key].description}</FieldDescription>
+            </div>
+          </Field>
+        ))}
     </section>
   );
 }

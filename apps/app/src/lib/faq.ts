@@ -342,7 +342,7 @@ export const faq: readonly FaqEntry[] = [
   {
     feature: "Users and roles",
     group: "Admin",
-    what: "Admins create users, set their roles, reset passwords, ban, sign out and impersonate them. Roles add up: admin, publisher, reviewer, editor and viewer. A user with no roles is pending and can only see Settings.",
+    what: "Admins create users, set their roles, reset passwords, ban, sign out and impersonate them. Roles add up: admin, publisher, reviewer, editor and viewer. A user with no roles is pending and can only see Settings. The Sign-in column shows whether each person uses a password, single sign-on or both.",
     howTo: "Open Admin › Users.",
     limitations: [
       "There are no invite, verification or password-reset emails; share passwords yourself.",
@@ -351,6 +351,38 @@ export const faq: readonly FaqEntry[] = [
     ],
     access: [{ action: "Manage users", needs: "admin" }],
     spec: "docs/features/user-management-and-roles.md",
+  },
+  {
+    feature: "Single sign-on (Entra ID, Auth0, SiteMinder)",
+    group: "Admin",
+    what: "People sign in with their organisation's account over OIDC or SAML: Microsoft Entra ID, Auth0, SiteMinder or any other identity provider. The first sign-in creates their necodoc account. A role map turns IdP groups into necodoc roles and is re-applied at every sign-in; anyone in no mapped group is pending unless default roles are set. Email and password can be turned off. Admin › Users shows how each person signs in.",
+    howTo:
+      "The operator sets it in env: SSO_PROVIDERS plus SSO_<ID>_* settings per provider, then restarts. Step-by-step guides with both OIDC and SAML examples for Entra ID, Auth0 and SiteMinder (callback and ACS URLs, claims, role mapping, env vars) are in the developer docs: /self-hosting/sso/ (apps/devdocs/src/content/docs/self-hosting/sso.md).",
+    limitations: [
+      "An existing account with the same email isn't taken over; sign-in is refused unless the provider is set to link existing users.",
+      "With a role map, roles you set by hand are replaced at the person's next sign-in.",
+      "Signing out of necodoc doesn't sign out of the identity provider (no single logout).",
+      "Sign-in has to start from necodoc's login page; IdP portal tiles must link to it.",
+      "Providers change only through env and a restart, and SAML certificates have to be updated by hand when the IdP rotates them.",
+      "Service accounts can never sign in this way.",
+      "SSO sign-ins aren't in an audit log yet.",
+    ],
+    access: [{ action: "Configure (env, by the operator)", needs: "admin" }],
+    spec: "docs/features/single-sign-on.md",
+  },
+  {
+    feature: "Trusted-header sign-in (SiteMinder web agent)",
+    group: "Admin",
+    what: "For installs behind a SiteMinder web agent or similar proxy: necodoc believes a header such as SM_USER that names the signed-in user, but only on requests from the proxy's addresses. Accounts and roles work as for single sign-on. Off unless configured; the API logs a warning at every start while it's on.",
+    howTo:
+      "The operator adds a provider with TYPE=header, the header names and TRUSTED_PROXIES. Guide and checklist: /self-hosting/sso/#trusted-header-mode in the developer docs.",
+    limitations: [
+      "Anything that can reach necodoc from a trusted proxy address can sign in as anyone. Use SAML or OIDC where you can.",
+      "The proxy must strip these headers from client requests, and necodoc must not be reachable around it.",
+      "A necodoc session outlives the proxy's session until it expires or the person signs out.",
+    ],
+    access: [{ action: "Configure (env, by the operator)", needs: "admin" }],
+    spec: "docs/features/single-sign-on.md",
   },
   {
     feature: "Admin FAQ",

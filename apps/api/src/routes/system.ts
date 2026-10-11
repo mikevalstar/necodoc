@@ -4,6 +4,7 @@ import {
   type JobState,
   metricsWindows,
   type Percentiles,
+  publishingSettingsSchema,
   queueJobsQuerySchema,
   retentionSettingsSchema,
   systemQuerySchema,
@@ -17,6 +18,7 @@ import { env } from "../env";
 import { type AppEnv, requireRole } from "../middleware";
 import { announceFinished, boss } from "../queue";
 import { retentionSettings, runRetention, saveRetentionSettings } from "../retention";
+import { publishingSettings, savePublishingSettings } from "../review";
 import { storage } from "../storage";
 import { onlineSince } from "../worker";
 
@@ -132,6 +134,13 @@ export const systemRoutes = new Hono<AppEnv>()
     return c.json(await retentionSettings());
   })
   .post("/retention/run", async (c) => c.json(await runRetention()))
+  // docs/features/review-and-approval.md
+  .get("/publishing", async (c) => c.json(await publishingSettings()))
+  .put("/publishing", zValidator("json", publishingSettingsSchema), async (c) => {
+    // TODO(audit-log): record "settings.publishing.updated" with the old and new values.
+    await savePublishingSettings(c.req.valid("json"), c.get("user").id);
+    return c.json(await publishingSettings());
+  })
   .get("/queue", zValidator("query", queueJobsQuerySchema), async (c) => {
     const { state, queue, limit, offset } = c.req.valid("query");
     const where = sql.join(

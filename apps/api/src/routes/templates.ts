@@ -1,33 +1,26 @@
 import { zValidator } from "@hono/zod-validator";
 import {
-  type CompiledOverlay,
-  compileDesignedContent,
-  compiledSources,
   createTemplateSchema,
-  designedContentSchema,
   fieldErrors,
   generateFromTemplateSchema,
   hasPermission,
-  type OverlayContent,
-  overlayContentSchema,
   type Permissions,
   pageOptionsSchema,
   parseRoles,
   previewTemplateSchema,
   publishTemplateSchema,
   type RenderInput,
-  TemplateCompileError,
   templateDataSchema,
+  templateDiff,
   templateJsonSchema,
   updateTemplateSchema,
   versionParamSchema,
 } from "@necodoc/shared";
 import { and, desc, eq, isNotNull, isNull, max, sql } from "drizzle-orm";
 import { Hono } from "hono";
-import { LiquidError } from "liquidjs";
 import { z } from "zod";
 import { db } from "../db";
-import { pdfSource, template, templateVersion, theme, user } from "../db/schema";
+import { pdfSource, template, templateTestCase, templateVersion, theme, user } from "../db/schema";
 import { generate, renderPreview } from "../generate";
 import {
   type AppEnv,
@@ -35,8 +28,15 @@ import {
   requirePermission,
   type SignedInEnv,
 } from "../middleware";
-import { liquid, plainLiquid } from "../render/liquid";
-import { loadPartials, PartialError } from "../render/partials";
+import {
+  diffableDraft,
+  diffableVersion,
+  draftRenderInput,
+  publishSnapshot,
+  savedDraft,
+} from "../publish";
+import { approvedReview, closeReviewAsPublished, publishingSettings } from "../review";
+import { runTests } from "../template-tests";
 import { generationResponse, pdfHeaders } from "./http";
 
 // Specs: docs/features/document-templates.md, docs/features/publishing-and-versions.md,
@@ -45,7 +45,7 @@ import { generationResponse, pdfHeaders } from "./http";
 
 type SignedInUser = SignedInEnv["Variables"]["user"];
 
-const draftAccess: Permissions[] = [
+export const draftAccess: Permissions[] = [
   { document: ["edit"] },
   { document: ["review"] },
   { document: ["publish"] },
@@ -71,7 +71,7 @@ export const latest = db
   .groupBy(templateVersion.templateId)
   .as("latest");
 
-async function findDraft(id: string) {
+export async function findDraft(id: string) {
   const [row] = await db.select().from(template).where(eq(template.id, id));
   return row ?? null;
 }
@@ -105,34 +105,6 @@ async function sourceError(content: { sourceId: string } | undefined) {
     .from(pdfSource)
     .where(eq(pdfSource.id, content.sourceId));
   return row ? null : "The template's PDF doesn't exist; upload it again";
-}
-
-/** Checks every box's Liquid parses; the overlay's render input, minus data. */
-function compileOverlay(content: OverlayContent) {
-  for (const box of content.boxes) {
-    try {
-      plainLiquid.parse(box.value);
-    } catch (error) {
-      if (!(error instanceof LiquidError)) throw error;
-      return { error: `A box on page ${box.page}: ${error.message}` };
-    }
-  }
-  const compiled: CompiledOverlay = { kind: "overlay", ...content };
-  return { compiled };
-}
-
-/** Compiles the body and bands, checking the Liquid parses, so publish fails early. */
-function compileOrError(...args: Parameters<typeof compileDesignedContent>) {
-  try {
-    const compiled = compileDesignedContent(...args);
-    for (const part of compiledSources(compiled)) liquid.parse(part);
-    return { compiled };
-  } catch (error) {
-    if (error instanceof TemplateCompileError || error instanceof LiquidError) {
-      return { error: error.message };
-    }
-    throw error;
-  }
 }
 
 const versionSummaryColumns = {
@@ -273,33 +245,15 @@ export const templateRoutes = new Hono<AppEnv>()
       if (!saved) return c.json({ error: "Template not found" }, 404);
       const draft = body.draft ?? savedDraft(saved);
       if (!draft) return c.json({ error: "The saved draft's content doesn't match its kind" }, 422);
-      const data = body.data ?? draft.sampleData;
-      // Previews render even when the data doesn't fit yet; valid data gets show-ifs applied.
-      const parsed = templateDataSchema(draft.sections).safeParse(data);
-      const request = {
-        data: parsed.success ? parsed.data : data,
-        filename: saved.name,
-        preview: true,
-      };
-      let input: RenderInput;
-      if (draft.kind === "overlay") {
-        input = { kind: "overlay", ...draft.content, ...request };
-      } else {
-        const { compiled, error } = compileOrError(draft.content, draft.sections);
-        if (!compiled) return c.json({ error }, 422);
-        input = {
-          ...compiled,
-          ...(draft.themeId ? { themeId: draft.themeId } : {}),
-          page: draft.page,
-          ...request,
-        };
-      }
+      const built = draftRenderInput(draft, body.data ?? draft.sampleData, saved.name);
+      if (!built.input) return c.json({ error: built.error }, 422);
+      const { input, dataValid } = built;
       const result = await renderPreview(input);
       if (!result.ok) return c.json({ error: result.error }, 422);
       return c.body(result.pdf, 200, {
         ...pdfHeaders(result.filename),
         "X-Page-Count": String(result.pageCount),
-        "X-Data-Valid": String(parsed.success),
+        "X-Data-Valid": String(dataValid),
         // Overlay warnings (text cut, unknown form fields), URI-encoded JSON.
         "X-Render-Warnings": encodeURIComponent(JSON.stringify(result.warnings.slice(0, 20))),
       });
@@ -313,55 +267,55 @@ export const templateRoutes = new Hono<AppEnv>()
     async (c) => {
       const draft = await findDraft(c.req.valid("param").id);
       if (!draft) return c.json({ error: "Template not found" }, 404);
-      const typed = savedDraft(draft);
-      if (!typed) return c.json({ error: "The draft's content doesn't match its kind" }, 422);
-      const result =
-        typed.kind === "overlay"
-          ? compileOverlay(typed.content)
-          : compileOrError(typed.content, typed.sections);
-      if (!result.compiled) return c.json({ error: result.error }, 422);
-      let compiled = result.compiled;
-      if (!("kind" in compiled)) {
-        // Frozen with the version: later snippet edits don't change it.
-        try {
-          compiled = { ...compiled, partials: await loadPartials(compiledSources(compiled)) };
-        } catch (error) {
-          if (error instanceof PartialError) return c.json({ error: error.message }, 422);
-          throw error;
+      const built = await publishSnapshot(draft);
+      if (!built.snapshot) return c.json({ error: built.error }, 422);
+      const actor = c.get("user");
+      const settings = await publishingSettings();
+      const review = await approvedReview(draft.id, built.fingerprint);
+      if (settings.requireReview && !review) {
+        return c.json(
+          {
+            error:
+              "Publishing needs an approved review of this exact draft. Submit it for review, or resubmit if it changed since approval.",
+          },
+          409,
+        );
+      }
+      if (settings.blockOnFailingTests) {
+        const cases = await db
+          .select()
+          .from(templateTestCase)
+          .where(eq(templateTestCase.templateId, draft.id));
+        const failed = (await runTests(built.draft, draft.name, cases)).filter((r) => !r.passed);
+        if (failed.length) {
+          return c.json(
+            { error: `Tests failing: ${failed.map((r) => r.name).join(", ")}. Fix them first.` },
+            409,
+          );
         }
       }
-      const [themeRow] =
-        typed.kind === "designed" && draft.themeId
-          ? await db
-              .select({ settings: theme.settings, css: theme.css })
-              .from(theme)
-              .where(eq(theme.id, draft.themeId))
-          : [];
-      const {
-        id: templateId,
-        createdBy: _c,
-        createdAt: _ca,
-        updatedAt: _u,
-        archivedAt: _a,
-        ...snapshot
-      } = draft;
+      const templateId = draft.id;
+      const note = c.req.valid("json").note || null;
       const row = await db.transaction(async (tx) => {
         const [current] = await tx
           .select({ version: max(templateVersion.version) })
           .from(templateVersion)
           .where(eq(templateVersion.templateId, templateId));
+        const version = (current?.version ?? 0) + 1;
         const [inserted] = await tx
           .insert(templateVersion)
-          .values({
-            ...snapshot,
-            templateId,
-            version: (current?.version ?? 0) + 1,
-            theme: themeRow ?? null,
-            compiled,
-            note: c.req.valid("json").note || null,
-            publishedBy: c.get("user").id,
-          })
+          .values({ ...built.snapshot, templateId, version, note, publishedBy: actor.id })
           .returning({ id: templateVersion.id });
+        // TODO(audit-log): record "template.published" { templateId, version, approved review }.
+        if (inserted) {
+          await closeReviewAsPublished(tx, {
+            templateId,
+            fingerprint: built.fingerprint,
+            actorId: actor.id,
+            version,
+            versionId: inserted.id,
+          });
+        }
         return inserted;
       });
       const [summary] = row
@@ -370,6 +324,23 @@ export const templateRoutes = new Hono<AppEnv>()
       return c.json(summary, 201);
     },
   )
+  // Structural diff of the saved draft against the latest version (null before the first).
+  .get("/:id/diff", canSeeDrafts, idParam, async (c) => {
+    const { id } = c.req.valid("param");
+    const draft = await findDraft(id);
+    if (!draft) return c.json({ error: "Template not found" }, 404);
+    const after = await diffableDraft(draft);
+    if (!after) return c.json({ error: "The draft's content doesn't match its kind" }, 422);
+    const latestRow = await findVersion(c.get("user"), id, "latest");
+    const before = latestRow && diffableVersion(latestRow.version);
+    return c.json(
+      {
+        baseVersion: latestRow?.version.version ?? null,
+        diff: before ? templateDiff(before, after) : null,
+      },
+      200,
+    );
+  })
   .get("/:id/versions", canView, idParam, async (c) => {
     const { id } = c.req.valid("param");
     const draft = await findDraft(id);
@@ -453,19 +424,6 @@ export function versionRequest(
     filename,
     preview: false,
   };
-}
-
-/** The stored draft with its content checked against its kind (content is untyped jsonb). */
-function savedDraft(row: typeof template.$inferSelect) {
-  const { kind, sections, sampleData, themeId, page } = row;
-  if (kind === "overlay") {
-    const content = overlayContentSchema.safeParse(row.content);
-    return content.success ? { kind, sections, sampleData, content: content.data } : null;
-  }
-  const content = designedContentSchema.safeParse(row.content);
-  return content.success
-    ? { kind, sections, sampleData, themeId, page, content: content.data }
-    : null;
 }
 
 function selectVersionSummaries() {

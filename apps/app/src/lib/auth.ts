@@ -1,12 +1,20 @@
+import { ssoClient } from "@better-auth/sso/client";
 import { ac, roles } from "@necodoc/shared";
 import { queryOptions, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useNavigate, useRouter } from "@tanstack/react-router";
 import { adminClient } from "better-auth/client/plugins";
 import { createAuthClient } from "better-auth/react";
-import { api } from "./api";
+import { api, ok } from "./api";
 
 // Spec: docs/features/user-management-and-roles.md
-export const authClient = createAuthClient({ plugins: [adminClient({ ac, roles })] });
+export const authClient = createAuthClient({ plugins: [adminClient({ ac, roles }), ssoClient()] });
+
+/** Password on or off, and the SSO providers to offer (docs/features/single-sign-on.md). */
+export const signInOptionsQuery = queryOptions({
+  queryKey: ["sign-in-options"],
+  queryFn: async () => (await ok(api.sso.options.$get())).json(),
+  staleTime: Number.POSITIVE_INFINITY,
+});
 
 /** The signed-in user with parsed roles, or null when signed out. */
 async function fetchMe() {

@@ -1,8 +1,10 @@
 import { publishTemplateSchema, type TemplateSummary } from "@necodoc/shared";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { useNavigate } from "@tanstack/react-router";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { Link, useNavigate } from "@tanstack/react-router";
+import { useState } from "react";
 import { z } from "zod";
 import { ErrorAlert, useAppForm } from "@/components/form";
+import { TemplateDiffView } from "@/components/template-diff";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -24,8 +26,12 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { VisualDiff } from "@/components/visual-diff";
 import { api, ok } from "@/lib/api";
 import { templatesQuery } from "@/lib/queries";
+import { cn } from "@/lib/utils";
+import { ReviewStatusBadge, reviewStateQuery } from "./-review";
+import { TestResults, testCasesQuery, testRunQuery, testSummary } from "./-tests";
 
 // Specs: docs/features/document-templates.md, docs/features/publishing-and-versions.md.
 
@@ -137,22 +143,30 @@ export function DeleteTemplateDialog({
   );
 }
 
-/** Publishes the saved draft as version N+1, with an optional change note. */
+/**
+ * Publishes the saved draft as version N+1, with an optional change note. Shows what's being
+ * published: the review gate, test results, the structural diff and, on request, the visual diff.
+ */
 export function PublishDialog({
   template,
   onClose,
   onPublished,
 }: {
-  template: { id: string; name: string; latestVersion: number | null };
+  template: { id: string; name: string; latestVersion: number | null; updatedAt: string };
   onClose: () => void;
   onPublished: (version: number) => void;
 }) {
   const queryClient = useQueryClient();
+  const review = useQuery(reviewStateQuery(template.id));
+  const tests = useQuery(testRunQuery(template.id, template.updatedAt));
+  const cases = useQuery(testCasesQuery(template.id));
+  const [visual, setVisual] = useState(false);
   const publish = useMutation({
     mutationFn: async (json: { note?: string }) =>
       (await ok(api.templates[":id"].publish.$post({ param: { id: template.id }, json }))).json(),
     onSuccess: async (summary) => {
       await queryClient.invalidateQueries({ queryKey: ["templates"] });
+      await queryClient.invalidateQueries({ queryKey: ["reviews"] });
       onPublished(summary?.version ?? (template.latestVersion ?? 0) + 1);
     },
   });
@@ -162,9 +176,16 @@ export function PublishDialog({
     onSubmit: ({ value }) => publish.mutate({ note: value.note.trim() || undefined }),
   });
   const next = (template.latestVersion ?? 0) + 1;
+  const settings = review.data?.settings;
+  const summary = testSummary(tests.data?.results);
+  const blockedByReview = !!settings?.requireReview && !review.data?.approved;
+  const blockedByTests = !!settings?.blockOnFailingTests && !!summary && !summary.allPassed;
+  const current = review.data?.current;
   return (
     <Dialog open onOpenChange={(open) => !open && onClose()}>
-      <DialogContent>
+      <DialogContent
+        className={cn("max-h-[90svh] overflow-y-auto", visual ? "sm:max-w-5xl" : "sm:max-w-xl")}
+      >
         <form
           className="space-y-4"
           onSubmit={(e) => {
@@ -181,6 +202,68 @@ export function PublishDialog({
               use it; documents made from earlier versions don't change.
             </DialogDescription>
           </DialogHeader>
+          <section className="space-y-1">
+            <h3 className="text-sm font-medium">Review</h3>
+            <p className="text-sm">
+              {current ? (
+                <>
+                  <ReviewStatusBadge status={current.status} stale={current.stale} />{" "}
+                  <Link
+                    to="/templates/reviews/$reviewId"
+                    params={{ reviewId: current.id }}
+                    className="underline"
+                  >
+                    Open the review
+                  </Link>
+                </>
+              ) : (
+                <span className="text-muted-foreground">Not submitted for review.</span>
+              )}
+            </p>
+            {blockedByReview && (
+              <p className="text-sm text-destructive">
+                Review is required: this exact draft needs an approved review first.
+              </p>
+            )}
+          </section>
+          <section className="space-y-1">
+            <h3 className="text-sm font-medium">Tests</h3>
+            <p className="text-sm text-muted-foreground" role="status">
+              {tests.isFetching
+                ? "Running tests…"
+                : summary
+                  ? `${summary.passed} of ${summary.total} passing`
+                  : "No test cases."}
+            </p>
+            <ErrorAlert error={tests.error} />
+            {summary && !summary.allPassed && tests.data && (
+              <TestResults results={tests.data.results.filter((r) => !r.passed)} />
+            )}
+            {blockedByTests && (
+              <p className="text-sm text-destructive">Publishing is blocked while tests fail.</p>
+            )}
+          </section>
+          <section className="space-y-1">
+            <h3 className="text-sm font-medium">What changed</h3>
+            <TemplateDiffView id={template.id} compact />
+            {template.latestVersion !== null && (
+              <Button
+                type="button"
+                variant="outline"
+                size="xs"
+                onClick={() => setVisual((v) => !v)}
+              >
+                {visual ? "Hide visual diff" : "Show visual diff"}
+              </Button>
+            )}
+            {visual && (
+              <VisualDiff
+                templateId={template.id}
+                cases={cases.data ?? []}
+                draftUpdatedAt={template.updatedAt}
+              />
+            )}
+          </section>
           <form.AppField name="note">
             {(field) => (
               <field.TextareaField
@@ -193,7 +276,7 @@ export function PublishDialog({
           <ErrorAlert error={publish.error} />
           <DialogFooter>
             <DialogClose render={<Button type="button" variant="outline" />}>Cancel</DialogClose>
-            <Button type="submit" disabled={publish.isPending}>
+            <Button type="submit" disabled={publish.isPending || blockedByReview || blockedByTests}>
               {publish.isPending ? "Publishing…" : `Publish v${next}`}
             </Button>
           </DialogFooter>

@@ -26,6 +26,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { api, ok } from "@/lib/api";
 import { authClient, unwrap, useSessionChange, useUserMutation } from "@/lib/auth";
 import { dayjs } from "@/lib/date";
 import {
@@ -90,6 +91,14 @@ function Users() {
   const navigate = useNavigate({ from: Route.fullPath });
   const { me } = Route.useRouteContext();
   const users = useQuery(usersQuery(search));
+  const ids = users.data?.users.map((u) => u.id).join(",") ?? "";
+  // How each user signs in: password and/or SSO providers (docs/features/single-sign-on.md).
+  const methods = useQuery({
+    queryKey: ["admin", "sign-in-methods", ids],
+    queryFn: async () => (await ok(api.sso["sign-in-methods"].$get({ query: { ids } }))).json(),
+    enabled: ids !== "",
+    placeholderData: keepPreviousData,
+  });
   const [dialog, setDialog] = useState<Dialog | null>(null);
   const [query, setQuery] = useState(search.q ?? "");
   const [notice, setNotice] = useState<string | null>(null);
@@ -170,6 +179,7 @@ function Users() {
             <TableHead className="hidden sm:table-cell">Email</TableHead>
             <TableHead>Roles</TableHead>
             <TableHead>Status</TableHead>
+            <TableHead className="hidden lg:table-cell">Sign-in</TableHead>
             <TableHead className="hidden md:table-cell">Created</TableHead>
             <TableHead className="w-0">
               <span className="sr-only">Actions</span>
@@ -195,6 +205,15 @@ function Users() {
                 </TableCell>
                 <TableCell>
                   <UserStatus user={user} roles={roles} />
+                </TableCell>
+                <TableCell className="hidden lg:table-cell">
+                  <div className="flex flex-wrap gap-1">
+                    {methods.data?.[user.id]?.map((method) => (
+                      <Badge key={method} variant="secondary">
+                        {method}
+                      </Badge>
+                    ))}
+                  </div>
                 </TableCell>
                 <TableCell className="hidden md:table-cell">
                   {dayjs(user.createdAt).format("YYYY-MM-DD")}
@@ -255,7 +274,7 @@ function Users() {
           })}
           {users.data?.users.length === 0 && (
             <TableRow>
-              <TableCell colSpan={6} className="text-center text-muted-foreground">
+              <TableCell colSpan={7} className="text-center text-muted-foreground">
                 No users found.
               </TableCell>
             </TableRow>

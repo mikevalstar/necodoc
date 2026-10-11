@@ -41,4 +41,5 @@ Add one with `okq new adr "<title>"`.
 | Server-side PDF extraction and AI field detection as a queue job | [0028-server-side-pdf-extraction-and-ai-field-detection-as-a-queue-job.md](0028-server-side-pdf-extraction-and-ai-field-detection-as-a-queue-job.md) |
 | Service accounts and scoped API keys | [0029-service-accounts-and-scoped-api-keys.md](0029-service-accounts-and-scoped-api-keys.md) |
 | OpenAPI for the public API with hono-openapi | [0030-openapi-for-the-public-api-with-hono-openapi.md](0030-openapi-for-the-public-api-with-hono-openapi.md) |
+| Single sign-on with the Better Auth SSO plugin, configured from env | [0031-single-sign-on-with-the-better-auth-sso-plugin-configured-from-env.md](0031-single-sign-on-with-the-better-auth-sso-plugin-configured-from-env.md) |
 <!-- okq:index:end -->

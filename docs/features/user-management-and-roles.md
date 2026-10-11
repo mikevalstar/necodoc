@@ -56,7 +56,9 @@ are pending (below). Templates enforce the document permissions
 template features enforce them through the API's role/permission
 middleware ([middleware.ts](../../apps/api/src/middleware.ts)) as they ship;
 what each permission allows is in
-[Publishing and versions](publishing-and-versions.md). API keys act with their owner's roles,
+[Publishing and versions](publishing-and-versions.md); `document: review`
+also approves or requests changes in
+[Review and approval](review-and-approval.md). API keys act with their owner's roles,
 narrowed by their scopes
 ([ADR 0019](../adrs/0019-better-auth-api-keys-for-the-public-api.md),
 [ADR 0029](../adrs/0029-service-accounts-and-scoped-api-keys.md)).
@@ -70,6 +72,13 @@ Definitions: [packages/shared/src/roles.ts](../../packages/shared/src/roles.ts),
 - **First user is admin.** The first account registered gets the admin role.
 - **Everyone else starts pending.** Later sign-ups get no roles. They can sign
   in but see only a page telling them to ask an admin for access.
+- **Single sign-on** ([Single sign-on](single-sign-on.md)): the first SSO
+  sign-in creates the user (JIT). Their roles come from the provider's
+  group-to-role map, or its default roles, which are none (pending) unless the
+  operator sets them. With a role map, roles are re-synced from the IdP at
+  every sign-in. An IdP can't sign in as an existing account with the same
+  email unless the operator allows linking for that provider. Password sign-in
+  can be turned off.
 - **No email.** There is no email verification and no "forgot password" link.
   Admins set and reset passwords.
 - **Sign-in and pending.** [Login](../../apps/app/src/routes/login.tsx) and
@@ -79,7 +88,8 @@ Definitions: [packages/shared/src/roles.ts](../../packages/shared/src/roles.ts),
 - **Admin > Users** ([users.tsx](../../apps/app/src/routes/_app/admin/users.tsx),
   [actions](../../apps/app/src/routes/_app/admin/-user-dialogs.tsx)), shown in the
   nav only to admins:
-  - list and search users (search is case-sensitive)
+  - list and search users (search is case-sensitive), with how each signs in
+    (password, SSO providers)
   - assign and remove roles (several at once)
   - ban with a reason, and unban
   - revoke a user's sessions

@@ -1,10 +1,10 @@
 import { apiKey } from "@better-auth/api-key";
-import { API_KEY_PREFIX, ac, parseRoles, roles } from "@necodoc/shared";
+import { API_KEY_PREFIX, ac, roles } from "@necodoc/shared";
 import { betterAuth } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { APIError, createAuthMiddleware, getSessionFromCtx } from "better-auth/api";
 import { admin } from "better-auth/plugins";
-import { and, eq, isNull, like, or } from "drizzle-orm";
+import { eq } from "drizzle-orm";
 import {
   adminChange,
   adminGuardError,
@@ -15,31 +15,21 @@ import {
 import { db } from "./db";
 import { user } from "./db/schema";
 import { env } from "./env";
-
-// Unbanned users holding admin. The LIKE only narrows; parseRoles decides.
-async function activeAdminIds() {
-  const admins = await db
-    .select({ id: user.id, role: user.role })
-    .from(user)
-    .where(and(like(user.role, "%admin%"), or(isNull(user.banned), eq(user.banned, false))));
-  return new Set(admins.filter((a) => parseRoles(a.role).includes("admin")).map((a) => a.id));
-}
-
-async function isServiceAccount(id: string) {
-  const [row] = await db
-    .select({ serviceAccount: user.serviceAccount })
-    .from(user)
-    .where(eq(user.id, id));
-  return row?.serviceAccount === true;
-}
+import { ssoDisabledPaths, ssoPlugins, ssoTrustedOrigins } from "./sso";
+import { activeAdminIds, isServiceAccount } from "./users";
 
 // Specs: docs/features/user-management-and-roles.md, docs/features/user-preferences.md
 export const auth = betterAuth({
-  database: drizzleAdapter(db, { provider: "pg" }),
+  // Transactions: the SSO plugin's resolveUser runs inside one (ADR 0031).
+  database: drizzleAdapter(db, { provider: "pg", transaction: true }),
   secret: env.BETTER_AUTH_SECRET,
   baseURL: env.BETTER_AUTH_URL,
+  trustedOrigins: ssoTrustedOrigins,
+  // Failed SSO callbacks land on the login page, which shows the error.
+  onAPIError: { errorURL: `${env.BETTER_AUTH_URL.replace(/\/$/, "")}/login` },
   // No email provider yet: no verification, no reset-by-email. Admins set passwords.
-  emailAndPassword: { enabled: true },
+  // ADR 0031: off for SSO-only installs.
+  emailAndPassword: { enabled: env.AUTH_PASSWORD_ENABLED },
   // ADR 0029: keys are created and changed only through routes/api-keys.ts, which call the
   // plugin server-side; its own HTTP endpoints would bypass scopes and revocation.
   disabledPaths: [
@@ -48,6 +38,7 @@ export const auth = betterAuth({
     "/api-key/delete",
     "/api-key/get",
     "/api-key/list",
+    ...ssoDisabledPaths,
   ],
   user: {
     additionalFields: {
@@ -82,6 +73,7 @@ export const auth = betterAuth({
       rateLimit: { enabled: true, timeWindow: 60_000, maxRequests: 120 },
       enableSessionForAPIKeys: false,
     }),
+    ...ssoPlugins,
   ],
   databaseHooks: {
     // Service accounts never get a session: not by password (they have none), not by

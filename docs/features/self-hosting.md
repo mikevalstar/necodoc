@@ -37,10 +37,12 @@ data lives, and how to get it back.
   [ADR 0023](../adrs/0023-generated-outputs-in-object-storage.md); disk needs
   a volume every API and worker shares.
 - **Upgrades** are explicit: new image tag, run migrations, roll pods.
+- **Sign-in** is email and password, single sign-on through the customer's
+  IdP, or both, set in env ([Single sign-on](single-sign-on.md)).
 - **Health:** liveness and readiness endpoints for load balancers and
   orchestrators; readiness fails without the database, the queue or storage.
 - **Operator documentation** (env reference, scaling, storage, backups and
-  DR, upgrades) is in the developer docs site
+  DR, upgrades, SSO setup) is in the developer docs site
   ([ADR 0026](../adrs/0026-astro-starlight-for-the-developer-docs-site.md)),
   [self-hosting section](../../apps/devdocs/src/content/docs/self-hosting).
 

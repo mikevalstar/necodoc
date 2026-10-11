@@ -3,6 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { createFileRoute, Link, Outlet, redirect, useLocation } from "@tanstack/react-router";
 import { ChevronDownIcon } from "lucide-react";
 import { Logo } from "@/components/logo";
+import { NotificationBell } from "@/components/notifications";
 import { RoleBadges } from "@/components/role-badges";
 import { Button } from "@/components/ui/button";
 import {
@@ -86,7 +87,8 @@ function AppShell() {
             </>
           )}
           {isAdmin && <AdminMenu />}
-          <div className="ml-auto">
+          <div className="ml-auto flex items-center gap-1">
+            {me.user.roles.length > 0 && <NotificationBell />}
             <UserMenu me={me} />
           </div>
         </nav>

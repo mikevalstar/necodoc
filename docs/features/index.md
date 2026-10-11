@@ -25,10 +25,13 @@ Add one with `okq new feature "<title>"`.
 | PDF overlay templates | [pdf-overlay-templates.md](pdf-overlay-templates.md) |
 | Publishing and versions | [publishing-and-versions.md](publishing-and-versions.md) |
 | Render queue, batch jobs and scaling | [render-queue-batch-jobs-and-scaling.md](render-queue-batch-jobs-and-scaling.md) |
+| Review and approval | [review-and-approval.md](review-and-approval.md) |
 | Self-hosting | [self-hosting.md](self-hosting.md) |
 | Share links and data requests | [share-links-and-data-requests.md](share-links-and-data-requests.md) |
+| Single sign-on | [single-sign-on.md](single-sign-on.md) |
 | Snippet library | [snippet-library.md](snippet-library.md) |
 | Template fields and guided form | [template-fields-and-guided-form.md](template-fields-and-guided-form.md) |
+| Template test cases and visual diff | [template-test-cases-and-visual-diff.md](template-test-cases-and-visual-diff.md) |
 | User management and roles | [user-management-and-roles.md](user-management-and-roles.md) |
 | User preferences | [user-preferences.md](user-preferences.md) |
 | Webhooks | [webhooks.md](webhooks.md) |

@@ -46,10 +46,19 @@ document permissions in
   to the theme or snippets don't touch it. Publishing fails if the content
   doesn't compile or its Liquid doesn't parse.
 - A publisher can add a change note when publishing.
+- **Review.** Editors can submit the draft for review; an admin setting makes
+  an approved, unchanged review a condition for publishing
+  ([Review and approval](review-and-approval.md)). The publish dialog shows
+  the review state, test results and the visual diff
+  ([Template test cases and visual diff](template-test-cases-and-visual-diff.md)).
 - **Version history.** List versions with publisher, date and note; preview any
   version; start a new draft from an old version.
 - **Diff.** Show what changed between the draft and the latest version: fields
-  added, removed or changed, and content changed.
+  added, removed or changed, sections, content blocks, header/footer, CSS, page
+  setup, theme and overlay boxes. One shared function
+  ([template-diff.ts](../../packages/shared/src/template-diff.ts)) feeds the
+  review page, the publish dialog and AI version summaries
+  ([AI template assistant](ai-template-assistant.md)).
 - **Archive** hides a template from the fill list and the API. Its versions
   stay for history and re-runs. Restore reverses it. A template with published
   versions can't be deleted, only archived.
@@ -69,17 +78,19 @@ document permissions in
       output.
 - [ ] Only published, non-archived templates appear in the fill list.
 - [ ] The diff lists added, removed and changed fields.
+- [ ] With review required, only a draft matching an approved review can be
+      published.
 
 ## Known limitations
 
 - One draft per template. Two editors on the same draft overwrite each other;
   the last save wins, and the app warns when the draft changed since it was
   opened.
-- Review is not a gate. No approval step before publishing yet.
-- The content diff is textual, not visual.
+- Review is a gate only when the admin setting is on, and the setting is
+  global, not per template.
 - Previewing an old version in the editor renders it with the current theme;
   the published version itself keeps its frozen theme.
 
 ## Open questions
 
-- Should publishing require a reviewer's approval when the template opts in?
+- Should review be required per template instead of globally?

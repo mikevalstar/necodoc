@@ -33,7 +33,7 @@ A blank editor is the slowest part of authoring. GhostDraft authors start from W
 - **Errors** (refusal, invalid tool call, provider error) show in the chat and change nothing.
 - **Summaries.** A template's description and a version's publish note are written by people and can be drafted by AI:
   - *Template summary:* "Suggest with AI" next to the description drafts a plain-language summary from the fields and content (what the document is, who fills it, key conditions).
-  - *Version summary:* in the publish dialog, "Suggest with AI" drafts the note from the diff against the previous version (fields added/removed/changed, content and header/footer changes, page or theme changes). On the first version it summarises the template.
+  - *Version summary:* in the publish dialog, "Suggest with AI" drafts the note from the diff against the previous version (fields added/removed/changed, content and header/footer changes, page or theme changes), computed by the shared structural diff ([template-diff.ts](../../packages/shared/src/template-diff.ts)) that review also uses. On the first version it summarises the template.
   - The draft lands in the text box for the author to edit; nothing is saved until they save or publish. Existing versions without a note can get one drafted and saved by a user with publish permission.
   - The versions list shows each note, so the history reads as a changelog.
 - **On/off:** AI features exist only when `ANTHROPIC_KEY` is set. Without it, the panel and every other AI control are absent and the AI routes return 404.

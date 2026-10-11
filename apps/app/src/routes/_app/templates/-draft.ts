@@ -6,9 +6,21 @@ import {
   type PageOptions,
   previewTemplateSchema,
   type Template,
+  templateSchema,
 } from "@necodoc/shared";
+import { queryOptions } from "@tanstack/react-query";
 import type { JSONContent } from "@tiptap/core";
 import type { z } from "zod";
+import { api, ok } from "@/lib/api";
+
+/** The saved draft, for editors, reviewers and publishers. */
+export const templateQuery = (id: string) =>
+  queryOptions({
+    queryKey: ["templates", id],
+    // Parsed so `kind` narrows `content` (jsonb comes back untyped by kind).
+    queryFn: async () =>
+      templateSchema.parse(await (await ok(api.templates[":id"].$get({ param: { id } }))).json()),
+  });
 
 // The draft as the editor holds it. TipTap hands back loose JSON, so docs stay JSONContent
 // until a save or preview checks them against docSchema (packages/shared/src/template-doc.ts).

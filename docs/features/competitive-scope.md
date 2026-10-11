@@ -77,8 +77,9 @@ anything we skip has a reason.
 
 - Competitor features come from their marketing pages and docs, not hands-on
   use. Recheck before relying on a row.
-- GhostDraft's approval workflows are ahead of ours: review is not a gate yet
-  ([Publishing and versions](publishing-and-versions.md)).
+- GhostDraft's approval workflows are ahead of ours: we have one global
+  review gate with one open review per template, no multi-step or assigned
+  approvals ([Review and approval](review-and-approval.md)).
 
 ## Acceptance criteria
 

@@ -11,13 +11,17 @@ import { batchRoutes, templateBatchRoutes } from "./routes/batches";
 import { fileRoutes } from "./routes/files";
 import { generationRoutes } from "./routes/generations";
 import { healthRoutes } from "./routes/health";
+import { notificationRoutes } from "./routes/notifications";
 import { pdfSourceRoutes } from "./routes/pdf-sources";
 import { renderRoutes } from "./routes/render";
+import { reviewRoutes } from "./routes/reviews";
 import { serviceAccountRoutes } from "./routes/service-accounts";
 import { publicShareRoutes, shareLinkRoutes } from "./routes/share-links";
 import { snippetRoutes } from "./routes/snippets";
+import { ssoRoutes } from "./routes/sso";
 import { submissionRoutes } from "./routes/submissions";
 import { systemRoutes } from "./routes/system";
+import { templateTestRoutes } from "./routes/template-tests";
 import { templateRoutes } from "./routes/templates";
 import { themeRoutes } from "./routes/themes";
 import { v1Routes } from "./routes/v1";
@@ -48,6 +52,7 @@ app.use(
 
 const routes = app
   .route("/health", healthRoutes)
+  .route("/sso", ssoRoutes)
   .get("/me", (c) => {
     const user = c.get("user");
     if (!user) return c.json({ error: "Unauthorized" }, 401);
@@ -64,6 +69,9 @@ const routes = app
   .route("/generations", generationRoutes)
   .route("/templates", templateRoutes)
   .route("/templates", templateBatchRoutes)
+  .route("/templates", templateTestRoutes)
+  .route("/reviews", reviewRoutes)
+  .route("/notifications", notificationRoutes)
   .route("/snippets", snippetRoutes)
   .route("/pdf-sources", pdfSourceRoutes)
   .route("/batches", batchRoutes)
