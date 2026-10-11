@@ -283,6 +283,8 @@ export const generation = pgTable(
     index().on(t.status, t.queuedAt),
     index().on(t.source, t.queuedAt),
     index().on(t.apiKeyId, t.queuedAt),
+    // The self-reference's ON DELETE SET NULL scans for re-runs of every deleted row.
+    index().on(t.rerunOfId),
     // Free-text search (`q`): substring matches need trigrams (migration enables pg_trgm).
     index("generation_filename_trgm_index").using("gin", t.filename.op("gin_trgm_ops")),
     index("generation_error_trgm_index").using("gin", t.error.op("gin_trgm_ops")),

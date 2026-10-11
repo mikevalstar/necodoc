@@ -14,7 +14,8 @@ generated: { by: okq/0.9.0, at: 2026-10-11T23:40:09Z }
 Charts and tables over the data necodoc already records: the
 [generation log](generation-log.md), the [audit log](audit-log.md), share-link
 submissions and the user list. Admins see everyone; every user gets a
-"My usage" view of their own.
+"My usage" view of their own. API: [routes/analytics.ts](../../apps/api/src/routes/analytics.ts);
+charts: [ADR 0034](../adrs/0034-hand-rolled-svg-charts.md).
 
 ## Motivation
 
@@ -69,12 +70,12 @@ product. Users want to see what they've produced.
 
 ## Acceptance criteria
 
-- [ ] Admins see Documents and Auth & access; non-admins get 403 from the admin analytics API and don't see the pages.
-- [ ] Any user with a role sees My usage, scoped to their own data.
-- [ ] Date range and filters apply to every chart on the page and are kept in the URL.
-- [ ] Each chart has a table view and a CSV download, and links into the generation or audit log with matching filters.
-- [ ] Charts read in light and dark mode, with a legend for two or more series and a tooltip on hover.
-- [ ] Each endpoint answers in under a second with 100k generations and 20k sign-in events over 60 days.
+- [x] Admins see Documents and Auth & access; non-admins get 403 from the admin analytics API and don't see the pages.
+- [x] Any user with a role sees My usage, scoped to their own data.
+- [x] Date range and filters apply to every chart on the page and are kept in the URL.
+- [x] Each chart has a table view and a CSV download, and links into the generation or audit log with matching filters.
+- [x] Charts read in light and dark mode, with a legend for two or more series and a tooltip on hover.
+- [x] Each endpoint answers in under a second with 100k generations and 20k sign-in events over 60 days.
 
 ## Known limitations
 
