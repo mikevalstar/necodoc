@@ -1,4 +1,4 @@
-import type { Field, FieldSection, GroupField, ScalarField } from "@necodoc/shared";
+import type { Field, FieldSection, GroupField, ScalarField, Signer } from "@necodoc/shared";
 import type { ResolvedPos } from "@tiptap/pm/model";
 import { createContext, useContext } from "react";
 
@@ -10,9 +10,15 @@ export type EditorFields = {
   sections: readonly FieldSection[];
   /** Header and footer editors also offer the page tokens. */
   band: boolean;
+  /** The template's signers, for sign boxes (docs/features/signing-packages.md). */
+  signers: readonly Signer[];
 };
 
-export const EditorFieldsContext = createContext<EditorFields>({ sections: [], band: false });
+export const EditorFieldsContext = createContext<EditorFields>({
+  sections: [],
+  band: false,
+  signers: [],
+});
 
 export const useEditorFields = () => useContext(EditorFieldsContext);
 

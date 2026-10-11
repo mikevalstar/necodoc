@@ -42,6 +42,7 @@ export function BodyPanel({ content, onChange, sections, editable }: Props) {
       value={content.body}
       onChange={(body) => onChange({ ...content, body })}
       sections={sections}
+      signers={content.signers}
       editable={editable}
       className="min-h-[60svh]"
     />

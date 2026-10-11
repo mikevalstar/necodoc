@@ -87,6 +87,230 @@
           "pdfPath"
         ]
       },
+      "SigningPackage": {
+        "type": "object",
+        "properties": {
+          "signers": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Signer"
+            }
+          },
+          "boxes": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SigningBox"
+            }
+          },
+          "pages": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "width": {
+                  "type": "number"
+                },
+                "height": {
+                  "type": "number"
+                }
+              },
+              "required": ["width", "height"]
+            }
+          },
+          "anchors": {
+            "type": "boolean"
+          },
+          "warnings": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "generationId": {
+            "type": "string",
+            "format": "uuid",
+            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+          },
+          "filename": {
+            "type": "string"
+          },
+          "pageCount": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
+          },
+          "pdfUrl": {
+            "type": "string",
+            "format": "uri",
+            "description": "Signed; works without a key for 1 hour."
+          },
+          "pdfPath": {
+            "type": "string",
+            "description": "`/api/v1/generations/{id}/pdf`, with a key."
+          },
+          "formats": {
+            "type": "object",
+            "properties": {
+              "docusign": {
+                "description": "DocuSign eSignature v2.1 envelope definition: POST it to /restapi/v2.1/accounts/{accountId}/envelopes.",
+                "type": "object",
+                "properties": {},
+                "additionalProperties": {}
+              },
+              "dropbox_sign": {
+                "description": "Dropbox Sign `signers` and `form_fields_per_document` for /signature_request/send.",
+                "type": "object",
+                "properties": {},
+                "additionalProperties": {}
+              },
+              "adobe_sign": {
+                "description": "Adobe Acrobat Sign `participantSetsInfo` (POST /agreements) and `formFields` (PUT /agreements/{id}/formFields).",
+                "type": "object",
+                "properties": {},
+                "additionalProperties": {}
+              }
+            },
+            "description": "Provider JSON, as asked for in `formats`."
+          }
+        },
+        "required": [
+          "signers",
+          "boxes",
+          "pages",
+          "anchors",
+          "warnings",
+          "generationId",
+          "filename",
+          "pageCount",
+          "pdfUrl",
+          "pdfPath",
+          "formats"
+        ],
+        "description": "The PDF's signers and sign boxes, for an e-sign provider."
+      },
+      "Signer": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "maxLength": 64,
+            "pattern": "^[a-z][a-z0-9_]*$"
+          },
+          "role": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 100
+          },
+          "routingOrder": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
+          },
+          "name": {
+            "type": "string"
+          },
+          "email": {
+            "type": "string"
+          }
+        },
+        "required": ["id", "role", "routingOrder", "name", "email"],
+        "description": "A signer, with name and email rendered from the data."
+      },
+      "SigningBox": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "signerId": {
+            "type": "string"
+          },
+          "kind": {
+            "type": "string",
+            "enum": ["signature", "initials", "date_signed", "full_name", "text"]
+          },
+          "required": {
+            "type": "boolean"
+          },
+          "page": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 9007199254740991
+          },
+          "rect": {
+            "type": "object",
+            "properties": {
+              "x": {
+                "type": "number"
+              },
+              "y": {
+                "type": "number"
+              },
+              "width": {
+                "type": "number"
+              },
+              "height": {
+                "type": "number"
+              }
+            },
+            "required": ["x", "y", "width", "height"],
+            "description": "PDF points in the page's user space, origin bottom-left (what pdf-lib uses)."
+          },
+          "topLeft": {
+            "type": "object",
+            "properties": {
+              "x": {
+                "type": "number"
+              },
+              "y": {
+                "type": "number"
+              },
+              "width": {
+                "type": "number"
+              },
+              "height": {
+                "type": "number"
+              }
+            },
+            "required": ["x", "y", "width", "height"],
+            "description": "Points (pixels at 72 dpi) from the top-left of the page as displayed (DocuSign, Dropbox Sign, Adobe Sign)."
+          },
+          "normalized": {
+            "type": "object",
+            "properties": {
+              "x": {
+                "type": "number"
+              },
+              "y": {
+                "type": "number"
+              },
+              "width": {
+                "type": "number"
+              },
+              "height": {
+                "type": "number"
+              }
+            },
+            "required": ["x", "y", "width", "height"],
+            "description": "Fractions (0..1) of the displayed page, origin top-left."
+          },
+          "anchorString": {
+            "description": "Invisible text at the box's top-left corner, for anchor-based tab placement. Null when the PDF has none.",
+            "type": ["string", "null"]
+          }
+        },
+        "required": [
+          "id",
+          "signerId",
+          "kind",
+          "required",
+          "page",
+          "rect",
+          "topLeft",
+          "normalized",
+          "anchorString"
+        ]
+      },
       "PendingGeneration": {
         "type": "object",
         "properties": {
@@ -259,6 +483,42 @@
               "type": "string"
             }
           },
+          "signers": {
+            "maxItems": 50,
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "maxLength": 64,
+                  "pattern": "^[a-z][a-z0-9_]*$"
+                },
+                "role": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 100
+                },
+                "routingOrder": {
+                  "default": 1,
+                  "type": "integer",
+                  "minimum": 1,
+                  "maximum": 100
+                },
+                "name": {
+                  "default": "",
+                  "type": "string",
+                  "maxLength": 1000
+                },
+                "email": {
+                  "default": "",
+                  "type": "string",
+                  "maxLength": 1000
+                }
+              },
+              "required": ["id", "role"]
+            }
+          },
           "response": {
             "default": "pdf",
             "description": "`pdf` returns the bytes; `json` returns the generation and a link.",
@@ -269,10 +529,52 @@
             "default": false,
             "description": "Answer 202 with the generation id at once instead of waiting.",
             "type": "boolean"
+          },
+          "signing": {
+            "$ref": "#/components/schemas/SigningOptions"
           }
         },
         "required": ["html"],
         "description": "HTML (Liquid allowed) to render as a PDF."
+      },
+      "SigningOptions": {
+        "anyOf": [
+          {
+            "type": "boolean",
+            "const": true
+          },
+          {
+            "type": "object",
+            "properties": {
+              "formats": {
+                "default": ["docusign"],
+                "description": "Provider JSON to include.",
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "enum": ["docusign", "dropbox_sign", "adobe_sign"]
+                }
+              },
+              "anchors": {
+                "default": true,
+                "description": "Keep the invisible anchor text in the PDF. `false` costs one more Chromium pass.",
+                "type": "boolean"
+              },
+              "embedPdf": {
+                "default": true,
+                "description": "Put the PDF in provider JSON as base64 (DocuSign `documentBase64`).",
+                "type": "boolean"
+              },
+              "placement": {
+                "default": "position",
+                "description": "DocuSign tabs by page coordinates, or by anchor string.",
+                "type": "string",
+                "enum": ["position", "anchor"]
+              }
+            }
+          }
+        ],
+        "description": "Answer with a signing package (JSON) instead of the PDF. `true`: DocuSign JSON, anchors kept, PDF embedded."
       },
       "Template": {
         "type": "object",
@@ -478,6 +780,9 @@
             "description": "`pdf` returns the bytes; `json` returns the generation and a link.",
             "type": "string",
             "enum": ["pdf", "json"]
+          },
+          "signing": {
+            "$ref": "#/components/schemas/SigningOptions"
           }
         },
         "description": "Data for a published template version."
@@ -947,7 +1252,7 @@
         },
         "responses": {
           "200": {
-            "description": "Rendered. `response: pdf` (default) returns the bytes; `response: json` returns the generation.",
+            "description": "Rendered. `response: pdf` (default) returns the bytes; `response: json` returns the generation. With `signing`, the signing package.",
             "headers": {
               "X-Generation-Id": {
                 "description": "The generation log entry.",
@@ -971,7 +1276,14 @@
               },
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/GenerationResult"
+                  "anyOf": [
+                    {
+                      "$ref": "#/components/schemas/GenerationResult"
+                    },
+                    {
+                      "$ref": "#/components/schemas/SigningPackage"
+                    }
+                  ]
                 }
               }
             }
@@ -1314,7 +1626,7 @@
         },
         "responses": {
           "200": {
-            "description": "Rendered. `response: pdf` (default) returns the bytes; `response: json` returns the generation.",
+            "description": "Rendered. `response: pdf` (default) returns the bytes; `response: json` returns the generation. With `signing`, the signing package.",
             "headers": {
               "X-Generation-Id": {
                 "description": "The generation log entry.",
@@ -1338,7 +1650,14 @@
               },
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/GenerationResult"
+                  "anyOf": [
+                    {
+                      "$ref": "#/components/schemas/GenerationResult"
+                    },
+                    {
+                      "$ref": "#/components/schemas/SigningPackage"
+                    }
+                  ]
                 }
               }
             }
@@ -2135,6 +2454,134 @@
               "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
             },
             "required": true
+          }
+        ]
+      }
+    },
+    "/generations/{id}/signing-package": {
+      "get": {
+        "operationId": "getGenerationsByIdSigningPackage",
+        "tags": ["Generations"],
+        "summary": "Get a generation's signing package",
+        "description": "Signers, sign box positions and provider JSON (DocuSign, Dropbox Sign, Adobe Acrobat Sign) for handing the PDF to an e-sign service. Empty for documents without signers or sign boxes.",
+        "responses": {
+          "200": {
+            "description": "The signing package.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SigningPackage"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, unknown, revoked or expired key, or the key's account is disabled.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The key lacks the scope, role, template or source address this call needs.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found, or not yours.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Invalid request or data; `fieldErrors` lists each.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limit exceeded.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds until the key may call again.",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+            },
+            "required": true
+          },
+          {
+            "in": "query",
+            "name": "formats",
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "enum": ["docusign", "dropbox_sign", "adobe_sign"]
+                },
+                {
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "enum": ["docusign", "dropbox_sign", "adobe_sign"]
+                  }
+                }
+              ]
+            },
+            "description": "Provider JSON to include (default `docusign`). Repeat for several."
+          },
+          {
+            "in": "query",
+            "name": "embedPdf",
+            "schema": {
+              "type": "string",
+              "enum": ["true", "false"]
+            },
+            "description": "Put the PDF in provider JSON as base64 (default `true`)."
+          },
+          {
+            "in": "query",
+            "name": "placement",
+            "schema": {
+              "type": "string",
+              "enum": ["position", "anchor"]
+            },
+            "description": "DocuSign tabs by page coordinates (default) or anchor string."
           }
         ]
       }

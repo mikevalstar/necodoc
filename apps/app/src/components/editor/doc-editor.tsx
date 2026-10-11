@@ -1,4 +1,4 @@
-import type { FieldSection } from "@necodoc/shared";
+import type { FieldSection, Signer } from "@necodoc/shared";
 import type { Editor, JSONContent } from "@tiptap/core";
 import { Table, TableCell, TableHeader, TableRow } from "@tiptap/extension-table";
 import TextAlign from "@tiptap/extension-text-align";
@@ -15,6 +15,7 @@ import {
   ListIcon,
   ListOrderedIcon,
   MinusIcon,
+  PenLineIcon,
   PuzzleIcon,
   QuoteIcon,
   RepeatIcon,
@@ -37,6 +38,7 @@ import {
   valueChoices,
 } from "./merge-field";
 import { RawHtml } from "./raw-html";
+import { newSignBox, SignBox } from "./sign-box";
 import { type InsertItem, SlashCommand, SlashMenu } from "./slash";
 import { SnippetBlock, SnippetPicker } from "./snippet";
 import { ConditionalSection, PageBreak, RepeatingSection } from "./structure";
@@ -87,6 +89,8 @@ const RepeatableRow = TableRow.extend({
   },
 });
 
+const NO_SIGNERS: readonly Signer[] = [];
+
 /** Must match markSchema's link href rule. */
 const LINK = /^(https?:|mailto:|tel:|#)/i;
 
@@ -116,6 +120,7 @@ function extensions(menu: SlashMenu, items: () => InsertItem[], placeholder: str
     DocImage,
     RawHtml,
     SnippetBlock,
+    SignBox,
     Placeholder.configure({ placeholder }),
     SlashCommand.configure({ menu, items }),
   ];
@@ -130,6 +135,7 @@ export function DocEditor({
   placeholder = "Write, or type / to insert a field, table or section…",
   className,
   snippetId,
+  signers,
 }: {
   /** The starting content. Later changes to it are ignored; remount (key) to load new content. */
   value: JSONContent;
@@ -142,6 +148,8 @@ export function DocEditor({
   className?: string;
   /** Set when editing a snippet: the picker leaves it out, so it can't include itself. */
   snippetId?: string;
+  /** The template's signers; set only where sign boxes can go (a template body). */
+  signers?: readonly Signer[];
 }) {
   const [menu] = useState(() => new SlashMenu());
   const [snippetOpen, setSnippetOpen] = useState(false);
@@ -252,12 +260,29 @@ export function DocEditor({
           .run(),
     },
     { title: "Snippet", icon: PuzzleIcon, run: () => setSnippetOpen(true) },
+    ...(signers
+      ? [
+          {
+            title: "Sign box",
+            icon: PenLineIcon,
+            run: (e: Editor) =>
+              e
+                .chain()
+                .focus()
+                .insertContent({ type: "signBox", attrs: newSignBox(signers[0]?.id ?? "") })
+                .run(),
+          },
+        ]
+      : []),
     { title: "Divider", icon: MinusIcon, run: (e) => e.chain().focus().setHorizontalRule().run() },
   ];
   items.current = insertItems;
 
   const slash = useSyncExternalStore(menu.subscribe, menu.get);
-  const context = useMemo(() => ({ sections, band }), [sections, band]);
+  const context = useMemo(
+    () => ({ sections, band, signers: signers ?? NO_SIGNERS }),
+    [sections, band, signers],
+  );
 
   return (
     <EditorFieldsContext.Provider value={context}>

@@ -8,7 +8,9 @@ import {
   type OverlayBoxType,
   overlayBoxSchema,
   overlayBoxTypes,
-  signingKindSchema,
+  type Signer,
+  signingKindLabels,
+  signingKinds,
   type TextStyle,
 } from "@necodoc/shared";
 import { useQuery } from "@tanstack/react-query";
@@ -36,12 +38,6 @@ export const boxTypeLabels: Record<OverlayBoxType, string> = {
   barcode: "Barcode",
 };
 
-const signingKindLabels = {
-  signature: "Signature",
-  initials: "Initials",
-  date_signed: "Date signed",
-};
-
 /** Changing type keeps where the box is, its value and its form field; type options reset. */
 const retype = (box: OverlayBox, type: OverlayBoxType) =>
   overlayBoxSchema.parse({
@@ -63,6 +59,7 @@ export function BoxInspector({
   box,
   pages,
   sections,
+  signers,
   acroFields,
   editable,
   onChange,
@@ -73,6 +70,8 @@ export function BoxInspector({
   box: OverlayBox;
   pages: number;
   sections: FieldSection[];
+  /** The template's signers (Signing panel), for signature boxes. */
+  signers: readonly Signer[];
   acroFields: readonly AcroField[];
   editable: boolean;
   onChange: (box: OverlayBox) => void;
@@ -372,38 +371,62 @@ export function BoxInspector({
           <div className="grid grid-cols-2 gap-2">
             <Field>
               <FieldLabel htmlFor={id("signer")}>Signer</FieldLabel>
-              <Input
+              <NativeSelect
                 id={id("signer")}
-                placeholder="e.g. principal"
                 value={box.signerId ?? ""}
                 onChange={(e) => {
-                  const { signerId: _s, ...rest } = box;
-                  const signerId = e.target.value.trim();
-                  onChange(signerId ? { ...box, signerId } : rest);
-                }}
-              />
-            </Field>
-            <Field>
-              <FieldLabel htmlFor={id("signing")}>Signing</FieldLabel>
-              <NativeSelect
-                id={id("signing")}
-                value={box.signingKind ?? ""}
-                onChange={(e) => {
-                  const { signingKind: _k, ...rest } = box;
-                  const kind = signingKindSchema.safeParse(e.target.value);
-                  onChange(kind.success ? { ...box, signingKind: kind.data } : rest);
+                  const { signerId: _s, signingKind: _k, required: _r, ...rest } = box;
+                  const signerId = e.target.value;
+                  onChange(signerId ? { ...rest, signerId, signingKind: "signature" } : rest);
                 }}
               >
-                <NativeSelectOption value="">Draw the image</NativeSelectOption>
-                {signingKindSchema.options.map((k) => (
-                  <NativeSelectOption key={k} value={k}>
-                    {signingKindLabels[k]}
+                <NativeSelectOption value="">None: draw the image</NativeSelectOption>
+                {/* A box saved for a signer since removed still shows it. */}
+                {box.signerId && !signers.some((s) => s.id === box.signerId) && (
+                  <NativeSelectOption value={box.signerId}>
+                    {box.signerId} (missing)
+                  </NativeSelectOption>
+                )}
+                {signers.map((s) => (
+                  <NativeSelectOption key={s.id} value={s.id}>
+                    {s.role}
                   </NativeSelectOption>
                 ))}
               </NativeSelect>
             </Field>
+            {box.signerId && (
+              <Field>
+                <FieldLabel htmlFor={id("signing")}>Kind</FieldLabel>
+                <NativeSelect
+                  id={id("signing")}
+                  value={box.signingKind ?? "signature"}
+                  onChange={(e) => {
+                    const kind = signingKinds.find((k) => k === e.target.value);
+                    if (kind) onChange({ ...box, signingKind: kind });
+                  }}
+                >
+                  {signingKinds.map((k) => (
+                    <NativeSelectOption key={k} value={k}>
+                      {signingKindLabels[k]}
+                    </NativeSelectOption>
+                  ))}
+                </NativeSelect>
+              </Field>
+            )}
+            {box.signerId && (
+              <Field orientation="horizontal" className="col-span-2">
+                <Switch
+                  id={id("required")}
+                  checked={box.required ?? true}
+                  onCheckedChange={(required) => onChange({ ...box, required })}
+                />
+                <FieldLabel htmlFor={id("required")}>Required</FieldLabel>
+              </Field>
+            )}
             <FieldDescription className="col-span-2">
-              For future signing packages; saved with the box, not used when rendering yet.
+              {box.signerId
+                ? "Left blank in the PDF and listed in the signing package for the e-sign provider."
+                : "Draws the signature image in the value. Pick a signer to hand the box to an e-sign provider instead (add signers in the Signing panel)."}
             </FieldDescription>
           </div>
         )}

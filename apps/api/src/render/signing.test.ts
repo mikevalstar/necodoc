@@ -137,7 +137,9 @@ describe("sign boxes in rendered HTML", () => {
       async () => null,
     );
     expect(dropped.signing?.anchors).toBe(false);
-    expect(dropped.signing?.boxes.map((b) => b.rect)).toEqual(kept.signing?.boxes.map((b) => b.rect));
+    expect(dropped.signing?.boxes.map((b) => b.rect)).toEqual(
+      kept.signing?.boxes.map((b) => b.rect),
+    );
     expect(dropped.signing?.boxes.every((b) => b.anchorString === null)).toBe(true);
     expect((await pdfText(dropped.pdf)).join(" ")).not.toMatch(/~(sig|end)\d+~/);
   });

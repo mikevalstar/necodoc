@@ -44,4 +44,5 @@ Add one with `okq new adr "<title>"`.
 | Single sign-on with the Better Auth SSO plugin, configured from env | [0031-single-sign-on-with-the-better-auth-sso-plugin-configured-from-env.md](0031-single-sign-on-with-the-better-auth-sso-plugin-configured-from-env.md) |
 | Append-only audit log with a request-scoped actor | [0032-append-only-audit-log-with-a-request-scoped-actor.md](0032-append-only-audit-log-with-a-request-scoped-actor.md) |
 | Sign boxes located by anchor text, handed off to e-sign providers | [0033-sign-boxes-located-by-anchor-text-handed-off-to-e-sign-providers.md](0033-sign-boxes-located-by-anchor-text-handed-off-to-e-sign-providers.md) |
+| Hand-rolled SVG charts | [0034-hand-rolled-svg-charts.md](0034-hand-rolled-svg-charts.md) |
 <!-- okq:index:end -->

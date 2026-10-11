@@ -250,6 +250,11 @@ export const publicShareRoutes = new Hono<AppEnv>()
     if (!opened?.version) return c.json({ error: "This link doesn't exist" }, 404);
     const { link, unavailable, version } = opened;
     if (unavailable) return unavailableResponse(c, unavailable);
+    await db
+      .update(shareLink)
+      // A view isn't an edit: keep updatedAt.
+      .set({ views: sql`${shareLink.views} + 1`, updatedAt: link.updatedAt })
+      .where(eq(shareLink.id, link.id));
     return c.json(
       {
         label: link.label,

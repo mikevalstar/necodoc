@@ -516,3 +516,28 @@ describe("snippets", () => {
     expect(templateFieldProblems(visual, sections)).toEqual([]);
   });
 });
+
+describe("sign boxes", () => {
+  const signBox = (signerId: string, required = true) => ({
+    type: "signBox",
+    attrs: { signerId, kind: "initials", width: 30, height: 10, required },
+  });
+
+  it("compile to a sized data-sign box the renderer locates", () => {
+    expect(html(p(text("Initials: "), signBox("buyer", false)))).toBe(
+      '<p>Initials: <span data-sign="initials" data-signer="buyer" data-sign-optional style="width:30mm;height:10mm;border-bottom:1px solid currentColor"></span></p>',
+    );
+  });
+
+  it("flag a signer the template doesn't have, in both modes", () => {
+    const content = designedContentSchema.parse({
+      mode: "visual",
+      body: doc(p(signBox("buyer"), signBox("seller"))),
+      signers: [{ id: "buyer", role: "Buyer" }],
+    });
+    const problems = [{ field: "seller", message: expect.stringContaining("isn't a signer") }];
+    expect(templateFieldProblems(content, sections)).toEqual(problems);
+    expect(templateFieldProblems(toCodeMode(content, sections), sections)).toEqual(problems);
+    expect(compileDesignedContent(content, sections).signers).toEqual(content.signers);
+  });
+});

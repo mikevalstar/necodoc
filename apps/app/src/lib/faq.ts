@@ -284,6 +284,26 @@ const templates: readonly FaqEntry[] = [
     access: [{ action: "See the visual diff", needs: { document: ["review"] } }],
     spec: "docs/features/template-test-cases-and-visual-diff.md",
   },
+  {
+    feature: "Signing packages",
+    group: "Templates",
+    what: "Hand a generated document to DocuSign, Dropbox Sign or Adobe Acrobat Sign with every signature, initials, date, name and signer-text box already placed. A template lists its signers (role, signing order, name and email from the data); sign boxes name a signer. Each generation then stores where every box landed, and offers JSON ready for the provider. necodoc doesn't collect signatures itself.",
+    howTo:
+      "On a template's Signing tab, add signers and set their name and email (Liquid, e.g. {{ principal_email }}). In a designed template, insert a Sign box from the Insert or / menu and size it; in an overlay template, draw a signature box and pick a signer. After generating, open the entry under Generations: the Signing package section lists the signers, downloads the package JSON and the PDF, and 'Show boxes on the PDF' draws the boxes over the pages so you can check them. API callers add signing to a generate or render request, or call GET /api/v1/generations/:id/signing-package.",
+    limitations: [
+      "Not an e-signature product: no signer identity checks, audit trail or legal compliance. That's the provider's job, and necodoc never calls the provider or stores its credentials.",
+      "Positions in designed and HTML documents are read back from the PDF and are approximate, within about a point. Overlay boxes are exact.",
+      "Designed documents carry invisible marker text at each box (used to find it, and by DocuSign anchor tabs). It shows up if someone copies or searches the PDF's text; the API can leave it out.",
+      "Sign boxes in headers and footers aren't found, and a box never splits across a page break.",
+      "Dropbox Sign has no full-name field (it becomes a text field), and its placement assumes US Letter pages. Adobe Sign needs the signer ids swapped for its own participant ids.",
+      "Combined packets don't carry their parts' signing packages.",
+    ],
+    access: [
+      { action: "Add signers and sign boxes", needs: edit },
+      { action: "Download a generation's signing package", needs: view },
+    ],
+    spec: "docs/features/signing-packages.md",
+  },
 ];
 
 export const faq: readonly FaqEntry[] = [
@@ -605,7 +625,7 @@ export const faq: readonly FaqEntry[] = [
       "Templates › New template › Kind: Fill an existing PDF, pick the file (up to 20 MB, 200 pages). On the Boxes tab, choose a box type in 'Draw', drag on the page, then set its value in the inspector: pick 'Bind to a field' or type a new label and 'Create field'. Click a box to move or resize it; arrow keys nudge it (Shift for 10 pt), Delete removes it, ⌘D duplicates it. The PDF tab has Flatten (no editable fields in the output) and 'Upload a new PDF' for a new revision of the form.",
     limitations: [
       "Text never flows from one box to the next. Auto-shrink stops at the minimum size; past it the text is cut and the generation records a warning.",
-      "Signature boxes draw an image. Signer ids are saved for future signing packages but do nothing yet.",
+      "A signature box draws an image unless it names a signer; then it's left blank for the e-sign provider (see Signing packages).",
       "Uploaded fonts must be TTF or OTF; a WOFF2 font falls back to Noto Sans.",
       "Pure XFA forms and PDFs that need a password to open can't be used.",
       "No snapping to lines in the editor; use AI detection or the coordinates in the inspector for precise placement.",

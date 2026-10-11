@@ -57,6 +57,7 @@ import { OverlayEditor, OverlayPdfPanel } from "./-overlay-editor";
 import { PagePanel } from "./-page-panel";
 import { ReviewStatusBadge, ReviewsPanel, reviewStateQuery, SubmitReviewDialog } from "./-review";
 import { SamplePanel } from "./-sample-panel";
+import { SigningPanel } from "./-signing-panel";
 import {
   DeleteTemplateDialog,
   PublishDialog,
@@ -445,6 +446,7 @@ function TemplateEditor({
             {draft.kind === "designed" && <TabsTrigger value="bands">Header & footer</TabsTrigger>}
             <TabsTrigger value="fields">Fields</TabsTrigger>
             <TabsTrigger value="sample">Sample data</TabsTrigger>
+            <TabsTrigger value="signing">Signing</TabsTrigger>
             <TabsTrigger value="page">
               {draft.kind === "overlay" ? "PDF" : "Page & theme"}
             </TabsTrigger>
@@ -526,6 +528,20 @@ function TemplateEditor({
               sampleData={draft.sampleData}
               onChange={(sampleData) => change({ sampleData })}
               editable={canEdit}
+            />
+          </TabsContent>
+          <TabsContent value="signing">
+            <SigningPanel
+              signers={draft.content.signers}
+              kind={draft.kind}
+              editable={canEdit}
+              onChange={(signers) =>
+                setDraft((d) =>
+                  d.kind === "overlay"
+                    ? { ...d, content: { ...d.content, signers } }
+                    : { ...d, content: { ...d.content, signers } },
+                )
+              }
             />
           </TabsContent>
           <TabsContent value="tests">

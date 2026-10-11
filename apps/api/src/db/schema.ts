@@ -434,6 +434,8 @@ export const shareLink = pgTable("share_link", {
   prefill: jsonb().$type<Record<string, unknown>>().default({}).notNull(),
   lockedKeys: jsonb().$type<string[]>().default([]).notNull(),
   disabledAt: timestamp({ withTimezone: true }),
+  /** Loads of the public page, lifetime (docs/features/analytics-dashboards.md: conversion). */
+  views: integer().default(0).notNull(),
   /** When the owner last opened the responses; later ones count as unseen. */
   seenAt: timestamp({ withTimezone: true }).defaultNow().notNull(),
   createdAt,

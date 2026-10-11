@@ -6,6 +6,7 @@ import { aiModel } from "./ai";
 import { auditScope } from "./audit";
 import { auth } from "./auth";
 import { type AppEnv, requestId } from "./middleware";
+import { analyticsRoutes } from "./routes/analytics";
 import { apiKeyRoutes } from "./routes/api-keys";
 import { assetRoutes } from "./routes/assets";
 import { auditRoutes } from "./routes/audit";
@@ -86,6 +87,7 @@ const routes = app
   .route("/service-accounts", serviceAccountRoutes)
   .route("/webhooks", webhookRoutes)
   .route("/audit", auditRoutes)
+  .route("/analytics", analyticsRoutes)
   // Public, API keys only (docs/features/html-to-pdf-api.md).
   .route("/v1", v1Routes)
   .route("/submissions", submissionRoutes)

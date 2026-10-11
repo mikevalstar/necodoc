@@ -18,6 +18,7 @@ import {
   sourceLabels,
   useRerun,
 } from "./-generation-actions";
+import { SigningSection } from "./-signing-package";
 
 // Spec: docs/features/generation-log.md. Queued and running entries refresh until they finish.
 const generationQuery = (id: string) =>
@@ -175,6 +176,14 @@ function GenerationDetail() {
           <Meta label="Total">{formatMs(generation.totalMs)}</Meta>
         </dl>
       </section>
+
+      {generation.signing && generation.hasOutput && (
+        <SigningSection
+          generationId={generation.id}
+          filename={generation.filename}
+          signing={generation.signing}
+        />
+      )}
 
       <div className="grid gap-6 lg:grid-cols-2">
         <section className="min-w-0 space-y-2">

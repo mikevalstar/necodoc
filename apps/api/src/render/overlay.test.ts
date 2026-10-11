@@ -212,3 +212,49 @@ describe("drawn boxes", () => {
     expect(await pageText(result.pdf)).toContain("Upright on a rotated page");
   });
 });
+
+describe("sign boxes", () => {
+  it("leave boxes with a signer blank and list them, upright on rotated pages", async () => {
+    const bytes = await blankPdf(90);
+    const signed = box({
+      type: "signature",
+      value: "",
+      signerId: "principal",
+      signingKind: "initials",
+      required: false,
+      rect: { x: 100, y: 200, width: 30, height: 120 },
+    });
+    const result = await renderOverlay(
+      {
+        kind: "overlay",
+        sourceId: "x",
+        boxes: [signed, box({ value: "Not for signing" })],
+        flatten: false,
+        signers: [
+          { id: "principal", role: "Principal", routingOrder: 1, name: "{{ n }}", email: "" },
+        ],
+        data: { n: "Pat" },
+        preview: false,
+      },
+      async () => bytes,
+      noAssets,
+    );
+    expect(result.signing?.signers).toEqual([
+      { id: "principal", role: "Principal", routingOrder: 1, name: "Pat", email: "" },
+    ]);
+    expect(result.signing?.pages).toEqual([{ width: 792, height: 612 }]);
+    expect(result.signing?.boxes).toEqual([
+      {
+        id: signed.id,
+        signerId: "principal",
+        kind: "initials",
+        required: false,
+        page: 1,
+        rect: { x: 100, y: 200, width: 30, height: 120 },
+        topLeft: { x: 200, y: 100, width: 120, height: 30 },
+        normalized: expect.objectContaining({ x: expect.closeTo(200 / 792, 4) }),
+        anchorString: null,
+      },
+    ]);
+  });
+});

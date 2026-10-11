@@ -13,6 +13,7 @@ import {
   overlayBoxTypes,
   type PdfSource,
   pdfSourceSchema,
+  signingKindLabels,
 } from "@necodoc/shared";
 import { queryOptions, useMutation, useQuery } from "@tanstack/react-query";
 import {
@@ -104,7 +105,9 @@ function iou(a: OverlayBox["rect"], b: OverlayBox["rect"]) {
 }
 
 const boxName = (box: OverlayBox) =>
-  box.value.replace(/[{}]|\|.*$/g, "").trim() || box.acroField || boxTypeLabels[box.type];
+  box.type === "signature" && box.signerId
+    ? `${signingKindLabels[box.signingKind ?? "signature"]} · ${box.signerId}`
+    : box.value.replace(/[{}]|\|.*$/g, "").trim() || box.acroField || boxTypeLabels[box.type];
 
 type Suggestion = DetectedField & { sid: string };
 
@@ -458,9 +461,11 @@ export function OverlayEditor({
                         title={`${boxTypeLabels[box.type]}: ${box.value || "(no value)"}${box.acroField ? ` → form field ${box.acroField}` : ""}`}
                         className={cn(
                           "absolute cursor-move overflow-hidden border text-[10px] leading-tight",
-                          box.acroField
-                            ? "border-emerald-600 bg-emerald-500/15 text-emerald-900"
-                            : "border-sky-600 bg-sky-500/15 text-sky-900",
+                          box.type === "signature" && box.signerId
+                            ? "border-amber-600 bg-amber-500/15 text-amber-900"
+                            : box.acroField
+                              ? "border-emerald-600 bg-emerald-500/15 text-emerald-900"
+                              : "border-sky-600 bg-sky-500/15 text-sky-900",
                           isSelected && "z-10 ring-2 ring-primary",
                         )}
                         style={{ left: r.left, top: r.top, width: r.width, height: r.height }}
@@ -621,6 +626,7 @@ export function OverlayEditor({
               box={selectedBox}
               pages={pages.length || 1}
               sections={sections}
+              signers={content.signers}
               acroFields={source.data?.fields ?? []}
               editable={editable}
               onChange={updateBox}
@@ -644,7 +650,8 @@ export function OverlayEditor({
             </p>
           )}
           <p className="text-xs text-muted-foreground">
-            {content.boxes.length} boxes · blue draws on the page, green fills a form field
+            {content.boxes.length} boxes · blue draws on the page, green fills a form field, amber
+            is for a signer
           </p>
         </aside>
       </div>

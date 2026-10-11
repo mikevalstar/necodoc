@@ -41,6 +41,7 @@ import { Route as AppTemplatesIndexRouteImport } from './routes/_app/templates/i
 import { Route as AppTemplatesIdRouteImport } from './routes/_app/templates/$id'
 import { Route as AppThemesIndexRouteImport } from './routes/_app/themes/index'
 import { Route as AppThemesIdRouteImport } from './routes/_app/themes/$id'
+import { Route as AppAdminAnalyticsIndexRouteImport } from './routes/_app/admin/analytics/index'
 import { Route as AppAdminServiceAccountsIndexRouteImport } from './routes/_app/admin/service-accounts/index'
 import { Route as AppAdminServiceAccountsIdRouteImport } from './routes/_app/admin/service-accounts/$id'
 import { Route as AppTemplatesReviewsIndexRouteImport } from './routes/_app/templates/reviews/index'
@@ -205,6 +206,11 @@ const AppThemesIdRoute = AppThemesIdRouteImport.update({
   path: '/themes/$id',
   getParentRoute: () => AppRoute,
 } as any)
+const AppAdminAnalyticsIndexRoute = AppAdminAnalyticsIndexRouteImport.update({
+  id: '/admin/analytics/',
+  path: '/admin/analytics/',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppAdminServiceAccountsIndexRoute =
   AppAdminServiceAccountsIndexRouteImport.update({
     id: '/admin/service-accounts/',
@@ -264,6 +270,7 @@ export interface FileRoutesByFullPath {
   '/themes/': typeof AppThemesIndexRoute
   '/admin/service-accounts/$id': typeof AppAdminServiceAccountsIdRoute
   '/templates/reviews/$reviewId': typeof AppTemplatesReviewsReviewIdRoute
+  '/admin/analytics/': typeof AppAdminAnalyticsIndexRoute
   '/admin/service-accounts/': typeof AppAdminServiceAccountsIndexRoute
   '/templates/reviews/': typeof AppTemplatesReviewsIndexRoute
 }
@@ -301,6 +308,7 @@ export interface FileRoutesByTo {
   '/themes': typeof AppThemesIndexRoute
   '/admin/service-accounts/$id': typeof AppAdminServiceAccountsIdRoute
   '/templates/reviews/$reviewId': typeof AppTemplatesReviewsReviewIdRoute
+  '/admin/analytics': typeof AppAdminAnalyticsIndexRoute
   '/admin/service-accounts': typeof AppAdminServiceAccountsIndexRoute
   '/templates/reviews': typeof AppTemplatesReviewsIndexRoute
 }
@@ -340,6 +348,7 @@ export interface FileRoutesById {
   '/_app/themes/': typeof AppThemesIndexRoute
   '/_app/admin/service-accounts/$id': typeof AppAdminServiceAccountsIdRoute
   '/_app/templates/reviews/$reviewId': typeof AppTemplatesReviewsReviewIdRoute
+  '/_app/admin/analytics/': typeof AppAdminAnalyticsIndexRoute
   '/_app/admin/service-accounts/': typeof AppAdminServiceAccountsIndexRoute
   '/_app/templates/reviews/': typeof AppTemplatesReviewsIndexRoute
 }
@@ -379,6 +388,7 @@ export interface FileRouteTypes {
     | '/themes/'
     | '/admin/service-accounts/$id'
     | '/templates/reviews/$reviewId'
+    | '/admin/analytics/'
     | '/admin/service-accounts/'
     | '/templates/reviews/'
   fileRoutesByTo: FileRoutesByTo
@@ -416,6 +426,7 @@ export interface FileRouteTypes {
     | '/themes'
     | '/admin/service-accounts/$id'
     | '/templates/reviews/$reviewId'
+    | '/admin/analytics'
     | '/admin/service-accounts'
     | '/templates/reviews'
   id:
@@ -454,6 +465,7 @@ export interface FileRouteTypes {
     | '/_app/themes/'
     | '/_app/admin/service-accounts/$id'
     | '/_app/templates/reviews/$reviewId'
+    | '/_app/admin/analytics/'
     | '/_app/admin/service-accounts/'
     | '/_app/templates/reviews/'
   fileRoutesById: FileRoutesById
@@ -692,6 +704,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppThemesIdRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_app/admin/analytics/': {
+      id: '/_app/admin/analytics/'
+      path: '/admin/analytics'
+      fullPath: '/admin/analytics/'
+      preLoaderRoute: typeof AppAdminAnalyticsIndexRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/_app/admin/service-accounts/': {
       id: '/_app/admin/service-accounts/'
       path: '/admin/service-accounts'
@@ -753,6 +772,7 @@ interface AppRouteChildren {
   AppThemesIndexRoute: typeof AppThemesIndexRoute
   AppAdminServiceAccountsIdRoute: typeof AppAdminServiceAccountsIdRoute
   AppTemplatesReviewsReviewIdRoute: typeof AppTemplatesReviewsReviewIdRoute
+  AppAdminAnalyticsIndexRoute: typeof AppAdminAnalyticsIndexRoute
   AppAdminServiceAccountsIndexRoute: typeof AppAdminServiceAccountsIndexRoute
   AppTemplatesReviewsIndexRoute: typeof AppTemplatesReviewsIndexRoute
 }
@@ -787,6 +807,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppThemesIndexRoute: AppThemesIndexRoute,
   AppAdminServiceAccountsIdRoute: AppAdminServiceAccountsIdRoute,
   AppTemplatesReviewsReviewIdRoute: AppTemplatesReviewsReviewIdRoute,
+  AppAdminAnalyticsIndexRoute: AppAdminAnalyticsIndexRoute,
   AppAdminServiceAccountsIndexRoute: AppAdminServiceAccountsIndexRoute,
   AppTemplatesReviewsIndexRoute: AppTemplatesReviewsIndexRoute,
 }

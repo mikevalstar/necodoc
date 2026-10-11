@@ -5,6 +5,7 @@ import {
   type OverlayContent,
   type PageOptions,
   previewTemplateSchema,
+  type Signer,
   type Template,
   templateSchema,
 } from "@necodoc/shared";
@@ -34,6 +35,7 @@ export type VisualContent = {
   header: EditorBand | null;
   footer: EditorBand | null;
   css: string;
+  signers: Signer[];
 };
 export type EditorContent = VisualContent | CodeContent;
 
@@ -87,6 +89,7 @@ export function problemArea(path: readonly PropertyKey[]) {
     if (second === "header") return "Header";
     if (second === "footer") return "Footer";
     if (second === "boxes") return "Boxes";
+    if (second === "signers") return "Signing";
     return "Content";
   }
   return String(first ?? "Draft");

@@ -32,6 +32,8 @@ A JSON body:
 | `filename` | string | | 1 to 200 characters. |
 | `response` | `pdf` \| `json` | `pdf` | `json` answers with the generation and a download link instead of the bytes. |
 | `async` | boolean | `false` | Answer `202` at once instead of waiting. |
+| `signers` | array | | Who signs the `data-sign` boxes. See [Signing packages](/guides/signing-packages/). |
+| `signing` | `true` \| object | | Answer with a signing package instead of the PDF. |
 
 Band heights and margins are millimetres.
 

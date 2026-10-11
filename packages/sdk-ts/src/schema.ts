@@ -241,6 +241,26 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  "/generations/{id}/signing-package": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Get a generation's signing package
+     * @description Signers, sign box positions and provider JSON (DocuSign, Dropbox Sign, Adobe Acrobat Sign) for handing the PDF to an e-sign service. Empty for documents without signers or sign boxes.
+     */
+    get: operations["getGenerationsByIdSigningPackage"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   "/combine": {
     parameters: {
       query?: never;
@@ -280,6 +300,82 @@ export interface components {
       downloadUrl: string;
       /** @description `/api/v1/generations/{id}/pdf`, with a key. */
       pdfPath: string;
+    };
+    /** @description The PDF's signers and sign boxes, for an e-sign provider. */
+    SigningPackage: {
+      signers: components["schemas"]["Signer"][];
+      boxes: components["schemas"]["SigningBox"][];
+      pages: {
+        width: number;
+        height: number;
+      }[];
+      anchors: boolean;
+      warnings: string[];
+      /** Format: uuid */
+      generationId: string;
+      filename: string;
+      pageCount: number;
+      /**
+       * Format: uri
+       * @description Signed; works without a key for 1 hour.
+       */
+      pdfUrl: string;
+      /** @description `/api/v1/generations/{id}/pdf`, with a key. */
+      pdfPath: string;
+      /** @description Provider JSON, as asked for in `formats`. */
+      formats: {
+        /** @description DocuSign eSignature v2.1 envelope definition: POST it to /restapi/v2.1/accounts/{accountId}/envelopes. */
+        docusign?: {
+          [key: string]: unknown;
+        };
+        /** @description Dropbox Sign `signers` and `form_fields_per_document` for /signature_request/send. */
+        dropbox_sign?: {
+          [key: string]: unknown;
+        };
+        /** @description Adobe Acrobat Sign `participantSetsInfo` (POST /agreements) and `formFields` (PUT /agreements/{id}/formFields). */
+        adobe_sign?: {
+          [key: string]: unknown;
+        };
+      };
+    };
+    /** @description A signer, with name and email rendered from the data. */
+    Signer: {
+      id: string;
+      role: string;
+      routingOrder: number;
+      name: string;
+      email: string;
+    };
+    SigningBox: {
+      id: string;
+      signerId: string;
+      /** @enum {string} */
+      kind: "signature" | "initials" | "date_signed" | "full_name" | "text";
+      required: boolean;
+      page: number;
+      /** @description PDF points in the page's user space, origin bottom-left (what pdf-lib uses). */
+      rect: {
+        x: number;
+        y: number;
+        width: number;
+        height: number;
+      };
+      /** @description Points (pixels at 72 dpi) from the top-left of the page as displayed (DocuSign, Dropbox Sign, Adobe Sign). */
+      topLeft: {
+        x: number;
+        y: number;
+        width: number;
+        height: number;
+      };
+      /** @description Fractions (0..1) of the displayed page, origin top-left. */
+      normalized: {
+        x: number;
+        y: number;
+        width: number;
+        height: number;
+      };
+      /** @description Invisible text at the box's top-left corner, for anchor-based tab placement. Null when the PDF has none. */
+      anchorString: string | null;
     };
     PendingGeneration: {
       /** Format: uuid */
@@ -358,6 +454,16 @@ export interface components {
       partials?: {
         [key: string]: string;
       };
+      signers?: {
+        id: string;
+        role: string;
+        /** @default 1 */
+        routingOrder?: number;
+        /** @default  */
+        name?: string;
+        /** @default  */
+        email?: string;
+      }[];
       /**
        * @description `pdf` returns the bytes; `json` returns the generation and a link.
        * @default pdf
@@ -369,7 +475,36 @@ export interface components {
        * @default false
        */
       async?: boolean;
+      signing?: components["schemas"]["SigningOptions"];
     };
+    /** @description Answer with a signing package (JSON) instead of the PDF. `true`: DocuSign JSON, anchors kept, PDF embedded. */
+    SigningOptions:
+      | true
+      | {
+          /**
+           * @description Provider JSON to include.
+           * @default [
+           *       "docusign"
+           *     ]
+           */
+          formats?: ("docusign" | "dropbox_sign" | "adobe_sign")[];
+          /**
+           * @description Keep the invisible anchor text in the PDF. `false` costs one more Chromium pass.
+           * @default true
+           */
+          anchors?: boolean;
+          /**
+           * @description Put the PDF in provider JSON as base64 (DocuSign `documentBase64`).
+           * @default true
+           */
+          embedPdf?: boolean;
+          /**
+           * @description DocuSign tabs by page coordinates, or by anchor string.
+           * @default position
+           * @enum {string}
+           */
+          placement?: "position" | "anchor";
+        };
     Template: {
       /** Format: uuid */
       id: string;
@@ -431,6 +566,7 @@ export interface components {
        * @enum {string}
        */
       response?: "pdf" | "json";
+      signing?: components["schemas"]["SigningOptions"];
     };
     Batch: {
       /** Format: uuid */
@@ -543,7 +679,7 @@ export interface operations {
       };
     };
     responses: {
-      /** @description Rendered. `response: pdf` (default) returns the bytes; `response: json` returns the generation. */
+      /** @description Rendered. `response: pdf` (default) returns the bytes; `response: json` returns the generation. With `signing`, the signing package. */
       200: {
         headers: {
           /** @description The generation log entry. */
@@ -554,7 +690,9 @@ export interface operations {
         };
         content: {
           "application/pdf": string;
-          "application/json": components["schemas"]["GenerationResult"];
+          "application/json":
+            | components["schemas"]["GenerationResult"]
+            | components["schemas"]["SigningPackage"];
         };
       };
       /** @description Still queued or running (async, or the wait ran out). Poll the generation. */
@@ -812,7 +950,7 @@ export interface operations {
       };
     };
     responses: {
-      /** @description Rendered. `response: pdf` (default) returns the bytes; `response: json` returns the generation. */
+      /** @description Rendered. `response: pdf` (default) returns the bytes; `response: json` returns the generation. With `signing`, the signing package. */
       200: {
         headers: {
           /** @description The generation log entry. */
@@ -823,7 +961,9 @@ export interface operations {
         };
         content: {
           "application/pdf": string;
-          "application/json": components["schemas"]["GenerationResult"];
+          "application/json":
+            | components["schemas"]["GenerationResult"]
+            | components["schemas"]["SigningPackage"];
         };
       };
       /** @description Still queued or running (async, or the wait ran out). Poll the generation. */
@@ -1345,6 +1485,84 @@ export interface operations {
             /** Format: date-time */
             expiresAt: string;
           };
+        };
+      };
+      /** @description Missing, unknown, revoked or expired key, or the key's account is disabled. */
+      401: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["Error"];
+        };
+      };
+      /** @description The key lacks the scope, role, template or source address this call needs. */
+      403: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["Error"];
+        };
+      };
+      /** @description Not found, or not yours. */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["Error"];
+        };
+      };
+      /** @description Invalid request or data; `fieldErrors` lists each. */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["Error"];
+        };
+      };
+      /** @description Rate limit exceeded. */
+      429: {
+        headers: {
+          /** @description Seconds until the key may call again. */
+          "Retry-After"?: number;
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["Error"];
+        };
+      };
+    };
+  };
+  getGenerationsByIdSigningPackage: {
+    parameters: {
+      query?: {
+        /** @description Provider JSON to include (default `docusign`). Repeat for several. */
+        formats?:
+          | ("docusign" | "dropbox_sign" | "adobe_sign")
+          | ("docusign" | "dropbox_sign" | "adobe_sign")[];
+        /** @description Put the PDF in provider JSON as base64 (default `true`). */
+        embedPdf?: "true" | "false";
+        /** @description DocuSign tabs by page coordinates (default) or anchor string. */
+        placement?: "position" | "anchor";
+      };
+      header?: never;
+      path: {
+        id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description The signing package. */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["SigningPackage"];
         };
       };
       /** @description Missing, unknown, revoked or expired key, or the key's account is disabled. */

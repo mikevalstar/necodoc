@@ -50,6 +50,21 @@ const { data } = await necodoc.POST("/templates/{id}/versions/{version}/generate
 
 Invalid data answers 422 with `error.fieldErrors`, one entry per field.
 
+## Signing packages
+
+`signing` answers with the PDF's signers, sign box positions and provider JSON instead of the PDF:
+
+```ts
+const { data: pkg } = await necodoc.POST("/templates/{id}/versions/{version}/generate", {
+  params: { path: { id: templateId, version: "latest" } },
+  body: { data, signing: { formats: ["docusign"], placement: "position" } },
+});
+if (!pkg || !("boxes" in pkg)) throw new Error("Expected a signing package");
+// pkg.boxes[i].topLeft (points from the page's top-left), pkg.formats.docusign (envelope JSON)
+```
+
+`GET /generations/{id}/signing-package` returns the same for an earlier generation.
+
 ## Async renders and polling
 
 ```ts
