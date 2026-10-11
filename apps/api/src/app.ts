@@ -3,10 +3,12 @@ import { Hono } from "hono";
 import { bodyLimit } from "hono/body-limit";
 import { logger } from "hono/logger";
 import { aiModel } from "./ai";
+import { auditScope } from "./audit";
 import { auth } from "./auth";
 import { type AppEnv, requestId } from "./middleware";
 import { apiKeyRoutes } from "./routes/api-keys";
 import { assetRoutes } from "./routes/assets";
+import { auditRoutes } from "./routes/audit";
 import { batchRoutes, templateBatchRoutes } from "./routes/batches";
 import { fileRoutes } from "./routes/files";
 import { generationRoutes } from "./routes/generations";
@@ -38,6 +40,9 @@ app.use(async (c, next) => {
   c.set("session", session?.session ?? null);
   await next();
 });
+
+// ADR 0032: who and from where, for audit entries recorded anywhere below (Better Auth included).
+app.use(auditScope);
 
 app.on(["GET", "POST"], "/auth/*", (c) => auth.handler(c.req.raw));
 
@@ -80,6 +85,7 @@ const routes = app
   .route("/api-keys", apiKeyRoutes)
   .route("/service-accounts", serviceAccountRoutes)
   .route("/webhooks", webhookRoutes)
+  .route("/audit", auditRoutes)
   // Public, API keys only (docs/features/html-to-pdf-api.md).
   .route("/v1", v1Routes)
   .route("/submissions", submissionRoutes)

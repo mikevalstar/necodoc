@@ -30,6 +30,8 @@ step to [Publishing and versions](publishing-and-versions.md).
   - *Require review before publish.*
   - *Allow self-approval*: off means a reviewer can't approve or request
     changes on a review they submitted.
+
+  Settings API: `GET`/`PUT /api/system/publishing` ([routes/system.ts](../../apps/api/src/routes/system.ts)).
   - *Block publish when tests fail* ([Template test cases and visual diff](template-test-cases-and-visual-diff.md)).
 - **Submit for review** (`document: edit`): from the template editor, with an
   optional note, on the saved draft. A template has at most one open review;
@@ -59,8 +61,9 @@ step to [Publishing and versions](publishing-and-versions.md).
   submitter, reviewer and dates, linking to the review page.
 - **Notifications** (bell in the nav, unread count, polled): review
   requested (to everyone with `document: review` except the submitter),
-  changes requested and approved (to the submitter), published (to the
-  submitter and approver). Opening one marks it read; "Mark all read" clears
+  changes requested (to the submitter), approved (to the submitter and
+  everyone with `document: publish`), published (to the submitter and
+  approver). Opening one marks it read; "Mark all read" clears
   them.
 - **Audit log.** Each state change has a marked hook for the
   [audit log](audit-log.md), the next phase.
@@ -70,23 +73,26 @@ step to [Publishing and versions](publishing-and-versions.md).
 
 ## Acceptance criteria
 
-- [ ] With review required, publishing a draft without an approved review is
+- [x] With review required, publishing a draft without an approved review is
       refused, in the app and the API.
-- [ ] Editing the draft after approval makes the review stale and publish is
+- [x] Editing the draft after approval makes the review stale and publish is
       refused again until it is resubmitted and approved.
-- [ ] A reviewer can't approve their own submission unless self-approval is
+- [x] A reviewer can't approve their own submission unless self-approval is
       allowed.
-- [ ] Requesting changes needs a comment, and the submitter is notified.
-- [ ] The reviewer sees the structural diff, the visual diff and test results
+- [x] Requesting changes needs a comment, and the submitter is notified.
+- [x] The reviewer sees the structural diff, the visual diff and test results
       on the review page.
-- [ ] Notifications show an unread count and mark read when opened.
-- [ ] The template page lists the template's review history.
+- [x] Notifications show an unread count and mark read when opened.
+- [x] The template page lists the template's review history.
 
 ## Known limitations
 
 - One open review per template; parallel reviewers share it, and the first
   decision wins.
 - Notifications are in-app only (no email) and poll every 30 seconds.
+  Comments don't notify.
+- Editing the draft back to exactly what was approved makes the approval
+  valid again: the gate compares content, not edit history.
 - Review-requested notifications go to every reviewer; there is no assignment.
 - A theme or snippet edit makes every open review that uses it stale.
 - Reviews of a template with review not required still work, but don't gate

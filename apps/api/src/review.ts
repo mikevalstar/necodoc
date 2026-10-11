@@ -40,15 +40,15 @@ export async function approvedReview(templateId: string, fingerprint: string) {
   return row ?? null;
 }
 
-/** Everyone who can act on a review request: `document: review`, active, not a service account. */
-export async function reviewerIds(except: string | null) {
+/** Active people (not service accounts) holding `document: <action>`, minus one. */
+export async function usersWith(action: "review" | "publish", except: string | null) {
   // Roles are a comma-separated column; the user base is small enough to filter here.
   const rows = await db
     .select({ id: user.id, role: user.role, banned: user.banned, service: user.serviceAccount })
     .from(user);
   return rows
     .filter((row) => row.id !== except && !row.banned && !row.service)
-    .filter((row) => hasPermission(parseRoles(row.role), { document: ["review"] }))
+    .filter((row) => hasPermission(parseRoles(row.role), { document: [action] }))
     .map((row) => row.id);
 }
 
@@ -95,14 +95,12 @@ export async function closeReviewAsPublished(
     )
     .returning();
   if (!review) return null;
-  await tx
-    .insert(templateReviewEvent)
-    .values({
-      reviewId: review.id,
-      kind: "published",
-      body: `Version ${p.version}`,
-      authorId: p.actorId,
-    });
+  await tx.insert(templateReviewEvent).values({
+    reviewId: review.id,
+    kind: "published",
+    body: `Version ${p.version}`,
+    authorId: p.actorId,
+  });
   // TODO(audit-log): record "template.review.published" { reviewId, templateId, version }.
   await notify(tx, [review.submittedBy, review.decidedBy], {
     kind: "published",

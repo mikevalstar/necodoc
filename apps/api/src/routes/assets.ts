@@ -4,6 +4,7 @@ import { and, desc, eq, ilike, like, type SQL } from "drizzle-orm";
 import { Hono } from "hono";
 import { z } from "zod";
 import { sniffAssetMime } from "../asset-type";
+import { recordAudit } from "../audit";
 import { db } from "../db";
 import { asset, file, user } from "../db/schema";
 import { deleteFiles, FileTooLargeError, fileBytes, storeFile } from "../files";
@@ -80,7 +81,17 @@ export const assetRoutes = new Hono<AppEnv>()
               fileId,
               uploadedBy: userId,
             })
-            .returning({ id: asset.id });
+            .returning({ id: asset.id, name: asset.name });
+          if (row) {
+            await recordAudit(
+              {
+                action: "asset.created",
+                target: { id: row.id, name: row.name },
+                after: { name: row.name, mimeType, size: bytes.byteLength },
+              },
+              tx,
+            );
+          }
           return row?.id;
         });
         const [created] = id ? await assetList(eq(asset.id, id)) : [];
@@ -107,11 +118,17 @@ export const assetRoutes = new Hono<AppEnv>()
     zValidator("json", renameAssetSchema),
     async (c) => {
       const { id } = c.req.valid("param");
-      const [row] = await db
-        .update(asset)
-        .set({ name: c.req.valid("json").name })
-        .where(eq(asset.id, id))
-        .returning({ id: asset.id });
+      const { name } = c.req.valid("json");
+      const row = await db.transaction(async (tx) => {
+        const [before] = await tx.select({ name: asset.name }).from(asset).where(eq(asset.id, id));
+        if (!before) return null;
+        await tx.update(asset).set({ name }).where(eq(asset.id, id));
+        await recordAudit(
+          { action: "asset.updated", target: { id, name }, before, after: { name } },
+          tx,
+        );
+        return before;
+      });
       if (!row) return c.json({ error: "Asset not found" }, 404);
       const [renamed] = await assetList(eq(asset.id, id));
       return c.json(renamed, 200);
@@ -123,10 +140,19 @@ export const assetRoutes = new Hono<AppEnv>()
       const [row] = await tx
         .delete(asset)
         .where(eq(asset.id, c.req.valid("param").id))
-        .returning({ fileId: asset.fileId });
+        .returning({ id: asset.id, name: asset.name, mimeType: asset.mimeType, fileId: asset.fileId });
+      if (!row) return false;
       // Assets keep their bytes in the row (ADR 0014), so there are no objects to delete.
-      if (row) await deleteFiles(tx, eq(file.id, row.fileId));
-      return Boolean(row);
+      await deleteFiles(tx, eq(file.id, row.fileId));
+      await recordAudit(
+        {
+          action: "asset.deleted",
+          target: { id: row.id, name: row.name },
+          before: { name: row.name, mimeType: row.mimeType },
+        },
+        tx,
+      );
+      return true;
     });
     return deleted ? c.body(null, 204) : c.json({ error: "Asset not found" }, 404);
   });

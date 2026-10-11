@@ -2,6 +2,9 @@ import type {
   AcroField,
   ApiScope,
   AssetMime,
+  AuditAction,
+  AuditActorKind,
+  AuditTargetType,
   CompiledOverlay,
   CompiledTemplate,
   DesignedContent,
@@ -551,4 +554,46 @@ export const templateTestCase = pgTable(
     updatedAt,
   },
   (t) => [unique().on(t.templateId, t.name)],
+);
+
+// Spec: docs/features/audit-log.md, ADR 0032. Append-only: a trigger (migration 0013) rejects
+// UPDATE, DELETE and TRUNCATE. No foreign keys, so deleting what an entry names never touches it.
+// Written only through src/audit.ts.
+export const auditEvent = pgTable(
+  "audit_event",
+  {
+    id: uuid().primaryKey().defaultRandom(),
+    createdAt,
+    actorKind: text().$type<AuditActorKind>().notNull(),
+    actorId: text(),
+    /** The actor's name when recorded. */
+    actorName: text(),
+    /** The admin behind an impersonated session. */
+    impersonatorId: text(),
+    apiKeyId: text(),
+    action: text().$type<AuditAction>().notNull(),
+    targetType: text().$type<AuditTargetType>().notNull(),
+    targetId: text(),
+    targetName: text(),
+    /** Changed fields only, each whole. */
+    before: jsonb().$type<Record<string, unknown>>(),
+    after: jsonb().$type<Record<string, unknown>>(),
+    details: jsonb().$type<Record<string, unknown>>(),
+    ip: text(),
+    userAgent: text(),
+    requestId: text(),
+  },
+  (t) => [
+    index().on(t.createdAt, t.id),
+    index().on(t.actorId, t.createdAt),
+    index().on(t.action, t.createdAt),
+    index().on(t.targetType, t.targetId, t.createdAt),
+    index().on(t.actorName),
+    // Free text (`q`): an id, an address, or a substring (trigrams, migration 0005).
+    index().on(t.targetId),
+    index().on(t.ip),
+    index("audit_event_target_name_trgm_index").using("gin", t.targetName.op("gin_trgm_ops")),
+    index("audit_event_actor_name_trgm_index").using("gin", t.actorName.op("gin_trgm_ops")),
+    index("audit_event_request_id_trgm_index").using("gin", t.requestId.op("gin_trgm_ops")),
+  ],
 );

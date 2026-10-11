@@ -12,6 +12,7 @@ import { createMiddleware } from "hono/factory";
 import type { ContentfulStatusCode } from "hono/utils/http-status";
 import { z } from "zod";
 import { ipAllowed } from "./addresses";
+import { actAsKey } from "./audit";
 import { auth } from "./auth";
 import { db } from "./db";
 import { apiKeyPolicy, apikey, user } from "./db/schema";
@@ -115,6 +116,7 @@ export const requireScope = (scope: ApiScope) =>
       templateIds: row.policy.templateIds,
       owner: row.owner,
     });
+    actAsKey({ id: row.policy.apiKeyId, owner: row.owner });
     await next();
   });
 
@@ -168,5 +170,4 @@ export async function revokeKey(keyId: string, revokedBy: string) {
     .set({ revokedAt: new Date(), revokedBy })
     .where(eq(apiKeyPolicy.apiKeyId, keyId));
   await db.update(apikey).set({ enabled: false }).where(eq(apikey.id, keyId));
-  // Audit hook (docs/features/audit-log.md): record "API key revoked" here.
 }

@@ -77,8 +77,8 @@ document permissions in
 - [ ] Editing a theme or snippet after publishing doesn't change the published
       output.
 - [ ] Only published, non-archived templates appear in the fill list.
-- [ ] The diff lists added, removed and changed fields.
-- [ ] With review required, only a draft matching an approved review can be
+- [x] The diff lists added, removed and changed fields.
+- [x] With review required, only a draft matching an approved review can be
       published.
 
 ## Known limitations

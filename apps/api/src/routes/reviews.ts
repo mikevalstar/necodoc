@@ -14,7 +14,7 @@ import { db } from "../db";
 import { template, templateReview, templateReviewEvent, templateVersion, user } from "../db/schema";
 import { type AppEnv, requireAnyPermission, requirePermission } from "../middleware";
 import { publishSnapshot } from "../publish";
-import { notify, publishingSettings, reviewerIds } from "../review";
+import { notify, publishingSettings, usersWith } from "../review";
 import { draftAccess, findDraft } from "./templates";
 
 // Spec: docs/features/review-and-approval.md. Editors submit; reviewers approve or request
@@ -132,7 +132,7 @@ export const reviewRoutes = new Hono<AppEnv>()
       return c.json({ error: `It can't be published as it is: ${built.error}` }, 422);
     }
     const baseVersion = await latestVersion(templateId);
-    const reviewers = await reviewerIds(actor.id);
+    const reviewers = await usersWith("review", actor.id);
     const id = await db.transaction(async (tx) => {
       const values = {
         status: "pending" as const,
@@ -245,16 +245,24 @@ export const reviewRoutes = new Hono<AppEnv>()
         );
       }
       const status = approve ? "approved" : "changes_requested";
-      await db.transaction(async (tx) => {
-        await tx
+      // Approval also tells publishers it's ready.
+      const recipients = [
+        review.submittedBy,
+        ...(approve ? await usersWith("publish", actor.id) : []),
+      ];
+      const decided = await db.transaction(async (tx) => {
+        // Guarded on the status read above, so two reviewers deciding at once can't both win.
+        const [row] = await tx
           .update(templateReview)
           .set({ status, decidedBy: actor.id, decidedAt: new Date() })
-          .where(eq(templateReview.id, id));
+          .where(and(eq(templateReview.id, id), eq(templateReview.status, review.status)))
+          .returning({ id: templateReview.id });
+        if (!row) return false;
         await tx
           .insert(templateReviewEvent)
           .values({ reviewId: id, kind: status, body: body.comment || null, authorId: actor.id });
         // TODO(audit-log): record "template.review.approved" / "template.review.changes_requested".
-        await notify(tx, [review.submittedBy], {
+        await notify(tx, recipients, {
           kind: status,
           message: approve
             ? `${actor.name} approved it${body.comment ? `: ${body.comment.slice(0, 140)}` : ""}`
@@ -263,7 +271,9 @@ export const reviewRoutes = new Hono<AppEnv>()
           templateId: review.templateId,
           reviewId: id,
         });
+        return true;
       });
+      if (!decided) return c.json({ error: "Someone decided on this review just now" }, 409);
       return c.json(await findReview(id), 200);
     },
   )

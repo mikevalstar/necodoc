@@ -11,38 +11,49 @@ generated: { by: okq/0.9.0, at: 2026-10-11T16:07:59Z }
 
 ## Summary
 
-Enterprise customers have to answer "who changed this template, and when?" The audit log records every change to configuration and access. The [generation log](generation-log.md) covers renders; this covers everything else.
+Enterprise customers have to answer "who changed this template, and when?" The audit log records every change to configuration and access, and every sign-in. The [generation log](generation-log.md) covers renders; this covers everything else. Mechanism: [ADR 0032](../adrs/0032-append-only-audit-log-with-a-request-scoped-actor.md); the event catalogue is [packages/shared/src/audit.ts](../../packages/shared/src/audit.ts).
 
 ## Motivation
 
-Compliance reviews ask for change history. When a published document is wrong, the first question is what changed. Security teams want to see who created an API key or granted a role.
+Compliance reviews ask for change history. When a published document is wrong, the first question is what changed. Security teams want to see who created an API key or granted a role, and failed sign-ins (also the input for usage analytics).
 
 ## Behavior
 
-- **Recorded events** (actor, impersonator if any, action, target type and id, target name, time, IP, user agent, and a before/after diff of changed fields where it applies):
-  - templates: create, edit, duplicate, delete, publish ([versions](publishing-and-versions.md))
+- **Recorded events** (actor, impersonator if any, API key if any, action, target type and id, target name, time, IP, user agent, request id, and a before/after of the changed fields where it applies):
+  - templates: create, edit, duplicate, delete, publish ([versions](publishing-and-versions.md)); reviews: submit, approve, request changes, withdraw ([review and approval](review-and-approval.md))
   - themes, assets, snippets: create, edit, delete
   - API keys: create, rotate, revoke ([HTML to PDF API](html-to-pdf-api.md))
   - service accounts: create, edit (roles included), disable, enable
   - share links and webhooks: create, edit, disable, delete
-  - users ([user management](user-management-and-roles.md)): create, role change, ban, unban, delete, password set, sessions revoked, impersonation start/stop
+  - users ([user management](user-management-and-roles.md)): create (by an admin, by sign-up, or by SSO on first sign-in), edit, role change (by an admin or synced from the IdP), ban, unban, delete, password set, sessions revoked, impersonation start/stop
+  - own account from Settings ([user preferences](user-preferences.md)): name, password, sessions revoked, account deleted
+  - sign-in success and failure (password, SSO with its provider, trusted header), sign-out
   - batch jobs: start, cancel ([render queue](render-queue-batch-jobs-and-scaling.md))
-  - settings: retention changes
-- **Append-only.** No one can edit or delete entries through the app or API.
-- **Admin > Audit log:** filter by actor, action, target type, target and date range; open an entry to see its diff; export the filtered list as CSV.
-- **Per-object history:** a template's page shows its own audit trail.
+  - generation log: bulk delete (with the filter and count), signed download link minted ([generation log](generation-log.md))
+  - settings: retention and publishing changes
+- **Actors.** A person (with the admin behind them when impersonating), an API key (its owner, or a service account), the system (SSO provisioning and role sync, jobs), or the public (failed sign-ins).
+- **Append-only.** No one can edit or delete entries through the app or API, and a database trigger rejects updates and deletes.
+- **Admin > Audit log:** filter by actor, action, target type, target, date range and free text (target, actor, request id, IP); sort; page through large volumes server-side; open an entry to see its diff; export the filtered list as CSV.
+- **Per-object history:** themes, snippets, share links, service accounts, API keys and templates show their own audit trail.
 - **Request ids.** Every API response carries an `X-Request-Id`; audit and generation entries record it, so a customer's support ticket can be traced.
+- **No secrets.** Webhook secrets, link tokens and passwords are never recorded.
 
 ## Acceptance criteria
 
 - [ ] Each action above produces one entry with actor, target and time.
 - [ ] Editing a template records a diff of the changed fields.
+- [ ] Editing a theme, snippet, share link, webhook or service account records a diff of the changed fields.
+- [ ] A failed sign-in is recorded with the email tried and why it failed.
 - [ ] Actions taken while impersonating record both the admin and the impersonated user.
 - [ ] A non-admin can't read the audit log; no route edits or deletes entries.
 - [ ] The filtered list exports as CSV.
+- [ ] The list stays fast at tens of thousands of entries.
 
 ## Known limitations
 
 - Entries are kept forever; there is no retention for the audit log.
 - Large rich-text edits store the whole before/after document, not a minimal diff.
-- Database administrators can still alter rows directly; the log is append-only at the application level.
+- Database administrators can still alter rows directly by disabling the trigger; the log is tamper-resistant, not tamper-evident (no hash chain).
+- Personal data in entries (names, emails, IPs, field values in diffs) isn't masked yet.
+- Events recorded by Better Auth hooks (sign-in, admin user actions) are written just after the change, not in its transaction.
+- Downloads and signed-link uses aren't recorded, only minting a link.

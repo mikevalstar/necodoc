@@ -8,6 +8,7 @@ import {
 import { asc, desc, eq, inArray } from "drizzle-orm";
 import { Hono } from "hono";
 import { z } from "zod";
+import { recordAudit } from "../audit";
 import { db } from "../db";
 import { asset, theme } from "../db/schema";
 import { type AppEnv, requirePermission } from "../middleware";
@@ -49,10 +50,19 @@ export const themeRoutes = new Hono<AppEnv>()
       const body = c.req.valid("json");
       const error = await fontAssetError(body.settings);
       if (error) return c.json({ error }, 422);
-      const [row] = await db
-        .insert(theme)
-        .values({ ...body, createdBy: c.get("user").id })
-        .returning();
+      const row = await db.transaction(async (tx) => {
+        const [created] = await tx
+          .insert(theme)
+          .values({ ...body, createdBy: c.get("user").id })
+          .returning();
+        if (created) {
+          await recordAudit(
+            { action: "theme.created", target: { id: created.id, name: created.name }, after: created },
+            tx,
+          );
+        }
+        return created;
+      });
       return c.json(row, 201);
     },
   )
@@ -64,26 +74,38 @@ export const themeRoutes = new Hono<AppEnv>()
     async (c) => {
       const { id } = c.req.valid("param");
       const body = c.req.valid("json");
-      const [existing] = await db
-        .select({ builtIn: theme.builtIn })
-        .from(theme)
-        .where(eq(theme.id, id));
+      const [existing] = await db.select().from(theme).where(eq(theme.id, id));
       if (!existing) return c.json({ error: "Theme not found" }, 404);
       if (existing.builtIn) return c.json({ error: "Built-in themes can't be edited" }, 403);
       const error = await fontAssetError(body.settings);
       if (error) return c.json({ error }, 422);
-      const [row] = await db.update(theme).set(body).where(eq(theme.id, id)).returning();
+      const row = await db.transaction(async (tx) => {
+        const [updated] = await tx.update(theme).set(body).where(eq(theme.id, id)).returning();
+        await recordAudit(
+          {
+            action: "theme.updated",
+            target: { id, name: updated?.name ?? existing.name },
+            before: existing,
+            after: updated,
+          },
+          tx,
+        );
+        return updated;
+      });
       return c.json(row, 200);
     },
   )
   .delete("/:id", requirePermission({ document: ["edit"] }), idParam, async (c) => {
     const { id } = c.req.valid("param");
-    const [existing] = await db
-      .select({ builtIn: theme.builtIn })
-      .from(theme)
-      .where(eq(theme.id, id));
+    const [existing] = await db.select().from(theme).where(eq(theme.id, id));
     if (!existing) return c.json({ error: "Theme not found" }, 404);
     if (existing.builtIn) return c.json({ error: "Built-in themes can't be deleted" }, 403);
-    await db.delete(theme).where(eq(theme.id, id));
+    await db.transaction(async (tx) => {
+      await tx.delete(theme).where(eq(theme.id, id));
+      await recordAudit(
+        { action: "theme.deleted", target: { id, name: existing.name }, before: existing },
+        tx,
+      );
+    });
     return c.body(null, 204);
   });

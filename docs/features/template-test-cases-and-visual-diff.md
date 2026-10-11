@@ -54,13 +54,13 @@ structure.
 
 ## Acceptance criteria
 
-- [ ] A test case can be created from sample data, a generation's input and a
+- [x] A test case can be created from sample data, a generation's input and a
       document.
-- [ ] Running tests reports pass or fail per case with the failing checks, and
+- [x] Running tests reports pass or fail per case with the failing checks, and
       writes nothing to the generation log.
-- [ ] The visual diff marks the pages that changed and its diff image
+- [x] The visual diff marks the pages that changed and its diff image
       highlights the changed area.
-- [ ] With "block publish when tests fail" on, a failing case refuses publish.
+- [x] With "block publish when tests fail" on, a failing case refuses publish.
 
 ## Known limitations
 
@@ -72,3 +72,6 @@ structure.
 - Pixel diffs are rendered at 1.5x (108 dpi); sub-pixel shifts can show as
   small changes.
 - Results aren't stored; each open runs them again.
+- Up to 20 pages are compared; longer documents show the first 20.
+- Test cases aren't part of what a review approves: changing one doesn't make
+  a review stale.

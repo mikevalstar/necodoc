@@ -183,10 +183,10 @@ const templates: readonly FaqEntry[] = [
     howTo:
       "Save, then Publish (it's off while there are unsaved changes or nothing changed). Versions lists every version with publisher, date and note; Preview shows a version, 'Restore to draft' copies it back into the draft. ⋯ › Archive and Restore hide and show the template.",
     limitations: [
-      "No approval step: anyone who can publish can publish.",
+      "Without the 'Require review before publish' setting, anyone who can publish can publish.",
       "A template that was ever published can't be deleted, only archived.",
       "Previewing an old version uses the current theme; the published PDF uses the frozen one.",
-      "There's no diff between the draft and a version yet.",
+      "The diff compares the saved draft with the latest version only.",
     ],
     access: [
       { action: drafts, needs: { document: ["review"] } },
@@ -215,6 +215,75 @@ const templates: readonly FaqEntry[] = [
       { action: "Edit, archive and delete", needs: edit },
     ],
     spec: "docs/features/snippet-library.md",
+  },
+  {
+    feature: "Review and approval",
+    group: "Templates",
+    what: "An editor submits a template's saved draft for review with a note. A reviewer opens it from Templates › Reviews and sees what changed since the published version (fields, sections, content blocks, header/footer, page setup, theme, snippets, overlay boxes), a page-by-page visual diff and the test results, then approves it or requests changes in a comment thread. With 'Require review before publish' on (Admin › System › Publishing), only a draft that still matches an approved review can be published; any later edit to the draft, its theme or its snippets makes the review stale.",
+    howTo:
+      "Editor: save, then Submit for review (header, or the Reviews tab). Reviewer: Templates › Reviews, open the review, read the Changes, Visual diff and Tests tabs, then Approve or write a comment and Request changes. Editor: fix the draft, save and Resubmit. Publisher: Publish from the review page or the template. The template's Reviews tab lists every review.",
+    limitations: [
+      "One open review per template, shared by every reviewer; the first decision wins.",
+      "No assignment: every reviewer is asked.",
+      "The setting is global, not per template.",
+      "By default a reviewer can't approve their own submission; 'Allow self-approval' changes that for everyone.",
+      "Editing a theme or snippet makes every open review that uses it stale.",
+      "Not in the audit log yet.",
+    ],
+    access: [
+      { action: "Submit, resubmit and withdraw", needs: edit },
+      { action: "Approve or request changes", needs: { document: ["review"] } },
+      { action: "Publish an approved draft", needs: publish },
+      { action: "Turn the publishing settings on or off", needs: "admin" },
+    ],
+    spec: "docs/features/review-and-approval.md",
+  },
+  {
+    feature: "Notifications",
+    group: "Templates",
+    what: "A bell in the nav shows how many notifications are unread. Reviewers are told when a review is requested; the submitter when changes are requested, when it's approved and when it's published; publishers when a review is approved; the approver when it's published.",
+    howTo:
+      "Click the bell and pick a notification to open its review; that marks it read. 'Mark all read' clears the count.",
+    limitations: [
+      "In-app only: no email or chat.",
+      "The count refreshes every 30 seconds, not instantly.",
+      "Only review events notify; comments don't.",
+    ],
+    access: [{ action: "See your own notifications", needs: view }],
+    spec: "docs/features/review-and-approval.md",
+  },
+  {
+    feature: "Template test cases",
+    group: "Templates",
+    what: "Named data sets saved with a template, each with optional checks: the data validates against the fields, no overlay text was cut to fit, the page count equals or is at most N, and text the PDF must or mustn't contain. Run tests renders every case against the saved draft and shows pass or fail with the failing checks. Results show on the Tests tab, the review page and the publish dialog; 'Block publish when tests fail' (Admin › System › Publishing) makes them a gate.",
+    howTo:
+      "Template › Tests › New test case: name it, take the data from the sample data, a past generation, one of your documents or pasted JSON, and tick the checks. Run tests reruns them; they also rerun after each save.",
+    limitations: [
+      "Tests run on the saved draft, not unsaved edits.",
+      "Renders aren't logged, so they don't appear in Generations.",
+      "Results aren't stored; they run again each time they're shown.",
+      "Generations are offered only if they're yours (admins: anyone's) and still have their input; documents only if they're yours.",
+    ],
+    access: [
+      { action: "Run tests", needs: { document: ["review"] } },
+      { action: "Add, edit and delete test cases", needs: edit },
+    ],
+    spec: "docs/features/template-test-cases-and-visual-diff.md",
+  },
+  {
+    feature: "Visual diff",
+    group: "Templates",
+    what: "Renders the latest published version and the saved draft with the same data (sample data or a test case), compares every page pixel by pixel and shows which pages changed and by how much. Each page shows side by side, as an overlay with an opacity slider, as a diff image (green: only in the draft, red: only in the published version) or as a line diff of its text.",
+    howTo:
+      "Open a review's Visual diff tab, or Show visual diff in the publish dialog. Pick the data, then a page from the list.",
+    limitations: [
+      "Compares with the latest published version only; a first version has nothing to compare with.",
+      "Pages are matched by position: inserting a page early marks every later page changed.",
+      "Up to the first 20 pages.",
+      "Tiny anti-aliasing differences can show as a few changed pixels.",
+    ],
+    access: [{ action: "See the visual diff", needs: { document: ["review"] } }],
+    spec: "docs/features/template-test-cases-and-visual-diff.md",
   },
 ];
 

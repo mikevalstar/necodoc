@@ -13,6 +13,7 @@ import { and, desc, eq, gt, isNotNull, isNull, lte, or, type SQL, sql } from "dr
 import { Hono } from "hono";
 import { z } from "zod";
 import { createKey, revokeKey } from "../api-keys";
+import { recordAudit } from "../audit";
 import { db } from "../db";
 import { apiKeyPolicy, apikey, user } from "../db/schema";
 import { type AppEnv, requirePermission, type SignedInEnv } from "../middleware";
@@ -124,16 +125,17 @@ export const apiKeyRoutes = new Hono<AppEnv>()
     if (refused.length) {
       return c.json({ error: `The owner's roles don't allow ${refused.join(", ")}` }, 422);
     }
-    const created = await createKey(
-      owner.id,
-      {
-        name,
-        ...settings,
-        expiresAt: expiresInDays ? new Date(Date.now() + expiresInDays * 86_400_000) : null,
-      },
-      { createdBy: actor.id },
-    );
-    // Audit hook (docs/features/audit-log.md): record "API key created" here.
+    const keySettings = {
+      name,
+      ...settings,
+      expiresAt: expiresInDays ? new Date(Date.now() + expiresInDays * 86_400_000) : null,
+    };
+    const created = await createKey(owner.id, keySettings, { createdBy: actor.id });
+    await recordAudit({
+      action: "api_key.created",
+      target: { id: created.id, name },
+      after: { ...keySettings, ownerId: owner.id, start: created.start },
+    });
     return c.json(created, 201);
   })
   .post("/:id/rotate", canUseApi, idParam, zValidator("json", rotateApiKeySchema), async (c) => {
@@ -160,13 +162,19 @@ export const apiKeyRoutes = new Hono<AppEnv>()
       { createdBy: actor.id, rotatedFromId: found.id },
     );
     const overlapEnd = new Date(now + c.req.valid("json").overlapHours * 3_600_000);
+    const oldExpiresAt =
+      found.expiresAt && found.expiresAt < overlapEnd ? found.expiresAt : overlapEnd;
     await db
       .update(apiKeyPolicy)
-      .set({
-        expiresAt: found.expiresAt && found.expiresAt < overlapEnd ? found.expiresAt : overlapEnd,
-      })
+      .set({ expiresAt: oldExpiresAt })
       .where(eq(apiKeyPolicy.apiKeyId, found.id));
-    // Audit hook (docs/features/audit-log.md): record "API key rotated" here.
+    await recordAudit({
+      action: "api_key.rotated",
+      target: { id: found.id, name: found.name },
+      before: { expiresAt: found.expiresAt },
+      after: { expiresAt: oldExpiresAt },
+      details: { replacedBy: created.id, replacementStart: created.start },
+    });
     return c.json({ ...created, oldKeyExpiresAt: overlapEnd.toISOString() }, 201);
   })
   .post("/:id/revoke", canUseApi, idParam, async (c) => {
@@ -177,5 +185,10 @@ export const apiKeyRoutes = new Hono<AppEnv>()
     }
     if (found.status === "revoked") return c.json({ error: "This key is already revoked" }, 409);
     await revokeKey(found.id, actor.id);
+    await recordAudit({
+      action: "api_key.revoked",
+      target: { id: found.id, name: found.name },
+      details: { ownerId: found.ownerId, ownerName: found.ownerName },
+    });
     return c.body(null, 204);
   });

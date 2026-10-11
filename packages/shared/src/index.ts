@@ -1,5 +1,6 @@
 export * from "./api-key";
 export * from "./asset";
+export * from "./audit";
 export * from "./batch";
 export * from "./compile";
 export * from "./fields";

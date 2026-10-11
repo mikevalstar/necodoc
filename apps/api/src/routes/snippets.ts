@@ -14,6 +14,7 @@ import {
 import { and, asc, eq } from "drizzle-orm";
 import { Hono } from "hono";
 import { z } from "zod";
+import { recordAudit } from "../audit";
 import { db } from "../db";
 import { snippet, template, templateVersion } from "../db/schema";
 import { type AppEnv, requireAnyPermission, requirePermission } from "../middleware";
@@ -135,10 +136,19 @@ export const snippetRoutes = new Hono<AppEnv>()
     if (taken) return c.json({ error: `The key "${body.key}" is taken` }, 409);
     const error = await contentError({ key: body.key }, body.content);
     if (error) return c.json({ error }, 422);
-    const [row] = await db
-      .insert(snippet)
-      .values({ ...body, createdBy: c.get("user").id })
-      .returning();
+    const row = await db.transaction(async (tx) => {
+      const [created] = await tx
+        .insert(snippet)
+        .values({ ...body, createdBy: c.get("user").id })
+        .returning();
+      if (created) {
+        await recordAudit(
+          { action: "snippet.created", target: { id: created.id, name: created.name }, after: created },
+          tx,
+        );
+      }
+      return created;
+    });
     return c.json(row, 201);
   })
   .get("/:id", canSee, idParam, async (c) => {
@@ -153,14 +163,28 @@ export const snippetRoutes = new Hono<AppEnv>()
     if (!existing) return c.json({ error: "Snippet not found" }, 404);
     const error = changes.content ? await contentError(existing, changes.content) : null;
     if (error) return c.json({ error }, 422);
-    const [row] = await db
-      .update(snippet)
-      .set({
-        ...changes,
-        ...(archived === undefined ? {} : { archivedAt: archived ? new Date() : null }),
-      })
-      .where(eq(snippet.id, id))
-      .returning();
+    const row = await db.transaction(async (tx) => {
+      const [updated] = await tx
+        .update(snippet)
+        .set({
+          ...changes,
+          ...(archived === undefined ? {} : { archivedAt: archived ? new Date() : null }),
+        })
+        .where(eq(snippet.id, id))
+        .returning();
+      if (updated) {
+        await recordAudit(
+          {
+            action: "snippet.updated",
+            target: { id, name: updated.name },
+            before: existing,
+            after: updated,
+          },
+          tx,
+        );
+      }
+      return updated;
+    });
     if (!row) return c.json({ error: "Snippet not found" }, 404);
     return c.json({ ...row, ...(await usage(row)) }, 200);
   })
@@ -176,6 +200,12 @@ export const snippetRoutes = new Hono<AppEnv>()
         409,
       );
     }
-    await db.delete(snippet).where(eq(snippet.id, row.id));
+    await db.transaction(async (tx) => {
+      await tx.delete(snippet).where(eq(snippet.id, row.id));
+      await recordAudit(
+        { action: "snippet.deleted", target: { id: row.id, name: row.name }, before: row },
+        tx,
+      );
+    });
     return c.body(null, 204);
   });
