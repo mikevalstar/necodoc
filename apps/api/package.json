@@ -14,24 +14,36 @@
     "auth:generate": "auth generate --config src/auth.ts --output src/db/auth-schema.ts --yes",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate",
-    "db:studio": "drizzle-kit studio"
+    "db:studio": "drizzle-kit studio",
+    "chromium:install": "playwright-core install --only-shell chromium"
   },
   "devDependencies": {
     "@types/node": "^24.13.6",
     "auth": "^1.7.6",
     "drizzle-kit": "^0.31.11",
+    "pdfjs-dist": "^6.4.299",
     "tsdown": "^0.23.0",
     "tsx": "^4.23.15",
     "typescript": "^7.0.2",
     "vitest": "^5.0.1"
   },
   "dependencies": {
+    "@cantoo/pdf-lib": "^2.11.1",
+    "@fontsource/inter": "^5.3.0",
+    "@fontsource/jetbrains-mono": "^5.3.0",
+    "@fontsource/noto-sans": "^5.3.0",
+    "@fontsource/noto-serif": "^5.3.0",
     "@hono/node-server": "^2.1.1",
     "@hono/zod-validator": "^0.9.1",
     "@necodoc/shared": "workspace:*",
+    "@pdf-lib/fontkit": "^1.1.1",
     "better-auth": "^1.7.6",
+    "bwip-js": "^4.11.4",
+    "dayjs": "^1.11.23",
     "drizzle-orm": "^0.45.3",
     "hono": "^4.13.9",
+    "liquidjs": "^10.30.0",
+    "playwright-core": "~1.62.1",
     "postgres": "^3.4.9",
     "zod": "^4.6.5"
   }

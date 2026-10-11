@@ -52,7 +52,7 @@ needs counting.
 - [ ] An admin can filter, download, re-run and delete; a non-admin sees only
       their own entries.
 - [ ] A re-run produces the same PDF as the original for an unchanged version.
-- [ ] Deleting removes the stored PDF bytes too.
+- [x] Deleting removes the stored PDF bytes too.
 
 ## Known limitations
 
@@ -60,6 +60,9 @@ needs counting.
   is no automatic retention yet.
 - Generated PDFs fill the database over time.
 - Re-running an API render that used a since-deleted asset or theme fails.
+- A re-run matches the original page for page, not byte for byte: Chromium stamps
+  each PDF with its creation time.
+- Bulk delete needs at least one filter, so one request can't wipe the whole log.
 
 ## Open questions
 

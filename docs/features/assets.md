@@ -31,7 +31,9 @@ same logo.
 - **Use.** The editors insert assets from a picker. Templates reference them by
   id through the `asset_url` filter
   ([ADR 0015](../adrs/0015-liquidjs-for-templating.md)), so renaming is safe.
-  Fonts are referenced from [themes](document-themes.md) and overlay boxes.
+  Fonts are referenced from [themes](document-themes.md) and overlay boxes. Free CSS
+  can point at an asset directly as `https://assets.necodoc.invalid/<asset id>`, the
+  renderer's in-process origin ([render.ts](../../packages/shared/src/render.ts)).
 - **Overlay limits.** [Overlay templates](pdf-overlay-templates.md) can use
   PNG/JPEG images and TTF/OTF fonts only
   ([ADR 0013](../adrs/0013-pdf-lib-for-overlaying-stamping-and-merging-pdfs.md)).
@@ -47,7 +49,7 @@ same logo.
 ## Acceptance criteria
 
 - [ ] An editor can upload an image and a font and use both in a template.
-- [ ] A file whose content doesn't match an allowed type is rejected.
+- [x] A file whose content doesn't match an allowed type is rejected.
 - [ ] Renaming an asset doesn't break templates using it.
 - [ ] Deleting an asset used by a published version is refused, with the list
       of users of it.
@@ -58,3 +60,4 @@ same logo.
 - Assets are global. No per-user or per-folder privacy.
 - SVGs render in designed templates only, not overlays.
 - No image editing (crop, resize) in the app.
+- Deleting a font asset a theme uses isn't refused; the theme falls back to Noto Sans.

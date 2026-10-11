@@ -9,9 +9,14 @@ export type AppEnv = {
   };
 };
 
+type Defined<T> = { [K in keyof T]: NonNullable<T[K]> };
+/** What handlers behind a role guard see: a signed-in user and session. */
+export type SignedInEnv = { Variables: Defined<AppEnv["Variables"]> };
+
 function requireRoles(allowed: (roles: Role[]) => boolean) {
-  return createMiddleware<AppEnv>(async (c, next) => {
-    const user = c.get("user");
+  return createMiddleware<SignedInEnv>(async (c, next) => {
+    // Typed for the handlers after this guard; here the user may still be missing.
+    const user: AppEnv["Variables"]["user"] = c.get("user");
     if (!user) return c.json({ error: "Unauthorized" }, 401);
     if (!allowed(parseRoles(user.role))) return c.json({ error: "Forbidden" }, 403);
     await next();

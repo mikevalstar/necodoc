@@ -81,6 +81,8 @@ editor and developers a code mode, on one renderer.
 ## Known limitations
 
 - Band content taller than the band height is clipped.
+- A first-page band variant has the same height as the band, so a tall letterhead
+  on page 1 means the same reserved space on every page.
 - The editor shows content, not pages. Page layout is only visible in the
   preview.
 - Code mode can't convert back to the visual editor.

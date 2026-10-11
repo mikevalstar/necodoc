@@ -53,10 +53,13 @@ template carries its own CSS and they drift apart.
       and bands.
 - [ ] An API render with a theme id applies that theme.
 - [ ] Editing a theme doesn't change an already published version.
-- [ ] A theme using an uploaded font renders that font in the PDF.
+- [x] A theme using an uploaded font renders that font in the PDF.
 
 ## Known limitations
 
 - Free CSS is unrestricted, so it can break layout. The preview is the check.
 - Remote `@import` and font URLs don't load
   ([ADR 0012](../adrs/0012-headless-chromium-for-html-to-pdf.md)).
+- An uploaded font is one file, so bold and italic are synthesised by Chromium.
+- Built-in starters are defined in [builtin-themes.ts](../../apps/api/src/builtin-themes.ts)
+  and re-seeded on every API boot.

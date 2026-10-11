@@ -34,6 +34,9 @@ Mechanism: [ADR 0019](../adrs/0019-better-auth-api-keys-for-the-public-api.md).
   - optional `theme` id ([Document themes](document-themes.md))
   - optional `header` and `footer`: `html`, `height`, optional `firstPageHtml`
   - optional page options: size (Letter, A4, Legal), orientation, margins
+  - margins and band heights are millimetres
+  - Liquid's `date` filter takes dayjs format tokens (`MMMM D, YYYY`), like the
+    app, not strftime ([liquid.ts](../../apps/api/src/render/liquid.ts))
   - optional `filename`
 - **Generate from a template** (`POST /api/v1/templates/:id/generate`): `data`
   validated against the template's fields
@@ -81,3 +84,6 @@ Mechanism: [ADR 0019](../adrs/0019-better-auth-api-keys-for-the-public-api.md).
 - No official SDKs. Plain HTTP and the docs page.
 - No JavaScript in submitted HTML.
 - No URL-to-PDF; the API never fetches a page for you.
+- Chromium rounds page sizes given in millimetres up by under a point (A4 comes out
+  595.9 × 841.9 pt rather than 595.3 × 841.9). Bands are positioned from each
+  page's real size, so they still line up.

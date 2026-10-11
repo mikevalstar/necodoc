@@ -25,6 +25,9 @@ pnpm workspaces monorepo ([ADR 0002](docs/adrs/0002-pnpm-workspaces-monorepo.md)
   Better Auth ([ADR 0007](docs/adrs/0007-better-auth-for-authentication.md)).
   `src/app.ts` exports `AppType`; keep routes chained on that instance so
   the client stays typed.
+  Route modules live in `src/routes` and mount with `.route()`. The renderer
+  (`src/render`) stays DB-free; `src/generate.ts` wires it to themes, assets
+  and the generation log, and only `src/files.ts` touches file bytes.
 - `packages/shared`: browser-safe zod schemas for every payload and form.
   Types come from `z.infer`, never hand-written
   ([ADR 0008](docs/adrs/0008-zod-schemas-shared-between-api-and-app.md)).
@@ -89,5 +92,7 @@ Agent browsaer and herdr are both installed and available; the developer will al
 - Biome skips lint in `apps/app/src/components/ui` (vendored shadcn) and the
   unused-code rules in `.astro` files
   ([ADR 0009](docs/adrs/0009-biome-for-linting-and-formatting.md)).
+- `playwright-core` is pinned to the Chromium revision in the local Playwright
+  cache. After bumping it, run `pnpm --filter @necodoc/api chromium:install`.
 - Workspace packages ship TS source. The API build (tsdown) inlines
   `@necodoc/*`; keep that `noExternal` rule if you add packages.
