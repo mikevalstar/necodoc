@@ -18,6 +18,7 @@ import { Route as AppAssetsRouteImport } from './routes/_app/assets'
 import { Route as AppDevelopersRouteImport } from './routes/_app/developers'
 import { Route as AppRenderRouteImport } from './routes/_app/render'
 import { Route as AppSettingsRouteImport } from './routes/_app/settings'
+import { Route as AppUsageRouteImport } from './routes/_app/usage'
 import { Route as STokenRouteImport } from './routes/s.$token'
 import { Route as AppAdminApiKeysRouteImport } from './routes/_app/admin/api-keys'
 import { Route as AppAdminAuditRouteImport } from './routes/_app/admin/audit'
@@ -42,6 +43,7 @@ import { Route as AppTemplatesIdRouteImport } from './routes/_app/templates/$id'
 import { Route as AppThemesIndexRouteImport } from './routes/_app/themes/index'
 import { Route as AppThemesIdRouteImport } from './routes/_app/themes/$id'
 import { Route as AppAdminAnalyticsIndexRouteImport } from './routes/_app/admin/analytics/index'
+import { Route as AppAdminAnalyticsAccessRouteImport } from './routes/_app/admin/analytics/access'
 import { Route as AppAdminServiceAccountsIndexRouteImport } from './routes/_app/admin/service-accounts/index'
 import { Route as AppAdminServiceAccountsIdRouteImport } from './routes/_app/admin/service-accounts/$id'
 import { Route as AppTemplatesReviewsIndexRouteImport } from './routes/_app/templates/reviews/index'
@@ -89,6 +91,11 @@ const AppRenderRoute = AppRenderRouteImport.update({
 const AppSettingsRoute = AppSettingsRouteImport.update({
   id: '/settings',
   path: '/settings',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppUsageRoute = AppUsageRouteImport.update({
+  id: '/usage',
+  path: '/usage',
   getParentRoute: () => AppRoute,
 } as any)
 const STokenRoute = STokenRouteImport.update({
@@ -211,6 +218,11 @@ const AppAdminAnalyticsIndexRoute = AppAdminAnalyticsIndexRouteImport.update({
   path: '/admin/analytics/',
   getParentRoute: () => AppRoute,
 } as any)
+const AppAdminAnalyticsAccessRoute = AppAdminAnalyticsAccessRouteImport.update({
+  id: '/admin/analytics/access',
+  path: '/admin/analytics/access',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppAdminServiceAccountsIndexRoute =
   AppAdminServiceAccountsIndexRouteImport.update({
     id: '/admin/service-accounts/',
@@ -245,6 +257,7 @@ export interface FileRoutesByFullPath {
   '/developers': typeof AppDevelopersRoute
   '/render': typeof AppRenderRoute
   '/settings': typeof AppSettingsRoute
+  '/usage': typeof AppUsageRoute
   '/s/$token': typeof STokenRoute
   '/admin/api-keys': typeof AppAdminApiKeysRoute
   '/admin/audit': typeof AppAdminAuditRoute
@@ -268,6 +281,7 @@ export interface FileRoutesByFullPath {
   '/snippets/': typeof AppSnippetsIndexRoute
   '/templates/': typeof AppTemplatesIndexRoute
   '/themes/': typeof AppThemesIndexRoute
+  '/admin/analytics/access': typeof AppAdminAnalyticsAccessRoute
   '/admin/service-accounts/$id': typeof AppAdminServiceAccountsIdRoute
   '/templates/reviews/$reviewId': typeof AppTemplatesReviewsReviewIdRoute
   '/admin/analytics/': typeof AppAdminAnalyticsIndexRoute
@@ -282,6 +296,7 @@ export interface FileRoutesByTo {
   '/developers': typeof AppDevelopersRoute
   '/render': typeof AppRenderRoute
   '/settings': typeof AppSettingsRoute
+  '/usage': typeof AppUsageRoute
   '/s/$token': typeof STokenRoute
   '/': typeof AppIndexRoute
   '/admin/api-keys': typeof AppAdminApiKeysRoute
@@ -306,6 +321,7 @@ export interface FileRoutesByTo {
   '/snippets': typeof AppSnippetsIndexRoute
   '/templates': typeof AppTemplatesIndexRoute
   '/themes': typeof AppThemesIndexRoute
+  '/admin/analytics/access': typeof AppAdminAnalyticsAccessRoute
   '/admin/service-accounts/$id': typeof AppAdminServiceAccountsIdRoute
   '/templates/reviews/$reviewId': typeof AppTemplatesReviewsReviewIdRoute
   '/admin/analytics': typeof AppAdminAnalyticsIndexRoute
@@ -322,6 +338,7 @@ export interface FileRoutesById {
   '/_app/developers': typeof AppDevelopersRoute
   '/_app/render': typeof AppRenderRoute
   '/_app/settings': typeof AppSettingsRoute
+  '/_app/usage': typeof AppUsageRoute
   '/s/$token': typeof STokenRoute
   '/_app/': typeof AppIndexRoute
   '/_app/admin/api-keys': typeof AppAdminApiKeysRoute
@@ -346,6 +363,7 @@ export interface FileRoutesById {
   '/_app/snippets/': typeof AppSnippetsIndexRoute
   '/_app/templates/': typeof AppTemplatesIndexRoute
   '/_app/themes/': typeof AppThemesIndexRoute
+  '/_app/admin/analytics/access': typeof AppAdminAnalyticsAccessRoute
   '/_app/admin/service-accounts/$id': typeof AppAdminServiceAccountsIdRoute
   '/_app/templates/reviews/$reviewId': typeof AppTemplatesReviewsReviewIdRoute
   '/_app/admin/analytics/': typeof AppAdminAnalyticsIndexRoute
@@ -363,6 +381,7 @@ export interface FileRouteTypes {
     | '/developers'
     | '/render'
     | '/settings'
+    | '/usage'
     | '/s/$token'
     | '/admin/api-keys'
     | '/admin/audit'
@@ -386,6 +405,7 @@ export interface FileRouteTypes {
     | '/snippets/'
     | '/templates/'
     | '/themes/'
+    | '/admin/analytics/access'
     | '/admin/service-accounts/$id'
     | '/templates/reviews/$reviewId'
     | '/admin/analytics/'
@@ -400,6 +420,7 @@ export interface FileRouteTypes {
     | '/developers'
     | '/render'
     | '/settings'
+    | '/usage'
     | '/s/$token'
     | '/'
     | '/admin/api-keys'
@@ -424,6 +445,7 @@ export interface FileRouteTypes {
     | '/snippets'
     | '/templates'
     | '/themes'
+    | '/admin/analytics/access'
     | '/admin/service-accounts/$id'
     | '/templates/reviews/$reviewId'
     | '/admin/analytics'
@@ -439,6 +461,7 @@ export interface FileRouteTypes {
     | '/_app/developers'
     | '/_app/render'
     | '/_app/settings'
+    | '/_app/usage'
     | '/s/$token'
     | '/_app/'
     | '/_app/admin/api-keys'
@@ -463,6 +486,7 @@ export interface FileRouteTypes {
     | '/_app/snippets/'
     | '/_app/templates/'
     | '/_app/themes/'
+    | '/_app/admin/analytics/access'
     | '/_app/admin/service-accounts/$id'
     | '/_app/templates/reviews/$reviewId'
     | '/_app/admin/analytics/'
@@ -541,6 +565,13 @@ declare module '@tanstack/react-router' {
       path: '/settings'
       fullPath: '/settings'
       preLoaderRoute: typeof AppSettingsRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/usage': {
+      id: '/_app/usage'
+      path: '/usage'
+      fullPath: '/usage'
+      preLoaderRoute: typeof AppUsageRouteImport
       parentRoute: typeof AppRoute
     }
     '/s/$token': {
@@ -711,6 +742,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppAdminAnalyticsIndexRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_app/admin/analytics/access': {
+      id: '/_app/admin/analytics/access'
+      path: '/admin/analytics/access'
+      fullPath: '/admin/analytics/access'
+      preLoaderRoute: typeof AppAdminAnalyticsAccessRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/_app/admin/service-accounts/': {
       id: '/_app/admin/service-accounts/'
       path: '/admin/service-accounts'
@@ -747,6 +785,7 @@ interface AppRouteChildren {
   AppDevelopersRoute: typeof AppDevelopersRoute
   AppRenderRoute: typeof AppRenderRoute
   AppSettingsRoute: typeof AppSettingsRoute
+  AppUsageRoute: typeof AppUsageRoute
   AppIndexRoute: typeof AppIndexRoute
   AppAdminApiKeysRoute: typeof AppAdminApiKeysRoute
   AppAdminAuditRoute: typeof AppAdminAuditRoute
@@ -770,6 +809,7 @@ interface AppRouteChildren {
   AppSnippetsIndexRoute: typeof AppSnippetsIndexRoute
   AppTemplatesIndexRoute: typeof AppTemplatesIndexRoute
   AppThemesIndexRoute: typeof AppThemesIndexRoute
+  AppAdminAnalyticsAccessRoute: typeof AppAdminAnalyticsAccessRoute
   AppAdminServiceAccountsIdRoute: typeof AppAdminServiceAccountsIdRoute
   AppTemplatesReviewsReviewIdRoute: typeof AppTemplatesReviewsReviewIdRoute
   AppAdminAnalyticsIndexRoute: typeof AppAdminAnalyticsIndexRoute
@@ -782,6 +822,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppDevelopersRoute: AppDevelopersRoute,
   AppRenderRoute: AppRenderRoute,
   AppSettingsRoute: AppSettingsRoute,
+  AppUsageRoute: AppUsageRoute,
   AppIndexRoute: AppIndexRoute,
   AppAdminApiKeysRoute: AppAdminApiKeysRoute,
   AppAdminAuditRoute: AppAdminAuditRoute,
@@ -805,6 +846,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppSnippetsIndexRoute: AppSnippetsIndexRoute,
   AppTemplatesIndexRoute: AppTemplatesIndexRoute,
   AppThemesIndexRoute: AppThemesIndexRoute,
+  AppAdminAnalyticsAccessRoute: AppAdminAnalyticsAccessRoute,
   AppAdminServiceAccountsIdRoute: AppAdminServiceAccountsIdRoute,
   AppTemplatesReviewsReviewIdRoute: AppTemplatesReviewsReviewIdRoute,
   AppAdminAnalyticsIndexRoute: AppAdminAnalyticsIndexRoute,

@@ -94,14 +94,14 @@ const accountGenerations = (w: Window) =>
     Number,
   );
 
-const inWindow = (column: AnyPgColumn, w: Window) =>
-  and(gte(column, w.from), lt(column, w.to));
+const inWindow = (column: AnyPgColumn, w: Window) => and(gte(column, w.from), lt(column, w.to));
 
 const total = sql<number>`count(*)`.mapWith(Number);
 const errors = sql<number>`count(*) filter (where ${generation.status} = 'error')`.mapWith(Number);
 const percentile = (p: number, column: AnyPgColumn) =>
   sql<number | null>`percentile_cont(${sql.raw(String(p))}) within group (order by ${column})`;
-const sum = (column: AnyPgColumn) => sql<number>`coalesce(sum(${column}), 0)::float8`.mapWith(Number);
+const sum = (column: AnyPgColumn) =>
+  sql<number>`coalesce(sum(${column}), 0)::float8`.mapWith(Number);
 const finished = inArray(generation.status, ["success", "error"]);
 
 /** Generation counts and sizes, by status, for a filter. */
@@ -259,7 +259,9 @@ export const analyticsRoutes = new Hono<AppEnv>()
             errors,
             startedAt: iso("min", generation.startedAt),
             finishedAt: iso("max", generation.finishedAt),
-            rowsPerMinute: sql<number | null>`(count(*) filter (where ${generation.finishedAt} is not null)
+            rowsPerMinute: sql<
+              number | null
+            >`(count(*) filter (where ${generation.finishedAt} is not null)
               / nullif(extract(epoch from max(${generation.finishedAt}) - min(${generation.startedAt})) / 60, 0))::float8`.mapWith(
               Number,
             ),
@@ -280,9 +282,10 @@ export const analyticsRoutes = new Hono<AppEnv>()
             ownerName: user.name,
             views: shareLink.views,
             responses: linkResponses(w),
-            lifetimeResponses: sql<number>`count(${submission.id}) filter (where ${submission.status} = 'finished')`.mapWith(
-              Number,
-            ),
+            lifetimeResponses:
+              sql<number>`count(${submission.id}) filter (where ${submission.status} = 'finished')`.mapWith(
+                Number,
+              ),
           })
           .from(shareLink)
           .innerJoin(template, eq(template.id, shareLink.templateId))
@@ -455,7 +458,10 @@ export const analyticsRoutes = new Hono<AppEnv>()
     ]);
 
     // Sign-ins by bucket and channel, and by provider, from the same rows.
-    const series = new Map<string, { t: number; channel: SignInChannel; ok: number; failed: number }>();
+    const series = new Map<
+      string,
+      { t: number; channel: SignInChannel; ok: number; failed: number }
+    >();
     const providers = new Map<
       string,
       { channel: SignInChannel; provider: string | null; ok: number; failed: number }
@@ -532,9 +538,10 @@ export const analyticsRoutes = new Hono<AppEnv>()
             status: submission.status,
             source: submission.source,
             count: total,
-            inRange: sql<number>`count(*) filter (where ${inRange(submission.createdAt, w)})`.mapWith(
-              Number,
-            ),
+            inRange:
+              sql<number>`count(*) filter (where ${inRange(submission.createdAt, w)})`.mapWith(
+                Number,
+              ),
           })
           .from(submission)
           .where(eq(submission.ownerId, me.id))

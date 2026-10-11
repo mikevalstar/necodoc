@@ -6,7 +6,14 @@ import {
 import { keepPreviousData, queryOptions, useQuery } from "@tanstack/react-query";
 import { createFileRoute, Link, redirect, useNavigate } from "@tanstack/react-router";
 import { z } from "zod";
-import { AnalyticsHeader, bucketDays, logDays, RangeControls, rangeSearchFields, toRange } from "@/components/analytics";
+import {
+  AnalyticsHeader,
+  bucketDays,
+  logDays,
+  RangeControls,
+  rangeSearchFields,
+  toRange,
+} from "@/components/analytics";
 import { apiKeysQuery } from "@/components/api-keys";
 import {
   ChartCard,
@@ -82,7 +89,11 @@ const sourceSeries = (
     ["rerun", 5],
     ["combine", 6],
   ] as const
-).map(([key, n]) => ({ key, label: sourceLabels[key], color: slot(n) })) satisfies SeriesDef<GenerationSource>[];
+).map(([key, n]) => ({
+  key,
+  label: sourceLabels[key],
+  color: slot(n),
+})) satisfies SeriesDef<GenerationSource>[];
 
 const percentileSeries = (prefix: "queue" | "run") =>
   [
@@ -115,19 +126,35 @@ function DocumentAnalytics() {
   /** The generation log, filtered like this page, over some days. */
   const logSearch = (days: { from: string; to: string }) => ({ ...filters, ...days });
   const rangeDays = logDays(range.from, range.to);
-  const openLog = (extra: Record<string, string>, days = rangeDays) =>
-    navigate({ to: "/generations", search: { ...logSearch(days), ...extra } });
+  const openLog = (days: { from: string; to: string }) =>
+    navigate({ to: "/generations", search: logSearch(days) });
 
   const data = result.data;
   const fetching = result.isPlaceholderData;
   const byStatus =
     data &&
-    countsByBucket(data.bucket, data.buckets, statusSeries, data.byStatus, (row) => statusKey(row.status), (row) => row.count);
+    countsByBucket(
+      data.bucket,
+      data.buckets,
+      statusSeries,
+      data.byStatus,
+      (row) => statusKey(row.status),
+      (row) => row.count,
+    );
   const bySource =
     data &&
-    countsByBucket(data.bucket, data.buckets, sourceSeries, data.bySource, (row) => row.source, (row) => row.count);
-  const queueWait = data && fieldsByBucket(data.bucket, data.buckets, percentileSeries("queue"), data.timings);
-  const runTime = data && fieldsByBucket(data.bucket, data.buckets, percentileSeries("run"), data.timings);
+    countsByBucket(
+      data.bucket,
+      data.buckets,
+      sourceSeries,
+      data.bySource,
+      (row) => row.source,
+      (row) => row.count,
+    );
+  const queueWait =
+    data && fieldsByBucket(data.bucket, data.buckets, percentileSeries("queue"), data.timings);
+  const runTime =
+    data && fieldsByBucket(data.bucket, data.buckets, percentileSeries("run"), data.timings);
   const finished = data ? data.totals.success + data.totals.errors : 0;
 
   return (
@@ -135,11 +162,17 @@ function DocumentAnalytics() {
       <AnalyticsHeader current="documents" />
 
       <div className="flex flex-wrap items-end gap-3">
-        <RangeControls search={search} onChange={(next) => navigate({ search: { ...filters, ...next } })} />
+        <RangeControls
+          search={search}
+          onChange={(next) => navigate({ search: { ...filters, ...next } })}
+        />
         <FilterSelect
           label="Source"
           value={search.source}
-          options={generationSourceSchema.options.map((value) => ({ value, label: sourceLabels[value] }))}
+          options={generationSourceSchema.options.map((value) => ({
+            value,
+            label: sourceLabels[value],
+          }))}
           onChange={(value) => setSearch({ source: generationSourceSchema.safeParse(value).data })}
         />
         <FilterSelect
@@ -157,13 +190,18 @@ function DocumentAnalytics() {
         <FilterSelect
           label="API key"
           value={search.apiKeyId}
-          options={(keys.data ?? []).map((k) => ({ value: k.id, label: k.name ?? k.start ?? k.id }))}
+          options={(keys.data ?? []).map((k) => ({
+            value: k.id,
+            label: k.name ?? k.start ?? k.id,
+          }))}
           onChange={(value) => setSearch({ apiKeyId: value || undefined })}
         />
         {hasFilter && (
           <Button
             variant="ghost"
-            onClick={() => navigate({ search: { range: search.range, from: search.from, to: search.to } })}
+            onClick={() =>
+              navigate({ search: { range: search.range, from: search.from, to: search.to } })
+            }
           >
             Clear filters
           </Button>
@@ -203,7 +241,7 @@ function DocumentAnalytics() {
                 data={byStatus}
                 kind="stacked"
                 label="Generations over time by status"
-                onSelect={(t) => openLog({}, bucketDays(data.bucket, t))}
+                onSelect={(t) => openLog(bucketDays(data.bucket, t))}
               />
             </ChartCard>
             <ChartCard
@@ -216,7 +254,7 @@ function DocumentAnalytics() {
                 data={bySource}
                 kind="stacked"
                 label="Generations over time by source"
-                onSelect={(t) => openLog({}, bucketDays(data.bucket, t))}
+                onSelect={(t) => openLog(bucketDays(data.bucket, t))}
               />
             </ChartCard>
             <ChartCard
@@ -226,7 +264,12 @@ function DocumentAnalytics() {
               table={timeTable(queueWait, false)}
               csv={{ filename: "queue-wait-ms", ...timeTable(queueWait, false) }}
             >
-              <TimeChart data={queueWait} kind="line" format={formatMs} label="Queue wait p50 and p95 over time" />
+              <TimeChart
+                data={queueWait}
+                kind="line"
+                format={formatMs}
+                label="Queue wait p50 and p95 over time"
+              />
             </ChartCard>
             <ChartCard
               title="Run time"
@@ -235,7 +278,12 @@ function DocumentAnalytics() {
               table={timeTable(runTime, false)}
               csv={{ filename: "run-time-ms", ...timeTable(runTime, false) }}
             >
-              <TimeChart data={runTime} kind="line" format={formatMs} label="Run time p50 and p95 over time" />
+              <TimeChart
+                data={runTime}
+                kind="line"
+                format={formatMs}
+                label="Run time p50 and p95 over time"
+              />
             </ChartCard>
           </div>
 
@@ -301,19 +349,44 @@ function DocumentAnalytics() {
             fetching={fetching}
             csv={{
               filename: "batches",
-              header: ["Batch", "Template", "Version", "Rows", "Of total", "Errors", "Started", "Finished", "Rows per minute"],
-              rows: data.batches.map((b) => [b.batchId, b.templateName, b.version, b.rows, b.total, b.errors, b.startedAt, b.finishedAt, b.rowsPerMinute]),
+              header: [
+                "Batch",
+                "Template",
+                "Version",
+                "Rows",
+                "Of total",
+                "Errors",
+                "Started",
+                "Finished",
+                "Rows per minute",
+              ],
+              rows: data.batches.map((b) => [
+                b.batchId,
+                b.templateName,
+                b.version,
+                b.rows,
+                b.total,
+                b.errors,
+                b.startedAt,
+                b.finishedAt,
+                b.rowsPerMinute,
+              ]),
             }}
           >
             <SimpleTable
               header={["Template", "Rows", "Errors", "Duration", "Rows / min"]}
               rows={data.batches.map((b) => [
-                <Link key="link" to="/batches/$id" params={{ id: b.batchId }} className="hover:underline">
+                <Link
+                  key="link"
+                  to="/batches/$id"
+                  params={{ id: b.batchId }}
+                  className="hover:underline"
+                >
                   {b.templateName} v{b.version}
                 </Link>,
                 `${b.rows.toLocaleString()} / ${b.total.toLocaleString()}`,
                 b.errors,
-                b.startedAt && b.finishedAt ? formatMs(dayjs(b.finishedAt).diff(b.startedAt)) : "—",
+                b.startedAt && b.finishedAt ? dayjs(b.startedAt).to(b.finishedAt, true) : "—",
                 b.rowsPerMinute === null ? "—" : Math.round(b.rowsPerMinute),
               ])}
             />
@@ -325,14 +398,35 @@ function DocumentAnalytics() {
             fetching={fetching}
             csv={{
               filename: "share-links",
-              header: ["Link", "Template", "Owner", "Responses in range", "Views", "Finished responses", "Conversion"],
-              rows: data.shareLinks.map((l) => [l.label, l.templateName, l.ownerName, l.responses, l.views, l.lifetimeResponses, l.conversion]),
+              header: [
+                "Link",
+                "Template",
+                "Owner",
+                "Responses in range",
+                "Views",
+                "Finished responses",
+                "Conversion",
+              ],
+              rows: data.shareLinks.map((l) => [
+                l.label,
+                l.templateName,
+                l.ownerName,
+                l.responses,
+                l.views,
+                l.lifetimeResponses,
+                l.conversion,
+              ]),
             }}
           >
             <SimpleTable
               header={["Link", "Responses", "Views", "Conversion"]}
               rows={data.shareLinks.map((l) => [
-                <Link key="link" to="/share-links/$id" params={{ id: l.id }} className="hover:underline">
+                <Link
+                  key="link"
+                  to="/share-links/$id"
+                  params={{ id: l.id }}
+                  className="hover:underline"
+                >
                   {l.label} <span className="text-muted-foreground">· {l.templateName}</span>
                 </Link>,
                 l.responses,
@@ -347,7 +441,15 @@ function DocumentAnalytics() {
   );
 }
 
-type GenerationLogSearch = { from: string; to: string } & Partial<Record<string, string>>;
+type LogSearch = Omit<Search, "range" | "from" | "to"> & { from: string; to: string };
+/** What a ranked row narrows the generation log to. */
+type RowLink = Partial<{
+  templateId: string;
+  userId: string;
+  apiKeyId: string;
+  status: "error";
+  q: string;
+}>;
 
 /** A ranked list with a bar per row; each row opens the generation log narrowed to it. */
 function RankedCard({
@@ -363,8 +465,8 @@ function RankedCard({
   description?: string;
   filename: string;
   header: readonly string[];
-  rows: { key: string; cells: readonly (string | number)[]; bar: number; link: Record<string, string> }[];
-  logSearch: GenerationLogSearch;
+  rows: { key: string; cells: readonly (string | number)[]; bar: number; link: RowLink }[];
+  logSearch: LogSearch;
   fetching: boolean;
 }) {
   const max = Math.max(0, ...rows.map((row) => row.bar));
@@ -378,10 +480,21 @@ function RankedCard({
       <SimpleTable
         header={header}
         rows={rows.map(({ key, cells: [name, value, ...rest], bar, link }) => [
-          <Link key={key} to="/generations" search={{ ...logSearch, ...link }} className="hover:underline" title={String(name)}>
+          <Link
+            key={key}
+            to="/generations"
+            search={{ ...logSearch, ...link }}
+            className="hover:underline"
+            title={String(name)}
+          >
             {name}
           </Link>,
-          <InlineBar key="bar" value={bar} max={max} label={typeof value === "number" ? value.toLocaleString() : value} />,
+          <InlineBar
+            key="bar"
+            value={bar}
+            max={max}
+            label={typeof value === "number" ? value.toLocaleString() : value}
+          />,
           ...rest,
         ])}
       />

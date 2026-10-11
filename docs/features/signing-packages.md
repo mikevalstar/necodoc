@@ -81,15 +81,15 @@ Mechanism: [ADR 0033](../adrs/0033-sign-boxes-located-by-anchor-text-handed-off-
 
 ## Acceptance criteria
 
-- [ ] A surety bond overlay with principal, surety and attorney-in-fact signers
+- [x] A surety bond overlay with principal, surety and attorney-in-fact signers
       returns boxes that line up with its signature lines when drawn over the
       rasterised PDF.
-- [ ] A designed template with sign boxes returns rectangles within a point of
+- [x] A designed template with sign boxes returns rectangles within a point of
       where the boxes print, on whichever page they fall.
-- [ ] The DocuSign envelope matches DocuSign's documented envelope shape.
-- [ ] `anchors: false` leaves no anchor text in the PDF; positions don't move.
-- [ ] Anchor text doesn't show in the printed or rasterised PDF.
-- [ ] The package is available from the app and from `/api/v1`.
+- [x] The DocuSign envelope matches DocuSign's documented envelope shape.
+- [x] `anchors: false` leaves no anchor text in the PDF; positions don't move.
+- [x] Anchor text doesn't show in the printed or rasterised PDF.
+- [x] The package is available from the app and from `/api/v1`.
 
 ## Known limitations
 

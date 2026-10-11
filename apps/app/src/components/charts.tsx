@@ -72,6 +72,10 @@ export function fieldsByBucket<K extends string>(
   return { bucket, buckets, series, values };
 }
 
+/** Series with nothing in the range drop out of the legend, tooltip and table; the rest keep their slot. */
+const shownSeries = <K extends string>({ series, values }: TimeData<K>) =>
+  series.filter((s) => values.some((row) => (row.get(s.key) ?? 0) !== 0));
+
 const compactFormat = new Intl.NumberFormat(undefined, { notation: "compact" });
 export const formatCount = (value: number) =>
   value >= 10_000 ? compactFormat.format(value) : value.toLocaleString();
@@ -142,7 +146,8 @@ export function TimeChart<K extends string>({
 }) {
   const [ref, width] = useWidth();
   const [active, setActive] = useState<number | null>(null);
-  const { buckets, series, values } = data;
+  const { buckets, values } = data;
+  const series = shownSeries(data);
   const plotWidth = Math.max(width - MARGIN.left - MARGIN.right, 0);
   const band = buckets.length ? plotWidth / buckets.length : 0;
   const stackTotal = (i: number) =>
@@ -156,7 +161,10 @@ export function TimeChart<K extends string>({
   const y = (v: number) => MARGIN.top + PLOT_HEIGHT - (v / top) * PLOT_HEIGHT;
   const xCenter = (i: number) => MARGIN.left + band * (i + 0.5);
   const columnWidth = Math.min(24, Math.max(band - GAP * 2, 1));
-  const labelEvery = Math.max(1, Math.ceil(buckets.length / Math.max(1, Math.floor(plotWidth / 72))));
+  const labelEvery = Math.max(
+    1,
+    Math.ceil(buckets.length / Math.max(1, Math.floor(plotWidth / 72))),
+  );
 
   const pick = (event: PointerEvent<SVGRectElement>) => {
     const box = event.currentTarget.getBoundingClientRect();
@@ -167,7 +175,9 @@ export function TimeChart<K extends string>({
     const step = event.key === "ArrowRight" ? 1 : event.key === "ArrowLeft" ? -1 : 0;
     if (step) {
       event.preventDefault();
-      setActive((i) => Math.min(Math.max((i ?? (step > 0 ? -1 : buckets.length)) + step, 0), buckets.length - 1));
+      setActive((i) =>
+        Math.min(Math.max((i ?? (step > 0 ? -1 : buckets.length)) + step, 0), buckets.length - 1),
+      );
     } else if (event.key === "Enter" && active !== null && onSelect) {
       const t = buckets[active];
       if (t !== undefined) onSelect(t);
@@ -182,12 +192,12 @@ export function TimeChart<K extends string>({
       {series.length > 1 && <Legend series={series} kind={kind} />}
       <div ref={ref} className="relative">
         {width > 0 && (
-          // biome-ignore lint/a11y/noNoninteractiveTabindex: arrow keys move the tooltip between buckets
           <svg
             width={width}
             height={MARGIN.top + PLOT_HEIGHT + MARGIN.bottom}
             role="img"
             aria-label={label}
+            // biome-ignore lint/a11y/noNoninteractiveTabindex: arrow keys step the tooltip through buckets (the table view is the full equivalent)
             tabIndex={0}
             onKeyDown={onKey}
             onBlur={() => setActive(null)}
@@ -247,9 +257,20 @@ export function TimeChart<K extends string>({
                       // The surface gap: every segment above the first gives up its bottom 2px.
                       const h = Math.max(seg.h - (j > 0 ? GAP : 0), 0.5);
                       return j === segments.length - 1 ? (
-                        <path key={seg.key} d={columnPath(x, seg.y, columnWidth, h)} fill={seg.color} />
+                        <path
+                          key={seg.key}
+                          d={columnPath(x, seg.y, columnWidth, h)}
+                          fill={seg.color}
+                        />
                       ) : (
-                        <rect key={seg.key} x={x} y={seg.y} width={columnWidth} height={h} fill={seg.color} />
+                        <rect
+                          key={seg.key}
+                          x={x}
+                          y={seg.y}
+                          width={columnWidth}
+                          height={h}
+                          fill={seg.color}
+                        />
                       );
                     })}
                   </g>
@@ -320,6 +341,8 @@ export function TimeChart<K extends string>({
                 );
               })}
 
+            {/* The hover layer; keyboard users get the same through the svg's arrow keys. */}
+            {/* biome-ignore lint/a11y/noStaticElementInteractions: pointer-only hit area */}
             <rect
               x={MARGIN.left}
               y={MARGIN.top}
@@ -393,11 +416,20 @@ function Legend<K extends string>({
 
 /** The table view of a time chart, and its CSV. */
 export function timeTable<K extends string>(data: TimeData<K>, withTotal: boolean) {
-  const header = ["Time", ...data.series.map((s) => s.label), ...(withTotal ? ["Total"] : [])];
+  const series = shownSeries(data);
+  const header = [
+    "Time",
+    ...series.map((s) => s.label),
+    ...(withTotal && series.length > 1 ? ["Total"] : []),
+  ];
   const rows = data.buckets.map((t, i) => {
-    const cells = data.series.map((s) => data.values[i]?.get(s.key) ?? null);
+    const cells = series.map((s) => data.values[i]?.get(s.key) ?? null);
     const total = cells.reduce<number>((sum, v) => sum + (v ?? 0), 0);
-    return [formatBucket(data.bucket, t), ...cells, ...(withTotal ? [total] : [])];
+    return [
+      formatBucket(data.bucket, t),
+      ...cells,
+      ...(withTotal && series.length > 1 ? [total] : []),
+    ];
   });
   return { header, rows };
 }
@@ -487,7 +519,8 @@ export function SimpleTable({
   rows: readonly (readonly ReactNode[])[];
   empty?: string;
 }) {
-  if (!rows.length) return <p className="py-6 text-center text-sm text-muted-foreground">{empty}</p>;
+  if (!rows.length)
+    return <p className="py-6 text-center text-sm text-muted-foreground">{empty}</p>;
   return (
     <Table>
       <TableHeader>
@@ -508,10 +541,7 @@ export function SimpleTable({
               <TableCell
                 // biome-ignore lint/suspicious/noArrayIndexKey: fixed columns
                 key={i}
-                className={cn(
-                  i > 0 && "text-right tabular-nums",
-                  i === 0 && "max-w-72 truncate",
-                )}
+                className={cn(i > 0 && "text-right tabular-nums", i === 0 && "max-w-72 truncate")}
               >
                 {typeof cell === "number" ? cell.toLocaleString() : (cell ?? "—")}
               </TableCell>
@@ -538,7 +568,15 @@ export function InlineBar({ value, max, label }: { value: number; max: number; l
   );
 }
 
-export function StatTile({ label, value, hint }: { label: string; value: ReactNode; hint?: ReactNode }) {
+export function StatTile({
+  label,
+  value,
+  hint,
+}: {
+  label: string;
+  value: ReactNode;
+  hint?: ReactNode;
+}) {
   return (
     <div className="rounded-lg border p-4">
       <div className="text-xs text-muted-foreground">{label}</div>

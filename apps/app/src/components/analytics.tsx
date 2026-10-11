@@ -1,9 +1,11 @@
 import type { AnalyticsBucket, AnalyticsRange } from "@necodoc/shared";
+import { Link } from "@tanstack/react-router";
 import { z } from "zod";
 import { Field, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { NativeSelect, NativeSelectOption } from "@/components/ui/native-select";
 import { dayjs } from "@/lib/date";
+import { cn } from "@/lib/utils";
 
 // Spec: docs/features/analytics-dashboards.md. The date range every dashboard shares: a preset
 // or custom whole local days, kept in the URL.
@@ -118,5 +120,40 @@ export function RangeControls({
         </>
       )}
     </>
+  );
+}
+
+const tabs = [
+  { key: "documents", to: "/admin/analytics", label: "Documents" },
+  { key: "access", to: "/admin/analytics/access", label: "Auth & access" },
+] as const;
+
+/** The admin analytics title and its two dashboards. */
+export function AnalyticsHeader({ current }: { current: (typeof tabs)[number]["key"] }) {
+  return (
+    <div className="space-y-3">
+      <div className="space-y-1">
+        <h1 className="text-2xl font-semibold">Analytics</h1>
+        <p className="text-sm text-muted-foreground">
+          Counted from the generation log, the audit log, share links and users when the page loads.
+        </p>
+      </div>
+      <nav className="flex gap-4 border-b text-sm">
+        {tabs.map((tab) => (
+          <Link
+            key={tab.key}
+            to={tab.to}
+            className={cn(
+              "-mb-px border-b-2 pb-2",
+              tab.key === current
+                ? "border-foreground font-medium"
+                : "border-transparent text-muted-foreground hover:text-foreground",
+            )}
+          >
+            {tab.label}
+          </Link>
+        ))}
+      </nav>
+    </div>
   );
 }

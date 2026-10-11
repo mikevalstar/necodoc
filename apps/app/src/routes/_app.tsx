@@ -137,6 +137,7 @@ function AdminMenu() {
         </DropdownMenuItem>
         <DropdownMenuItem render={<Link to="/admin/api-keys" />}>API keys</DropdownMenuItem>
         <DropdownMenuItem render={<Link to="/admin/audit" />}>Audit log</DropdownMenuItem>
+        <DropdownMenuItem render={<Link to="/admin/analytics" />}>Analytics</DropdownMenuItem>
         <DropdownMenuItem render={<Link to="/admin/faq" />}>FAQ</DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
@@ -164,7 +165,10 @@ function UserMenu({ me }: { me: Me }) {
         <DropdownMenuSeparator />
         <DropdownMenuItem render={<Link to="/settings" />}>Settings</DropdownMenuItem>
         {me.user.roles.length > 0 && (
-          <DropdownMenuItem render={<Link to="/settings/api-keys" />}>API keys</DropdownMenuItem>
+          <>
+            <DropdownMenuItem render={<Link to="/usage" />}>My usage</DropdownMenuItem>
+            <DropdownMenuItem render={<Link to="/settings/api-keys" />}>API keys</DropdownMenuItem>
+          </>
         )}
         <DropdownMenuItem disabled={signOut.isPending} onClick={() => signOut.mutate()}>
           Sign out
