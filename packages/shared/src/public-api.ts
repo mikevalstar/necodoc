@@ -3,6 +3,12 @@ import { batchJsonSchema, batchSummarySchema } from "./batch";
 import { generationStatusSchema, generationSummarySchema } from "./generation";
 import { renderRequestSchema } from "./render";
 import {
+  signingFormatSchema,
+  signingPackageSchema,
+  signingRequestSchema,
+  tabPlacementSchema,
+} from "./signing";
+import {
   generateFromTemplateSchema,
   templateSummarySchema,
   templateVersionSummarySchema,
@@ -22,15 +28,24 @@ const responseOptions = {
     .meta({ description: "Answer 202 with the generation id at once instead of waiting." }),
 };
 
-// Unsaved theme drafts and previews are the app's; the public render always logs.
-const { themeDraft: _themeDraft, preview: _preview, ...renderFields } = renderRequestSchema.shape;
+/** Render and generate only: packets don't carry signing packages. */
+const signingOption = { signing: signingRequestSchema.optional() };
+
+// Unsaved theme drafts and previews are the app's; the public render always logs. `signing` is
+// the public option below, not the renderer's.
+const {
+  themeDraft: _themeDraft,
+  preview: _preview,
+  signing: _signing,
+  ...renderFields
+} = renderRequestSchema.shape;
 
 export const v1RenderSchema = z
-  .object({ ...renderFields, ...responseOptions })
+  .object({ ...renderFields, ...responseOptions, ...signingOption })
   .meta({ id: "RenderRequest", description: "HTML (Liquid allowed) to render as a PDF." });
 
 export const v1GenerateSchema = generateFromTemplateSchema
-  .extend(responseOptions)
+  .extend({ ...responseOptions, ...signingOption })
   .meta({ id: "GenerateRequest", description: "Data for a published template version." });
 
 export const v1BatchSchema = batchJsonSchema.meta({ id: "BatchRequest" });
@@ -96,3 +111,48 @@ export const v1BatchSummarySchema = batchSummarySchema.meta({ id: "Batch" });
 export const jsonSchemaDocumentSchema = z
   .record(z.string(), z.unknown())
   .meta({ id: "JsonSchema", description: "A JSON Schema (draft 2020-12) for the data." });
+
+/** GET .../signing-package: which provider JSON to build. Repeat `formats` for several. */
+export const signingPackageQuerySchema = z.object({
+  formats: z
+    .union([signingFormatSchema, z.array(signingFormatSchema)])
+    .optional()
+    .meta({ description: "Provider JSON to include (default `docusign`). Repeat for several." }),
+  embedPdf: z
+    .enum(["true", "false"])
+    .optional()
+    .meta({ description: "Put the PDF in provider JSON as base64 (default `true`)." }),
+  placement: tabPlacementSchema
+    .optional()
+    .meta({ description: "DocuSign tabs by page coordinates (default) or anchor string." }),
+});
+
+export const v1SigningPackageSchema = signingPackageSchema
+  .extend({
+    generationId: z.uuid(),
+    filename: z.string(),
+    pageCount: z.int(),
+    pdfUrl: z.url().meta({ description: "Signed; works without a key for 1 hour." }),
+    pdfPath: z.string().meta({ description: "`/api/v1/generations/{id}/pdf`, with a key." }),
+    formats: z
+      .object({
+        docusign: z.looseObject({}).optional().meta({
+          description:
+            "DocuSign eSignature v2.1 envelope definition: POST it to /restapi/v2.1/accounts/{accountId}/envelopes.",
+        }),
+        dropbox_sign: z.looseObject({}).optional().meta({
+          description:
+            "Dropbox Sign `signers` and `form_fields_per_document` for /signature_request/send.",
+        }),
+        adobe_sign: z.looseObject({}).optional().meta({
+          description:
+            "Adobe Acrobat Sign `participantSetsInfo` (POST /agreements) and `formFields` (PUT /agreements/{id}/formFields).",
+        }),
+      })
+      .meta({ description: "Provider JSON, as asked for in `formats`." }),
+  })
+  .meta({
+    id: "SigningPackage",
+    description: "The PDF's signers and sign boxes, for an e-sign provider.",
+  });
+export type V1SigningPackage = z.infer<typeof v1SigningPackageSchema>;

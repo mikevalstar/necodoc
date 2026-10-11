@@ -1,15 +1,16 @@
 import { readFile } from "node:fs/promises";
 import { PDFDocument } from "@cantoo/pdf-lib";
-import type { RenderRequest, RenderTimings } from "@necodoc/shared";
+import type { RenderRequest, RenderTimings, SigningPackage } from "@necodoc/shared";
 import { bandBody, bandCss, stampBand } from "./bands";
 import { type AssetLoader, printPdf } from "./browser";
 import { bundledFontFiles, htmlDocument, themeCss } from "./document";
 import { createLiquid, partialsFs } from "./liquid";
 import { pageLayout } from "./page";
+import { locateSignBoxes, markSignBoxes, signingCss, signingPackage } from "./signing";
 
 export type RenderJob = Pick<
   RenderRequest,
-  "html" | "css" | "header" | "footer" | "page" | "data" | "partials"
+  "html" | "css" | "header" | "footer" | "page" | "data" | "partials" | "signers" | "signing"
 > & {
   /** The theme, already resolved from an id or a draft. */
   theme?: NonNullable<RenderRequest["themeDraft"]>;
@@ -27,7 +28,9 @@ async function timed<T>(timings: RenderTimings, key: keyof RenderTimings, fn: ()
 
 /**
  * HTML + Liquid to PDF in at most three Chromium passes: the body, then one multi-page PDF per
- * band, stamped onto the body pages with pdf-lib (ADR 0012). Reports where the time went.
+ * band, stamped onto the body pages with pdf-lib (ADR 0012). Reports where the time went. With
+ * signers or sign boxes, also returns the signing package (ADR 0033); dropping its anchors costs
+ * one more body pass.
  */
 export async function renderPdf(job: RenderJob, loadStoredAsset: AssetLoader) {
   const timings: RenderTimings = { liquidMs: 0, chromiumMs: 0, bandsMs: 0, stampMs: 0 };
@@ -45,13 +48,29 @@ export async function renderPdf(job: RenderJob, loadStoredAsset: AssetLoader) {
   const body = await timed(timings, "liquidMs", () =>
     liquid.parseAndRender(job.html, data, { globals: data }),
   );
-  const bodyPdf = await timed(timings, "chromiumMs", () =>
-    printPdf(
-      htmlDocument({ body, css }),
-      { width: layout.width, height: layout.height, margins: layout.bodyMargins },
-      loadAsset,
-    ),
-  );
+  const sign = markSignBoxes(body);
+  const printBody = (html: string) =>
+    timed(timings, "chromiumMs", () =>
+      printPdf(
+        htmlDocument({ body: html, css: [...css, signingCss] }),
+        { width: layout.width, height: layout.height, margins: layout.bodyMargins },
+        loadAsset,
+      ),
+    );
+  let bodyPdf = await printBody(sign.html);
+  let signing: SigningPackage | undefined;
+  if (sign.marks.length || job.signers?.length) {
+    const anchors = job.signing?.anchors ?? true;
+    const located = await timed(timings, "stampMs", () =>
+      locateSignBoxes(bodyPdf, sign.marks, anchors),
+    );
+    // Anchors are absolutely positioned, so the boxes stay where they were found.
+    if (!anchors && sign.marks.length) bodyPdf = await printBody(body);
+    signing = await signingPackage(job.signers ?? [], data, located, anchors, [
+      ...sign.warnings,
+      ...located.warnings,
+    ]);
+  }
   const doc = await timed(timings, "stampMs", () => PDFDocument.load(bodyPdf));
   const pages = doc.getPageCount();
 
@@ -87,5 +106,5 @@ export async function renderPdf(job: RenderJob, loadStoredAsset: AssetLoader) {
     return new Uint8Array(await doc.save());
   });
 
-  return { pdf, pageCount: pages, timings };
+  return { pdf, pageCount: pages, timings, signing };
 }

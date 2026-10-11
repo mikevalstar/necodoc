@@ -69,6 +69,7 @@ import {
 } from "@/components/ui/table";
 import { Textarea } from "@/components/ui/textarea";
 import { api, ok } from "@/lib/api";
+import { meQuery } from "@/lib/auth";
 import { dayjs } from "@/lib/date";
 import { templatesQuery } from "@/lib/queries";
 
@@ -115,6 +116,7 @@ export function ApiKeyTable({
   const [action, setAction] = useState<Action | null>(null);
   const [secret, setSecret] = useState<{ key: string; name: string } | null>(null);
   const close = () => setAction(null);
+  const isAdmin = useQuery(meQuery).data?.user.roles.includes("admin") === true;
   return (
     <>
       <Table>
@@ -230,6 +232,18 @@ export function ApiKeyTable({
                     >
                       Generation log
                     </DropdownMenuItem>
+                    {isAdmin && (
+                      <DropdownMenuItem
+                        render={
+                          <Link
+                            to="/admin/audit"
+                            search={{ targetType: "api_key", targetId: key.id }}
+                          />
+                        }
+                      >
+                        History
+                      </DropdownMenuItem>
+                    )}
                     {key.status === "active" && canRotate(key) && (
                       <DropdownMenuItem onClick={() => setAction({ kind: "rotate", key })}>
                         Rotate…

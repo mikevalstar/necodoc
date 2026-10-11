@@ -20,6 +20,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { ChevronLeftIcon } from "lucide-react";
 import { useMemo, useState } from "react";
 import type { z } from "zod";
+import { HistoryPanel } from "@/components/audit";
 import { ErrorAlert, FieldShell, useAppForm, useFieldContext } from "@/components/form";
 import { PdfFrame, usePdfPreview } from "@/components/pdf-frame";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -289,6 +290,7 @@ function ThemeEditor({ theme }: { theme: Theme }) {
       </div>
 
       {deleting && <DeleteThemeDialog theme={theme} onClose={() => setDeleting(false)} />}
+      <HistoryPanel targetType="theme" targetId={theme.id} />
     </main>
   );
 }

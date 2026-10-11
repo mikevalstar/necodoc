@@ -5,6 +5,7 @@ import {
   generationFilterSchema,
   generationListQuerySchema,
   parseRoles,
+  signingPackageQuerySchema,
   toCsv,
 } from "@necodoc/shared";
 import {
@@ -24,12 +25,14 @@ import {
 import type { SelectedFields } from "drizzle-orm/pg-core";
 import { Hono } from "hono";
 import { z } from "zod";
+import { recordAudit } from "../audit";
 import { db } from "../db";
 import { apikey, file, generation, template, user } from "../db/schema";
 import { mintLink, serveFile } from "../download";
 import { deleteFiles, deleteObjects } from "../files";
 import { generate } from "../generate";
 import { type AppEnv, requirePermission, requireRole, type SignedInEnv } from "../middleware";
+import { signingQueryOptions, signingResponse } from "../signing-package";
 
 // Spec: docs/features/generation-log.md. Admins see every entry; everyone else only their own.
 // Rows are written by src/generate.ts (queued) and the worker that renders them.
@@ -220,9 +223,15 @@ export const generationRoutes = new Hono<AppEnv>()
     });
   })
   .delete("/", requireRole("admin"), zValidator("query", generationFilterSchema), async (c) => {
-    const where = filterWhere(c.get("user"), c.req.valid("query"));
+    const filter = c.req.valid("query");
+    const where = filterWhere(c.get("user"), filter);
     if (!where) return c.json({ error: "Pick at least one filter to bulk delete" }, 422);
     const deleted = await deleteGenerations(where);
+    await recordAudit({
+      action: "generation.bulk_deleted",
+      target: { id: null, name: `${deleted} generations` },
+      details: { filter, deleted },
+    });
     return c.json({ deleted }, 200);
   })
   .get("/:id", canView, idParam, async (c) => {
@@ -230,6 +239,7 @@ export const generationRoutes = new Hono<AppEnv>()
       input: generation.input,
       timings: generation.timings,
       requestId: generation.requestId,
+      signing: generation.signing,
     }).where(visible(c.get("user"), c.req.valid("param").id));
     return row ? c.json(row, 200) : c.json({ error: "Generation not found" }, 404);
   })
@@ -251,6 +261,30 @@ export const generationRoutes = new Hono<AppEnv>()
     });
     return c.json(link, 201);
   })
+  .get(
+    "/:id/signing-package",
+    canView,
+    idParam,
+    zValidator("query", signingPackageQuerySchema),
+    async (c) => {
+      const [row] = await db
+        .select({
+          id: generation.id,
+          filename: generation.filename,
+          pageCount: generation.pageCount,
+          fileId: generation.outputFileId,
+          signing: generation.signing,
+        })
+        .from(generation)
+        .where(visible(c.get("user"), c.req.valid("param").id));
+      if (!row?.fileId) return c.json({ error: "No PDF for this generation" }, 404);
+      const options = signingQueryOptions(c.req.valid("query"));
+      return c.json(
+        await signingResponse({ ...row, fileId: row.fileId }, options, c.get("user").id),
+        200,
+      );
+    },
+  )
   .post("/:id/rerun", canView, idParam, async (c) => {
     const actor = c.get("user");
     const [original] = await db

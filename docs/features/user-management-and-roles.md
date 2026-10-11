@@ -119,6 +119,9 @@ Definitions: [packages/shared/src/roles.ts](../../packages/shared/src/roles.ts),
   own name, password, sessions and account deletion from Settings
   ([User preferences](user-preferences.md)). The last active admin can't
   delete their own account there either.
+- **Audit:** every Admin › Users action, own-account change, sign-in (failed
+  ones too) and sign-out is recorded in the [Audit log](audit-log.md), with
+  the admin behind an impersonated session.
 
 ## Acceptance criteria
 

@@ -8,6 +8,7 @@ import {
 import { and, count, eq, isNull, sql } from "drizzle-orm";
 import { Hono } from "hono";
 import { z } from "zod";
+import { recordAudit } from "../audit";
 import { db } from "../db";
 import { apiKeyPolicy, apikey, serviceAccount, session, user } from "../db/schema";
 import { type AppEnv, requireRole } from "../middleware";
@@ -78,8 +79,15 @@ export const serviceAccountRoutes = new Hono<AppEnv>()
       await tx
         .insert(serviceAccount)
         .values({ userId: id, description, contact, createdBy: c.get("user").id });
+      await recordAudit(
+        {
+          action: "service_account.created",
+          target: { id, name },
+          after: { name, description, contact, roles },
+        },
+        tx,
+      );
     });
-    // Audit hook (docs/features/audit-log.md): record "service account created" here.
     const [row] = await selectAccounts().where(eq(user.id, id));
     return row ? c.json(shape(row), 201) : c.json({ error: "Not created" }, 500);
   })
@@ -95,6 +103,8 @@ export const serviceAccountRoutes = new Hono<AppEnv>()
     async (c) => {
       const { id } = c.req.valid("param");
       const { name, roles, disabled, description, contact } = c.req.valid("json");
+      const [existing] = await selectAccounts().where(eq(user.id, id));
+      if (!existing) return c.json({ error: "Service account not found" }, 404);
       const updated = await db.transaction(async (tx) => {
         const [found] = await tx
           .update(serviceAccount)
@@ -123,8 +133,15 @@ export const serviceAccountRoutes = new Hono<AppEnv>()
         return true;
       });
       if (!updated) return c.json({ error: "Service account not found" }, 404);
-      // Audit hook (docs/features/audit-log.md): record the change (and roles before/after) here.
       const [row] = await selectAccounts().where(eq(user.id, id));
+      if (row) {
+        await recordAudit({
+          action: "service_account.updated",
+          target: { id, name: row.name },
+          before: shape(existing),
+          after: shape(row),
+        });
+      }
       return row ? c.json(shape(row), 200) : c.json({ error: "Service account not found" }, 404);
     },
   );

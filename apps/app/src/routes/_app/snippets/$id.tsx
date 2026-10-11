@@ -12,6 +12,7 @@ import { createFileRoute, Link, redirect, useBlocker, useNavigate } from "@tanst
 import type { JSONContent } from "@tiptap/core";
 import { ChevronLeftIcon, TriangleAlertIcon } from "lucide-react";
 import { useMemo, useState } from "react";
+import { HistoryPanel } from "@/components/audit";
 import { CodeEditor } from "@/components/code-editor";
 import { DocEditor } from "@/components/editor/doc-editor";
 import { ErrorAlert } from "@/components/form";
@@ -471,6 +472,7 @@ function SnippetEditor({ snippet }: { snippet: SnippetDetail }) {
           </AlertDialogContent>
         </AlertDialog>
       )}
+      <HistoryPanel targetType="snippet" targetId={snippet.id} />
     </main>
   );
 }

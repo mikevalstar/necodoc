@@ -4,6 +4,7 @@ import type { BetterAuthPlugin, DBTransactionAdapter } from "better-auth";
 import { APIError, createAuthEndpoint } from "better-auth/api";
 import { setSessionCookie } from "better-auth/cookies";
 import { z } from "zod";
+import { recordAudit } from "./audit";
 import { env, ssoProviders } from "./env";
 import {
   groupsOf,
@@ -64,7 +65,14 @@ async function provision(
         updatedAt: now,
       },
     });
-    // Audit hook (docs/features/audit-log.md): record "user created by SSO" here.
+    // Written on our own connection, not in the sign-in transaction (ADR 0032).
+    await recordAudit({
+      action: "user.created",
+      target: { id: created.id, name: who.email },
+      actor: { kind: "system", id: null, name: null },
+      after: { name: who.name, email: who.email, role: roles ?? [] },
+      details: { via: "sso", provider: provider.id, groups: who.groups },
+    });
     console.info(`SSO ${provider.id}: created ${who.email} with roles [${roles?.join(", ")}]`);
     return { action: "link" as const, userId: created.id };
   }
@@ -82,6 +90,14 @@ async function provision(
       model: "user",
       where: [{ field: "id", value: user.id }],
       update: { role: roles.join(","), updatedAt: new Date() },
+    });
+    await recordAudit({
+      action: "user.role_changed",
+      target: { id: user.id, name: who.email },
+      actor: { kind: "system", id: null, name: null },
+      before: { role: current },
+      after: { role: roles },
+      details: { via: "sso", provider: provider.id, groups: who.groups },
     });
     console.info(`SSO ${provider.id}: ${who.email} roles [${current}] -> [${roles}]`);
   }

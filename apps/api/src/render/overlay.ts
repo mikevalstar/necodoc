@@ -29,6 +29,7 @@ import bwipjs from "bwip-js/node";
 import type { AssetLoader } from "./browser";
 import { plainLiquid } from "./liquid";
 import { loadSourcePdf } from "./pdf-source";
+import { overlaySignBoxes, signingPackage } from "./signing";
 
 // Spec: docs/features/pdf-overlay-templates.md. ADR 0013: values are filled into the source's
 // AcroForm fields by name, or drawn at each box with pdf-lib; codes come from bwip-js as PNG.
@@ -490,6 +491,8 @@ export async function renderOverlay(
   };
 
   for (const [i, box] of request.boxes.entries()) {
+    // Left empty for the e-sign provider; it's in the signing package instead.
+    if (box.type === "signature" && box.signerId) continue;
     const value = values[i] ?? "";
     const warn = (message: string) => warnings.add(`Page ${box.page}, ${boxName(box)}: ${message}`);
     const page = pages[box.page - 1];
@@ -563,7 +566,12 @@ export async function renderOverlay(
       );
     }
   }
+  const located = overlaySignBoxes(doc, request.boxes);
+  const signing =
+    located.boxes.length || request.signers?.length
+      ? await signingPackage(request.signers ?? [], request.data, located, false, [])
+      : undefined;
   const pdf = new Uint8Array(await doc.save({ updateFieldAppearances: false }));
   lap("stampMs");
-  return { pdf, pageCount: pages.length, timings, warnings: [...warnings] };
+  return { pdf, pageCount: pages.length, timings, warnings: [...warnings], signing };
 }

@@ -75,6 +75,10 @@ both protocols work for each.
 - [x] Admin › Users shows each user's sign-in methods.
 - [x] The developer docs have OIDC and SAML setup for Entra ID, Auth0 and SiteMinder, and header mode with its risk.
 
+Sign-ins through each provider, failed ones with the IdP's or necodoc's
+reason, first-sign-in account creation and role syncs are recorded in the
+[Audit log](audit-log.md).
+
 ## Known limitations
 
 - No SAML single logout: signing out of necodoc doesn't sign out of the IdP.
@@ -86,7 +90,6 @@ both protocols work for each.
 - Header mode trusts the network: anything inside the proxy CIDRs can sign in
   as anyone, and a necodoc session outlives the proxy's session until it
   expires or the user signs out.
-- SSO sign-ins aren't in an audit log yet ([Audit log](audit-log.md)).
 
 ## Open questions
 

@@ -28,6 +28,7 @@ Add one with `okq new feature "<title>"`.
 | Review and approval | [review-and-approval.md](review-and-approval.md) |
 | Self-hosting | [self-hosting.md](self-hosting.md) |
 | Share links and data requests | [share-links-and-data-requests.md](share-links-and-data-requests.md) |
+| Signing packages | [signing-packages.md](signing-packages.md) |
 | Single sign-on | [single-sign-on.md](single-sign-on.md) |
 | Snippet library | [snippet-library.md](snippet-library.md) |
 | Template fields and guided form | [template-fields-and-guided-form.md](template-fields-and-guided-form.md) |

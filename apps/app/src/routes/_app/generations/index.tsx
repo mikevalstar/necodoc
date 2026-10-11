@@ -23,6 +23,7 @@ import {
   type DataTableFeatures,
   DebouncedInput,
   dataTableSearchSchema,
+  FilterSelect,
 } from "@/components/data-table";
 import { ErrorAlert } from "@/components/form";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -46,7 +47,6 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Field, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
-import { NativeSelect, NativeSelectOption } from "@/components/ui/native-select";
 import { api, generationPdfUrl, ok } from "@/lib/api";
 import { authClient, unwrap } from "@/lib/auth";
 import { dayjs } from "@/lib/date";
@@ -543,38 +543,6 @@ function Generations() {
         />
       )}
     </main>
-  );
-}
-
-function FilterSelect({
-  label,
-  value,
-  options,
-  onChange,
-}: {
-  label: string;
-  value: string | undefined;
-  options: { value: string; label: string }[];
-  onChange: (value: string) => void;
-}) {
-  const id = `filter-${label.toLowerCase()}`;
-  return (
-    <Field className="w-auto">
-      <FieldLabel htmlFor={id}>{label}</FieldLabel>
-      <NativeSelect
-        id={id}
-        className="max-w-48"
-        value={value ?? ""}
-        onChange={(e) => onChange(e.target.value)}
-      >
-        <NativeSelectOption value="">Any</NativeSelectOption>
-        {options.map((option) => (
-          <NativeSelectOption key={option.value} value={option.value}>
-            {option.label}
-          </NativeSelectOption>
-        ))}
-      </NativeSelect>
-    </Field>
   );
 }
 

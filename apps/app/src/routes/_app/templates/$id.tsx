@@ -12,6 +12,7 @@ import { useMutation, useQuery, useQueryClient, useSuspenseQuery } from "@tansta
 import { createFileRoute, Link, redirect, useBlocker, useNavigate } from "@tanstack/react-router";
 import { ChevronLeftIcon, MoreHorizontalIcon, TriangleAlertIcon } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { HistoryPanel } from "@/components/audit";
 import { ErrorAlert } from "@/components/form";
 import { PdfFrame, usePdfPreview } from "@/components/pdf-frame";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -690,6 +691,7 @@ function TemplateEditor({
           </AlertDialogContent>
         </AlertDialog>
       )}
+      <HistoryPanel targetType="template" targetId={template.id} />
     </main>
   );
 }

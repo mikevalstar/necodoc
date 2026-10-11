@@ -5,6 +5,7 @@ import type { InferResponseType } from "hono/client";
 import { useState } from "react";
 import type { z } from "zod";
 import { ApiKeyTable, apiKeysQuery, CreateKeyButton, ExpiryWarning } from "@/components/api-keys";
+import { HistoryPanel } from "@/components/audit";
 import { ErrorAlert, useAppForm } from "@/components/form";
 import { RoleBadges } from "@/components/role-badges";
 import { Badge } from "@/components/ui/badge";
@@ -100,6 +101,7 @@ function ServiceAccount() {
       </section>
       <WebhookSection ownerId={id} keys={keys.data} canTemplateWebhooks />
       {editing && data && <EditDialog account={data} onClose={() => setEditing(false)} />}
+      <HistoryPanel targetType="service_account" targetId={id} />
     </main>
   );
 }

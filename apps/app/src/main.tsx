@@ -1,4 +1,4 @@
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { MutationCache, QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { createRouter, RouterProvider } from "@tanstack/react-router";
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
@@ -6,7 +6,12 @@ import { routeTree } from "./routeTree.gen";
 import "./index.css";
 import "./lib/theme"; // keeps the theme in sync with the system setting
 
-const queryClient = new QueryClient();
+// Any change may have added audit entries (docs/features/audit-log.md): History panels refetch.
+const queryClient: QueryClient = new QueryClient({
+  mutationCache: new MutationCache({
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["audit"] }),
+  }),
+});
 const router = createRouter({ routeTree, context: { queryClient } });
 
 declare module "@tanstack/react-router" {

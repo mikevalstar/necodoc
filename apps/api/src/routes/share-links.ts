@@ -13,6 +13,7 @@ import {
 import { and, count, desc, eq, getTableColumns, sql } from "drizzle-orm";
 import { type Context, Hono } from "hono";
 import { z } from "zod";
+import { recordAudit } from "../audit";
 import { db } from "../db";
 import { shareLink, submission, template, templateVersion } from "../db/schema";
 import { mintLink } from "../download";
@@ -101,18 +102,30 @@ export const shareLinkRoutes = new Hono<AppEnv>()
     const found = await findVersion(actor, templateId, version ?? "latest");
     if (!found) return c.json({ error: "Template version not found" }, 404);
     if (found.archivedAt) return c.json({ error: "This template is archived" }, 409);
-    const [row] = await db
-      .insert(shareLink)
-      .values({
-        ...options,
-        ...cleanPrefill(found.version.sections, prefill, lockedKeys),
-        expiresAt: options.expiresAt ? new Date(options.expiresAt) : null,
-        token: randomBytes(32).toString("base64url"),
-        ownerId: actor.id,
-        templateId,
-        templateVersionId: version === null ? null : found.version.id,
-      })
-      .returning({ id: shareLink.id });
+    const row = await db.transaction(async (tx) => {
+      const [created] = await tx
+        .insert(shareLink)
+        .values({
+          ...options,
+          ...cleanPrefill(found.version.sections, prefill, lockedKeys),
+          expiresAt: options.expiresAt ? new Date(options.expiresAt) : null,
+          token: randomBytes(32).toString("base64url"),
+          ownerId: actor.id,
+          templateId,
+          templateVersionId: version === null ? null : found.version.id,
+        })
+        .returning();
+      if (!created) return undefined;
+      await recordAudit(
+        {
+          action: "share_link.created",
+          target: { id: created.id, name: created.label },
+          after: created,
+        },
+        tx,
+      );
+      return { id: created.id };
+    });
     return c.json(row, 201);
   })
   .patch("/:id", canPublish, idParam, zValidator("json", updateShareLinkSchema), async (c) => {
@@ -130,31 +143,53 @@ export const shareLinkRoutes = new Hono<AppEnv>()
     }
     const filled =
       prefill || lockedKeys ? await linkVersion(db, existing.templateId, templateVersionId) : null;
-    const [row] = await db
-      .update(shareLink)
-      .set({
-        ...options,
-        templateVersionId,
-        ...(disabled !== undefined ? { disabledAt: disabled ? new Date() : null } : {}),
-        ...(expiresAt !== undefined ? { expiresAt: expiresAt ? new Date(expiresAt) : null } : {}),
-        ...(filled
-          ? cleanPrefill(
-              filled.sections,
-              prefill ?? existing.prefill,
-              lockedKeys ?? existing.lockedKeys,
-            )
-          : {}),
-      })
-      .where(eq(shareLink.id, id))
-      .returning({ id: shareLink.id });
+    const row = await db.transaction(async (tx) => {
+      const [updated] = await tx
+        .update(shareLink)
+        .set({
+          ...options,
+          templateVersionId,
+          ...(disabled !== undefined ? { disabledAt: disabled ? new Date() : null } : {}),
+          ...(expiresAt !== undefined ? { expiresAt: expiresAt ? new Date(expiresAt) : null } : {}),
+          ...(filled
+            ? cleanPrefill(
+                filled.sections,
+                prefill ?? existing.prefill,
+                lockedKeys ?? existing.lockedKeys,
+              )
+            : {}),
+        })
+        .where(eq(shareLink.id, id))
+        .returning();
+      if (!updated) return undefined;
+      await recordAudit(
+        {
+          action: "share_link.updated",
+          target: { id, name: updated.label },
+          before: existing,
+          after: updated,
+        },
+        tx,
+      );
+      return { id };
+    });
     return c.json(row, 200);
   })
   .delete("/:id", canPublish, idParam, async (c) => {
     // Its submissions stay: they're the owner's documents.
-    const [deleted] = await db
-      .delete(shareLink)
-      .where(own(c.get("user").id, c.req.valid("param").id))
-      .returning({ id: shareLink.id });
+    const deleted = await db.transaction(async (tx) => {
+      const [row] = await tx
+        .delete(shareLink)
+        .where(own(c.get("user").id, c.req.valid("param").id))
+        .returning();
+      if (row) {
+        await recordAudit(
+          { action: "share_link.deleted", target: { id: row.id, name: row.label }, before: row },
+          tx,
+        );
+      }
+      return row;
+    });
     return deleted ? c.body(null, 204) : c.json({ error: "Share link not found" }, 404);
   })
   .get("/:id", canPublish, idParam, async (c) => {

@@ -11,6 +11,7 @@ export * from "./public-api";
 export * from "./render";
 export * from "./review";
 export * from "./roles";
+export * from "./signing";
 export * from "./snippet";
 export * from "./sso";
 export * from "./submission";

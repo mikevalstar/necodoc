@@ -140,7 +140,12 @@ export const assetRoutes = new Hono<AppEnv>()
       const [row] = await tx
         .delete(asset)
         .where(eq(asset.id, c.req.valid("param").id))
-        .returning({ id: asset.id, name: asset.name, mimeType: asset.mimeType, fileId: asset.fileId });
+        .returning({
+          id: asset.id,
+          name: asset.name,
+          mimeType: asset.mimeType,
+          fileId: asset.fileId,
+        });
       if (!row) return false;
       // Assets keep their bytes in the row (ADR 0014), so there are no objects to delete.
       await deleteFiles(tx, eq(file.id, row.fileId));

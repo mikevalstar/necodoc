@@ -12,6 +12,7 @@ import {
   selfDeleteError,
   serviceAccountTarget,
 } from "./admin-guard";
+import { auditAfter, auditBefore } from "./auth-audit";
 import { db } from "./db";
 import { user } from "./db/schema";
 import { env } from "./env";
@@ -106,6 +107,7 @@ export const auth = betterAuth({
   },
   hooks: {
     before: createAuthMiddleware(async (ctx) => {
+      await auditBefore(ctx);
       const serviceTarget = serviceAccountTarget(ctx.path, ctx.body);
       if (serviceTarget && (await isServiceAccount(serviceTarget))) {
         throw APIError.from("BAD_REQUEST", {
@@ -124,5 +126,7 @@ export const auth = betterAuth({
           : change && adminGuardError(session.user.id, change, await activeAdminIds());
       if (error) throw APIError.from("BAD_REQUEST", { message: error, code: "ADMIN_GUARD" });
     }),
+    // ADR 0032: sign-ins (failed ones too), sign-out, Settings and Admin › Users actions.
+    after: createAuthMiddleware(auditAfter),
   },
 });

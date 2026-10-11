@@ -1,5 +1,6 @@
 import type { Readable } from "node:stream";
 import type { Context } from "hono";
+import { recordAudit } from "./audit";
 import { db } from "./db";
 import { downloadLink } from "./db/schema";
 import { contentDisposition, etagMatches, parseRange } from "./download-headers";
@@ -121,7 +122,14 @@ export async function mintLink(
     .values({ fileId, generationId, createdBy: userId, expiresAt: new Date(expiresAt * 1000) })
     .returning({ id: downloadLink.id });
   if (!link) throw new Error("Download link insert returned no row");
-  // Audit hook (docs/features/audit-log.md): record "download link minted" here.
+  await recordAudit(
+    {
+      action: "generation.link_created",
+      target: { id: generationId },
+      details: { linkId: link.id, expiresAt: new Date(expiresAt * 1000).toISOString() },
+    },
+    executor,
+  );
   const token = signLink({ fileId, linkId: link.id, expiresAt }, signingSecret);
   return {
     url: new URL(`/api/files/signed/${token}`, env.BETTER_AUTH_URL).href,

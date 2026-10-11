@@ -39,6 +39,7 @@ anything we skip has a reason.
 | QR codes, barcodes, images, drawn signatures | DocSpring | [PDF overlay templates](pdf-overlay-templates.md), [ADR 0015](../adrs/0015-liquidjs-for-templating.md) |
 | Async and batch generation | DocSpring, Anvil | [Render queue, batch jobs and scaling](render-queue-batch-jobs-and-scaling.md) |
 | Change history / audit trail | GhostDraft | [Audit log](audit-log.md) |
+| Hand off to e-sign (signers, field positions) | DocSpring, Anvil (own e-sign) | [Signing packages](signing-packages.md) |
 
 ## Where we aim to beat them
 
@@ -63,7 +64,8 @@ anything we skip has a reason.
 - **Legally binding e-signature workflows with an audit trail** (Anvil Etch,
   DocSpring e-sign). Signer identity, tamper-evident audit logs and ESIGN /
   eIDAS compliance are a product of their own. necodoc's signature fields
-  capture an image only.
+  capture an image only; [signing packages](signing-packages.md) hand the
+  document to DocuSign, Adobe Sign or Dropbox Sign instead.
 - **Word/DOCX output.** It needs a second rendering pipeline with different
   layout rules. PDF is the product.
 - **Prebuilt industry form libraries** (GhostDraft's ISO/AAIS forms). Content,

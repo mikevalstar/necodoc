@@ -11,9 +11,10 @@ import {
 import { and, asc, desc, eq, isNotNull } from "drizzle-orm";
 import { Hono } from "hono";
 import { z } from "zod";
+import { recordAudit } from "../audit";
 import { db } from "../db";
-import { generation, submission, templateTestCase } from "../db/schema";
-import { renderPreview } from "../generate";
+import { generation, submission, template, templateTestCase } from "../db/schema";
+import { renderPreview, type Tx } from "../generate";
 import {
   type AppEnv,
   requireAnyPermission,
@@ -67,6 +68,33 @@ async function dataFrom(actor: SignedInUser, templateId: string, from: TestCaseF
   return row?.data ?? null;
 }
 
+type TestCaseRow = typeof templateTestCase.$inferSelect;
+
+/** Test cases show in their template's history. */
+async function recordCase(
+  tx: Tx,
+  action: "template.test_created" | "template.test_updated" | "template.test_deleted",
+  templateId: string,
+  before: TestCaseRow | null,
+  after: TestCaseRow | null,
+) {
+  const [owner] = await tx
+    .select({ name: template.name })
+    .from(template)
+    .where(eq(template.id, templateId));
+  const testCase = after ?? before;
+  await recordAudit(
+    {
+      action,
+      target: { id: templateId, name: owner?.name ?? null },
+      before,
+      after,
+      details: { testCaseId: testCase?.id ?? null, testCaseName: testCase?.name ?? null },
+    },
+    tx,
+  );
+}
+
 const listCases = (templateId: string) =>
   db
     .select()
@@ -115,18 +143,22 @@ export const templateTestRoutes = new Hono<AppEnv>()
     const { name, from, assertions } = c.req.valid("json");
     const data = await dataFrom(c.get("user"), id, from);
     if (!data) return c.json({ error: "Couldn't read data from that source" }, 404);
-    const [row] = await db
-      .insert(templateTestCase)
-      .values({
-        templateId: id,
-        name,
-        data,
-        assertions,
-        source: from.kind,
-        createdBy: c.get("user").id,
-      })
-      .onConflictDoNothing()
-      .returning();
+    const row = await db.transaction(async (tx) => {
+      const [created] = await tx
+        .insert(templateTestCase)
+        .values({
+          templateId: id,
+          name,
+          data,
+          assertions,
+          source: from.kind,
+          createdBy: c.get("user").id,
+        })
+        .onConflictDoNothing()
+        .returning();
+      if (created) await recordCase(tx, "template.test_created", id, null, created);
+      return created;
+    });
     return row ? c.json(row, 201) : c.json({ error: `A case named "${name}" exists` }, 409);
   })
   .patch(
@@ -136,20 +168,31 @@ export const templateTestRoutes = new Hono<AppEnv>()
     zValidator("json", updateTestCaseSchema),
     async (c) => {
       const { id, caseId } = c.req.valid("param");
-      const [row] = await db
-        .update(templateTestCase)
-        .set(c.req.valid("json"))
-        .where(and(eq(templateTestCase.id, caseId), eq(templateTestCase.templateId, id)))
-        .returning();
+      const match = and(eq(templateTestCase.id, caseId), eq(templateTestCase.templateId, id));
+      const row = await db.transaction(async (tx) => {
+        const [before] = await tx.select().from(templateTestCase).where(match);
+        if (!before) return undefined;
+        const [updated] = await tx
+          .update(templateTestCase)
+          .set(c.req.valid("json"))
+          .where(match)
+          .returning();
+        await recordCase(tx, "template.test_updated", id, before, updated ?? null);
+        return updated;
+      });
       return row ? c.json(row, 200) : c.json({ error: "Test case not found" }, 404);
     },
   )
   .delete("/:id/tests/:caseId", canEdit, caseParam, async (c) => {
     const { id, caseId } = c.req.valid("param");
-    const [row] = await db
-      .delete(templateTestCase)
-      .where(and(eq(templateTestCase.id, caseId), eq(templateTestCase.templateId, id)))
-      .returning({ id: templateTestCase.id });
+    const row = await db.transaction(async (tx) => {
+      const [deleted] = await tx
+        .delete(templateTestCase)
+        .where(and(eq(templateTestCase.id, caseId), eq(templateTestCase.templateId, id)))
+        .returning();
+      if (deleted) await recordCase(tx, "template.test_deleted", id, deleted, null);
+      return deleted;
+    });
     return row ? c.body(null, 204) : c.json({ error: "Test case not found" }, 404);
   })
   .post("/:id/tests/run", canSeeDrafts, idParam, zValidator("json", runTestsSchema), async (c) => {

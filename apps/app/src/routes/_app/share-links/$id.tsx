@@ -2,6 +2,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { ChevronLeftIcon } from "lucide-react";
 import { useEffect, useState } from "react";
+import { HistoryPanel } from "@/components/audit";
 import { CopyButton } from "@/components/copy-button";
 import { ErrorAlert } from "@/components/form";
 import { Button } from "@/components/ui/button";
@@ -161,6 +162,7 @@ function ShareLinkResponses() {
           )}
         </>
       )}
+      <HistoryPanel targetType="share_link" targetId={id} />
     </main>
   );
 }

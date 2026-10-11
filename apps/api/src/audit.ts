@@ -7,9 +7,9 @@ import {
   type SignInMethod,
 } from "@necodoc/shared";
 import { createMiddleware } from "hono/factory";
+import { changedFields, plainFields } from "./audit-diff";
 import { db } from "./db";
 import { auditEvent } from "./db/schema";
-import type { Tx } from "./generate";
 import { type AppEnv, clientIp } from "./middleware";
 
 // Spec: docs/features/audit-log.md, ADR 0032. The one way entries are written. Who acted and from
@@ -100,51 +100,8 @@ export type AuditEvent = {
   } & (A extends keyof RequiredDetails ? { details: RequiredDetails[A] } : { details?: Fields });
 }[AuditAction];
 
-/** Never recorded: secrets, and timestamps that change on every write. */
-const omitted = new Set(["secret", "token", "password", "newPassword", "currentPassword"]);
-const noise = new Set(["updatedAt", "createdAt"]);
-
-/** Plain JSON with sorted keys, so equal values compare equal however they were built. */
-function stable(value: unknown): unknown {
-  if (value instanceof Date) return value.toISOString();
-  if (Array.isArray(value)) return value.map(stable);
-  if (value && typeof value === "object") {
-    return Object.fromEntries(
-      Object.entries(value)
-        .filter(([, v]) => v !== undefined)
-        .sort(([a], [b]) => (a < b ? -1 : 1))
-        .map(([k, v]) => [k, stable(v)]),
-    );
-  }
-  return value;
-}
-
-/**
- * Keeps the fields that changed, each whole (a rich-text body is stored entire). A create keeps
- * all of `after`, a delete all of `before`. Secrets never go in.
- */
-export function changedFields(before: Fields | null | undefined, after: Fields | null | undefined) {
-  const clean = (fields: Fields, keep: (key: string) => boolean) =>
-    Object.fromEntries(
-      Object.entries(fields)
-        .filter(([key, value]) => !omitted.has(key) && value !== undefined && keep(key))
-        .map(([key, value]) => [key, stable(value)]),
-    );
-  if (!before || !after) {
-    return {
-      before: before ? clean(before, () => true) : null,
-      after: after ? clean(after, () => true) : null,
-    };
-  }
-  const changed = (key: string) =>
-    !noise.has(key) && JSON.stringify(stable(before[key])) !== JSON.stringify(stable(after[key]));
-  const keys = [...new Set([...Object.keys(before), ...Object.keys(after)])].filter(changed);
-  if (!keys.some((key) => !omitted.has(key))) return { before: null, after: null };
-  return { before: clean(before, changed), after: clean(after, changed) };
-}
-
 /** Records one entry; pass the transaction making the change so they commit together. */
-export async function recordAudit(event: AuditEvent, tx: Tx | typeof db = db) {
+export async function recordAudit(event: AuditEvent, tx: Pick<typeof db, "insert"> = db) {
   const scope = scopes.getStore();
   const actor: Actor = { ...(scope?.actor ?? { kind: "system", ...nobody }), ...event.actor };
   const { before, after } = changedFields(event.before, event.after);
@@ -160,7 +117,7 @@ export async function recordAudit(event: AuditEvent, tx: Tx | typeof db = db) {
     targetName: event.target.name ?? null,
     before,
     after,
-    details: event.details ? (stable(event.details) as Fields) : null,
+    details: event.details ? plainFields(event.details) : null,
     ip: scope?.ip ?? null,
     userAgent: scope?.userAgent ?? null,
     requestId: scope?.requestId ?? null,

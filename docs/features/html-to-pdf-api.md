@@ -99,6 +99,10 @@ All under `/api/v1`, authenticated with the `x-api-key` header.
   `response: "json"` returns the generation id, page count, size and a signed
   `downloadUrl`. `async: true`, or a render still queued when the wait runs
   out, returns `202` with the generation id to poll.
+- `signing` on render and generate answers JSON with the
+  [signing package](signing-packages.md) (signers, sign box positions,
+  DocuSign / Dropbox Sign / Adobe Sign JSON);
+  `GET /generations/{id}/signing-package` fetches it later.
 - Errors are JSON `{ error, code }`, plus `fieldErrors` for invalid data.
   401: missing, unknown, revoked or expired key, or a banned owner. 403: scope
   missing, owner's roles don't allow it, template not allowed, or IP not
@@ -162,8 +166,6 @@ All under `/api/v1`, authenticated with the `x-api-key` header.
   key waits out the window from its last allowed request.
 - The IP allowlist sees the reverse proxy's address unless `TRUST_PROXY` is
   set.
-- Key creation, rotation and revocation aren't in an audit log yet (there is
-  none; see [Audit log](audit-log.md)).
 - Service accounts can't be deleted, only disabled.
 - PDFs uploaded to `/combine` are stored as files of their own and aren't
   removed with the packet's generation.

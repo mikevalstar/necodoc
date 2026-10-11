@@ -8,6 +8,7 @@ import {
 import { and, desc, eq } from "drizzle-orm";
 import { Hono } from "hono";
 import { z } from "zod";
+import { recordAudit } from "../audit";
 import { db } from "../db";
 import { apikey, template, user, webhook, webhookDelivery } from "../db/schema";
 import { type AppEnv, requirePermission, type SignedInEnv } from "../middleware";
@@ -45,10 +46,7 @@ const selectWebhooks = () =>
 
 /** Your own, or a service account's (or anyone's) for admins. */
 async function findManaged(actor: SignedInUser, id: string) {
-  const [row] = await db
-    .select({ id: webhook.id, ownerId: webhook.ownerId })
-    .from(webhook)
-    .where(eq(webhook.id, id));
+  const [row] = await db.select().from(webhook).where(eq(webhook.id, id));
   return row && (row.ownerId === actor.id || isAdmin(actor)) ? row : null;
 }
 
@@ -105,35 +103,64 @@ export const webhookRoutes = new Hono<AppEnv>()
     const resolved = await resolveWebhookUrl(url);
     if (!resolved.ok) return c.json({ error: resolved.error }, 422);
     const secret = newWebhookSecret();
-    const [created] = await db
-      .insert(webhook)
-      .values({
-        ownerId,
-        url,
-        description,
-        secret,
-        events,
-        apiKeyId,
-        templateId,
-        createdBy: actor.id,
-      })
-      .returning({ id: webhook.id });
+    const created = await db.transaction(async (tx) => {
+      const [row] = await tx
+        .insert(webhook)
+        .values({
+          ownerId,
+          url,
+          description,
+          secret,
+          events,
+          apiKeyId,
+          templateId,
+          createdBy: actor.id,
+        })
+        .returning();
+      if (row) {
+        await recordAudit(
+          { action: "webhook.created", target: { id: row.id, name: row.url }, after: row },
+          tx,
+        );
+      }
+      return row;
+    });
     if (!created) return c.json({ error: "Not created" }, 500);
-    // Audit hook (docs/features/audit-log.md): record "webhook created" here.
     const [row] = await selectWebhooks().where(eq(webhook.id, created.id));
     return c.json({ ...row, secret }, 201);
   })
   .patch("/:id", canUseApi, idParam, zValidator("json", updateWebhookSchema), async (c) => {
     const found = await findManaged(c.get("user"), c.req.valid("param").id);
     if (!found) return c.json({ error: "Webhook not found" }, 404);
-    await db.update(webhook).set(c.req.valid("json")).where(eq(webhook.id, found.id));
+    await db.transaction(async (tx) => {
+      const [updated] = await tx
+        .update(webhook)
+        .set(c.req.valid("json"))
+        .where(eq(webhook.id, found.id))
+        .returning();
+      await recordAudit(
+        {
+          action: "webhook.updated",
+          target: { id: found.id, name: updated?.url ?? found.url },
+          before: found,
+          after: updated,
+        },
+        tx,
+      );
+    });
     const [row] = await selectWebhooks().where(eq(webhook.id, found.id));
     return c.json(row, 200);
   })
   .delete("/:id", canUseApi, idParam, async (c) => {
     const found = await findManaged(c.get("user"), c.req.valid("param").id);
     if (!found) return c.json({ error: "Webhook not found" }, 404);
-    await db.delete(webhook).where(eq(webhook.id, found.id));
+    await db.transaction(async (tx) => {
+      await tx.delete(webhook).where(eq(webhook.id, found.id));
+      await recordAudit(
+        { action: "webhook.deleted", target: { id: found.id, name: found.url }, before: found },
+        tx,
+      );
+    });
     return c.body(null, 204);
   })
   .post("/:id/test", canUseApi, idParam, async (c) => {

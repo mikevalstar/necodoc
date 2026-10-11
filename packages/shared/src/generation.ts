@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { overlayRenderRequestSchema } from "./overlay";
 import { renderRequestSchema } from "./render";
+import { signingPackageSchema } from "./signing";
 
 // Specs: docs/features/generation-log.md, docs/features/render-queue-batch-jobs-and-scaling.md
 
@@ -143,6 +144,8 @@ export const generationDetailSchema = generationSummarySchema.extend({
   input: generationInputSchema.nullable(),
   timings: renderTimingsSchema.nullable(),
   requestId: z.string().nullable(),
+  /** Signers and sign boxes (docs/features/signing-packages.md); null without any. */
+  signing: signingPackageSchema.nullable(),
 });
 export type GenerationDetail = z.infer<typeof generationDetailSchema>;
 

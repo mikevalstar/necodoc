@@ -228,7 +228,6 @@ const templates: readonly FaqEntry[] = [
       "The setting is global, not per template.",
       "By default a reviewer can't approve their own submission; 'Allow self-approval' changes that for everyone.",
       "Editing a theme or snippet makes every open review that uses it stale.",
-      "Not in the audit log yet.",
     ],
     access: [
       { action: "Submit, resubmit and withdraw", needs: edit },
@@ -434,7 +433,6 @@ export const faq: readonly FaqEntry[] = [
       "Sign-in has to start from necodoc's login page; IdP portal tiles must link to it.",
       "Providers change only through env and a restart, and SAML certificates have to be updated by hand when the IdP rotates them.",
       "Service accounts can never sign in this way.",
-      "SSO sign-ins aren't in an audit log yet.",
     ],
     access: [{ action: "Configure (env, by the operator)", needs: "admin" }],
     spec: "docs/features/single-sign-on.md",
@@ -545,7 +543,6 @@ export const faq: readonly FaqEntry[] = [
     howTo:
       "Set the days under Admin › System › Retention; it runs daily at 03:17 UTC, or press Run now. Export from Generations › Export CSV.",
     limitations: [
-      "Retention changes aren't in an audit log yet.",
       "Re-running an entry whose input was removed is refused.",
       "The export stops at 100,000 rows.",
     ],
@@ -777,7 +774,6 @@ export const faq: readonly FaqEntry[] = [
     limitations: [
       "Scopes, templates, allowlist and rate limit can't be edited; rotate the key (same settings) or make a new one.",
       "A lost key can't be shown again.",
-      "Key creation, rotation and revocation aren't in an audit log yet.",
     ],
     access: [
       { action: "Create, rotate and revoke your own keys", needs: view },
@@ -794,7 +790,6 @@ export const faq: readonly FaqEntry[] = [
     limitations: [
       "Service accounts can't be deleted yet; disable them instead.",
       "Their generations show the service account as the user, so the generation log's user filter finds them.",
-      "Changes aren't in an audit log yet.",
     ],
     access: [{ action: "Create, edit, disable and manage their keys", needs: "admin" }],
     spec: "docs/features/html-to-pdf-api.md",
@@ -869,5 +864,22 @@ export const faq: readonly FaqEntry[] = [
       { action: "A template webhook (any source)", needs: edit },
     ],
     spec: "docs/features/webhooks.md",
+  },
+  {
+    feature: "Audit log",
+    group: "Admin",
+    what: "A permanent record of every change to configuration and access: templates (edits, publishing, reviews, test cases), themes, assets, snippets, share links, webhooks, API keys, service accounts, users and roles, retention and publishing settings, batches, bulk deletes of the generation log and signed download links. Sign-ins (failed ones too, with the email tried and why), sign-outs and changes people make to their own account in Settings are recorded as well. Each entry has who did it (and the admin behind them when impersonating, or the API key), when, from which IP and browser, the request id, and the fields that changed with their old and new values.",
+    howTo:
+      "Admin › Audit log: filter by action, target type, actor, date range or free text (a name, request id, IP or id), sort, and click a row for its changes. Export CSV downloads everything matching the filters. Theme, snippet, share link, service account and template pages show their own History; API keys have a History item in their menu.",
+    limitations: [
+      "Append-only: nobody can edit or delete entries through the app or the API, and the database refuses updates and deletes. Someone with direct database owner access can still turn that off, so it's tamper-resistant, not tamper-proof.",
+      "Entries are kept forever; there is no retention setting for the audit log.",
+      "A changed field is stored whole, so editing a long template or theme stores the full content before and after.",
+      "Names, emails and IP addresses are stored as they are; nothing is masked yet.",
+      "Downloads and uses of signed links aren't recorded, only creating a link.",
+      "Sign-ins and Admin › Users actions are recorded just after they happen, not in the same database transaction.",
+    ],
+    access: [{ action: "Read and export the audit log", needs: "admin" }],
+    spec: "docs/features/audit-log.md",
   },
 ];

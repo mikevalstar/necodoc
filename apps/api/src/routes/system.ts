@@ -12,6 +12,7 @@ import {
 import { and, desc, eq, gte, inArray, isNotNull, type SQL, sql } from "drizzle-orm";
 import { Hono } from "hono";
 import { z } from "zod";
+import { recordAudit } from "../audit";
 import { db } from "../db";
 import { generation, template, worker } from "../db/schema";
 import { env } from "../env";
@@ -130,16 +131,31 @@ export const systemRoutes = new Hono<AppEnv>()
   })
   .get("/retention", async (c) => c.json(await retentionSettings()))
   .put("/retention", zValidator("json", retentionSettingsSchema), async (c) => {
+    const before = await retentionSettings();
     await saveRetentionSettings(c.req.valid("json"), c.get("user").id);
-    return c.json(await retentionSettings());
+    const after = await retentionSettings();
+    await recordAudit({
+      action: "settings.retention_updated",
+      target: { id: "retention", name: "Retention" },
+      before,
+      after,
+    });
+    return c.json(after);
   })
   .post("/retention/run", async (c) => c.json(await runRetention()))
   // docs/features/review-and-approval.md
   .get("/publishing", async (c) => c.json(await publishingSettings()))
   .put("/publishing", zValidator("json", publishingSettingsSchema), async (c) => {
-    // TODO(audit-log): record "settings.publishing.updated" with the old and new values.
+    const before = await publishingSettings();
     await savePublishingSettings(c.req.valid("json"), c.get("user").id);
-    return c.json(await publishingSettings());
+    const after = await publishingSettings();
+    await recordAudit({
+      action: "settings.publishing_updated",
+      target: { id: "publishing", name: "Publishing" },
+      before,
+      after,
+    });
+    return c.json(after);
   })
   .get("/queue", zValidator("query", queueJobsQuerySchema), async (c) => {
     const { state, queue, limit, offset } = c.req.valid("query");

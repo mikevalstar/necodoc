@@ -101,7 +101,6 @@ export async function closeReviewAsPublished(
     body: `Version ${p.version}`,
     authorId: p.actorId,
   });
-  // TODO(audit-log): record "template.review.published" { reviewId, templateId, version }.
   await notify(tx, [review.submittedBy, review.decidedBy], {
     kind: "published",
     message: `Published as version ${p.version}`,

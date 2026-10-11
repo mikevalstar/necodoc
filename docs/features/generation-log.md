@@ -88,12 +88,12 @@ needs counting.
   `pnpm --filter @necodoc/api storage:migrate` moves them.
 - Signed links can't be revoked before they expire, except by deleting the
   entry.
-- Downloads aren't counted or audited yet, only signed-link use.
+- Downloads aren't counted or audited yet, only signed-link use; minting a link
+  and bulk deletes are in the [audit log](audit-log.md).
 - Re-running an API render that used a since-deleted asset or theme fails.
 - A re-run matches the original page for page, not byte for byte: Chromium stamps
   each PDF with its creation time.
 - Bulk delete needs at least one filter, so one request can't wipe the whole log.
-- Retention changes aren't recorded in an audit log yet (there is none).
 - Re-running an entry whose input retention removed is refused.
 - The CSV export stops at 100,000 rows.
 

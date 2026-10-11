@@ -1,9 +1,10 @@
 import { z } from "zod";
 import { conditionSchema, fieldKeySchema, fieldPathSchema } from "./fields";
+import { signingKindSchema } from "./signing";
 
 // The TipTap JSON the template editor stores (ADR 0016). Node and mark names are TipTap's own
 // (StarterKit, Table, Image, TextAlign, TextStyle + Color, Link) plus necodoc's custom nodes:
-// mergeField, conditionalSection, repeatingSection, pageBreak, rawHtml and snippet. Anything else is rejected, so
+// mergeField, signBox, conditionalSection, repeatingSection, pageBreak, rawHtml and snippet. Anything else is rejected, so
 // the editor and the compiler (compile.ts) can't drift apart silently. Unknown attrs are dropped.
 
 const colour = z.string().regex(/^#[0-9a-fA-F]{6}$/, "Use a #rrggbb colour");
@@ -50,10 +51,28 @@ export const mergeFieldNodeSchema = z.object({
   marks,
 });
 
+/**
+ * Inline atom: an empty box where a signer signs, initials or fills in, located in the PDF for the
+ * signing package (docs/features/signing-packages.md). Sizes are millimetres.
+ */
+export const signBoxNodeSchema = z.object({
+  type: z.literal("signBox"),
+  attrs: z.object({
+    signerId: fieldKeySchema,
+    kind: signingKindSchema,
+    width: z.number().min(5).max(250),
+    height: z.number().min(3).max(150),
+    required: z.boolean().default(true),
+  }),
+  marks,
+});
+export type SignBoxAttrs = z.infer<typeof signBoxNodeSchema>["attrs"];
+
 export const inlineNodeSchema = z.discriminatedUnion("type", [
   textNodeSchema,
   hardBreakNodeSchema,
   mergeFieldNodeSchema,
+  signBoxNodeSchema,
 ]);
 export type InlineNode = z.infer<typeof inlineNodeSchema>;
 

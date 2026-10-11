@@ -1,5 +1,6 @@
 import type { Condition, Field, FieldSection } from "./fields";
 import type { Band } from "./render";
+import type { Signer } from "./signing";
 import type { DesignedContent } from "./template";
 import type { BlockNode, Doc, InlineNode, Mark, MergeFilter, TableRowNode } from "./template-doc";
 
@@ -130,6 +131,12 @@ function inlineHtml(node: InlineNode, scope: Scope): string {
       return withMarks(keepSpaces(escapeHtml(node.text)), node.marks);
     case "hardBreak":
       return "<br>";
+    case "signBox": {
+      // Kind and signer are schema-checked identifiers; the renderer locates `data-sign` boxes.
+      const { kind, signerId, width, height, required } = node.attrs;
+      const optional = required ? "" : " data-sign-optional";
+      return `<span data-sign="${kind}" data-signer="${signerId}"${optional} style="width:${width}mm;height:${height}mm;border-bottom:1px solid currentColor"></span>`;
+    }
     case "mergeField": {
       const { field, filter } = node.attrs;
       return withMarks(
@@ -270,6 +277,7 @@ export type CompiledTemplate = {
   footer?: Band;
   css?: string;
   partials?: Record<string, string>;
+  signers?: Signer[];
 };
 
 /** Every HTML/Liquid source a compiled template renders: body, then each band's variants. */
@@ -304,12 +312,14 @@ export function compileDesignedContent(
   sections: readonly FieldSection[],
 ): CompiledTemplate {
   const css = content.css ? { css: content.css } : {};
+  const signers = content.signers.length ? { signers: content.signers } : {};
   if (content.mode === "code") {
     return {
       html: content.body,
       ...(content.header ? { header: content.header } : {}),
       ...(content.footer ? { footer: content.footer } : {}),
       ...css,
+      ...signers,
     };
   }
   const band = (visual: typeof content.header): Band | undefined =>
@@ -327,6 +337,7 @@ export function compileDesignedContent(
     ...(header ? { header } : {}),
     ...(footer ? { footer } : {}),
     ...css,
+    ...signers,
   };
 }
 
@@ -351,6 +362,7 @@ export function toCodeMode(
     header: band(content.header),
     footer: band(content.footer),
     css: content.css,
+    signers: content.signers,
   };
 }
 
@@ -389,9 +401,16 @@ export function templateFieldProblems(
     }
   };
 
+  const signerIds = new Set(content.signers.map((s) => s.id));
+  const checkSigner = (id: string) => {
+    if (!signerIds.has(id)) flag(id, `A sign box is for "${id}", which isn't a signer`);
+  };
+
   if (content.mode === "code") {
     const parts = compiledSources({ ...content, html: content.body });
     for (const name of new Set(parts.flatMap(partialNames))) checkSnippet(name);
+    const used = [...content.body.matchAll(/data-signer=["']?(\w+)/g)].map((m) => m[1] ?? "");
+    for (const id of new Set(used)) checkSigner(id);
     return problems;
   }
 
@@ -432,6 +451,10 @@ export function templateFieldProblems(
   ) => {
     for (const node of nodes) {
       if (node.type === "mergeField") check(node.attrs.field, "value", repeat, inBand);
+      if (node.type === "signBox") {
+        checkSigner(node.attrs.signerId);
+        if (inBand) flag(node.attrs.signerId, "Sign boxes in a header or footer aren't located");
+      }
     }
   };
   const walk = (nodes: readonly BlockNode[], repeat: string | null, inBand: boolean) => {

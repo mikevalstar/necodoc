@@ -2,6 +2,7 @@ import { z } from "zod";
 import { fieldSectionsSchema } from "./fields";
 import { overlayContentSchema } from "./overlay";
 import { bandSchema, pageOptionsSchema } from "./render";
+import { signersSchema } from "./signing";
 import { docSchema } from "./template-doc";
 import { themeInputSchema } from "./theme";
 
@@ -21,6 +22,8 @@ export type VisualBand = z.infer<typeof visualBandSchema>;
 
 /** Template CSS, added after the theme's in body and bands. Lives in content: no extra column. */
 const templateCss = z.string().max(200_000).default("");
+/** Who signs (docs/features/signing-packages.md); in content too, so versions freeze them. */
+const signers = signersSchema.default([]);
 
 /**
  * Visual templates store TipTap JSON (compiled on render); code mode stores the compiled
@@ -33,6 +36,7 @@ export const designedContentSchema = z.discriminatedUnion("mode", [
     header: visualBandSchema.nullable().default(null),
     footer: visualBandSchema.nullable().default(null),
     css: templateCss,
+    signers,
   }),
   z.object({
     mode: z.literal("code"),
@@ -40,6 +44,7 @@ export const designedContentSchema = z.discriminatedUnion("mode", [
     header: bandSchema.nullable().default(null),
     footer: bandSchema.nullable().default(null),
     css: templateCss,
+    signers,
   }),
 ]);
 export type DesignedContent = z.infer<typeof designedContentSchema>;
@@ -50,6 +55,7 @@ export const emptyDesignedContent: DesignedContent = {
   header: null,
   footer: null,
   css: "",
+  signers: [],
 };
 
 const templateName = z.string().trim().min(1, "Enter a name").max(200);

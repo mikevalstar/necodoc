@@ -19,6 +19,7 @@ import {
 import { and, desc, eq, isNotNull, isNull, max, sql } from "drizzle-orm";
 import { Hono } from "hono";
 import { z } from "zod";
+import { recordAudit } from "../audit";
 import { db } from "../db";
 import { pdfSource, template, templateTestCase, templateVersion, theme, user } from "../db/schema";
 import { generate, renderPreview } from "../generate";
@@ -158,10 +159,23 @@ export const templateRoutes = new Hono<AppEnv>()
       body.kind === "overlay"
         ? { ...body, themeId: null, page: pageOptionsSchema.parse({}) }
         : body;
-    const [row] = await db
-      .insert(template)
-      .values({ ...values, createdBy: c.get("user").id })
-      .returning();
+    const row = await db.transaction(async (tx) => {
+      const [created] = await tx
+        .insert(template)
+        .values({ ...values, createdBy: c.get("user").id })
+        .returning();
+      if (created) {
+        await recordAudit(
+          {
+            action: "template.created",
+            target: { id: created.id, name: created.name },
+            after: created,
+          },
+          tx,
+        );
+      }
+      return created;
+    });
     return c.json(row, 201);
   })
   .get("/:id", canSeeDrafts, idParam, async (c) => {
@@ -189,7 +203,23 @@ export const templateRoutes = new Hono<AppEnv>()
     }
     const error = (await themeError(changes.themeId)) ?? (await sourceError(overlay));
     if (error) return c.json({ error }, 422);
-    const [row] = await db.update(template).set(changes).where(eq(template.id, id)).returning();
+    const row = await db.transaction(async (tx) => {
+      const [updated] = await tx
+        .update(template)
+        .set(changes)
+        .where(eq(template.id, id))
+        .returning();
+      await recordAudit(
+        {
+          action: "template.updated",
+          target: { id, name: updated?.name ?? existing.name },
+          before: existing,
+          after: updated,
+        },
+        tx,
+      );
+      return updated;
+    });
     return c.json(row, 200);
   })
   .delete("/:id", canEdit, idParam, async (c) => {
@@ -202,36 +232,73 @@ export const templateRoutes = new Hono<AppEnv>()
     if (published) {
       return c.json({ error: "Published templates can't be deleted; archive it instead" }, 409);
     }
-    const [deleted] = await db
-      .delete(template)
-      .where(eq(template.id, id))
-      .returning({ id: template.id });
+    const deleted = await db.transaction(async (tx) => {
+      const [row] = await tx.delete(template).where(eq(template.id, id)).returning();
+      if (row) {
+        await recordAudit(
+          { action: "template.deleted", target: { id, name: row.name }, before: row },
+          tx,
+        );
+      }
+      return row;
+    });
     return deleted ? c.body(null, 204) : c.json({ error: "Template not found" }, 404);
   })
   .post("/:id/duplicate", canCreate, idParam, async (c) => {
     const existing = await findDraft(c.req.valid("param").id);
     if (!existing) return c.json({ error: "Template not found" }, 404);
     const { id: _id, createdAt: _c, updatedAt: _u, archivedAt: _a, ...draft } = existing;
-    const [row] = await db
-      .insert(template)
-      .values({ ...draft, name: `${draft.name} (copy)`, createdBy: c.get("user").id })
-      .returning();
+    const row = await db.transaction(async (tx) => {
+      const [created] = await tx
+        .insert(template)
+        .values({ ...draft, name: `${draft.name} (copy)`, createdBy: c.get("user").id })
+        .returning();
+      if (created) {
+        await recordAudit(
+          {
+            action: "template.duplicated",
+            target: { id: created.id, name: created.name },
+            details: { from: existing.id, fromName: existing.name },
+          },
+          tx,
+        );
+      }
+      return created;
+    });
     return c.json(row, 201);
   })
   .post("/:id/archive", canPublish, idParam, async (c) => {
-    const [row] = await db
-      .update(template)
-      .set({ archivedAt: new Date(), updatedAt: sql`${template.updatedAt}` })
-      .where(eq(template.id, c.req.valid("param").id))
-      .returning();
+    const row = await db.transaction(async (tx) => {
+      const [updated] = await tx
+        .update(template)
+        .set({ archivedAt: new Date(), updatedAt: sql`${template.updatedAt}` })
+        .where(eq(template.id, c.req.valid("param").id))
+        .returning();
+      if (updated) {
+        await recordAudit(
+          { action: "template.archived", target: { id: updated.id, name: updated.name } },
+          tx,
+        );
+      }
+      return updated;
+    });
     return row ? c.json(row, 200) : c.json({ error: "Template not found" }, 404);
   })
   .post("/:id/restore", canPublish, idParam, async (c) => {
-    const [row] = await db
-      .update(template)
-      .set({ archivedAt: null, updatedAt: sql`${template.updatedAt}` })
-      .where(eq(template.id, c.req.valid("param").id))
-      .returning();
+    const row = await db.transaction(async (tx) => {
+      const [updated] = await tx
+        .update(template)
+        .set({ archivedAt: null, updatedAt: sql`${template.updatedAt}` })
+        .where(eq(template.id, c.req.valid("param").id))
+        .returning();
+      if (updated) {
+        await recordAudit(
+          { action: "template.restored", target: { id: updated.id, name: updated.name } },
+          tx,
+        );
+      }
+      return updated;
+    });
     return row ? c.json(row, 200) : c.json({ error: "Template not found" }, 404);
   })
   .post(
@@ -306,15 +373,22 @@ export const templateRoutes = new Hono<AppEnv>()
           .insert(templateVersion)
           .values({ ...built.snapshot, templateId, version, note, publishedBy: actor.id })
           .returning({ id: templateVersion.id });
-        // TODO(audit-log): record "template.published" { templateId, version, approved review }.
         if (inserted) {
-          await closeReviewAsPublished(tx, {
+          const closed = await closeReviewAsPublished(tx, {
             templateId,
             fingerprint: built.fingerprint,
             actorId: actor.id,
             version,
             versionId: inserted.id,
           });
+          await recordAudit(
+            {
+              action: "template.published",
+              target: { id: templateId, name: built.snapshot.name },
+              details: { version, versionId: inserted.id, note, reviewId: closed?.id ?? null },
+            },
+            tx,
+          );
         }
         return inserted;
       });
@@ -370,11 +444,25 @@ export const templateRoutes = new Hono<AppEnv>()
     const row = await findVersion(c.get("user"), id, version);
     if (!row) return c.json({ error: "Version not found" }, 404);
     const { name, description, sections, sampleData, themeId, page, content } = row.version;
-    const [draft] = await db
-      .update(template)
-      .set({ name, description, sections, sampleData, themeId, page, content })
-      .where(eq(template.id, id))
-      .returning();
+    const before = await findDraft(id);
+    const draft = await db.transaction(async (tx) => {
+      const [updated] = await tx
+        .update(template)
+        .set({ name, description, sections, sampleData, themeId, page, content })
+        .where(eq(template.id, id))
+        .returning();
+      await recordAudit(
+        {
+          action: "template.updated",
+          target: { id, name },
+          before,
+          after: updated,
+          details: { restoredFromVersion: row.version.version },
+        },
+        tx,
+      );
+      return updated;
+    });
     return c.json(draft, 200);
   })
   .post(

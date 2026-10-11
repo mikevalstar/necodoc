@@ -1,6 +1,9 @@
 import {
   fieldErrors,
   jsonSchemaDocumentSchema,
+  type SigningOptions,
+  signingOptionsOf,
+  signingPackageQuerySchema,
   templateDataSchema,
   templateJsonSchema,
   v1BatchSchema,
@@ -12,6 +15,7 @@ import {
   v1GenerationSchema,
   v1PendingSchema,
   v1RenderSchema,
+  v1SigningPackageSchema,
   v1TemplateDetailSchema,
   v1TemplateSchema,
   versionParamSchema,
@@ -35,6 +39,7 @@ import { mintLink, serveFile } from "../download";
 import { storeFile } from "../files";
 import { type GenerationResult, generate } from "../generate";
 import type { AppEnv } from "../middleware";
+import { signingQueryOptions, signingResponse } from "../signing-package";
 import { batchPacket, batchSummaries, batchZip, createBatch } from "./batches";
 import { selectSummaries } from "./generations";
 import { findVersion, latest, versionRequest } from "./templates";
@@ -135,15 +140,50 @@ const renderResponses = {
   ...keyErrors,
 } satisfies DescribeRouteOptions["responses"];
 
+/** Render and generate: as above, or the signing package with `signing`. */
+const signingRenderResponses = {
+  ...renderResponses,
+  200: {
+    ...renderResponses[200],
+    description: `${renderResponses[200].description} With \`signing\`, the signing package.`,
+    content: {
+      ...pdfContent,
+      "application/json": {
+        schema: resolver(z.union([v1GenerationResultSchema, v1SigningPackageSchema])),
+      },
+    },
+  },
+} satisfies DescribeRouteOptions["responses"];
+
 // ---------------------------------------------------------------------------------------------
 // Answers
 
-/** How render, generate and combine answer for `response` (spec: Responses). */
-async function answer(c: Context<ApiKeyEnv>, result: GenerationResult, response: "pdf" | "json") {
+/**
+ * How render, generate and combine answer for `response` (spec: Responses). `signing` answers the
+ * signing package instead (docs/features/signing-packages.md).
+ */
+async function answer(
+  c: Context<ApiKeyEnv>,
+  result: GenerationResult,
+  response: "pdf" | "json",
+  signing?: SigningOptions,
+) {
   switch (result.status) {
     case "error":
       return v1Error(c, 422, "render_failed", result.error, { generationId: result.generationId });
     case "success": {
+      if (signing) {
+        const [row] = await db
+          .select({ signing: generation.signing })
+          .from(generation)
+          .where(eq(generation.id, result.generationId));
+        const pkg = await signingResponse(
+          { ...result, id: result.generationId, signing: row?.signing ?? null },
+          signing,
+          c.get("apiKey").owner.id,
+        );
+        return c.json(pkg, 200);
+      }
       if (response === "pdf") {
         return serveFile(c, {
           fileId: result.fileId,
@@ -229,13 +269,14 @@ const keyed = new Hono<AppEnv>()
       description:
         "HTML with Liquid (rendered with `data`), optional CSS, theme, header and footer bands, and page setup. Logged in the generation log with source `api`.",
       requestBody: { content: { "application/json": { schema: resolver(v1RenderSchema) } } },
-      responses: renderResponses,
+      responses: signingRenderResponses,
     }),
     requireScope("render:html"),
     json(v1RenderSchema),
     async (c) => {
       const key = c.get("apiKey");
-      const { response, async, ...request } = c.req.valid("json");
+      const { response, async, signing: asked, ...request } = c.req.valid("json");
+      const signing = asked ? signingOptionsOf(asked) : undefined;
       if (request.themeId) {
         const [found] = await db
           .select({ id: theme.id })
@@ -245,14 +286,18 @@ const keyed = new Hono<AppEnv>()
           return v1Error(c, 422, "invalid_request", `Theme ${request.themeId} doesn't exist`);
       }
       const result = await generate({
-        request: { ...request, preview: false },
+        request: {
+          ...request,
+          ...(signing ? { signing: { anchors: signing.anchors } } : {}),
+          preview: false,
+        },
         source: "api",
         userId: key.owner.id,
         apiKeyId: key.id,
         requestId: c.get("requestId"),
         wait: !async,
       });
-      return answer(c, result, response);
+      return answer(c, result, response, signing);
     },
   )
   .get(
@@ -354,7 +399,11 @@ const keyed = new Hono<AppEnv>()
       description:
         "Validates `data` against the version's fields (422 with every field error), then renders it.",
       requestBody: { content: { "application/json": { schema: resolver(v1GenerateSchema) } } },
-      responses: { ...renderResponses, ...notFound, 409: errorBody("The template is archived.") },
+      responses: {
+        ...signingRenderResponses,
+        ...notFound,
+        409: errorBody("The template is archived."),
+      },
     }),
     requireScope("templates:generate"),
     params(versionParams),
@@ -362,7 +411,8 @@ const keyed = new Hono<AppEnv>()
     async (c) => {
       const key = c.get("apiKey");
       const { id, version } = c.req.valid("param");
-      const { data, filename, async, response } = c.req.valid("json");
+      const { data, filename, async, response, signing: asked } = c.req.valid("json");
+      const signing = asked ? signingOptionsOf(asked) : undefined;
       if (!templateAllowed(key, id)) {
         return v1Error(c, 403, "template_not_allowed", "This key can't use that template");
       }
@@ -377,7 +427,10 @@ const keyed = new Hono<AppEnv>()
         });
       }
       const result = await generate({
-        request: versionRequest(v, parsed.data, filename ?? v.name),
+        request: {
+          ...versionRequest(v, parsed.data, filename ?? v.name),
+          ...(signing ? { signing: { anchors: signing.anchors } } : {}),
+        },
         source: "api",
         userId: key.owner.id,
         apiKeyId: key.id,
@@ -385,7 +438,7 @@ const keyed = new Hono<AppEnv>()
         template: { id, versionId: v.id },
         wait: !async,
       });
-      return answer(c, result, response);
+      return answer(c, result, response, signing);
     },
   )
   .post(
@@ -565,6 +618,41 @@ const keyed = new Hono<AppEnv>()
         expiresInSeconds: 3600,
       });
       return c.json(link, 201);
+    },
+  )
+  .get(
+    "/generations/:id/signing-package",
+    describeRoute({
+      tags: ["Generations"],
+      summary: "Get a generation's signing package",
+      description:
+        "Signers, sign box positions and provider JSON (DocuSign, Dropbox Sign, Adobe Acrobat Sign) for handing the PDF to an e-sign service. Empty for documents without signers or sign boxes.",
+      responses: {
+        200: jsonBody("The signing package.", v1SigningPackageSchema),
+        ...notFound,
+        ...invalidRequest,
+        ...keyErrors,
+      },
+    }),
+    requireScope("generations:read"),
+    params(idParams),
+    validator("query", signingPackageQuerySchema, invalid),
+    async (c) => {
+      const { id } = c.req.valid("param");
+      const owner = c.get("apiKey").owner.id;
+      const [row] = await db
+        .select({
+          id: generation.id,
+          filename: generation.filename,
+          pageCount: generation.pageCount,
+          fileId: generation.outputFileId,
+          signing: generation.signing,
+        })
+        .from(generation)
+        .where(and(eq(generation.id, id), eq(generation.userId, owner)));
+      if (!row?.fileId) return v1Error(c, 404, "not_found", "No PDF for this generation");
+      const options = signingQueryOptions(c.req.valid("query"));
+      return c.json(await signingResponse({ ...row, fileId: row.fileId }, options, owner), 200);
     },
   )
   .post(

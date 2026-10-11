@@ -40,14 +40,14 @@ Compliance reviews ask for change history. When a published document is wrong, t
 
 ## Acceptance criteria
 
-- [ ] Each action above produces one entry with actor, target and time.
-- [ ] Editing a template records a diff of the changed fields.
-- [ ] Editing a theme, snippet, share link, webhook or service account records a diff of the changed fields.
-- [ ] A failed sign-in is recorded with the email tried and why it failed.
-- [ ] Actions taken while impersonating record both the admin and the impersonated user.
-- [ ] A non-admin can't read the audit log; no route edits or deletes entries.
-- [ ] The filtered list exports as CSV.
-- [ ] The list stays fast at tens of thousands of entries.
+- [x] Each action above produces one entry with actor, target and time.
+- [x] Editing a template records a diff of the changed fields.
+- [x] Editing a theme, snippet, share link, webhook or service account records a diff of the changed fields.
+- [x] A failed sign-in is recorded with the email tried and why it failed.
+- [x] Actions taken while impersonating record both the admin and the impersonated user.
+- [x] A non-admin can't read the audit log; no route edits or deletes entries.
+- [x] The filtered list exports as CSV.
+- [x] The list stays fast at tens of thousands of entries.
 
 ## Known limitations
 

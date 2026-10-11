@@ -143,7 +143,11 @@ export const snippetRoutes = new Hono<AppEnv>()
         .returning();
       if (created) {
         await recordAudit(
-          { action: "snippet.created", target: { id: created.id, name: created.name }, after: created },
+          {
+            action: "snippet.created",
+            target: { id: created.id, name: created.name },
+            after: created,
+          },
           tx,
         );
       }

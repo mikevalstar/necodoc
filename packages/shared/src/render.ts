@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { signersSchema, signingRenderOptionsSchema } from "./signing";
 import { themeInputSchema } from "./theme";
 
 // Specs: docs/features/html-to-pdf-api.md, docs/features/document-templates.md.
@@ -55,6 +56,9 @@ export const renderRequestSchema = z
      * they were published with; without it, current snippets are loaded by key or id.
      */
     partials: z.record(z.string(), z.string()).optional(),
+    /** Who signs the `data-sign` boxes (docs/features/signing-packages.md). */
+    signers: signersSchema.optional(),
+    signing: signingRenderOptionsSchema.optional(),
   })
   .refine((r) => !(r.themeId && r.themeDraft), {
     message: "Send themeId or themeDraft, not both",

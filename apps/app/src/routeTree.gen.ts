@@ -20,6 +20,7 @@ import { Route as AppRenderRouteImport } from './routes/_app/render'
 import { Route as AppSettingsRouteImport } from './routes/_app/settings'
 import { Route as STokenRouteImport } from './routes/s.$token'
 import { Route as AppAdminApiKeysRouteImport } from './routes/_app/admin/api-keys'
+import { Route as AppAdminAuditRouteImport } from './routes/_app/admin/audit'
 import { Route as AppAdminFaqRouteImport } from './routes/_app/admin/faq'
 import { Route as AppAdminQueueRouteImport } from './routes/_app/admin/queue'
 import { Route as AppAdminSystemRouteImport } from './routes/_app/admin/system'
@@ -97,6 +98,11 @@ const STokenRoute = STokenRouteImport.update({
 const AppAdminApiKeysRoute = AppAdminApiKeysRouteImport.update({
   id: '/admin/api-keys',
   path: '/admin/api-keys',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppAdminAuditRoute = AppAdminAuditRouteImport.update({
+  id: '/admin/audit',
+  path: '/admin/audit',
   getParentRoute: () => AppRoute,
 } as any)
 const AppAdminFaqRoute = AppAdminFaqRouteImport.update({
@@ -235,6 +241,7 @@ export interface FileRoutesByFullPath {
   '/settings': typeof AppSettingsRoute
   '/s/$token': typeof STokenRoute
   '/admin/api-keys': typeof AppAdminApiKeysRoute
+  '/admin/audit': typeof AppAdminAuditRoute
   '/admin/faq': typeof AppAdminFaqRoute
   '/admin/queue': typeof AppAdminQueueRoute
   '/admin/system': typeof AppAdminSystemRoute
@@ -271,6 +278,7 @@ export interface FileRoutesByTo {
   '/s/$token': typeof STokenRoute
   '/': typeof AppIndexRoute
   '/admin/api-keys': typeof AppAdminApiKeysRoute
+  '/admin/audit': typeof AppAdminAuditRoute
   '/admin/faq': typeof AppAdminFaqRoute
   '/admin/queue': typeof AppAdminQueueRoute
   '/admin/system': typeof AppAdminSystemRoute
@@ -309,6 +317,7 @@ export interface FileRoutesById {
   '/s/$token': typeof STokenRoute
   '/_app/': typeof AppIndexRoute
   '/_app/admin/api-keys': typeof AppAdminApiKeysRoute
+  '/_app/admin/audit': typeof AppAdminAuditRoute
   '/_app/admin/faq': typeof AppAdminFaqRoute
   '/_app/admin/queue': typeof AppAdminQueueRoute
   '/_app/admin/system': typeof AppAdminSystemRoute
@@ -347,6 +356,7 @@ export interface FileRouteTypes {
     | '/settings'
     | '/s/$token'
     | '/admin/api-keys'
+    | '/admin/audit'
     | '/admin/faq'
     | '/admin/queue'
     | '/admin/system'
@@ -383,6 +393,7 @@ export interface FileRouteTypes {
     | '/s/$token'
     | '/'
     | '/admin/api-keys'
+    | '/admin/audit'
     | '/admin/faq'
     | '/admin/queue'
     | '/admin/system'
@@ -420,6 +431,7 @@ export interface FileRouteTypes {
     | '/s/$token'
     | '/_app/'
     | '/_app/admin/api-keys'
+    | '/_app/admin/audit'
     | '/_app/admin/faq'
     | '/_app/admin/queue'
     | '/_app/admin/system'
@@ -531,6 +543,13 @@ declare module '@tanstack/react-router' {
       path: '/admin/api-keys'
       fullPath: '/admin/api-keys'
       preLoaderRoute: typeof AppAdminApiKeysRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/admin/audit': {
+      id: '/_app/admin/audit'
+      path: '/admin/audit'
+      fullPath: '/admin/audit'
+      preLoaderRoute: typeof AppAdminAuditRouteImport
       parentRoute: typeof AppRoute
     }
     '/_app/admin/faq': {
@@ -711,6 +730,7 @@ interface AppRouteChildren {
   AppSettingsRoute: typeof AppSettingsRoute
   AppIndexRoute: typeof AppIndexRoute
   AppAdminApiKeysRoute: typeof AppAdminApiKeysRoute
+  AppAdminAuditRoute: typeof AppAdminAuditRoute
   AppAdminFaqRoute: typeof AppAdminFaqRoute
   AppAdminQueueRoute: typeof AppAdminQueueRoute
   AppAdminSystemRoute: typeof AppAdminSystemRoute
@@ -744,6 +764,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppSettingsRoute: AppSettingsRoute,
   AppIndexRoute: AppIndexRoute,
   AppAdminApiKeysRoute: AppAdminApiKeysRoute,
+  AppAdminAuditRoute: AppAdminAuditRoute,
   AppAdminFaqRoute: AppAdminFaqRoute,
   AppAdminQueueRoute: AppAdminQueueRoute,
   AppAdminSystemRoute: AppAdminSystemRoute,

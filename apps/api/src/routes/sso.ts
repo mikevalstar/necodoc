@@ -3,6 +3,7 @@ import { type SignInOptions, signInMethodsQuerySchema } from "@necodoc/shared";
 import { APIError } from "better-auth/api";
 import { inArray } from "drizzle-orm";
 import { Hono } from "hono";
+import { recordAudit } from "../audit";
 import { auth } from "../auth";
 import { db } from "../db";
 import { account } from "../db/schema";
@@ -29,14 +30,28 @@ export const ssoRoutes = new Hono<AppEnv>()
     if (provider?.type !== "header") return c.json({ error: "Not found" }, 404);
     const peer = clientIp(c);
     const result = trustedHeaderIdentity(provider, peer, (name) => c.req.header(name));
+    const via = { method: "trusted_header", provider: provider.id } as const;
+    const failed = (email: string | null, reason: string) =>
+      recordAudit({
+        action: "auth.sign_in_failed",
+        target: { id: null, name: email },
+        details: { ...via, email, reason },
+      });
     if (!result.ok) {
       console.warn(`SSO ${provider.id}: refused header sign-in from ${peer} (${result.code})`);
+      await failed(null, result.code);
       return c.redirect(`/login?error=${result.code}`);
     }
     try {
-      const { headers } = await auth.api.trustedHeaderSignIn({
+      const { headers, response: signedIn } = await auth.api.trustedHeaderSignIn({
         body: { providerId: provider.id, identity: result.identity },
         returnHeaders: true,
+      });
+      await recordAudit({
+        action: "auth.signed_in",
+        target: { id: signedIn.userId, name: result.identity.email },
+        actor: { kind: "user", id: signedIn.userId, name: result.identity.name },
+        details: via,
       });
       const response = c.redirect("/");
       for (const cookie of headers.getSetCookie()) response.headers.append("Set-Cookie", cookie);
@@ -44,6 +59,7 @@ export const ssoRoutes = new Hono<AppEnv>()
     } catch (error) {
       if (!(error instanceof APIError)) throw error;
       const code = typeof error.body?.code === "string" ? error.body.code : "sign_in_failed";
+      await failed(result.identity.email, code);
       return c.redirect(`/login?error=${encodeURIComponent(code)}`);
     }
   })

@@ -46,8 +46,9 @@ fields, or have badly named ones.
 - **Box types:** text, multiline text, number, date, checkbox, image,
   signature, QR code, barcode.
   - A signature box can name a signer and a signing kind (signature, initials,
-    date signed). That is the hook for [signing packages](competitive-scope.md);
-    without one, a signature box draws the signature image.
+    date signed, full name, signer text). It then draws nothing and becomes a
+    box in the [signing package](signing-packages.md); without one, a
+    signature box draws the signature image.
 - **Box options:**
   - font (bundled font or an uploaded TTF/OTF asset) and size
   - alignment: left, centre, right; top, middle, bottom; text colour

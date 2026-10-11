@@ -1,6 +1,7 @@
 import { z } from "zod";
 import type { FieldProblem } from "./compile";
 import { type FieldSection, fieldKeySchema, RESERVED_FIELD_KEYS } from "./fields";
+import { signersSchema, signingKindSchema, signingRenderOptionsSchema } from "./signing";
 import { themeFontSchema } from "./theme";
 
 // Spec: docs/features/pdf-overlay-templates.md. An overlay template is an uploaded PDF (a PDF
@@ -45,9 +46,6 @@ export const barcodeSymbologies = [
   "datamatrix",
 ] as const;
 
-/** Future signing packages (NECO-ngtvgwql): which signer a signature box is for, and what. */
-export const signingKindSchema = z.enum(["signature", "initials", "date_signed"]);
-
 const boxBase = {
   id: z.string().min(1).max(64),
   /** 1-based. */
@@ -73,11 +71,17 @@ export const overlayBoxSchema = z.discriminatedUnion("type", [
   }),
   /** Value: a `data:` URL (PNG, JPEG or WebP) or `{{ asset_id | asset_url }}`. */
   z.object({ type: z.literal("image"), ...boxBase }),
+  /**
+   * With a signer, a box in the signing package (docs/features/signing-packages.md) that draws
+   * nothing; without one, it draws the signature image in its value.
+   */
   z.object({
     type: z.literal("signature"),
     ...boxBase,
     signerId: fieldKeySchema.optional(),
     signingKind: signingKindSchema.optional(),
+    /** Only with a signer: false makes the provider's field optional. */
+    required: z.boolean().optional(),
   }),
   z.object({ type: z.literal("qrcode"), ...boxBase }),
   z.object({
@@ -122,6 +126,8 @@ export const overlayContentSchema = z.object({
   boxes: boxesSchema.default([]),
   /** Output has no editable form fields. */
   flatten: z.boolean().default(false),
+  /** Who signs the boxes that name a signer (docs/features/signing-packages.md). */
+  signers: signersSchema.default([]),
 });
 export type OverlayContent = z.infer<typeof overlayContentSchema>;
 
@@ -190,6 +196,8 @@ export const overlayRenderRequestSchema = z.object({
   sourceId: z.uuid(),
   boxes: z.array(overlayBoxSchema),
   flatten: z.boolean(),
+  signers: signersSchema.optional(),
+  signing: signingRenderOptionsSchema.optional(),
   data: z.record(z.string(), z.unknown()).default({}),
   filename: z.string().trim().min(1).max(200).optional(),
   preview: z.boolean().default(false),
@@ -197,7 +205,10 @@ export const overlayRenderRequestSchema = z.object({
 export type OverlayRenderRequest = z.infer<typeof overlayRenderRequestSchema>;
 
 /** A published overlay version's render input, minus the data. */
-export type CompiledOverlay = Pick<OverlayRenderRequest, "kind" | "sourceId" | "boxes" | "flatten">;
+export type CompiledOverlay = Pick<
+  OverlayRenderRequest,
+  "kind" | "sourceId" | "boxes" | "flatten" | "signers"
+>;
 
 // ---------------------------------------------------------------------------------------------
 // AI detection (ADR 0028)
@@ -277,18 +288,30 @@ export function liquidVariables(source: string): string[] {
   });
 }
 
-/** Boxes whose value reads a field the template doesn't declare. Rendering doesn't block on it. */
+/**
+ * Boxes whose value reads a field the template doesn't declare, or that name a signer it doesn't
+ * have. Rendering doesn't block on either.
+ */
 export function overlayFieldProblems(
-  content: Pick<OverlayContent, "boxes">,
+  content: Pick<OverlayContent, "boxes" | "signers">,
   sections: readonly FieldSection[],
 ): FieldProblem[] {
   const keys = new Set(sections.flatMap((s) => s.fields.map((f) => f.key)));
-  return content.boxes.flatMap((box) =>
-    [...new Set(liquidVariables(box.value))]
+  const signers = new Set(content.signers.map((s) => s.id));
+  return content.boxes.flatMap((box) => [
+    ...[...new Set(liquidVariables(box.value))]
       .filter((name) => !keys.has(name))
       .map((name) => ({
         field: name,
         message: `A box on page ${box.page} uses "${name}", which isn't a declared field`,
       })),
-  );
+    ...(box.type === "signature" && box.signerId && !signers.has(box.signerId)
+      ? [
+          {
+            field: box.signerId,
+            message: `A box on page ${box.page} is for "${box.signerId}", which isn't a signer`,
+          },
+        ]
+      : []),
+  ]);
 }

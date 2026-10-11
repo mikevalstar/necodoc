@@ -65,8 +65,8 @@ step to [Publishing and versions](publishing-and-versions.md).
   everyone with `document: publish`), published (to the submitter and
   approver). Opening one marks it read; "Mark all read" clears
   them.
-- **Audit log.** Each state change has a marked hook for the
-  [audit log](audit-log.md), the next phase.
+- **Audit log.** Submit, comment, approve, request changes, withdraw and
+  publish are recorded on the template in the [audit log](audit-log.md).
 - API: [routes/reviews.ts](../../apps/api/src/routes/reviews.ts),
   [routes/notifications.ts](../../apps/api/src/routes/notifications.ts);
   payloads in [review.ts](../../packages/shared/src/review.ts).

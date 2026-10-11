@@ -1,7 +1,7 @@
 import { zValidator } from "@hono/zod-validator";
 import { type AuditFilter, auditFilterSchema, auditListQuerySchema, toCsv } from "@necodoc/shared";
 import { and, asc, count, desc, eq, gte, ilike, lte, or, sql } from "drizzle-orm";
-import { alias } from "drizzle-orm/pg-core";
+import { alias, type SelectedFields } from "drizzle-orm/pg-core";
 import { Hono } from "hono";
 import { stream } from "hono/streaming";
 import { z } from "zod";
@@ -67,12 +67,11 @@ const detailColumns = {
   userAgent: auditEvent.userAgent,
 };
 
-const selectEvents = <T extends typeof summaryColumns>(columns: T) =>
+const selectEvents = <T extends SelectedFields>(columns: T) =>
   db
     .select(columns)
     .from(auditEvent)
-    .leftJoin(impersonator, eq(impersonator.id, auditEvent.impersonatorId))
-    .$dynamic();
+    .leftJoin(impersonator, eq(impersonator.id, auditEvent.impersonatorId));
 
 const exportColumns = [
   "createdAt",
@@ -105,7 +104,11 @@ export const auditRoutes = new Hono<AppEnv>()
     const [items, [total]] = await Promise.all([
       selectEvents(summaryColumns)
         .where(where)
-        .orderBy(direction(auditEvent[sort]), direction(auditEvent.createdAt), direction(auditEvent.id))
+        .orderBy(
+          direction(auditEvent[sort]),
+          direction(auditEvent.createdAt),
+          direction(auditEvent.id),
+        )
         .limit(limit)
         .offset(offset),
       db.select({ count: count() }).from(auditEvent).where(where),
@@ -125,9 +128,7 @@ export const auditRoutes = new Hono<AppEnv>()
       // The cursor keeps Postgres's microseconds, which a JS Date would round away.
       let after: { at: string; id: string } | null = null;
       for (;;) {
-        const rows: (Awaited<ReturnType<typeof selectEvents<typeof detailColumns>>>[number] & {
-          cursor: string;
-        })[] = await selectEvents({
+        const rows = await selectEvents({
           ...detailColumns,
           cursor: sql<string>`${auditEvent.createdAt}::text`,
         })

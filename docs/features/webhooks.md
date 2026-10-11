@@ -86,4 +86,3 @@ Code: [webhooks.ts](../../apps/api/src/webhooks.ts),
 - The secret can't be shown again or rolled; delete the webhook and make a new
   one.
 - App generations (not through a key) fire only template webhooks.
-- Changes to webhooks aren't in an audit log yet.

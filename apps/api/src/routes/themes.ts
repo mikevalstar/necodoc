@@ -57,7 +57,11 @@ export const themeRoutes = new Hono<AppEnv>()
           .returning();
         if (created) {
           await recordAudit(
-            { action: "theme.created", target: { id: created.id, name: created.name }, after: created },
+            {
+              action: "theme.created",
+              target: { id: created.id, name: created.name },
+              after: created,
+            },
             tx,
           );
         }

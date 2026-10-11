@@ -9,6 +9,8 @@ import {
   MAX_FILE_BYTES,
   type RenderInput,
   type RenderRequest,
+  type RenderTimings,
+  type SigningPackage,
 } from "@necodoc/shared";
 import { and, eq, inArray, sql } from "drizzle-orm";
 import { fromDrizzle } from "pg-boss";
@@ -90,7 +92,13 @@ const errorMessage = (error: unknown) => (error instanceof Error ? error.message
  * PDFs. Refuses PDFs too big to store.
  */
 async function render(request: RenderInput) {
-  const rendered = !("kind" in request)
+  const rendered: {
+    pdf: Uint8Array<ArrayBuffer>;
+    pageCount: number;
+    timings: RenderTimings;
+    warnings: string[];
+    signing?: SigningPackage;
+  } = !("kind" in request)
     ? {
         ...(await renderPdf(
           {
@@ -108,7 +116,9 @@ async function render(request: RenderInput) {
   if (rendered.pdf.byteLength > MAX_FILE_BYTES) {
     throw new Error(`The PDF is over ${MAX_FILE_BYTES / 1024 / 1024} MB`);
   }
-  return rendered;
+  // Packets don't carry their parts' signing packages (docs/features/signing-packages.md).
+  const signing = rendered.signing ?? null;
+  return { ...rendered, signing, warnings: [...rendered.warnings, ...(signing?.warnings ?? [])] };
 }
 
 export function pdfFilename(name: string | undefined) {
@@ -301,6 +311,7 @@ async function finish(
               size: outcome.output.size,
               timings: outcome.timings,
               warnings: outcome.warnings,
+              signing: outcome.signing,
             }
           : { status: "error" as const, error: outcome.error };
       const [updated] = await tx

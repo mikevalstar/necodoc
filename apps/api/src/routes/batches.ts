@@ -18,6 +18,7 @@ import { and, asc, desc, eq, isNotNull, isNull, max, type SQL, sql } from "drizz
 import { Zip, ZipPassThrough } from "fflate";
 import { type Context, Hono } from "hono";
 import { z } from "zod";
+import { recordAudit } from "../audit";
 import { db } from "../db";
 import { batch, generation, user } from "../db/schema";
 import { findFile, openFile } from "../files";
@@ -117,6 +118,14 @@ export async function createBatch(
       })
       .returning({ id: batch.id });
     if (!created) throw new Error("Batch insert returned no row");
+    await recordAudit(
+      {
+        action: "batch.started",
+        target: { id: created.id, name: v.name },
+        details: { templateId: id, version: v.version, rows: rows.length },
+      },
+      tx,
+    );
     const generations = rows.map((data, i) => {
       const parsed = schema.safeParse(data);
       const row = {
@@ -241,12 +250,13 @@ export const batchRoutes = new Hono<AppEnv>()
   .post("/:id/cancel", canView, idParam, async (c) => {
     const { id } = c.req.valid("param");
     const [found] = await db
-      .select({ id: batch.id })
+      .select({ id: batch.id, name: batch.templateName })
       .from(batch)
       .where(visible(c.get("user"), id));
     if (!found) return c.json({ error: "Batch not found" }, 404);
     // Rows already running finish; queued rows never start (the worker skips cancelled rows).
     await db.transaction(async (tx) => {
+      await recordAudit({ action: "batch.cancelled", target: { id, name: found.name } }, tx);
       await tx
         .update(batch)
         .set({ cancelledAt: new Date() })

@@ -22,6 +22,7 @@ import type {
   RetentionSettings,
   ReviewEventKind,
   ReviewStatus,
+  SigningPackage,
   SnippetContent,
   SubmissionSource,
   SubmissionStatus,
@@ -254,6 +255,8 @@ export const generation = pgTable(
     /** Queued to finished. */
     totalMs: integer(),
     timings: jsonb().$type<RenderTimings>(),
+    /** Signers and sign box positions (docs/features/signing-packages.md); null without any. */
+    signing: jsonb().$type<SigningPackage>(),
     /** Attempts started; above 1 means a retry after an infrastructure failure. */
     attempts: integer().default(0).notNull(),
     /** host:pid of the process that ran the last attempt. */

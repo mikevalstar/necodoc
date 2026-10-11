@@ -10,6 +10,7 @@ import { and, asc, desc, eq, inArray, max, type SQL } from "drizzle-orm";
 import { alias } from "drizzle-orm/pg-core";
 import { Hono } from "hono";
 import { z } from "zod";
+import { recordAudit } from "../audit";
 import { db } from "../db";
 import { template, templateReview, templateReviewEvent, templateVersion, user } from "../db/schema";
 import { type AppEnv, requireAnyPermission, requirePermission } from "../middleware";
@@ -162,7 +163,14 @@ export const reviewRoutes = new Hono<AppEnv>()
         body: note || null,
         authorId: actor.id,
       });
-      // TODO(audit-log): record "template.review.submitted" { reviewId, templateId, resubmitted }.
+      await recordAudit(
+        {
+          action: "template.review_submitted",
+          target: { id: templateId, name: draft.name },
+          details: { reviewId: review.id, resubmitted: Boolean(reopened), note: note || null },
+        },
+        tx,
+      );
       await notify(tx, reviewers, {
         kind: "review_requested",
         message: `${actor.name} asked for a review${note ? `: ${note.slice(0, 140)}` : ""}`,
@@ -261,7 +269,16 @@ export const reviewRoutes = new Hono<AppEnv>()
         await tx
           .insert(templateReviewEvent)
           .values({ reviewId: id, kind: status, body: body.comment || null, authorId: actor.id });
-        // TODO(audit-log): record "template.review.approved" / "template.review.changes_requested".
+        await recordAudit(
+          {
+            action: approve ? "template.review_approved" : "template.review_changes_requested",
+            target: { id: review.templateId, name: review.templateName },
+            before: { status: review.status },
+            after: { status },
+            details: { reviewId: id, comment: body.comment || null },
+          },
+          tx,
+        );
         await notify(tx, recipients, {
           kind: status,
           message: approve
@@ -285,25 +302,34 @@ export const reviewRoutes = new Hono<AppEnv>()
     async (c) => {
       const { id } = c.req.valid("param");
       const [review] = await db
-        .select({ id: templateReview.id })
+        .select({ id: templateReview.id, templateId: template.id, templateName: template.name })
         .from(templateReview)
+        .innerJoin(template, eq(template.id, templateReview.templateId))
         .where(eq(templateReview.id, id));
       if (!review) return c.json({ error: "Review not found" }, 404);
-      const [event] = await db
-        .insert(templateReviewEvent)
-        .values({
-          reviewId: id,
-          kind: "comment",
-          body: c.req.valid("json").body,
-          authorId: c.get("user").id,
-        })
-        .returning();
+      const { body } = c.req.valid("json");
+      const event = await db.transaction(async (tx) => {
+        const [row] = await tx
+          .insert(templateReviewEvent)
+          .values({ reviewId: id, kind: "comment", body, authorId: c.get("user").id })
+          .returning();
+        await recordAudit(
+          {
+            action: "template.review_commented",
+            target: { id: review.templateId, name: review.templateName },
+            details: { reviewId: id, comment: body },
+          },
+          tx,
+        );
+        return row;
+      });
       return c.json(event, 201);
     },
   )
   .post("/:id/withdraw", canEdit, idParam, async (c) => {
     const { id } = c.req.valid("param");
     const actor = c.get("user");
+    const review = await findReview(id);
     const [withdrawn] = await db.transaction(async (tx) => {
       const rows = await tx
         .update(templateReview)
@@ -314,7 +340,16 @@ export const reviewRoutes = new Hono<AppEnv>()
         await tx
           .insert(templateReviewEvent)
           .values({ reviewId: id, kind: "withdrawn", authorId: actor.id });
-        // TODO(audit-log): record "template.review.withdrawn" { reviewId }.
+        await recordAudit(
+          {
+            action: "template.review_withdrawn",
+            target: { id: review?.templateId ?? null, name: review?.templateName ?? null },
+            before: review ? { status: review.status } : null,
+            after: { status: "withdrawn" },
+            details: { reviewId: id },
+          },
+          tx,
+        );
       }
       return rows;
     });
