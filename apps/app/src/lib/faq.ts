@@ -447,4 +447,34 @@ export const faq: readonly FaqEntry[] = [
     access: [{ action: "View and cancel jobs", needs: "admin" }],
     spec: "docs/features/render-queue-batch-jobs-and-scaling.md",
   },
+  {
+    feature: "Output storage (disk, S3, Azure Blob)",
+    group: "Admin",
+    what: "Generated PDFs are stored by a storage driver chosen in the API's environment: a local or shared directory, any S3-compatible bucket, or Azure Blob Storage. Assets, uploaded PDFs and templates stay in the database. Admin › System shows the active driver, and the readiness check fails when a node can't write and read its storage.",
+    howTo:
+      "Set STORAGE_DRIVER and restart every API and worker process. Disk (default): STORAGE_DIR=/mnt/necodoc; with more than one host it must be a shared mount (NFS, EFS, Azure Files). AWS S3: STORAGE_DRIVER=s3, S3_BUCKET, S3_REGION; leave the keys unset to use the IAM role, add S3_SSE=aws:kms and S3_KMS_KEY_ID for KMS. MinIO: also S3_ENDPOINT=http://minio:9000, S3_FORCE_PATH_STYLE=true, S3_ACCESS_KEY_ID and S3_SECRET_ACCESS_KEY. Cloudflare R2: S3_ENDPOINT=https://<account>.r2.cloudflarestorage.com, S3_REGION=auto, plus an R2 API token's key pair. Azure Blob: STORAGE_DRIVER=azure, AZURE_STORAGE_CONTAINER, and either AZURE_STORAGE_CONNECTION_STRING or AZURE_STORAGE_ACCOUNT (with AZURE_STORAGE_KEY, or alone to use the managed identity, which needs the Storage Blob Data Contributor role). STORAGE_PREFIX puts objects under a folder. PDFs made before the switch stay in the database until you run `pnpm --filter @necodoc/api storage:migrate` (or `node dist/storage-migrate.mjs`), which is safe to rerun.",
+    limitations: [
+      "The bucket or container must exist; necodoc doesn't create it.",
+      "One driver per deployment. The migration moves PDFs out of the database only, not between drivers.",
+      "Changing STORAGE_DIR or STORAGE_PREFIX applies to new PDFs only.",
+      "A crash between storing a PDF and recording it, or a failed delete, can leave an orphaned object (logged).",
+      "STORAGE_REDIRECT=presigned sends downloads straight to the bucket; viewing them inside the app then needs CORS on the bucket.",
+    ],
+    access: [{ action: "See the active driver", needs: "admin" }],
+    spec: "docs/features/render-queue-batch-jobs-and-scaling.md",
+  },
+  {
+    feature: "Signed download links",
+    group: "Generations",
+    what: "A link to one generated PDF that works without signing in until it expires, for emails, webhooks or handing a document to another system. Each link records who made it and how often it was used.",
+    howTo:
+      'POST /api/generations/<id>/link with {"expiresInSeconds": 3600} (60 seconds to 7 days) returns {url, expiresAt}. Add ?download=1 to the URL to save instead of open.',
+    limitations: [
+      "A link can't be revoked before it expires, except by deleting the generation.",
+      "Changing DOWNLOAD_SIGNING_SECRET (or BETTER_AUTH_SECRET, if that's unset) voids every live link.",
+      "There's no button in the app yet; it's an API call.",
+    ],
+    access: [{ action: "Make a link to an entry you can see", needs: view }],
+    spec: "docs/features/generation-log.md",
+  },
 ];
