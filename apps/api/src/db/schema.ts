@@ -1,8 +1,14 @@
 import type {
   AssetMime,
+  CompiledTemplate,
+  DesignedContent,
+  FieldSection,
   GenerationSource,
   GenerationStatus,
+  PageOptions,
   RenderRequest,
+  TemplateKind,
+  ThemeInput,
   ThemeSettings,
 } from "@necodoc/shared";
 import { sql } from "drizzle-orm";
@@ -16,6 +22,7 @@ import {
   pgTable,
   text,
   timestamp,
+  unique,
   uuid,
 } from "drizzle-orm/pg-core";
 import { user } from "./auth-schema";
@@ -30,6 +37,10 @@ const bytea = customType<{ data: Uint8Array<ArrayBuffer>; driverData: Buffer }>(
 });
 
 const createdAt = timestamp({ withTimezone: true }).defaultNow().notNull();
+const updatedAt = timestamp({ withTimezone: true })
+  .defaultNow()
+  .$onUpdate(() => new Date())
+  .notNull();
 
 // Every stored binary: uploads, assets, generated PDFs (ADR 0014). Written once; list queries
 // select metadata only. Other tables point here by id.
@@ -64,14 +75,56 @@ export const theme = pgTable("theme", {
   css: text().default("").notNull(),
   createdBy: text().references(() => user.id, { onDelete: "set null" }),
   createdAt,
-  updatedAt: timestamp({ withTimezone: true })
-    .defaultNow()
-    .$onUpdate(() => new Date())
-    .notNull(),
+  updatedAt,
 });
 
-// Spec: docs/features/generation-log.md. Template refs and API key ids have no FK yet; the
-// phases that add those tables add the constraints.
+// Specs: docs/features/document-templates.md, docs/features/publishing-and-versions.md. The row
+// is the one working draft; publishing copies it into template_version.
+export const template = pgTable("template", {
+  id: uuid().primaryKey().defaultRandom(),
+  kind: text().$type<TemplateKind>().notNull(),
+  name: text().notNull(),
+  description: text().default("").notNull(),
+  sections: jsonb().$type<FieldSection[]>().notNull(),
+  sampleData: jsonb().$type<Record<string, unknown>>().notNull(),
+  themeId: uuid().references(() => theme.id, { onDelete: "set null" }),
+  page: jsonb().$type<PageOptions>().notNull(),
+  content: jsonb().$type<DesignedContent>().notNull(),
+  createdBy: text().references(() => user.id, { onDelete: "set null" }),
+  archivedAt: timestamp({ withTimezone: true }),
+  createdAt,
+  updatedAt,
+});
+
+// Immutable: never updated. Holds everything a render needs, theme included, so later theme
+// edits don't change it; `compiled` is the HTML the version renders, so compiler changes don't
+// either. A template with versions can't be deleted (archive it instead).
+export const templateVersion = pgTable(
+  "template_version",
+  {
+    id: uuid().primaryKey().defaultRandom(),
+    templateId: uuid()
+      .notNull()
+      .references(() => template.id),
+    version: integer().notNull(),
+    kind: text().$type<TemplateKind>().notNull(),
+    name: text().notNull(),
+    description: text().notNull(),
+    sections: jsonb().$type<FieldSection[]>().notNull(),
+    sampleData: jsonb().$type<Record<string, unknown>>().notNull(),
+    themeId: uuid().references(() => theme.id, { onDelete: "set null" }),
+    theme: jsonb().$type<ThemeInput | null>(),
+    page: jsonb().$type<PageOptions>().notNull(),
+    content: jsonb().$type<DesignedContent>().notNull(),
+    compiled: jsonb().$type<CompiledTemplate>().notNull(),
+    note: text(),
+    publishedBy: text().references(() => user.id, { onDelete: "set null" }),
+    publishedAt: timestamp({ withTimezone: true }).defaultNow().notNull(),
+  },
+  (t) => [unique().on(t.templateId, t.version)],
+);
+
+// Spec: docs/features/generation-log.md. API key ids have no FK yet; the API key phase adds it.
 export const generation = pgTable(
   "generation",
   {
@@ -80,8 +133,8 @@ export const generation = pgTable(
     status: text().$type<GenerationStatus>().notNull(),
     userId: text().references(() => user.id, { onDelete: "set null" }),
     apiKeyId: text(),
-    templateId: uuid(),
-    templateVersionId: uuid(),
+    templateId: uuid().references(() => template.id, { onDelete: "set null" }),
+    templateVersionId: uuid().references(() => templateVersion.id, { onDelete: "set null" }),
     rerunOfId: uuid().references((): AnyPgColumn => generation.id, { onDelete: "set null" }),
     filename: text().notNull(),
     error: text(),

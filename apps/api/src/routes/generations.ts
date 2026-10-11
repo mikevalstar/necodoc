@@ -121,7 +121,12 @@ export const generationRoutes = new Hono<AppEnv>()
   .post("/:id/rerun", canView, idParam, async (c) => {
     const actor = c.get("user");
     const [original] = await db
-      .select({ id: generation.id, input: generation.input })
+      .select({
+        id: generation.id,
+        input: generation.input,
+        templateId: generation.templateId,
+        templateVersionId: generation.templateVersionId,
+      })
       .from(generation)
       .where(visible(actor, c.req.valid("param").id));
     if (!original) return c.json({ error: "Generation not found" }, 404);
@@ -130,6 +135,9 @@ export const generationRoutes = new Hono<AppEnv>()
       source: "rerun",
       userId: actor.id,
       rerunOfId: original.id,
+      ...(original.templateId && original.templateVersionId
+        ? { template: { id: original.templateId, versionId: original.templateVersionId } }
+        : {}),
     });
     const [rerun] = result.generationId
       ? await selectSummaries().where(eq(generation.id, result.generationId))

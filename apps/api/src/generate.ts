@@ -46,6 +46,8 @@ type GenerateOptions = {
   source: GenerationSource;
   userId: string;
   rerunOfId?: string;
+  /** The published template version the request was built from. */
+  template?: { id: string; versionId: string };
 };
 
 export async function generate({
@@ -53,6 +55,7 @@ export async function generate({
   source,
   userId,
   rerunOfId,
+  template,
 }: GenerateOptions): Promise<GenerationResult> {
   const startedAt = new Date();
   const started = performance.now();
@@ -94,6 +97,8 @@ export async function generate({
           status: "pdf" in outcome ? "success" : "error",
           userId,
           rerunOfId,
+          templateId: template?.id,
+          templateVersionId: template?.versionId,
           filename,
           input: request,
           startedAt,

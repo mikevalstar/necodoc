@@ -7,6 +7,7 @@ import type { AppEnv } from "./middleware";
 import { assetRoutes } from "./routes/assets";
 import { generationRoutes } from "./routes/generations";
 import { renderRoutes } from "./routes/render";
+import { templateRoutes } from "./routes/templates";
 import { themeRoutes } from "./routes/themes";
 
 const app = new Hono<AppEnv>().basePath("/api");
@@ -44,7 +45,8 @@ const routes = app
   .route("/render", renderRoutes)
   .route("/themes", themeRoutes)
   .route("/assets", assetRoutes)
-  .route("/generations", generationRoutes);
+  .route("/generations", generationRoutes)
+  .route("/templates", templateRoutes);
 
 export type AppType = typeof routes;
 export default app;

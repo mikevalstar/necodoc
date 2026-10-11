@@ -30,3 +30,7 @@ export const requireRole = (...accepted: Role[]) =>
 /** Allows signed-in users whose roles, combined, grant every requested action. */
 export const requirePermission = (permissions: Permissions) =>
   requireRoles((roles) => hasPermission(roles, permissions));
+
+/** Allows signed-in users granted at least one of the permission sets. */
+export const requireAnyPermission = (...options: Permissions[]) =>
+  requireRoles((roles) => options.some((permissions) => hasPermission(roles, permissions)));

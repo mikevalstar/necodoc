@@ -48,6 +48,7 @@ export const themeInputSchema = z.object({
   settings: themeSettingsSchema,
   css: themeCss.default(""),
 });
+export type ThemeInput = z.infer<typeof themeInputSchema>;
 export const createThemeSchema = themeInputSchema.extend({ name: themeName });
 export const updateThemeSchema = z
   .object({ name: themeName, settings: themeSettingsSchema, css: themeCss })

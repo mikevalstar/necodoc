@@ -46,8 +46,9 @@ statements (create, list, set role, ban, impersonate, delete, set password,
 revoke sessions).
 
 **Enforced today:** user management requires admin, and users with no roles
-are pending (below). The document permissions are defined but not enforced
-yet. The template features enforce them through the API's role/permission
+are pending (below). Templates enforce the document permissions
+([routes/templates.ts](../../apps/api/src/routes/templates.ts)); the other
+template features enforce them through the API's role/permission
 middleware ([middleware.ts](../../apps/api/src/middleware.ts)) as they ship;
 what each permission allows is in
 [Publishing and versions](publishing-and-versions.md). API keys act with their owner's roles

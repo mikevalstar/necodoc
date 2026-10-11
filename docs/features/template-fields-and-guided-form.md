@@ -28,13 +28,14 @@ to user-defined data.
 - **Field types:** text, long text, number, date, boolean, choice (single or
   multiple, with options), email, image, signature, repeating group.
 - **Every field has:** a key (`snake_case`, unique in the template), a label,
-  optional help text, required or optional, and an optional default.
+  optional help text, required or optional, and an optional default. `page`,
+  `pages`, `item` and `forloop` are reserved for the renderer.
 - **Validation per type:** min/max length and pattern for text; min, max and
   decimals for number; min/max date; min/max items for repeating groups and
   multiple choice.
 - **Repeating group.** A list of items, each with its own child fields. It
   feeds repeating sections and table rows in
-  [designed templates](document-templates.md).
+  [designed templates](document-templates.md). Groups don't nest.
 - **Sections.** Fields are ordered and grouped into sections. The guided form
   shows one section per step, with progress.
 - **Show-if conditions.** A field or section can be shown only when another
@@ -42,10 +43,17 @@ to user-defined data.
   or less than). Hidden fields are never required, and their values are
   dropped from the data. Conditions are structured data, not Liquid, so the
   browser and the API evaluate them the same way.
+  - A rule refers to an earlier field (inside a group, an earlier sibling), so
+    visibility can't loop.
+  - Empty, `false` and an empty list count as not set. A required checkbox
+    must be ticked; a required group or multiple choice needs one item.
+  - On a multiple choice field, "equals" means "includes".
 - **Image and signature inputs.** Image fields take an upload; signature
-  fields take a drawn signature saved as a PNG.
-- **One schema.** A builder in `packages/shared` turns the field list into a zod
-  schema. The app uses it for the form; the API uses it for every generation,
+  fields take a drawn signature saved as a PNG. Both are sent as `data:` URLs
+  (images PNG, JPEG or WebP).
+- **One schema.** A builder in
+  [fields.ts](../../packages/shared/src/fields.ts) turns the field list into a zod
+  schema. Empty values count as missing, and missing values take the default. The app uses it for the form; the API uses it for every generation,
   from the UI, the [API](html-to-pdf-api.md) and
   [share links](share-links-and-data-requests.md). The API also exports it as JSON
   Schema per template version.
@@ -62,7 +70,7 @@ to user-defined data.
       and errors as the user types.
 - [ ] A show-if field appears and disappears as its condition changes, and a
       hidden required field doesn't block submission.
-- [ ] The API rejects data that the form would reject, with field-level
+- [x] The API rejects data that the form would reject, with field-level
       errors keyed by field path.
 - [ ] The JSON Schema export validates the same sample data the zod schema
       accepts.
@@ -75,3 +83,6 @@ to user-defined data.
 - Show-if rules compare one field with a value. No AND/OR groups yet.
 - No cross-field validation (e.g. end date after start date).
 - Fields belong to one template. There is no shared field library.
+- The JSON Schema export leaves show-ifs out: conditional fields are optional
+  there, and the API still applies the rules.
+- Text sample data can't be generated from a pattern and may need editing.

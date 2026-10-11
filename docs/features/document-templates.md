@@ -40,17 +40,26 @@ editor and developers a code mode, on one renderer.
   - merge field: inserts a field value, with an optional filter (date format,
     currency)
   - conditional section: shown only when a condition on the fields holds
-  - repeating section: repeated per item of a repeating group, including
-    table rows
+  - repeating section: repeated per item of a repeating group. A table row
+    can repeat the same way. Leading rows made only of header cells are the
+    header rows.
   - [snippet](snippet-library.md) reference
+- The node set is fixed by a shared schema
+  ([template-doc.ts](../../packages/shared/src/template-doc.ts)) and compiled by
+  [compile.ts](../../packages/shared/src/compile.ts). Nodes or marks outside it
+  are rejected on save. Typed text never becomes Liquid or HTML.
+- Merge field filters are a fixed list: date format, number, currency,
+  upper/lower/capitalised case, and keep line breaks.
 - Merge fields and conditions pick from the template's declared
   [fields](template-fields-and-guided-form.md). An expression that references
-  an undeclared field is flagged in the editor.
+  an undeclared field is flagged in the editor
+  (`templateFieldProblems` in [compile.ts](../../packages/shared/src/compile.ts)).
 - **Theme.** The editor picks a [document theme](document-themes.md). It
   styles body and bands.
 - **Live preview.** A side panel shows the PDF rendered from the current draft
-  and the template's sample data. It re-renders shortly after edits stop. A
-  render error shows the Liquid or render message instead of a blank pane.
+  (saved or not) and the template's sample data. It re-renders shortly after
+  edits stop. A render error shows the Liquid or render message instead of a
+  blank pane.
 - **Code mode.** An editor can convert a template to raw HTML/Liquid for full
   control. Converting is one-way; the app warns first.
 - **AI drafting** (when enabled,
@@ -58,7 +67,8 @@ editor and developers a code mode, on one renderer.
   The editor describes the content they want; the suggestion uses only declared
   fields and is inserted only on accept.
 - Templates are drafts until published
-  ([Publishing and versions](publishing-and-versions.md)).
+  ([Publishing and versions](publishing-and-versions.md)). API:
+  [routes/templates.ts](../../apps/api/src/routes/templates.ts).
 
 ## Acceptance criteria
 
@@ -66,14 +76,14 @@ editor and developers a code mode, on one renderer.
       and see them in the preview.
 - [ ] Header and footer render on every page with full HTML (an image and a
       table work), and `{{ page }} of {{ pages }}` shows correct numbers.
-- [ ] A first-page header variant appears on page 1 only.
+- [x] A first-page header variant appears on page 1 only.
 - [ ] Body content never overlaps a band.
 - [ ] A repeating section with 200 items paginates cleanly; table header rows
       repeat on each page.
-- [ ] A conditional section disappears when its condition is false.
-- [ ] A manual page break starts a new page.
+- [x] A conditional section disappears when its condition is false.
+- [x] A manual page break starts a new page.
 - [ ] The preview updates after an edit without a manual refresh.
-- [ ] A template converted to code mode renders the same PDF as before
+- [x] A template converted to code mode renders the same PDF as before
       conversion.
 - [ ] `<script>` in a template doesn't run, and a remote image URL doesn't load
       (the render still succeeds).
@@ -86,6 +96,10 @@ editor and developers a code mode, on one renderer.
 - The editor shows content, not pages. Page layout is only visible in the
   preview.
 - Code mode can't convert back to the visual editor.
+- Repeating sections don't nest (repeating groups don't either).
+- Snippet reference nodes come with the [snippet library](snippet-library.md).
+- Table column widths set in the editor aren't carried into the PDF; columns
+  size to their content.
 - No JavaScript in templates, so no client-side charts.
 - No footnotes, columns that balance across pages, or per-section page sizes.
 

@@ -41,24 +41,30 @@ document permissions in
   user can't do.
 - **Publish** snapshots everything the render needs: content, bands, page
   setup, [fields](template-fields-and-guided-form.md), [theme](document-themes.md)
-  CSS, [snippet](snippet-library.md) content, asset references and sample data.
-  Later edits to the theme or snippets don't touch it.
+  CSS, [snippet](snippet-library.md) content, asset references and sample data,
+  plus the compiled HTML, so compiler changes don't touch it either. Later edits
+  to the theme or snippets don't touch it. Publishing fails if the content
+  doesn't compile or its Liquid doesn't parse.
 - A publisher can add a change note when publishing.
 - **Version history.** List versions with publisher, date and note; preview any
   version; start a new draft from an old version.
 - **Diff.** Show what changed between the draft and the latest version: fields
   added, removed or changed, and content changed.
 - **Archive** hides a template from the fill list and the API. Its versions
-  stay for history and re-runs. Restore reverses it.
+  stay for history and re-runs. Restore reverses it. A template with published
+  versions can't be deleted, only archived.
 - Documents and API calls without a version use the latest published one.
+- Saving a draft can send the `updatedAt` the editor opened; if someone saved
+  since, the save is refused so the app can warn.
+- API: [routes/templates.ts](../../apps/api/src/routes/templates.ts).
 
 ## Acceptance criteria
 
-- [ ] A user without `document: edit` can't change a draft, through the app or
+- [x] A user without `document: edit` can't change a draft, through the app or
       the API.
-- [ ] A user without `document: publish` can't publish, through the app or the
+- [x] A user without `document: publish` can't publish, through the app or the
       API.
-- [ ] Publishing creates version N+1; version N still renders identically.
+- [x] Publishing creates version N+1; version N still renders identically.
 - [ ] Editing a theme or snippet after publishing doesn't change the published
       output.
 - [ ] Only published, non-archived templates appear in the fill list.
