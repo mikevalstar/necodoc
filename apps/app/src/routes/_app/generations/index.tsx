@@ -1,5 +1,6 @@
 import {
-  type GenerationFilter,
+  type GenerationSort,
+  type generationFilterSchema,
   generationSourceSchema,
   generationStatusSchema,
 } from "@necodoc/shared";
@@ -11,9 +12,17 @@ import {
   useQueryClient,
 } from "@tanstack/react-query";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { ArrowDownIcon, ArrowUpIcon, MoreHorizontalIcon } from "lucide-react";
+import { createColumnHelper } from "@tanstack/react-table";
+import type { InferResponseType } from "hono/client";
+import { DownloadIcon, MoreHorizontalIcon } from "lucide-react";
 import { useState } from "react";
 import { z } from "zod";
+import {
+  DataTable,
+  type DataTableFeatures,
+  DebouncedInput,
+  dataTableSearchSchema,
+} from "@/components/data-table";
 import { ErrorAlert } from "@/components/form";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import {
@@ -26,7 +35,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -37,68 +46,91 @@ import {
 import { Field, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { NativeSelect, NativeSelectOption } from "@/components/ui/native-select";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
 import { api, generationPdfUrl, ok } from "@/lib/api";
 import { authClient, unwrap } from "@/lib/auth";
 import { dayjs } from "@/lib/date";
+import { batchesQuery, templatesQuery } from "@/lib/queries";
 import { formatBytes } from "@/lib/utils";
-import { DeleteGenerationDialog, StatusBadge, sourceLabels, useRerun } from "./-generation-actions";
+import {
+  DeleteGenerationDialog,
+  formatMs,
+  StatusBadge,
+  sourceLabels,
+  statusLabels,
+  useRerun,
+} from "./-generation-actions";
 
-// Spec: docs/features/generation-log.md. The API scopes non-admins to their own entries.
-const PAGE_SIZE = 25;
+// Spec: docs/features/generation-log.md. The API filters, sorts and pages (the log runs to tens
+// of thousands of rows) and scopes non-admins to their own entries.
+
+const sortable = [
+  "queuedAt",
+  "startedAt",
+  "finishedAt",
+  "filename",
+  "pageCount",
+  "size",
+  "totalMs",
+  "queueWaitMs",
+  "durationMs",
+  "attempts",
+] as const satisfies readonly GenerationSort[];
 
 const day = z.string().regex(/^\d{4}-\d{2}-\d{2}$/);
 
-const searchSchema = z.object({
+const searchSchema = dataTableSearchSchema(sortable, "queuedAt").extend({
+  q: z.string().optional(),
   source: generationSourceSchema.optional(),
   status: generationStatusSchema.optional(),
   userId: z.string().optional(),
   templateId: z.uuid().optional(),
+  batchId: z.uuid().optional(),
   /** Inclusive days, YYYY-MM-DD in local time. */
   from: day.optional(),
   to: day.optional(),
-  sort: z.enum(["startedAt", "durationMs"]).default("startedAt"),
-  order: z.enum(["asc", "desc"]).default("desc"),
-  page: z.number().int().min(1).default(1),
+  /** Seconds, end to end. */
+  slowerThan: z.number().min(0).optional(),
 });
 type GenerationsSearch = z.infer<typeof searchSchema>;
 
 /** The API filter for the URL's filters: whole local days become instants. */
-function toFilter({ source, status, userId, templateId, from, to }: GenerationsSearch) {
+function toFilter(search: GenerationsSearch) {
+  const { q, source, status, userId, templateId, batchId, from, to, slowerThan } = search;
   return {
+    q: q?.trim() || undefined,
     source,
     status,
     userId,
     templateId,
+    batchId,
     from: from && dayjs(from).startOf("day").toISOString(),
     to: to && dayjs(to).endOf("day").toISOString(),
-  } satisfies GenerationFilter;
+    // Query strings; the API coerces.
+    minTotalMs: slowerThan === undefined ? undefined : String(Math.round(slowerThan * 1000)),
+  } satisfies z.input<typeof generationFilterSchema>;
+}
+
+/** The CSV export of everything matching the filters (metadata only). */
+function exportUrl(search: GenerationsSearch) {
+  const params = new URLSearchParams();
+  for (const [key, value] of Object.entries(toFilter(search))) {
+    if (value !== undefined) params.set(key, value);
+  }
+  return `/api/generations/export.csv?${params}`;
 }
 
 function generationsQuery(search: GenerationsSearch) {
+  // Visible columns aren't part of the request, so toggling one doesn't refetch.
+  const query = {
+    ...toFilter(search),
+    sort: search.sort,
+    order: search.order,
+    limit: String(search.pageSize),
+    offset: String((search.page - 1) * search.pageSize),
+  };
   return queryOptions({
-    queryKey: ["generations", "list", search],
-    queryFn: async () =>
-      (
-        await ok(
-          api.generations.$get({
-            query: {
-              ...toFilter(search),
-              sort: search.sort,
-              order: search.order,
-              limit: String(PAGE_SIZE),
-              offset: String((search.page - 1) * PAGE_SIZE),
-            },
-          }),
-        )
-      ).json(),
+    queryKey: ["generations", "list", query],
+    queryFn: async () => (await ok(api.generations.$get({ query }))).json(),
     placeholderData: keepPreviousData,
   });
 }
@@ -107,6 +139,126 @@ const usersQuery = queryOptions({
   queryKey: ["admin", "users", "all"],
   queryFn: () => unwrap(authClient.admin.listUsers({ query: { limit: 500, sortBy: "name" } })),
 });
+
+type Generation = InferResponseType<typeof api.generations.$get, 200>["items"][number];
+
+const column = createColumnHelper<DataTableFeatures, Generation>();
+const allColumns = column.columns([
+  column.accessor("queuedAt", {
+    header: "Queued",
+    cell: ({ row }) => (
+      <Link
+        to="/generations/$id"
+        params={{ id: row.original.id }}
+        className="font-medium tabular-nums hover:underline"
+      >
+        {dayjs(row.original.queuedAt).format("YYYY-MM-DD HH:mm:ss")}
+      </Link>
+    ),
+    enableHiding: false,
+  }),
+  column.accessor("startedAt", {
+    header: "Started",
+    cell: ({ getValue }) => <Timestamp value={getValue()} />,
+    meta: { hiddenByDefault: true },
+  }),
+  column.accessor("finishedAt", {
+    header: "Finished",
+    cell: ({ getValue }) => <Timestamp value={getValue()} />,
+    meta: { hiddenByDefault: true },
+  }),
+  column.accessor("status", {
+    header: "Status",
+    cell: ({ row: { original } }) => (
+      <>
+        <StatusBadge status={original.status} />
+        {original.warnings.length > 0 && (
+          <div className="text-xs text-muted-foreground">
+            {original.warnings.length} warning{original.warnings.length > 1 && "s"}
+          </div>
+        )}
+      </>
+    ),
+  }),
+  column.accessor("source", {
+    header: "Source",
+    cell: ({ getValue }) => sourceLabels[getValue()],
+  }),
+  column.accessor("userName", {
+    header: "User",
+    cell: ({ getValue }) => getValue() ?? "—",
+  }),
+  column.accessor("templateName", {
+    header: "Template",
+    cell: ({ row: { original } }) =>
+      original.templateName ?? (original.templateId ? "Deleted template" : "—"),
+    meta: { className: "max-w-48 truncate" },
+  }),
+  column.accessor("filename", {
+    header: "File",
+    cell: ({ getValue }) => <span title={getValue()}>{getValue()}</span>,
+    meta: { className: "max-w-56 truncate" },
+  }),
+  column.accessor("pageCount", {
+    header: "Pages",
+    cell: ({ getValue }) => getValue() ?? "—",
+    meta: { className: "text-right tabular-nums" },
+  }),
+  column.accessor("size", {
+    header: "Size",
+    cell: ({ getValue }) => {
+      const size = getValue();
+      return size === null ? "—" : formatBytes(size);
+    },
+    meta: { className: "text-right tabular-nums" },
+  }),
+  column.accessor("totalMs", {
+    header: "Total",
+    cell: ({ getValue }) => formatMs(getValue()),
+    meta: { className: "text-right tabular-nums" },
+  }),
+  column.accessor("queueWaitMs", {
+    header: "Queue wait",
+    cell: ({ getValue }) => formatMs(getValue()),
+    meta: { className: "text-right tabular-nums", hiddenByDefault: true },
+  }),
+  column.accessor("durationMs", {
+    header: "Run time",
+    cell: ({ getValue }) => formatMs(getValue()),
+    meta: { className: "text-right tabular-nums", hiddenByDefault: true },
+  }),
+  column.accessor("workerId", {
+    header: "Worker",
+    cell: ({ getValue }) => <span className="font-mono text-xs">{getValue() ?? "—"}</span>,
+    meta: { hiddenByDefault: true },
+  }),
+  column.accessor("attempts", {
+    header: "Attempts",
+    meta: { className: "text-right tabular-nums", hiddenByDefault: true },
+  }),
+  column.accessor("batchId", {
+    header: "Batch",
+    cell: ({ row: { original } }) =>
+      original.batchId ? (
+        <Link to="/batches/$id" params={{ id: original.batchId }} className="hover:underline">
+          Row {original.batchRow === null ? "?" : original.batchRow + 1}
+        </Link>
+      ) : (
+        "—"
+      ),
+    meta: { hiddenByDefault: true },
+  }),
+]);
+/** Non-admins only see their own entries, so a user column says nothing. */
+const ownColumns = allColumns.filter(
+  (def) => !("accessorKey" in def && def.accessorKey === "userName"),
+);
+
+function Timestamp({ value }: { value: string | null }) {
+  return (
+    <span className="tabular-nums">{value ? dayjs(value).format("YYYY-MM-DD HH:mm:ss") : "—"}</span>
+  );
+}
 
 export const Route = createFileRoute("/_app/generations/")({
   validateSearch: searchSchema,
@@ -122,43 +274,22 @@ function Generations() {
   const isAdmin = me.user.roles.includes("admin");
   const generations = useQuery(generationsQuery(search));
   const users = useQuery({ ...usersQuery, enabled: isAdmin });
+  const templates = useQuery(templatesQuery);
+  const batches = useQuery(batchesQuery);
   const rerun = useRerun();
   const [dialog, setDialog] = useState<Dialog | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const close = () => setDialog(null);
 
   const setSearch = (next: Partial<GenerationsSearch>) =>
-    navigate({ search: { ...search, page: 1, ...next } });
-  const hasFilter = Object.values(toFilter(search)).some(Boolean);
+    navigate({ search: (prev) => ({ ...prev, ...next }) });
+  /** Filters change the result set, so they go back to page 1. */
+  const setFilter = (next: Partial<GenerationsSearch>) => setSearch({ ...next, page: 1 });
+  const hasFilter = Object.values(toFilter(search)).some((value) => value !== undefined);
   const total = generations.data?.total ?? 0;
-  const pages = Math.max(1, Math.ceil(total / PAGE_SIZE));
-
-  const sortHeader = (column: GenerationsSearch["sort"], label: string) => {
-    const active = search.sort === column;
-    return (
-      <button
-        type="button"
-        className="inline-flex items-center gap-1 hover:text-foreground"
-        onClick={() =>
-          setSearch({
-            sort: column,
-            order: active && search.order === "desc" ? "asc" : "desc",
-          })
-        }
-      >
-        {label}
-        {active &&
-          (search.order === "desc" ? (
-            <ArrowDownIcon className="size-3.5" />
-          ) : (
-            <ArrowUpIcon className="size-3.5" />
-          ))}
-      </button>
-    );
-  };
 
   return (
-    <main className="mx-auto max-w-6xl space-y-4 p-4 py-8">
+    <main className="mx-auto max-w-7xl space-y-4 p-4 py-8">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <div className="space-y-1">
           <h1 className="text-2xl font-semibold">{isAdmin ? "Generations" : "My generations"}</h1>
@@ -167,231 +298,206 @@ function Generations() {
             logged.
           </p>
         </div>
-        {isAdmin && (
-          <Button
-            variant="outline"
-            className="text-destructive"
-            disabled={!hasFilter || total === 0}
-            title={hasFilter ? undefined : "Pick at least one filter first"}
-            onClick={() => setDialog({ kind: "bulk" })}
-          >
-            Delete matching…
-          </Button>
-        )}
+        <div className="flex gap-2">
+          <a href={exportUrl(search)} className={buttonVariants({ variant: "outline" })}>
+            <DownloadIcon />
+            Export CSV
+          </a>
+          {isAdmin && (
+            <Button
+              variant="outline"
+              className="text-destructive"
+              disabled={!hasFilter || total === 0}
+              title={hasFilter ? undefined : "Pick at least one filter first"}
+              onClick={() => setDialog({ kind: "bulk" })}
+            >
+              Delete matching…
+            </Button>
+          )}
+        </div>
       </div>
 
-      <div className="flex flex-wrap items-end gap-3">
-        <FilterSelect
-          label="Source"
-          value={search.source}
-          options={generationSourceSchema.options.map((value) => ({
-            value,
-            label: sourceLabels[value],
-          }))}
-          onChange={(value) => setSearch({ source: generationSourceSchema.safeParse(value).data })}
-        />
-        <FilterSelect
-          label="Status"
-          value={search.status}
-          options={[
-            { value: "success", label: "Success" },
-            { value: "error", label: "Error" },
-          ]}
-          onChange={(value) => setSearch({ status: generationStatusSchema.safeParse(value).data })}
-        />
-        {isAdmin && (
-          <FilterSelect
-            label="User"
-            value={search.userId}
-            options={(users.data?.users ?? []).map((user) => ({
-              value: user.id,
-              label: user.name,
-            }))}
-            onChange={(value) => setSearch({ userId: value || undefined })}
-          />
-        )}
-        <Field className="w-auto">
-          <FieldLabel htmlFor="templateId">Template id</FieldLabel>
-          <Input
-            id="templateId"
-            className="w-44 font-mono text-xs"
-            placeholder="Any"
-            defaultValue={search.templateId ?? ""}
-            onBlur={(e) =>
-              setSearch({ templateId: z.uuid().safeParse(e.target.value.trim()).data })
-            }
-          />
-        </Field>
-        <Field className="w-auto">
-          <FieldLabel htmlFor="from">From</FieldLabel>
-          <Input
-            id="from"
-            type="date"
-            value={search.from ?? ""}
-            onChange={(e) => setSearch({ from: e.target.value || undefined })}
-          />
-        </Field>
-        <Field className="w-auto">
-          <FieldLabel htmlFor="to">To</FieldLabel>
-          <Input
-            id="to"
-            type="date"
-            value={search.to ?? ""}
-            onChange={(e) => setSearch({ to: e.target.value || undefined })}
-          />
-        </Field>
-        {hasFilter && (
-          <Button variant="ghost" onClick={() => navigate({ search: { page: 1 } })}>
-            Clear filters
-          </Button>
-        )}
-      </div>
-
-      <ErrorAlert error={generations.error ?? rerun.error} />
+      <ErrorAlert error={rerun.error} />
       {notice && (
         <Alert role="status">
           <AlertDescription>{notice}</AlertDescription>
         </Alert>
       )}
 
-      <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead>{sortHeader("startedAt", "Started")}</TableHead>
-            <TableHead>File</TableHead>
-            <TableHead>Status</TableHead>
-            <TableHead className="hidden sm:table-cell">Source</TableHead>
-            {isAdmin && <TableHead className="hidden md:table-cell">User</TableHead>}
-            <TableHead className="hidden md:table-cell">Pages</TableHead>
-            <TableHead className="hidden md:table-cell">Size</TableHead>
-            <TableHead className="hidden sm:table-cell">
-              {sortHeader("durationMs", "Duration")}
-            </TableHead>
-            <TableHead className="w-0">
-              <span className="sr-only">Actions</span>
-            </TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {generations.data?.items.map((generation) => (
-            <TableRow key={generation.id}>
-              <TableCell className="whitespace-nowrap">
-                <Link
-                  to="/generations/$id"
-                  params={{ id: generation.id }}
-                  className="font-medium hover:underline"
+      <DataTable
+        columns={isAdmin ? allColumns : ownColumns}
+        rows={generations.data?.items}
+        total={generations.data?.total}
+        getRowId={(generation) => generation.id}
+        state={search}
+        onStateChange={setSearch}
+        sortable={sortable}
+        isFetching={generations.isPlaceholderData}
+        error={generations.error}
+        noun="generation"
+        onRowClick={(generation) =>
+          navigate({ to: "/generations/$id", params: { id: generation.id } })
+        }
+        rowActions={(generation) => (
+          <DropdownMenu>
+            <DropdownMenuTrigger
+              render={<Button variant="ghost" size="icon-sm" aria-label="Actions" />}
+            >
+              <MoreHorizontalIcon />
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem
+                render={<Link to="/generations/$id" params={{ id: generation.id }} />}
+              >
+                Open
+              </DropdownMenuItem>
+              {generation.hasOutput && (
+                <DropdownMenuItem
+                  render={
+                    <a href={generationPdfUrl(generation.id)} download={generation.filename} />
+                  }
                 >
-                  {dayjs(generation.startedAt).format("YYYY-MM-DD HH:mm:ss")}
-                </Link>
-              </TableCell>
-              <TableCell className="max-w-48 truncate" title={generation.filename}>
-                {generation.filename}
-                {generation.templateId && (
-                  <div className="truncate font-mono text-xs text-muted-foreground">
-                    {generation.templateId}
-                  </div>
-                )}
-              </TableCell>
-              <TableCell>
-                <StatusBadge status={generation.status} />
-                {generation.warnings.length > 0 && (
-                  <div className="text-xs text-muted-foreground">
-                    {generation.warnings.length} warning{generation.warnings.length > 1 && "s"}
-                  </div>
-                )}
-              </TableCell>
-              <TableCell className="hidden sm:table-cell">
-                {sourceLabels[generation.source]}
-              </TableCell>
-              {isAdmin && (
-                <TableCell className="hidden md:table-cell">{generation.userName ?? "—"}</TableCell>
+                  Download PDF
+                </DropdownMenuItem>
               )}
-              <TableCell className="hidden md:table-cell">{generation.pageCount ?? "—"}</TableCell>
-              <TableCell className="hidden md:table-cell">
-                {generation.size === null ? "—" : formatBytes(generation.size)}
-              </TableCell>
-              <TableCell className="hidden sm:table-cell">
-                {(generation.durationMs / 1000).toFixed(2)} s
-              </TableCell>
-              <TableCell>
-                <DropdownMenu>
-                  <DropdownMenuTrigger
-                    render={<Button variant="ghost" size="icon-sm" aria-label="Actions" />}
-                  >
-                    <MoreHorizontalIcon />
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end">
-                    <DropdownMenuItem
-                      render={<Link to="/generations/$id" params={{ id: generation.id }} />}
-                    >
-                      Open
-                    </DropdownMenuItem>
-                    {generation.hasOutput && (
-                      <DropdownMenuItem
-                        render={
-                          <a
-                            href={generationPdfUrl(generation.id)}
-                            download={generation.filename}
-                          />
-                        }
-                      >
-                        Download PDF
-                      </DropdownMenuItem>
-                    )}
-                    <DropdownMenuItem
-                      disabled={rerun.isPending}
-                      onClick={() => rerun.mutate(generation.id)}
-                    >
-                      Re-run
-                    </DropdownMenuItem>
-                    <DropdownMenuSeparator />
-                    <DropdownMenuItem
-                      variant="destructive"
-                      onClick={() => setDialog({ kind: "delete", generation })}
-                    >
-                      Delete
-                    </DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
-              </TableCell>
-            </TableRow>
-          ))}
-          {generations.data?.items.length === 0 && (
-            <TableRow>
-              <TableCell colSpan={9} className="text-center text-muted-foreground">
-                No generations found.
-              </TableCell>
-            </TableRow>
-          )}
-        </TableBody>
-      </Table>
-
-      <div className="flex items-center justify-between text-sm text-muted-foreground">
-        <span>
-          {total} {total === 1 ? "generation" : "generations"}
-        </span>
-        <div className="flex items-center gap-2">
-          <Button
-            variant="outline"
-            size="sm"
-            disabled={search.page <= 1}
-            onClick={() => navigate({ search: { ...search, page: search.page - 1 } })}
-          >
-            Previous
-          </Button>
-          <span>
-            Page {search.page} of {pages}
-          </span>
-          <Button
-            variant="outline"
-            size="sm"
-            disabled={search.page >= pages}
-            onClick={() => navigate({ search: { ...search, page: search.page + 1 } })}
-          >
-            Next
-          </Button>
-        </div>
-      </div>
+              <DropdownMenuItem
+                disabled={rerun.isPending}
+                onClick={() => rerun.mutate(generation.id)}
+              >
+                Re-run
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem
+                variant="destructive"
+                onClick={() => setDialog({ kind: "delete", generation })}
+              >
+                Delete
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        )}
+        toolbar={
+          <>
+            <Field className="w-auto">
+              <FieldLabel htmlFor="q">Search</FieldLabel>
+              <DebouncedInput
+                id="q"
+                type="search"
+                className="w-56"
+                placeholder="File, template, error, id…"
+                value={search.q ?? ""}
+                onCommit={(q) => setFilter({ q: q.trim() || undefined })}
+              />
+            </Field>
+            <FilterSelect
+              label="Status"
+              value={search.status}
+              options={generationStatusSchema.options.map((value) => ({
+                value,
+                label: statusLabels[value],
+              }))}
+              onChange={(value) =>
+                setFilter({ status: generationStatusSchema.safeParse(value).data })
+              }
+            />
+            <FilterSelect
+              label="Source"
+              value={search.source}
+              options={generationSourceSchema.options.map((value) => ({
+                value,
+                label: sourceLabels[value],
+              }))}
+              onChange={(value) =>
+                setFilter({ source: generationSourceSchema.safeParse(value).data })
+              }
+            />
+            {isAdmin && (
+              <FilterSelect
+                label="User"
+                value={search.userId}
+                options={(users.data?.users ?? []).map((user) => ({
+                  value: user.id,
+                  label: user.name,
+                }))}
+                onChange={(value) => setFilter({ userId: value || undefined })}
+              />
+            )}
+            <FilterSelect
+              label="Template"
+              value={search.templateId}
+              options={(templates.data ?? []).map((template) => ({
+                value: template.id,
+                label: template.name,
+              }))}
+              onChange={(value) => setFilter({ templateId: z.uuid().safeParse(value).data })}
+            />
+            <FilterSelect
+              label="Batch"
+              value={search.batchId}
+              options={(batches.data ?? []).map((batch) => ({
+                value: batch.id,
+                label: `${batch.templateName} · ${dayjs(batch.createdAt).format("YYYY-MM-DD HH:mm")}`,
+              }))}
+              onChange={(value) => setFilter({ batchId: z.uuid().safeParse(value).data })}
+            />
+            <Field className="w-auto">
+              <FieldLabel htmlFor="from">From</FieldLabel>
+              <Input
+                id="from"
+                type="date"
+                value={search.from ?? ""}
+                onChange={(e) => setFilter({ from: e.target.value || undefined })}
+              />
+            </Field>
+            <Field className="w-auto">
+              <FieldLabel htmlFor="to">To</FieldLabel>
+              <Input
+                id="to"
+                type="date"
+                value={search.to ?? ""}
+                onChange={(e) => setFilter({ to: e.target.value || undefined })}
+              />
+            </Field>
+            <Field className="w-auto">
+              <FieldLabel htmlFor="slowerThan">Slower than (s)</FieldLabel>
+              <DebouncedInput
+                id="slowerThan"
+                type="number"
+                min={0}
+                step="any"
+                className="w-28"
+                placeholder="Any"
+                value={search.slowerThan === undefined ? "" : String(search.slowerThan)}
+                onCommit={(value) =>
+                  setFilter({
+                    slowerThan: z
+                      .number()
+                      .min(0)
+                      .safeParse(Number(value) || undefined).data,
+                  })
+                }
+              />
+            </Field>
+            {hasFilter && (
+              <Button
+                variant="ghost"
+                onClick={() =>
+                  navigate({
+                    search: ({ sort, order, pageSize, columns }) => ({
+                      sort,
+                      order,
+                      pageSize,
+                      columns,
+                    }),
+                  })
+                }
+              >
+                Clear filters
+              </Button>
+            )}
+          </>
+        }
+      />
 
       {dialog?.kind === "delete" && (
         <DeleteGenerationDialog
@@ -410,7 +516,9 @@ function Generations() {
           onClose={close}
           onDone={(deleted) => {
             close();
-            setNotice(`Deleted ${deleted} ${deleted === 1 ? "generation" : "generations"}.`);
+            setNotice(
+              `Deleted ${deleted.toLocaleString()} ${deleted === 1 ? "generation" : "generations"}.`,
+            );
           }}
         />
       )}
@@ -433,7 +541,12 @@ function FilterSelect({
   return (
     <Field className="w-auto">
       <FieldLabel htmlFor={id}>{label}</FieldLabel>
-      <NativeSelect id={id} value={value ?? ""} onChange={(e) => onChange(e.target.value)}>
+      <NativeSelect
+        id={id}
+        className="max-w-48"
+        value={value ?? ""}
+        onChange={(e) => onChange(e.target.value)}
+      >
         <NativeSelectOption value="">Any</NativeSelectOption>
         {options.map((option) => (
           <NativeSelectOption key={option.value} value={option.value}>
@@ -470,7 +583,7 @@ function BulkDeleteDialog({
       <AlertDialogContent>
         <AlertDialogHeader>
           <AlertDialogTitle>
-            Delete {total} {total === 1 ? "generation" : "generations"}?
+            Delete {total.toLocaleString()} {total === 1 ? "generation" : "generations"}?
           </AlertDialogTitle>
           <AlertDialogDescription>
             Every entry matching the current filters is deleted with its input and PDF, across all
@@ -485,7 +598,7 @@ function BulkDeleteDialog({
             disabled={remove.isPending}
             onClick={() => remove.mutate()}
           >
-            Delete {total}
+            Delete {total.toLocaleString()}
           </AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>

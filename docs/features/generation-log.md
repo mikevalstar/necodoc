@@ -39,9 +39,15 @@ needs counting.
   - output PDF ([ADR 0014](../adrs/0014-binary-files-stored-in-postgres.md))
 - Live previews while editing are not logged.
 - **Generations page** ([generations](../../apps/app/src/routes/_app/generations/index.tsx)):
-  admins see every entry and filter by source, status, user, template and
-  date range; sort by date or duration; open one to see its input, error and
-  output.
+  admins see every entry and filter by source, status, user, template, batch,
+  date range, minimum duration and free text (file, template name, error,
+  request id, or an id); sort by time, duration, size, pages or file name;
+  choose which columns show; open one to see its input, error and output.
+  It stays fast at tens of thousands of entries: the server filters, sorts
+  and pages, and the page never loads the whole log. Filters, sort, page and
+  columns live in the URL, so a view can be shared or bookmarked and Back
+  undoes the last change. Built on the shared data table
+  ([ADR 0021](../adrs/0021-tanstack-table-for-server-side-data-tables.md)).
 - **Export** the filtered list (metadata, not PDFs) as CSV.
 - **Retention** (admin setting): delete outputs, and optionally inputs, older
   than N days while keeping the metadata. Runs as a scheduled job; changes are
@@ -72,9 +78,12 @@ needs counting.
 - A re-run matches the original page for page, not byte for byte: Chromium stamps
   each PDF with its creation time.
 - Bulk delete needs at least one filter, so one request can't wipe the whole log.
+- Retention changes aren't recorded in an audit log yet (there is none).
+- Re-running an entry whose input retention removed is refused.
+- The CSV export stops at 100,000 rows.
 
 ## Acceptance criteria (enterprise)
 
-- [ ] Every generation shows its timing breakdown, worker and attempts.
-- [ ] The filtered log exports as CSV.
-- [ ] A retention of N days removes older outputs and keeps their metadata.
+- [x] Every generation shows its timing breakdown, worker and attempts.
+- [x] The filtered log exports as CSV.
+- [x] A retention of N days removes older outputs and keeps their metadata.

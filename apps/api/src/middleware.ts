@@ -1,3 +1,4 @@
+import { randomUUID } from "node:crypto";
 import { hasPermission, type Permissions, parseRoles, type Role } from "@necodoc/shared";
 import { createMiddleware } from "hono/factory";
 import type { auth } from "./auth";
@@ -6,6 +7,8 @@ export type AppEnv = {
   Variables: {
     user: typeof auth.$Infer.Session.user | null;
     session: typeof auth.$Infer.Session.session | null;
+    /** The caller's X-Request-Id, or one made up for this request; echoed on the response. */
+    requestId: string;
   };
 };
 
@@ -34,3 +37,12 @@ export const requirePermission = (permissions: Permissions) =>
 /** Allows signed-in users granted at least one of the permission sets. */
 export const requireAnyPermission = (...options: Permissions[]) =>
   requireRoles((roles) => options.some((permissions) => hasPermission(roles, permissions)));
+
+/** Accepts a sane incoming X-Request-Id (for tracing across services) or generates one. */
+export const requestId = createMiddleware<AppEnv>(async (c, next) => {
+  const incoming = c.req.header("X-Request-Id");
+  const id = incoming && /^[\w.:-]{1,128}$/.test(incoming) ? incoming : randomUUID();
+  c.set("requestId", id);
+  c.header("X-Request-Id", id);
+  await next();
+});

@@ -56,4 +56,10 @@ export const renderRequestSchema = z
     path: ["themeDraft"],
   });
 export type RenderRequest = z.infer<typeof renderRequestSchema>;
+
+/** POST /api/render: a render request, optionally async (202 with the generation id at once). */
+export const renderCallSchema = z.intersection(
+  renderRequestSchema,
+  z.object({ async: z.boolean().default(false) }),
+);
 export type RenderRequestInput = z.input<typeof renderRequestSchema>;

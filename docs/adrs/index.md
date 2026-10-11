@@ -31,4 +31,5 @@ Add one with `okq new adr "<title>"`.
 | Claude API for AI field detection and drafting | [0018-claude-api-for-ai-field-detection-and-drafting.md](0018-claude-api-for-ai-field-detection-and-drafting.md) |
 | Better Auth API keys for the public API | [0019-better-auth-api-keys-for-the-public-api.md](0019-better-auth-api-keys-for-the-public-api.md) |
 | pg-boss job queue and separate render worker processes | [0020-pg-boss-job-queue-and-separate-render-worker-processes.md](0020-pg-boss-job-queue-and-separate-render-worker-processes.md) |
+| TanStack Table for server-side data tables | [0021-tanstack-table-for-server-side-data-tables.md](0021-tanstack-table-for-server-side-data-tables.md) |
 <!-- okq:index:end -->

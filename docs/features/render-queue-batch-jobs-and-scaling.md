@@ -29,21 +29,40 @@ A month-end run of 10,000 statements must not time out or slow down someone fill
 - **Metrics (Admin > System):** renders per minute, p50/p95/p99 render time, error rate, and queue depth by priority, over selectable windows; breakdown by source and template.
 - **Scaling** is configuration only: `ROLE` and `RENDER_CONCURRENCY` (see ADR 0020). Health endpoints report role and readiness for load balancers and orchestrators.
 
+## Implementation
+
+- Process roles, env and shutdown: [index.ts](../../apps/api/src/index.ts), [env.ts](../../apps/api/src/env.ts). `pnpm --filter @necodoc/api worker` starts a worker locally.
+- Queue setup and the finished-generation channel: [queue.ts](../../apps/api/src/queue.ts). Synchronous callers wake on a Postgres `NOTIFY` when their generation finishes, so pickup is milliseconds, not a poll interval.
+- Enqueue, wait, preview and the worker's run of one job: [generate.ts](../../apps/api/src/generate.ts). Rows and their jobs are written in one transaction. Previews skip the queue and are capped by `PREVIEW_CONCURRENCY`.
+- Worker loop, heartbeats, retention schedule: [worker.ts](../../apps/api/src/worker.ts). Retry rules: [errors.ts](../../apps/api/src/render/errors.ts).
+- Timing: [render.ts](../../apps/api/src/render/render.ts) reports Liquid (body), Chromium (body pass), bands (their Liquid and print), and stamping (pdf-lib load, stamp, save). The worker adds queue wait (queued to the last attempt's start), run time and total (queued to finished).
+- Routes: [render](../../apps/api/src/routes/render.ts), [batches](../../apps/api/src/routes/batches.ts), [system and live queue](../../apps/api/src/routes/system.ts), [health](../../apps/api/src/routes/health.ts). CSV parsing and column mapping: [batch.ts](../../packages/shared/src/batch.ts).
+- App: [Admin › System](../../apps/app/src/routes/_app/admin/system.tsx), [batches](../../apps/app/src/routes/_app/batches/index.tsx).
+
 ## Acceptance criteria
 
-- [ ] With `ROLE=api` and two `ROLE=worker` processes, renders from the app and API complete, and the log shows both workers' ids.
-- [ ] Killing a worker mid-render retries the job on another worker; the generation shows 2 attempts.
-- [ ] A 500-row batch completes with progress visible in the app, can be cancelled mid-run, and downloads as a ZIP and as a packet.
-- [ ] A batch row with invalid data fails with field errors while the other rows succeed.
-- [ ] An interactive render submitted during a running batch starts before the remaining batch rows.
-- [ ] Every generation shows its timing breakdown; the log sorts by total and by queue wait.
-- [ ] Admin > System shows workers, queue depth and p50/p95 render times.
+- [ ] With `ROLE=api` and two `ROLE=worker` processes, renders from the app and API complete, and the log shows both workers' ids. (Verified with a `ROLE=all` node plus two workers, and a separate `ROLE=api` node whose renders the workers ran; `/api/v1` doesn't exist yet.)
+- [x] Killing a worker mid-render retries the job on another worker; the generation shows 2 attempts.
+- [ ] A 500-row batch completes with progress visible in the app, can be cancelled mid-run, and downloads as a ZIP and as a packet. (Verified at 200 rows.)
+- [x] A batch row with invalid data fails with field errors while the other rows succeed.
+- [x] An interactive render submitted during a running batch starts before the remaining batch rows.
+- [x] Every generation shows its timing breakdown; the log sorts by total and by queue wait.
+- [x] Admin > System shows workers, queue depth and p50/p95 render times.
 
 ## Known limitations
 
-- Synchronous renders pay queue pickup latency (pg-boss polling); it's shown as queue wait.
+- Synchronous renders pay queue pickup latency; it's shown as queue wait. With an idle worker it's a few milliseconds (NOTIFY wakes it).
 - Postgres carries the queue; very high volumes will need a dedicated queue later.
-- Batch input is capped by the 20 MB request limit (the CSV or JSON array, not the outputs).
+- Batch input is capped by the 20 MB request limit (the CSV or JSON array, not the outputs) and 10,000 rows.
+- Between jobs a worker slot waits up to 0.5 s (pg-boss's minimum poll) before fetching again, and idle slots poll twice a second.
+- A killed worker's job is detected by its missed heartbeat: 10–20 s before the retry starts.
+- Render timeouts count as template errors and don't retry. A job that loses its worker three times fails.
+- Each batch row stores its own copy of the compiled template as its input, so large batches take space.
+- Cancelling stops rows that haven't started; running rows finish. Cancelling a single queued job (live queue) drops a running render's result rather than stopping Chromium.
+- The packet download is built in memory; the ZIP streams.
+- Metrics come from the generation log, so deleted entries drop out of them.
+- The live queue view reads pg-boss's `pgboss.job` table directly (pg-boss has no listing API), so a pg-boss major upgrade may need it adjusted.
+- When the app's Render or template page waits past the timeout, it gets the 202 body instead of a PDF.
 
 ## Open questions
 

@@ -49,7 +49,9 @@ function AppShell() {
               <Link to="/" activeOptions={{ exact: true }} {...navLink}>
                 Documents
               </Link>
-              {/* Templates (docs/features/document-templates.md) goes here. */}
+              <Link to="/templates" {...navLink}>
+                Templates
+              </Link>
               <Link to="/themes" {...navLink}>
                 Themes
               </Link>
@@ -61,6 +63,9 @@ function AppShell() {
               </Link>
               <Link to="/generations" {...navLink}>
                 {isAdmin ? "Generations" : "My generations"}
+              </Link>
+              <Link to="/batches" {...navLink}>
+                Batches
               </Link>
             </>
           )}
@@ -91,6 +96,7 @@ function AdminMenu() {
       </DropdownMenuTrigger>
       <DropdownMenuContent align="start">
         <DropdownMenuItem render={<Link to="/admin/users" />}>Users</DropdownMenuItem>
+        <DropdownMenuItem render={<Link to="/admin/system" />}>System</DropdownMenuItem>
         <DropdownMenuItem render={<Link to="/admin/faq" />}>FAQ</DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>

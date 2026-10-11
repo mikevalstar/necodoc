@@ -21,7 +21,7 @@ import { LiquidError } from "liquidjs";
 import { z } from "zod";
 import { db } from "../db";
 import { template, templateVersion, theme, user } from "../db/schema";
-import { generate } from "../generate";
+import { generate, renderPreview } from "../generate";
 import {
   type AppEnv,
   requireAnyPermission,
@@ -29,7 +29,7 @@ import {
   type SignedInEnv,
 } from "../middleware";
 import { liquid } from "../render/liquid";
-import { pdfHeaders } from "./http";
+import { generationResponse, pdfHeaders } from "./http";
 
 // Specs: docs/features/document-templates.md, docs/features/publishing-and-versions.md,
 // docs/features/template-fields-and-guided-form.md. Drafts are for editors, reviewers and
@@ -69,7 +69,7 @@ async function findDraft(id: string) {
 }
 
 /** A version the actor may see: archived templates are hidden from non-draft users. */
-async function findVersion(actor: SignedInUser, id: string, version: "latest" | number) {
+export async function findVersion(actor: SignedInUser, id: string, version: "latest" | number) {
   const number =
     version === "latest"
       ? sql`(select max(${templateVersion.version}) from ${templateVersion} where ${templateVersion.templateId} = ${id})`
@@ -242,17 +242,13 @@ export const templateRoutes = new Hono<AppEnv>()
       const data = body.data ?? draft.sampleData;
       // Previews render even when the data doesn't fit yet; valid data gets show-ifs applied.
       const parsed = templateDataSchema(draft.sections).safeParse(data);
-      const result = await generate({
-        request: {
-          ...compiled,
-          ...(draft.themeId ? { themeId: draft.themeId } : {}),
-          page: draft.page,
-          data: parsed.success ? parsed.data : data,
-          filename: saved.name,
-          preview: true,
-        },
-        source: "app",
-        userId: c.get("user").id,
+      const result = await renderPreview({
+        ...compiled,
+        ...(draft.themeId ? { themeId: draft.themeId } : {}),
+        page: draft.page,
+        data: parsed.success ? parsed.data : data,
+        filename: saved.name,
+        preview: true,
       });
       if (!result.ok) return c.json({ error: result.error }, 422);
       return c.body(result.pdf, 200, {
@@ -375,16 +371,11 @@ export const templateRoutes = new Hono<AppEnv>()
         },
         source: "app",
         userId: c.get("user").id,
+        requestId: c.get("requestId"),
         template: { id, versionId: v.id },
+        wait: !body.async,
       });
-      if (!result.ok) {
-        return c.json({ error: result.error, generationId: result.generationId }, 422);
-      }
-      return c.body(result.pdf, 200, {
-        ...pdfHeaders(result.filename),
-        "X-Page-Count": String(result.pageCount),
-        ...(result.generationId ? { "X-Generation-Id": result.generationId } : {}),
-      });
+      return generationResponse(c, result);
     },
   );
 

@@ -3,15 +3,19 @@ import { Hono } from "hono";
 import { bodyLimit } from "hono/body-limit";
 import { logger } from "hono/logger";
 import { auth } from "./auth";
-import type { AppEnv } from "./middleware";
+import { type AppEnv, requestId } from "./middleware";
 import { assetRoutes } from "./routes/assets";
+import { batchRoutes, templateBatchRoutes } from "./routes/batches";
 import { generationRoutes } from "./routes/generations";
+import { healthRoutes } from "./routes/health";
 import { renderRoutes } from "./routes/render";
+import { systemRoutes } from "./routes/system";
 import { templateRoutes } from "./routes/templates";
 import { themeRoutes } from "./routes/themes";
 
 const app = new Hono<AppEnv>().basePath("/api");
 
+app.use(requestId);
 app.use(logger());
 
 app.use(async (c, next) => {
@@ -33,7 +37,7 @@ app.use(
 );
 
 const routes = app
-  .get("/health", (c) => c.json({ ok: true }))
+  .route("/health", healthRoutes)
   .get("/me", (c) => {
     const user = c.get("user");
     if (!user) return c.json({ error: "Unauthorized" }, 401);
@@ -46,7 +50,10 @@ const routes = app
   .route("/themes", themeRoutes)
   .route("/assets", assetRoutes)
   .route("/generations", generationRoutes)
-  .route("/templates", templateRoutes);
+  .route("/templates", templateRoutes)
+  .route("/templates", templateBatchRoutes)
+  .route("/batches", batchRoutes)
+  .route("/system", systemRoutes);
 
 export type AppType = typeof routes;
 export default app;

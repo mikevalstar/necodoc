@@ -11,7 +11,7 @@ generated: { by: okq/0.9.0, at: 2026-10-11T16:07:59Z }
 
 ## Status
 
-Accepted. Builds on [ADR 0012](0012-headless-chromium-for-html-to-pdf.md) (the renderer) and [ADR 0006](0006-postgres-with-drizzle.md) (the database). Scope: [Render queue, batch jobs and scaling](../features/render-queue-batch-jobs-and-scaling.md).
+Accepted. Implemented as described in [Render queue, batch jobs and scaling](../features/render-queue-batch-jobs-and-scaling.md#implementation) (pg-boss 12; synchronous waits wake on Postgres NOTIFY rather than polling). Builds on [ADR 0012](0012-headless-chromium-for-html-to-pdf.md) (the renderer) and [ADR 0006](0006-postgres-with-drizzle.md) (the database). Scope: [Render queue, batch jobs and scaling](../features/render-queue-batch-jobs-and-scaling.md).
 
 ## Context
 

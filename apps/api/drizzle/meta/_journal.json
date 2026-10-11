@@ -29,6 +29,20 @@
       "when": 1791735268910,
       "tag": "0003_templates",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1791735925822,
+      "tag": "0004_render_queue",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1791736563597,
+      "tag": "0005_generation_log_indexes",
+      "breakpoints": true
     }
   ]
 }

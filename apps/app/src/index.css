@@ -129,3 +129,75 @@
     @apply font-sans;
   }
 }
+
+/* The template editor's content (components/editor). It shows structure, not the page: the
+   theme and pagination only appear in the PDF preview (ADR 0016). */
+@layer components {
+  .necodoc-editor .tiptap {
+    @apply min-h-40 px-4 py-3 text-sm leading-relaxed outline-none;
+  }
+  .necodoc-editor .tiptap > * + * {
+    @apply mt-2;
+  }
+  .necodoc-editor h1 {
+    @apply text-2xl font-semibold;
+  }
+  .necodoc-editor h2 {
+    @apply text-xl font-semibold;
+  }
+  .necodoc-editor h3 {
+    @apply text-lg font-semibold;
+  }
+  .necodoc-editor :is(h4, h5, h6) {
+    @apply font-semibold;
+  }
+  .necodoc-editor ul {
+    @apply list-disc pl-6;
+  }
+  .necodoc-editor ol {
+    @apply list-decimal pl-6;
+  }
+  .necodoc-editor blockquote {
+    @apply border-l-4 pl-3 text-muted-foreground;
+  }
+  .necodoc-editor a {
+    @apply text-primary underline;
+  }
+  .necodoc-editor hr {
+    @apply my-4 border-t-2;
+  }
+  .necodoc-editor hr.ProseMirror-selectednode,
+  .necodoc-editor [data-page-break].ProseMirror-selectednode {
+    @apply outline-2 outline-ring;
+  }
+  .necodoc-editor [data-page-break] {
+    @apply relative my-5 h-0 border-t-2 border-dashed border-muted-foreground/40;
+  }
+  .necodoc-editor [data-page-break]::after {
+    @apply absolute left-1/2 -translate-x-1/2 -translate-y-1/2 bg-background px-2 text-xs text-muted-foreground;
+    content: "Page break";
+  }
+  .necodoc-editor table {
+    @apply w-full table-fixed border-collapse;
+  }
+  .necodoc-editor :is(td, th) {
+    @apply relative border px-2 py-1 align-top;
+  }
+  .necodoc-editor th {
+    @apply bg-muted text-left font-semibold;
+  }
+  .necodoc-editor .selectedCell::after {
+    @apply pointer-events-none absolute inset-0 bg-primary/10;
+    content: "";
+  }
+  .necodoc-editor tr[data-repeat] > :is(td, th) {
+    @apply bg-violet-500/5;
+  }
+  .necodoc-editor tr[data-repeat] > :first-child {
+    @apply border-l-4 border-l-violet-500/60;
+  }
+  .necodoc-editor .tiptap p.is-editor-empty:first-child::before {
+    @apply pointer-events-none float-left h-0 text-muted-foreground;
+    content: attr(data-placeholder);
+  }
+}

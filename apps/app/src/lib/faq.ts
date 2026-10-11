@@ -119,13 +119,15 @@ export const faq: readonly FaqEntry[] = [
     group: "Generations",
     what: "Every non-preview render is recorded: source, user, status, error, warnings, start time, duration, page count, size, the full input and the output PDF. Admins see everyone's entries and can filter by source, status, user, template and date range; everyone else sees their own under My generations.",
     howTo:
-      "Open Generations, filter and sort, then open an entry to see its input, view or download the PDF, re-run it, or delete it. Admins can bulk delete everything matching the current filters.",
+      "Open Generations and narrow it down: search (file name, template name, error or request id, or paste a generation or batch id), status, source, template, batch, date range and minimum duration; admins also filter by user. Click a column heading to sort, pick extra columns (worker, attempts, queue wait, batch) under Columns, and choose 25 to 200 rows per page. The address bar holds all of it, so copy the URL to share or bookmark a view, and Back undoes the last change. Click a row to see its input, view or download the PDF, re-run it, or delete it. Export CSV downloads everything matching the filters; admins can bulk delete it too.",
     limitations: [
-      "Inputs can hold personal data and are kept until someone deletes them; there's no automatic retention.",
+      "Inputs can hold personal data and are kept until someone deletes them or the retention setting removes them (Admin › System).",
       "Stored PDFs grow the database over time.",
       "Re-running a render whose theme or asset has since been deleted fails.",
       "A re-run matches the original page for page, not byte for byte (each PDF carries its creation time).",
       "Bulk delete needs at least one filter, so the whole log can't be wiped in one go.",
+      "Sorting and paging happen on the server, a page at a time (at most 200 rows). Sorting by a timing puts unfinished entries, which have none yet, first when sorting slowest first.",
+      "The CSV export stops at 100,000 rows.",
       "Previews (the Render page's Preview mode and the theme editor) aren't logged.",
     ],
     access: [
@@ -169,5 +171,98 @@ export const faq: readonly FaqEntry[] = [
     limitations: ["Kept current by review, not tooling, so it can lag a change."],
     access: [{ action: "Read", needs: "admin" }],
     spec: "docs/features/admin-faq.md",
+  },
+  {
+    feature: "Render queue and async renders",
+    group: "Generations",
+    what: "Every logged render (Render page, template generation, re-runs, batch rows) is queued and run by a render worker. The caller normally waits and gets the PDF back as before; if it takes longer than the wait limit (30 s by default) the API answers 202 with the generation id, and the entry finishes in the background. Live previews skip the queue and render straight away.",
+    howTo:
+      "Nothing to do in the app. API callers can send `async: true` on a render or template generate request to get 202 with `{ generationId, status }` at once, then poll GET /api/generations/:id and download /api/generations/:id/pdf once the status is success.",
+    limitations: [
+      "Queue pickup adds a few milliseconds; it's shown per entry as queue wait.",
+      "If no worker is running, logged renders wait until one starts (Admin › System warns about this).",
+      "The app's Render and template pages expect the PDF back; a render slower than the wait limit doesn't show there, but it still finishes and appears in Generations.",
+      "There are no webhooks yet; async callers poll.",
+    ],
+    access: [{ action: "Render (queued like everything else)", needs: view }],
+    spec: "docs/features/render-queue-batch-jobs-and-scaling.md",
+  },
+  {
+    feature: "Render workers and scaling",
+    group: "Admin",
+    what: "One codebase runs as an API process, a render worker, or both. Throughput grows by starting more workers on any machine that reaches the database. If a worker dies mid-render, the job is retried on another worker and the entry shows 2 attempts; template and data errors are not retried.",
+    howTo:
+      "Set ROLE=api, ROLE=worker or ROLE=all (the default) and RENDER_CONCURRENCY (renders per worker, default 2). Load balancers can use GET /api/health (alive) and GET /api/health/ready (database and queue up; 503 otherwise). Worker-only processes answer only the health endpoints.",
+    limitations: [
+      "Postgres carries the queue as well as the data; very high volumes will need a dedicated queue.",
+      "A killed worker's job is noticed after 10–20 seconds (heartbeat timeout), so that render is slower.",
+      "Render timeouts are treated as template problems and not retried.",
+      "A job that keeps losing its worker fails after 3 attempts.",
+    ],
+    access: [{ action: "Configure (environment variables)", needs: "admin" }],
+    spec: "docs/features/render-queue-batch-jobs-and-scaling.md",
+  },
+  {
+    feature: "Batches",
+    group: "Generations",
+    what: "Generate many documents from one published template at once: one PDF per CSV row (in the app) or JSON row (API). The batch shows progress (done, failed, total), each row is an entry in the generation log, rows with invalid data fail alone with their field errors, and batch rows queue behind interactive renders. Download everything as a ZIP of PDFs or as one combined packet PDF.",
+    howTo:
+      "Open Batches › Run batch, pick a template, upload a CSV, check which column fills which field, and queue it. Open the batch to watch progress, cancel the remaining rows, or download. API: POST /api/templates/:id/versions/:version/batch with `{ rows: [...] }`, or /batch/csv with a file and a column mapping.",
+    limitations: [
+      "Up to 10,000 rows and 20 MB of CSV or JSON per batch.",
+      "Batches always use the latest published version in the app (the API takes any version).",
+      "A CSV column fills one value; repeating-group items need one column per item (items.0.name, items.1.name).",
+      "Cancel stops rows that haven't started; rows already rendering finish.",
+      "The packet download is built in memory, so very large batches are better downloaded as a ZIP.",
+      "Each row stores its own copy of the template HTML as its input, which takes space on big batches.",
+    ],
+    access: [
+      { action: "Run and see your own batches", needs: view },
+      { action: "See everyone's batches", needs: "admin" },
+    ],
+    spec: "docs/features/render-queue-batch-jobs-and-scaling.md",
+  },
+  {
+    feature: "Timing breakdown and request ids",
+    group: "Generations",
+    what: "Every entry records when it was queued, started and finished, how long it waited in the queue, how long Liquid, the Chromium body pass, the header/footer bands and pdf-lib stamping took, the total, which worker ran it and how many attempts it took. Every API response carries an X-Request-Id (yours if you send one), stored on the entries it created.",
+    howTo:
+      "Open an entry in Generations to see its timing. In the list, sort by Total or Queue wait, or filter with 'Slower than'.",
+    limitations: [
+      "Chromium time includes waiting for a free browser slot on a busy worker.",
+      "After a retry, queue wait counts from the first queueing to the last attempt's start.",
+    ],
+    access: [{ action: "See for your own entries", needs: view }],
+    spec: "docs/features/generation-log.md",
+  },
+  {
+    feature: "System metrics",
+    group: "Admin",
+    what: "Admin › System lists every process (role, version, renders running, event-loop lag, last heartbeat) and warns when no worker is online. It shows queue depth for interactive and batch renders, renders per minute, error rate, and p50/p95/p99 total time and queue wait, with a breakdown by source and template, over 15 minutes to 7 days.",
+    howTo: "Open Admin › System and pick a window. It refreshes every 5 seconds.",
+    limitations: [
+      "Metrics are computed from the generation log, so deleted entries drop out of them.",
+      "No Prometheus endpoint or alerting yet.",
+      "Offline processes stay listed for a day.",
+    ],
+    access: [{ action: "View", needs: "admin" }],
+    spec: "docs/features/render-queue-batch-jobs-and-scaling.md",
+  },
+  {
+    feature: "Log retention and CSV export",
+    group: "Admin",
+    what: "Retention deletes stored PDFs, and optionally inputs, of entries that finished more than N days ago, keeping the entries themselves. The generation list exports as CSV (metadata only, no inputs or PDFs) with the current filters.",
+    howTo:
+      "Set the days under Admin › System › Retention; it runs daily at 03:17 UTC, or press Run now. Export from Generations › Export CSV.",
+    limitations: [
+      "Retention changes aren't in an audit log yet.",
+      "Re-running an entry whose input was removed is refused.",
+      "The export stops at 100,000 rows.",
+    ],
+    access: [
+      { action: "Export your own entries", needs: view },
+      { action: "Set and run retention", needs: "admin" },
+    ],
+    spec: "docs/features/generation-log.md",
   },
 ];

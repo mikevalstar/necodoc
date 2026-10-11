@@ -23,15 +23,32 @@ export const sourceLabels = {
   share_link: "Share link",
   combine: "Combine",
   rerun: "Re-run",
+  batch: "Batch",
 } satisfies Record<GenerationSource, string>;
 
+export const statusLabels = {
+  queued: "Queued",
+  running: "Running",
+  success: "Success",
+  error: "Error",
+  cancelled: "Cancelled",
+} satisfies Record<GenerationStatus, string>;
+
+const statusVariants = {
+  queued: "outline",
+  running: "outline",
+  success: "secondary",
+  error: "destructive",
+  cancelled: "outline",
+} as const satisfies Record<GenerationStatus, string>;
+
 export function StatusBadge({ status }: { status: GenerationStatus }) {
-  return status === "success" ? (
-    <Badge variant="secondary">Success</Badge>
-  ) : (
-    <Badge variant="destructive">Error</Badge>
-  );
+  return <Badge variant={statusVariants[status]}>{statusLabels[status]}</Badge>;
 }
+
+/** 1234 → "1.23 s", 87 → "87 ms"; null (not finished) → "—". */
+export const formatMs = (ms: number | null) =>
+  ms === null ? "—" : ms < 1000 ? `${Math.round(ms)} ms` : `${(ms / 1000).toFixed(2)} s`;
 
 /** Re-renders the stored input as a new entry, then opens it. */
 export function useRerun() {

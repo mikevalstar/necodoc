@@ -1,7 +1,5 @@
-import type { RenderRequestInput } from "@necodoc/shared";
 import { keepPreviousData, skipToken, useQuery } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
-import { renderPdf } from "@/lib/api";
 import { cn } from "@/lib/utils";
 
 /** Shows a PDF with the browser's viewer. Blobs get an object URL that's revoked when replaced. */
@@ -34,10 +32,15 @@ export function PdfFrame({
 }
 
 /**
- * Renders a preview (no generation log entry) once `request` has been unchanged for `delayMs`.
- * Pass null while the input is invalid; the last good preview stays up.
+ * Runs `render` once `request` has been unchanged for `delayMs`. Pass null while the input is
+ * invalid; the last good preview stays up. The request is the cache key, so it should say what
+ * it renders (e.g. include the template id), and `render` must not log a generation.
  */
-export function usePdfPreview(request: RenderRequestInput | null, delayMs = 600) {
+export function usePdfPreview<T, R extends { pdf: Blob }>(
+  request: T | null,
+  render: (request: T) => Promise<R>,
+  delayMs = 600,
+) {
   const key = JSON.stringify(request);
   const [settled, setSettled] = useState({ key, request });
   useEffect(() => {
@@ -51,7 +54,7 @@ export function usePdfPreview(request: RenderRequestInput | null, delayMs = 600)
   const settledRequest = settled.request;
   return useQuery({
     queryKey: ["render-preview", settled.key],
-    queryFn: settledRequest ? () => renderPdf({ ...settledRequest, preview: true }) : skipToken,
+    queryFn: settledRequest ? () => render(settledRequest) : skipToken,
     placeholderData: keepPreviousData,
     staleTime: Number.POSITIVE_INFINITY,
     gcTime: 0,

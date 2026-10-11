@@ -102,6 +102,8 @@ export const versionParamSchema = z.union([
 export const generateFromTemplateSchema = z.object({
   data: sampleData.default({}),
   filename: z.string().trim().min(1).max(200).optional(),
+  /** Answer 202 with the generation id at once instead of waiting for the PDF. */
+  async: z.boolean().default(false),
 });
 
 const timestamps = {

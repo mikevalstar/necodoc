@@ -1,9 +1,10 @@
 import { ASSET_ORIGIN } from "@necodoc/shared";
 import { type Browser, chromium } from "playwright-core";
+import { limiter } from "../limiter";
 
 // ADR 0012: one shared Chromium, a fresh locked-down context per print, no network.
 
-/** Mutable so tests can shorten the timeout. */
+/** Mutable so tests can shorten the timeout and the process can size the cap to its role. */
 export const renderLimits = { maxConcurrent: 4, timeoutMs: 30_000 };
 
 export type AssetFile = { bytes: Uint8Array; mimeType: string };
@@ -42,21 +43,8 @@ export async function closeBrowser() {
   await (await current)?.close();
 }
 
-let running = 0;
-const waiting: (() => void)[] = [];
-
-/** Over the cap, renders wait their turn rather than fail. */
-async function withSlot<T>(fn: () => Promise<T>): Promise<T> {
-  if (running >= renderLimits.maxConcurrent)
-    await new Promise<void>((resolve) => waiting.push(resolve));
-  running++;
-  try {
-    return await fn();
-  } finally {
-    running--;
-    waiting.shift()?.();
-  }
-}
+/** Chromium contexts open at once, across every render in this process. */
+const withSlot = limiter(() => renderLimits.maxConcurrent);
 
 /** Prints one HTML document to PDF. */
 export function printPdf(html: string, options: PrintOptions, loadAsset: AssetLoader) {

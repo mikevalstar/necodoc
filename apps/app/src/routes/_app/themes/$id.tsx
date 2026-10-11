@@ -31,7 +31,7 @@ import {
   NativeSelectOptGroup,
   NativeSelectOption,
 } from "@/components/ui/native-select";
-import { api, ok } from "@/lib/api";
+import { api, ok, renderPdf } from "@/lib/api";
 import { assetsQuery, themesQuery } from "@/lib/queries";
 import { DeleteThemeDialog, useDuplicateTheme } from "./-theme-actions";
 
@@ -112,9 +112,9 @@ function ThemeEditor({ theme }: { theme: Theme }) {
   const values = useStore(form.store, (state) => state.values);
   const request = useMemo(() => {
     const draft = themeInputSchema.safeParse(values);
-    return draft.success ? { ...sample, themeDraft: draft.data } : null;
+    return draft.success ? { ...sample, themeDraft: draft.data, preview: true } : null;
   }, [values]);
-  const preview = usePdfPreview(request);
+  const preview = usePdfPreview(request, renderPdf);
 
   return (
     <main className="mx-auto max-w-7xl space-y-4 p-4 py-8">

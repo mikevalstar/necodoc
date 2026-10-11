@@ -18,9 +18,15 @@ import { Route as AppAssetsRouteImport } from './routes/_app/assets'
 import { Route as AppRenderRouteImport } from './routes/_app/render'
 import { Route as AppSettingsRouteImport } from './routes/_app/settings'
 import { Route as AppAdminFaqRouteImport } from './routes/_app/admin/faq'
+import { Route as AppAdminSystemRouteImport } from './routes/_app/admin/system'
 import { Route as AppAdminUsersRouteImport } from './routes/_app/admin/users'
+import { Route as AppBatchesIndexRouteImport } from './routes/_app/batches/index'
+import { Route as AppBatchesIdRouteImport } from './routes/_app/batches/$id'
+import { Route as AppBatchesNewRouteImport } from './routes/_app/batches/new'
 import { Route as AppGenerationsIndexRouteImport } from './routes/_app/generations/index'
 import { Route as AppGenerationsIdRouteImport } from './routes/_app/generations/$id'
+import { Route as AppTemplatesIndexRouteImport } from './routes/_app/templates/index'
+import { Route as AppTemplatesIdRouteImport } from './routes/_app/templates/$id'
 import { Route as AppThemesIndexRouteImport } from './routes/_app/themes/index'
 import { Route as AppThemesIdRouteImport } from './routes/_app/themes/$id'
 
@@ -68,9 +74,29 @@ const AppAdminFaqRoute = AppAdminFaqRouteImport.update({
   path: '/admin/faq',
   getParentRoute: () => AppRoute,
 } as any)
+const AppAdminSystemRoute = AppAdminSystemRouteImport.update({
+  id: '/admin/system',
+  path: '/admin/system',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppAdminUsersRoute = AppAdminUsersRouteImport.update({
   id: '/admin/users',
   path: '/admin/users',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppBatchesIndexRoute = AppBatchesIndexRouteImport.update({
+  id: '/batches/',
+  path: '/batches/',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppBatchesIdRoute = AppBatchesIdRouteImport.update({
+  id: '/batches/$id',
+  path: '/batches/$id',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppBatchesNewRoute = AppBatchesNewRouteImport.update({
+  id: '/batches/new',
+  path: '/batches/new',
   getParentRoute: () => AppRoute,
 } as any)
 const AppGenerationsIndexRoute = AppGenerationsIndexRouteImport.update({
@@ -81,6 +107,16 @@ const AppGenerationsIndexRoute = AppGenerationsIndexRouteImport.update({
 const AppGenerationsIdRoute = AppGenerationsIdRouteImport.update({
   id: '/generations/$id',
   path: '/generations/$id',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppTemplatesIndexRoute = AppTemplatesIndexRouteImport.update({
+  id: '/templates/',
+  path: '/templates/',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppTemplatesIdRoute = AppTemplatesIdRouteImport.update({
+  id: '/templates/$id',
+  path: '/templates/$id',
   getParentRoute: () => AppRoute,
 } as any)
 const AppThemesIndexRoute = AppThemesIndexRouteImport.update({
@@ -103,10 +139,16 @@ export interface FileRoutesByFullPath {
   '/render': typeof AppRenderRoute
   '/settings': typeof AppSettingsRoute
   '/admin/faq': typeof AppAdminFaqRoute
+  '/admin/system': typeof AppAdminSystemRoute
   '/admin/users': typeof AppAdminUsersRoute
+  '/batches/$id': typeof AppBatchesIdRoute
+  '/batches/new': typeof AppBatchesNewRoute
   '/generations/$id': typeof AppGenerationsIdRoute
+  '/templates/$id': typeof AppTemplatesIdRoute
   '/themes/$id': typeof AppThemesIdRoute
+  '/batches/': typeof AppBatchesIndexRoute
   '/generations/': typeof AppGenerationsIndexRoute
+  '/templates/': typeof AppTemplatesIndexRoute
   '/themes/': typeof AppThemesIndexRoute
 }
 export interface FileRoutesByTo {
@@ -118,10 +160,16 @@ export interface FileRoutesByTo {
   '/settings': typeof AppSettingsRoute
   '/': typeof AppIndexRoute
   '/admin/faq': typeof AppAdminFaqRoute
+  '/admin/system': typeof AppAdminSystemRoute
   '/admin/users': typeof AppAdminUsersRoute
+  '/batches/$id': typeof AppBatchesIdRoute
+  '/batches/new': typeof AppBatchesNewRoute
   '/generations/$id': typeof AppGenerationsIdRoute
+  '/templates/$id': typeof AppTemplatesIdRoute
   '/themes/$id': typeof AppThemesIdRoute
+  '/batches': typeof AppBatchesIndexRoute
   '/generations': typeof AppGenerationsIndexRoute
+  '/templates': typeof AppTemplatesIndexRoute
   '/themes': typeof AppThemesIndexRoute
 }
 export interface FileRoutesById {
@@ -135,10 +183,16 @@ export interface FileRoutesById {
   '/_app/settings': typeof AppSettingsRoute
   '/_app/': typeof AppIndexRoute
   '/_app/admin/faq': typeof AppAdminFaqRoute
+  '/_app/admin/system': typeof AppAdminSystemRoute
   '/_app/admin/users': typeof AppAdminUsersRoute
+  '/_app/batches/$id': typeof AppBatchesIdRoute
+  '/_app/batches/new': typeof AppBatchesNewRoute
   '/_app/generations/$id': typeof AppGenerationsIdRoute
+  '/_app/templates/$id': typeof AppTemplatesIdRoute
   '/_app/themes/$id': typeof AppThemesIdRoute
+  '/_app/batches/': typeof AppBatchesIndexRoute
   '/_app/generations/': typeof AppGenerationsIndexRoute
+  '/_app/templates/': typeof AppTemplatesIndexRoute
   '/_app/themes/': typeof AppThemesIndexRoute
 }
 export interface FileRouteTypes {
@@ -152,10 +206,16 @@ export interface FileRouteTypes {
     | '/render'
     | '/settings'
     | '/admin/faq'
+    | '/admin/system'
     | '/admin/users'
+    | '/batches/$id'
+    | '/batches/new'
     | '/generations/$id'
+    | '/templates/$id'
     | '/themes/$id'
+    | '/batches/'
     | '/generations/'
+    | '/templates/'
     | '/themes/'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -167,10 +227,16 @@ export interface FileRouteTypes {
     | '/settings'
     | '/'
     | '/admin/faq'
+    | '/admin/system'
     | '/admin/users'
+    | '/batches/$id'
+    | '/batches/new'
     | '/generations/$id'
+    | '/templates/$id'
     | '/themes/$id'
+    | '/batches'
     | '/generations'
+    | '/templates'
     | '/themes'
   id:
     | '__root__'
@@ -183,10 +249,16 @@ export interface FileRouteTypes {
     | '/_app/settings'
     | '/_app/'
     | '/_app/admin/faq'
+    | '/_app/admin/system'
     | '/_app/admin/users'
+    | '/_app/batches/$id'
+    | '/_app/batches/new'
     | '/_app/generations/$id'
+    | '/_app/templates/$id'
     | '/_app/themes/$id'
+    | '/_app/batches/'
     | '/_app/generations/'
+    | '/_app/templates/'
     | '/_app/themes/'
   fileRoutesById: FileRoutesById
 }
@@ -262,11 +334,39 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppAdminFaqRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_app/admin/system': {
+      id: '/_app/admin/system'
+      path: '/admin/system'
+      fullPath: '/admin/system'
+      preLoaderRoute: typeof AppAdminSystemRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/_app/admin/users': {
       id: '/_app/admin/users'
       path: '/admin/users'
       fullPath: '/admin/users'
       preLoaderRoute: typeof AppAdminUsersRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/batches/': {
+      id: '/_app/batches/'
+      path: '/batches'
+      fullPath: '/batches/'
+      preLoaderRoute: typeof AppBatchesIndexRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/batches/$id': {
+      id: '/_app/batches/$id'
+      path: '/batches/$id'
+      fullPath: '/batches/$id'
+      preLoaderRoute: typeof AppBatchesIdRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/batches/new': {
+      id: '/_app/batches/new'
+      path: '/batches/new'
+      fullPath: '/batches/new'
+      preLoaderRoute: typeof AppBatchesNewRouteImport
       parentRoute: typeof AppRoute
     }
     '/_app/generations/': {
@@ -281,6 +381,20 @@ declare module '@tanstack/react-router' {
       path: '/generations/$id'
       fullPath: '/generations/$id'
       preLoaderRoute: typeof AppGenerationsIdRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/templates/': {
+      id: '/_app/templates/'
+      path: '/templates'
+      fullPath: '/templates/'
+      preLoaderRoute: typeof AppTemplatesIndexRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/templates/$id': {
+      id: '/_app/templates/$id'
+      path: '/templates/$id'
+      fullPath: '/templates/$id'
+      preLoaderRoute: typeof AppTemplatesIdRouteImport
       parentRoute: typeof AppRoute
     }
     '/_app/themes/': {
@@ -306,10 +420,16 @@ interface AppRouteChildren {
   AppSettingsRoute: typeof AppSettingsRoute
   AppIndexRoute: typeof AppIndexRoute
   AppAdminFaqRoute: typeof AppAdminFaqRoute
+  AppAdminSystemRoute: typeof AppAdminSystemRoute
   AppAdminUsersRoute: typeof AppAdminUsersRoute
+  AppBatchesIdRoute: typeof AppBatchesIdRoute
+  AppBatchesNewRoute: typeof AppBatchesNewRoute
   AppGenerationsIdRoute: typeof AppGenerationsIdRoute
+  AppTemplatesIdRoute: typeof AppTemplatesIdRoute
   AppThemesIdRoute: typeof AppThemesIdRoute
+  AppBatchesIndexRoute: typeof AppBatchesIndexRoute
   AppGenerationsIndexRoute: typeof AppGenerationsIndexRoute
+  AppTemplatesIndexRoute: typeof AppTemplatesIndexRoute
   AppThemesIndexRoute: typeof AppThemesIndexRoute
 }
 
@@ -319,10 +439,16 @@ const AppRouteChildren: AppRouteChildren = {
   AppSettingsRoute: AppSettingsRoute,
   AppIndexRoute: AppIndexRoute,
   AppAdminFaqRoute: AppAdminFaqRoute,
+  AppAdminSystemRoute: AppAdminSystemRoute,
   AppAdminUsersRoute: AppAdminUsersRoute,
+  AppBatchesIdRoute: AppBatchesIdRoute,
+  AppBatchesNewRoute: AppBatchesNewRoute,
   AppGenerationsIdRoute: AppGenerationsIdRoute,
+  AppTemplatesIdRoute: AppTemplatesIdRoute,
   AppThemesIdRoute: AppThemesIdRoute,
+  AppBatchesIndexRoute: AppBatchesIndexRoute,
   AppGenerationsIndexRoute: AppGenerationsIndexRoute,
+  AppTemplatesIndexRoute: AppTemplatesIndexRoute,
   AppThemesIndexRoute: AppThemesIndexRoute,
 }
 

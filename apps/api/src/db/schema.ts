@@ -6,7 +6,10 @@ import type {
   GenerationSource,
   GenerationStatus,
   PageOptions,
+  ProcessRole,
   RenderRequest,
+  RenderTimings,
+  RetentionSettings,
   TemplateKind,
   ThemeInput,
   ThemeSettings,
@@ -124,7 +127,23 @@ export const templateVersion = pgTable(
   (t) => [unique().on(t.templateId, t.version)],
 );
 
+// Spec: docs/features/render-queue-batch-jobs-and-scaling.md. One request that generates many
+// documents; each row is a generation pointing here. Progress and status are counted from those.
+export const batch = pgTable("batch", {
+  id: uuid().primaryKey().defaultRandom(),
+  userId: text().references(() => user.id, { onDelete: "set null" }),
+  templateId: uuid().references(() => template.id, { onDelete: "set null" }),
+  templateVersionId: uuid().references(() => templateVersion.id, { onDelete: "set null" }),
+  templateName: text().notNull(),
+  version: integer().notNull(),
+  total: integer().notNull(),
+  requestId: text(),
+  cancelledAt: timestamp({ withTimezone: true }),
+  createdAt,
+});
+
 // Spec: docs/features/generation-log.md. API key ids have no FK yet; the API key phase adds it.
+// Rows are written queued by the API node and filled in by the worker that renders them (ADR 0020).
 export const generation = pgTable(
   "generation",
   {
@@ -136,15 +155,79 @@ export const generation = pgTable(
     templateId: uuid().references(() => template.id, { onDelete: "set null" }),
     templateVersionId: uuid().references(() => templateVersion.id, { onDelete: "set null" }),
     rerunOfId: uuid().references((): AnyPgColumn => generation.id, { onDelete: "set null" }),
+    batchId: uuid().references(() => batch.id, { onDelete: "set null" }),
+    /** 1-based row number within the batch. */
+    batchRow: integer(),
+    requestId: text(),
     filename: text().notNull(),
     error: text(),
     warnings: jsonb().$type<string[]>().default(sql`'[]'::jsonb`).notNull(),
-    input: jsonb().$type<RenderRequest>().notNull(),
+    /** Null once retention removed it. */
+    input: jsonb().$type<RenderRequest>(),
     outputFileId: uuid().references(() => file.id, { onDelete: "set null" }),
-    startedAt: timestamp({ withTimezone: true }).notNull(),
-    durationMs: integer().notNull(),
+    queuedAt: timestamp({ withTimezone: true }).defaultNow().notNull(),
+    startedAt: timestamp({ withTimezone: true }),
+    finishedAt: timestamp({ withTimezone: true }),
+    /** Run time on the worker. */
+    durationMs: integer(),
+    queueWaitMs: integer(),
+    /** Queued to finished. */
+    totalMs: integer(),
+    timings: jsonb().$type<RenderTimings>(),
+    /** Attempts started; above 1 means a retry after an infrastructure failure. */
+    attempts: integer().default(0).notNull(),
+    /** host:pid of the process that ran the last attempt. */
+    workerId: text(),
     pageCount: integer(),
     size: integer(),
   },
-  (t) => [index().on(t.startedAt), index().on(t.userId, t.startedAt)],
+  (t) => [
+    index().on(t.queuedAt),
+    index().on(t.userId, t.queuedAt),
+    index().on(t.batchId, t.batchRow),
+    index("generation_unfinished_index")
+      .on(t.status)
+      .where(sql`${t.status} in ('queued', 'running')`),
+    // Server-side sorting of the log at tens of thousands of rows.
+    index().on(t.startedAt),
+    index().on(t.finishedAt),
+    index().on(t.durationMs),
+    index().on(t.totalMs),
+    index().on(t.queueWaitMs),
+    index().on(t.pageCount),
+    index().on(t.size),
+    index().on(t.templateId, t.queuedAt),
+    index().on(t.status, t.queuedAt),
+    index().on(t.source, t.queuedAt),
+    // Free-text search (`q`): substring matches need trigrams (migration enables pg_trgm).
+    index("generation_filename_trgm_index").using("gin", t.filename.op("gin_trgm_ops")),
+    index("generation_error_trgm_index").using("gin", t.error.op("gin_trgm_ops")),
+    index("generation_request_id_trgm_index").using("gin", t.requestId.op("gin_trgm_ops")),
+  ],
 );
+
+// Spec: docs/features/render-queue-batch-jobs-and-scaling.md (workers). Every process upserts its
+// row every few seconds; a row not refreshed recently is offline.
+export const worker = pgTable("worker", {
+  /** host:pid */
+  id: text().primaryKey(),
+  host: text().notNull(),
+  pid: integer().notNull(),
+  version: text().notNull(),
+  role: text().$type<ProcessRole>().notNull(),
+  concurrency: integer().notNull(),
+  running: integer().notNull(),
+  eventLoopLagMs: integer().notNull(),
+  startedAt: timestamp({ withTimezone: true }).notNull(),
+  lastSeen: timestamp({ withTimezone: true }).notNull(),
+});
+
+/** Admin settings, one typed row per key. */
+type Settings = { retention: RetentionSettings };
+
+export const setting = pgTable("setting", {
+  key: text().$type<keyof Settings>().primaryKey(),
+  value: jsonb().$type<Settings[keyof Settings]>().notNull(),
+  updatedBy: text().references(() => user.id, { onDelete: "set null" }),
+  updatedAt,
+});
