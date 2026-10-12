@@ -25,7 +25,7 @@ export const outputOptionsSchema = z
     }),
     lang: languageTagSchema.default("en").meta({
       description:
-        "The document language (BCP 47): date, number and currency formatting, translations, text direction, and the PDF language (docs/features/document-localization.md).",
+        "The document language (BCP 47): date, number and currency formatting, translations, text direction, and the PDF language.",
     }),
   })
   .meta({

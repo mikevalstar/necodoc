@@ -76,7 +76,7 @@ const templates: readonly FaqEntry[] = [
   {
     feature: "Merge fields and filters",
     group: "Templates",
-    what: "A merge field prints a field's value where it sits, shown as a blue chip. A format can be applied: date (pick a style or type dayjs tokens like MMM D, YYYY), number with decimals, currency with a three-letter code, UPPERCASE, lowercase, Capitalise, or keep line breaks for long text. Headers and footers can also print Page number and Total pages.",
+    what: "A merge field prints a field's value where it sits, shown as a blue chip. A format can be applied: date (pick a style, including long and short dates in the document language, or type dayjs tokens like MMM D, YYYY), number with decimals, currency with a three-letter code, UPPERCASE, lowercase, Capitalise, or keep line breaks for long text. Headers and footers can also print Page number and Total pages.",
     howTo:
       "Click Field in the toolbar (or type /field), pick the field and a format, then Insert field. Click a chip to change or remove it. A red chip refers to a field that no longer exists or can't be used there, and the page lists every such reference.",
     limitations: [
@@ -340,7 +340,7 @@ export const faq: readonly FaqEntry[] = [
   {
     feature: "Liquid data and filters",
     group: "Render",
-    what: "HTML, headers and footers are Liquid templates, filled with JSON data before rendering: {{ customer.name }}, {% if %}, {% for %}. Values are HTML-escaped unless you add | raw. Extra filters: date (dayjs formats like MMMM D, YYYY), number, currency, qrcode, barcode and asset_url.",
+    what: "HTML, headers and footers are Liquid templates, filled with JSON data before rendering: {{ customer.name }}, {% if %}, {% for %}. Values are HTML-escaped unless you add | raw. Extra filters: date (dayjs formats like MMMM D, YYYY, or LL for the document language's long date), number, currency, t (translate), qrcode, barcode and asset_url. Dates, numbers and money format for output.lang unless given a locale.",
     howTo:
       "Put data in the Data tab on Render as a JSON object and reference it in the HTML. Examples: {{ total | currency: 'EUR' }}, {{ signed_on | date: 'D MMM YYYY' }}, <img src=\"{{ invoice_id | qrcode }}\">.",
     limitations: [
@@ -1054,5 +1054,25 @@ export const faq: readonly FaqEntry[] = [
     ],
     access: [{ action: "Search and erase data subjects", needs: "admin" }],
     spec: "docs/features/personal-data-masking-and-erasure.md",
+  },
+  {
+    feature: "Document languages and translations",
+    group: "Templates",
+    what: "One template makes documents in several languages. The template is written in its document language (Output tab); dates, numbers and money format for it, Arabic, Hebrew and other right-to-left languages lay out right to left, and the PDF records its language. The Translations tab adds other languages: every field label, help text, choice, section title and piece of visual text is listed with a box for its translation, and anything left blank prints as written. The fill page and share links offer a language picker when a template has translations, and the PDF is made in the picked language. API calls pick one with output.lang.",
+    howTo:
+      "Template › Output: set the document language (en, fr-CA, ar…). Template › Translations: type a language tag, Add language, then fill in the translations; the preview's language menu shows the result. In code mode or overlay boxes, wrap text as {{ \"Thank you\" | t }}. Publish to make it available. Share links take ?lang=fr to start in a language; otherwise they follow the browser's language.",
+    limitations: [
+      "Visual text is translated run by run: a bold word or merge field in the middle of a sentence splits it into separate strings.",
+      "Editing a sentence orphans its translation: the new text prints untranslated until it's translated again (Remove unused clears the old one).",
+      "Overlay templates (uploaded PDFs) can't draw right-to-left or joined scripts such as Arabic correctly; formatting and translations work there.",
+      "Chinese, Japanese and Korean use the server's fonts; upload a font to a theme for a particular look.",
+      "Form validation messages and the app itself stay in English.",
+      "Translations don't handle plurals or placeholders inside a sentence.",
+    ],
+    access: [
+      { action: "Set the language and translations", needs: edit },
+      { action: "Fill in another language", needs: view },
+    ],
+    spec: "docs/features/document-localization.md",
   },
 ];

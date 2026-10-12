@@ -20,7 +20,7 @@ import { mintLink } from "../download";
 import { env } from "../env";
 import { type AppEnv, requirePermission } from "../middleware";
 import { tokenBucket } from "../rate-limit";
-import { finishSubmission, selectSubmissions } from "./submissions";
+import { finishSubmission, selectSubmissions, versionLocalization } from "./submissions";
 import { findVersion } from "./templates";
 
 // Spec: docs/features/share-links-and-data-requests.md. Owners (document: publish) manage their
@@ -274,6 +274,7 @@ export const publicShareRoutes = new Hono<AppEnv>()
         lockedKeys: link.lockedKeys,
         requireEmail: link.requireEmail,
         allowDownload: link.allowDownload,
+        ...versionLocalization(version),
       },
       200,
     );
@@ -311,6 +312,7 @@ export const publicShareRoutes = new Hono<AppEnv>()
           source: "share_link",
           shareLinkId: link.id,
           respondentEmail: body.email ?? null,
+          locale: body.locale ?? null,
           data,
         })
         .returning();

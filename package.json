@@ -15,7 +15,8 @@
     "fix": "biome check --write .",
     "db:generate": "pnpm --filter @necodoc/api db:generate",
     "db:migrate": "pnpm --filter @necodoc/api db:migrate",
-    "docs:check": "okq --bundle docs validate && okq --bundle docs deadlinks && okq --bundle docs lint"
+    "docs:check": "okq --bundle docs validate && okq --bundle docs deadlinks && okq --bundle docs lint",
+    "sdk:generate": "node scripts/generate-sdks.ts"
   },
   "devDependencies": {
     "@biomejs/biome": "^2.5.14"

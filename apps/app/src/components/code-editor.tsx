@@ -15,7 +15,12 @@ import { cn } from "@/lib/utils";
 
 /** necodoc's own Liquid filters (ADR 0015, apps/api/src/render/liquid.ts). */
 const filters: Completion[] = [
-  { label: "date", type: "function", detail: 'dayjs format, e.g. date: "MMM D, YYYY"' },
+  {
+    label: "date",
+    type: "function",
+    detail: 'dayjs format, e.g. date: "LL" (document language) or "MMM D, YYYY"',
+  },
+  { label: "t", type: "function", detail: 'translate, e.g. "Thank you" | t (Translations tab)' },
   { label: "number", type: "function", detail: "number: decimals" },
   { label: "currency", type: "function", detail: 'currency: "USD"' },
   { label: "qrcode", type: "function", detail: "QR code data: URL for <img src>" },

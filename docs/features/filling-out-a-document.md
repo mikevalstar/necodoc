@@ -33,6 +33,9 @@ they happen, reuses answers, and produces a clean document.
 
 ## Behavior
 
+- **Language.** A template with translations shows a language picker; the
+  form and the PDF follow it, and the document remembers it
+  ([Document localization](document-localization.md)).
 - Editors author templates in the app. Publishers publish them
   ([Publishing and versions](publishing-and-versions.md)).
 - Any user with `document: view`

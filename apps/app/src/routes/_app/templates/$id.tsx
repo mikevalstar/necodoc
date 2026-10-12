@@ -39,6 +39,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
+import { NativeSelect, NativeSelectOption } from "@/components/ui/native-select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ApiError, api, ok, previewTemplate } from "@/lib/api";
 import { dayjs } from "@/lib/date";
@@ -72,6 +73,7 @@ import {
   useDuplicateTemplate,
 } from "./-template-actions";
 import { TestsPanel } from "./-tests";
+import { TranslationsPanel } from "./-translations-panel";
 import { VersionsPanel, versionQuery, versionsQuery } from "./-versions";
 
 // Specs: docs/features/document-templates.md, docs/features/pdf-overlay-templates.md,
@@ -236,12 +238,23 @@ function TemplateEditor({
     ...versionQuery(template.id, previewing ?? 0),
     enabled: previewing !== null,
   });
+  /** Preview in one of the template's translations instead of its own language (ADR 0040). */
+  const [previewLang, setPreviewLang] = useState<string | null>(null);
+  const previewLanguages = [draft.content.output.lang, ...Object.keys(draft.content.translations)];
   const previewRequest = useMemo(() => {
     const source = proposal ? proposal.draft : previewing === null ? draft : version.data;
     if (!source) return null;
     const result = previewDraftSchema.safeParse(source);
-    return result.success ? { id: template.id, draft: result.data } : null;
-  }, [draft, previewing, version.data, template.id, proposal]);
+    if (!result.success) return null;
+    const parsed = result.data;
+    if (previewLang && previewLang !== parsed.content.output.lang) {
+      parsed.content = {
+        ...parsed.content,
+        output: { ...parsed.content.output, lang: previewLang },
+      };
+    }
+    return { id: template.id, draft: parsed };
+  }, [draft, previewing, version.data, template.id, proposal, previewLang]);
   const preview = usePdfPreview(previewRequest, previewTemplate);
 
   const latest = versions.data?.[0];
@@ -496,6 +509,7 @@ function TemplateEditor({
             <TabsTrigger value="sample">Sample data</TabsTrigger>
             <TabsTrigger value="signing">Signing</TabsTrigger>
             <TabsTrigger value="output">Output</TabsTrigger>
+            <TabsTrigger value="translations">Translations</TabsTrigger>
             <TabsTrigger value="page">
               {draft.kind === "overlay" ? "PDF" : "Page & theme"}
             </TabsTrigger>
@@ -613,6 +627,22 @@ function TemplateEditor({
               }
             />
           </TabsContent>
+          <TabsContent value="translations">
+            <TranslationsPanel
+              translations={draft.content.translations}
+              lang={draft.content.output.lang}
+              sections={draft.sections}
+              content={draft.content}
+              editable={canEdit}
+              onChange={(translations) =>
+                setDraft((d) =>
+                  d.kind === "overlay"
+                    ? { ...d, content: { ...d.content, translations } }
+                    : { ...d, content: { ...d.content, translations } },
+                )
+              }
+            />
+          </TabsContent>
           <TabsContent value="tests">
             <TestsPanel
               id={template.id}
@@ -666,6 +696,20 @@ function TemplateEditor({
                 ` · ${preview.data.pageCount} ${preview.data.pageCount === 1 ? "page" : "pages"}`}
             </span>
             <span className="flex items-center gap-2">
+              {previewLanguages.length > 1 && (
+                <NativeSelect
+                  size="sm"
+                  aria-label="Preview language"
+                  value={previewLang ?? previewLanguages[0]}
+                  onChange={(e) => setPreviewLang(e.target.value)}
+                >
+                  {previewLanguages.map((lang) => (
+                    <NativeSelectOption key={lang} value={lang}>
+                      {lang}
+                    </NativeSelectOption>
+                  ))}
+                </NativeSelect>
+              )}
               {preview.data && !preview.data.dataValid && previewing === null && (
                 <span className="text-amber-600">Sample data doesn't fit the fields</span>
               )}

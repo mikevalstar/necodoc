@@ -522,6 +522,9 @@
           "output": {
             "$ref": "#/components/schemas/OutputOptions"
           },
+          "translations": {
+            "$ref": "#/components/schemas/Translations"
+          },
           "response": {
             "default": "pdf",
             "description": "`pdf` returns the bytes; `json` returns the generation and a link.",
@@ -574,12 +577,32 @@
           },
           "lang": {
             "default": "en",
-            "description": "The document language (BCP 47), for screen readers.",
+            "description": "The document language (BCP 47): date, number and currency formatting, translations, text direction, and the PDF language.",
             "type": "string",
             "pattern": "^[A-Za-z]{2,3}(-[A-Za-z0-9]{2,8})*$"
           }
         },
-        "description": "PDF/A, PDF/UA and certification."
+        "description": "PDF/A, PDF/UA, certification and the document language."
+      },
+      "Translations": {
+        "type": "object",
+        "propertyNames": {
+          "type": "string",
+          "pattern": "^[A-Za-z]{2,3}(-[A-Za-z0-9]{2,8})*$"
+        },
+        "additionalProperties": {
+          "type": "object",
+          "propertyNames": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 5000
+          },
+          "additionalProperties": {
+            "type": "string",
+            "maxLength": 20000
+          }
+        },
+        "description": "Per language, source text to its translation: `{ \"fr\": { \"Invoice\": \"Facture\" } }`."
       },
       "SigningOptions": {
         "anyOf": [
@@ -820,6 +843,7 @@
             "type": "boolean"
           },
           "output": {
+            "description": "Overrides the version's output settings. `lang` makes the PDF in that language (formatting, translations, text direction).",
             "type": "object",
             "properties": {
               "pdfa": {
@@ -847,7 +871,7 @@
               },
               "lang": {
                 "default": "en",
-                "description": "The document language (BCP 47), for screen readers.",
+                "description": "The document language (BCP 47): date, number and currency formatting, translations, text direction, and the PDF language.",
                 "type": "string",
                 "pattern": "^[A-Za-z]{2,3}(-[A-Za-z0-9]{2,8})*$"
               }
@@ -1374,7 +1398,7 @@
         "operationId": "postRender",
         "tags": ["Render"],
         "summary": "Render HTML to PDF",
-        "description": "HTML with Liquid (rendered with `data`), optional CSS, theme, header and footer bands, and page setup. Logged in the generation log with source `api`.",
+        "description": "HTML with Liquid (rendered with `data`), optional CSS, theme, header and footer bands, and page setup. `output.lang` is the document language: `date`, `number` and `currency` format for it, `t` looks text up in `translations`, and right-to-left languages lay out right to left. Logged in the generation log with source `api`.",
         "requestBody": {
           "content": {
             "application/json": {
@@ -1748,7 +1772,7 @@
         "operationId": "postTemplatesByIdVersionsByVersionGenerate",
         "tags": ["Templates"],
         "summary": "Generate a PDF from a template",
-        "description": "Validates `data` against the version's fields (422 with every field error), then renders it.",
+        "description": "Validates `data` against the version's fields (422 with every field error), then renders it. `output.lang` makes the PDF in another language than the template's: formatting, the template's translations and text direction follow it.",
         "requestBody": {
           "content": {
             "application/json": {

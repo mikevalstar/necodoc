@@ -75,7 +75,15 @@ export const MergeField = Node.create({
   },
 });
 
+/** dayjs's localized formats: the renderer prints them in the document language (ADR 0040). */
+const LOCALIZED_DATE_FORMATS: Record<string, string> = {
+  LL: "Long, in the document language",
+  L: "Short, in the document language",
+  LLLL: "With weekday, in the document language",
+};
+
 const DATE_FORMATS = [
+  ...Object.keys(LOCALIZED_DATE_FORMATS),
   "MMM D, YYYY",
   "MMMM D, YYYY",
   "D MMMM YYYY",
@@ -98,7 +106,7 @@ const filterLabels: Record<MergeFilter["name"], string> = {
 const newFilter = (name: MergeFilter["name"]): MergeFilter => {
   switch (name) {
     case "date":
-      return { name, format: "MMM D, YYYY" };
+      return { name, format: "LL" };
     case "number":
       return { name, decimals: 2 };
     case "currency":
@@ -213,7 +221,7 @@ export function MergeFieldForm({
           >
             {DATE_FORMATS.map((format) => (
               <NativeSelectOption key={format} value={format}>
-                {dayjs("2026-01-15").format(format)}
+                {LOCALIZED_DATE_FORMATS[format] ?? dayjs("2026-01-15").format(format)}
               </NativeSelectOption>
             ))}
             <NativeSelectOption value="">Custom</NativeSelectOption>

@@ -72,7 +72,9 @@ Options for translated text:
   on body and bands, and table cells align to `start`.
 - **Fonts.** Fontsource's Noto Sans Arabic and Noto Sans Hebrew are bundled
   and added after every theme font, before the generic family; Chromium only
-  loads them for glyphs the primary font lacks. CJK is not bundled (tens of MB
+  loads them for glyphs the primary font lacks, which can be after `load`, so
+  [browser.ts](../../apps/api/src/render/browser.ts) waits for
+  `document.fonts.ready` before printing. CJK is not bundled (tens of MB
   per script): the container's Chromium dependencies install IPAGothic and
   WenQuanYi Zen Hei, and a theme can upload any font as an asset.
 

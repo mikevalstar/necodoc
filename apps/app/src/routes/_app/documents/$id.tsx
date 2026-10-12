@@ -1,10 +1,16 @@
-import type { UpdateSubmission } from "@necodoc/shared";
+import {
+  stringsFor,
+  textDirection,
+  translateSections,
+  type UpdateSubmission,
+} from "@necodoc/shared";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { ChevronLeftIcon, DownloadIcon, Loader2Icon } from "lucide-react";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { ErrorAlert } from "@/components/form";
 import { AnswerSummary, GuidedForm } from "@/components/guided-form";
+import { LanguagePicker } from "@/components/language-picker";
 import { PdfFrame } from "@/components/pdf-frame";
 import { Badge } from "@/components/ui/badge";
 import { Button, buttonVariants } from "@/components/ui/button";
@@ -64,6 +70,16 @@ function DocumentPage() {
       )}
     </main>
   );
+}
+
+/** The document's language and its fields in it (docs/features/document-localization.md). */
+function useDocLanguage(doc: Doc) {
+  const [lang, setLang] = useState(doc.locale ?? doc.lang);
+  const sections = useMemo(
+    () => translateSections(doc.sections, stringsFor(doc.translations, lang)),
+    [doc.sections, doc.translations, lang],
+  );
+  return { lang, setLang, sections, dir: textDirection(lang) };
 }
 
 type SaveState = { status: "saved" | "pending" | "saving" | "error"; at: string };
@@ -148,6 +164,7 @@ function Interview({ doc, onFinished }: { doc: Doc; onFinished: () => void }) {
   const queryClient = useQueryClient();
   const autosave = useAutosave(doc.id, doc.updatedAt);
   const values = useRef<Record<string, unknown>>(doc.data);
+  const language = useDocLanguage(doc);
   // Re-render the "Saved 2 minutes ago" text now and then.
   const [, tick] = useState(0);
   useEffect(() => {
@@ -188,23 +205,35 @@ function Interview({ doc, onFinished }: { doc: Doc; onFinished: () => void }) {
           </span>
           <Badge variant="outline">Draft</Badge>
           <SaveIndicator state={autosave.state} />
+          <LanguagePicker
+            lang={doc.lang}
+            translations={doc.translations}
+            value={language.lang}
+            onChange={(lang) => {
+              language.setLang(lang);
+              // Null: the template's own language, so it follows the template.
+              autosave.queue({ locale: lang === doc.lang ? null : lang });
+            }}
+          />
         </div>
         {doc.description && <p className="text-sm text-muted-foreground">{doc.description}</p>}
       </div>
-      <GuidedForm
-        sections={doc.sections}
-        defaultValues={doc.data}
-        initialStep={doc.step}
-        review
-        submitLabel={finish.isPending ? "Finishing…" : "Finish and make PDF"}
-        disabled={finish.isPending}
-        onChange={(next) => {
-          values.current = next;
-          autosave.queue({ data: next });
-        }}
-        onStepChange={(step) => autosave.queue({ step })}
-        onSubmit={() => finish.mutate()}
-      />
+      <div dir={language.dir} lang={language.lang}>
+        <GuidedForm
+          sections={language.sections}
+          defaultValues={doc.data}
+          initialStep={doc.step}
+          review
+          submitLabel={finish.isPending ? "Finishing…" : "Finish and make PDF"}
+          disabled={finish.isPending}
+          onChange={(next) => {
+            values.current = next;
+            autosave.queue({ data: next });
+          }}
+          onStepChange={(step) => autosave.queue({ step })}
+          onSubmit={() => finish.mutate()}
+        />
+      </div>
       <ErrorAlert error={finish.error} />
     </div>
   );
@@ -226,6 +255,7 @@ function Finished({
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["submissions"] }),
   });
   const pdfUrl = submissionPdfUrl(doc.id);
+  const language = useDocLanguage(doc);
 
   return (
     <div className="space-y-6">
@@ -301,7 +331,9 @@ function Finished({
 
       <section className="space-y-2">
         <h2 className="text-lg font-semibold">Answers</h2>
-        <AnswerSummary sections={doc.sections} values={doc.data} />
+        <div dir={language.dir} lang={language.lang}>
+          <AnswerSummary sections={language.sections} values={doc.data} />
+        </div>
       </section>
     </div>
   );

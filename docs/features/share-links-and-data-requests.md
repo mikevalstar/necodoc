@@ -53,6 +53,9 @@ replaces.
   yet.
 - **Notify** through the template's or link's [webhook](webhooks.md) (not built
   yet). In-app, the link and the nav show a count of unseen submissions.
+- **Language.** Templates with translations offer a language picker; `?lang=`
+  or the browser's language picks the first one
+  ([Document localization](document-localization.md)).
 - **Revoke** disables a link at once. Expired, revoked and used-up links show
   a "no longer available" page.
 - Links use an unguessable random token. Submissions are rate-limited per IP.

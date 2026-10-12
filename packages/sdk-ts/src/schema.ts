@@ -15,7 +15,7 @@ export interface paths {
     put?: never;
     /**
      * Render HTML to PDF
-     * @description HTML with Liquid (rendered with `data`), optional CSS, theme, header and footer bands, and page setup. Logged in the generation log with source `api`.
+     * @description HTML with Liquid (rendered with `data`), optional CSS, theme, header and footer bands, and page setup. `output.lang` is the document language: `date`, `number` and `currency` format for it, `t` looks text up in `translations`, and right-to-left languages lay out right to left. Logged in the generation log with source `api`.
      */
     post: operations["postRender"];
     delete?: never;
@@ -92,7 +92,7 @@ export interface paths {
     put?: never;
     /**
      * Generate a PDF from a template
-     * @description Validates `data` against the version's fields (422 with every field error), then renders it.
+     * @description Validates `data` against the version's fields (422 with every field error), then renders it. `output.lang` makes the PDF in another language than the template's: formatting, the template's translations and text direction follow it.
      */
     post: operations["postTemplatesByIdVersionsByVersionGenerate"];
     delete?: never;
@@ -465,6 +465,7 @@ export interface components {
         email?: string;
       }[];
       output?: components["schemas"]["OutputOptions"];
+      translations?: components["schemas"]["Translations"];
       /**
        * @description `pdf` returns the bytes; `json` returns the generation and a link.
        * @default pdf
@@ -480,7 +481,7 @@ export interface components {
       /** @description Who the document is about (an email, a customer number), for erasure. */
       subject?: string;
     };
-    /** @description PDF/A, PDF/UA and certification. */
+    /** @description PDF/A, PDF/UA, certification and the document language. */
     OutputOptions: {
       /**
        * @description PDF/A-2 level (`2b` or `2u`), or null for none.
@@ -498,10 +499,16 @@ export interface components {
        */
       certify?: boolean;
       /**
-       * @description The document language (BCP 47), for screen readers.
+       * @description The document language (BCP 47): date, number and currency formatting, translations, text direction, and the PDF language.
        * @default en
        */
       lang?: string;
+    };
+    /** @description Per language, source text to its translation: `{ "fr": { "Invoice": "Facture" } }`. */
+    Translations: {
+      [key: string]: {
+        [key: string]: string;
+      };
     };
     /** @description Answer with a signing package (JSON) instead of the PDF. `true`: DocuSign JSON, anchors kept, PDF embedded. */
     SigningOptions:
@@ -586,6 +593,7 @@ export interface components {
        * @default false
        */
       async?: boolean;
+      /** @description Overrides the version's output settings. `lang` makes the PDF in that language (formatting, translations, text direction). */
       output?: {
         /**
          * @description PDF/A-2 level (`2b` or `2u`), or null for none.
@@ -603,7 +611,7 @@ export interface components {
          */
         certify?: boolean;
         /**
-         * @description The document language (BCP 47), for screen readers.
+         * @description The document language (BCP 47): date, number and currency formatting, translations, text direction, and the PDF language.
          * @default en
          */
         lang?: string;

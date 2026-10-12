@@ -1,0 +1,8 @@
+# Files openapi-generator must not write (ADR 0041). README.md and examples/ are hand-written.
+README.md
+src/Necodoc.Sdk/README.md
+src/Necodoc.Sdk.Test/**
+Necodoc.Sdk.sln
+appveyor.yml
+api/**
+docs/**

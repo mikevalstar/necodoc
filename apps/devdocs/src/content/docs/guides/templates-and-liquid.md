@@ -59,17 +59,18 @@ The standard LiquidJS tags and filters work (`if`, `unless`, `for`, `assign`, `u
 
 ### `date`
 
-Formats a date with [dayjs format tokens](https://day.js.org/docs/en/display/format), not strftime. The default format is `MMMM D, YYYY`. `"now"` and `"today"` mean the render time. A value that isn't a date is a render error.
+`date: format, locale`. Formats a date with [dayjs format tokens](https://day.js.org/docs/en/display/format), not strftime, in the document language (`output.lang`) unless a locale is given. The default format is `LL`, the language's long date; `L` is its short date. `"now"` and `"today"` mean the render time. A value that isn't a date is a render error.
 
 ```liquid
-{{ due | date }}                  → March 5, 2026
+{{ due | date }}                  → March 5, 2026 (en) · 5 mars 2026 (fr)
 {{ due | date: 'YYYY/MM/DD' }}    → 2026/03/05
+{{ due | date: 'LL', 'de' }}      → 5. März 2026
 {{ 'today' | date: 'D MMM YYYY' }}
 ```
 
 ### `number`
 
-`number: decimals, locale`. Formats with fixed decimals (optional) for a locale (default `en-US`). A value that isn't a number is a render error.
+`number: decimals, locale`. Formats with fixed decimals (optional) for a locale (default: the document language). A value that isn't a number is a render error.
 
 ```liquid
 {{ 1234.5 | number: 2 }}          → 1,234.50
@@ -78,11 +79,20 @@ Formats a date with [dayjs format tokens](https://day.js.org/docs/en/display/for
 
 ### `currency`
 
-`currency: code, locale`. Defaults to `USD` and `en-US`.
+`currency: code, locale`. Defaults to `USD` and the document language.
 
 ```liquid
 {{ total | currency }}                 → $1,234.50
 {{ total | currency: 'EUR', 'de-DE' }} → 1.234,50 €
+```
+
+### `t`
+
+Translates text into the document language from the template's translations, falling back to the text itself. See [Localization](/guides/localization/).
+
+```liquid
+{{ "Thank you" | t }}   → Merci (fr)
+{{ status | t }}
 ```
 
 ### `qrcode`

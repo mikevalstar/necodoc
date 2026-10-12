@@ -475,6 +475,8 @@ export const submission = pgTable(
     respondentEmail: text(),
     data: jsonb().$type<Record<string, unknown>>().default({}).notNull(),
     step: integer().default(0).notNull(),
+    /** The language picked while filling (docs/features/document-localization.md); null: the template's. */
+    locale: text(),
     generationId: uuid().references(() => generation.id, { onDelete: "set null" }),
     finishedAt: timestamp({ withTimezone: true }),
     createdAt,

@@ -149,8 +149,11 @@ export const generateFromTemplateSchema = z.object({
   filename: z.string().trim().min(1).max(200).optional(),
   /** Answer 202 with the generation id at once instead of waiting for the PDF. */
   async: z.boolean().default(false),
-  /** Overrides the template's output settings for this PDF. */
-  output: outputOverridesSchema.optional(),
+  /** Overrides the template's output settings for this PDF; `lang` picks the document language. */
+  output: outputOverridesSchema.optional().meta({
+    description:
+      "Overrides the version's output settings. `lang` makes the PDF in that language (formatting, translations, text direction).",
+  }),
   subject: subjectSchema.optional(),
 });
 

@@ -1,4 +1,10 @@
-import type { FieldSection } from "@necodoc/shared";
+import {
+  type FieldSection,
+  stringsFor,
+  type Translations,
+  textDirection,
+  translateSections,
+} from "@necodoc/shared";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { createFileRoute, useLocation } from "@tanstack/react-router";
 import { CheckCircle2Icon, DownloadIcon } from "lucide-react";
@@ -6,6 +12,7 @@ import { type ReactNode, useMemo, useState } from "react";
 import { z } from "zod";
 import { ErrorAlert } from "@/components/form";
 import { GuidedForm } from "@/components/guided-form";
+import { LanguagePicker } from "@/components/language-picker";
 import { Logo } from "@/components/logo";
 import { buttonVariants } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -58,6 +65,23 @@ function queryPrefill(sections: readonly FieldSection[], search: string, locked:
   return out;
 }
 
+/**
+ * The language to start in: `?lang=fr`, else the browser's first language the template has
+ * (exact tag, then language), else the template's own (docs/features/document-localization.md).
+ */
+function startLanguage(lang: string, translations: Translations, search: string) {
+  const available = [lang, ...Object.keys(translations)];
+  const find = (tag: string) => {
+    const lower = tag.toLowerCase();
+    return (
+      available.find((a) => a.toLowerCase() === lower) ??
+      available.find((a) => a.toLowerCase() === lower.split("-")[0])
+    );
+  };
+  const asked = new URLSearchParams(search).get("lang");
+  return (asked && find(asked)) || navigator.languages.map(find).find(Boolean) || lang;
+}
+
 function Shell({ children }: { children: ReactNode }) {
   return (
     <div className="min-h-svh bg-muted/30">
@@ -82,6 +106,7 @@ function SharedForm() {
     staleTime: Number.POSITIVE_INFINITY,
   });
   const [email, setEmail] = useState("");
+  const [picked, setPicked] = useState<string | null>(null);
   const emailValid = z.email().safeParse(email).success;
   const [emailError, setEmailError] = useState(false);
   const submit = useMutation({
@@ -90,13 +115,19 @@ function SharedForm() {
         await ok(
           api.share[":token"].$post({
             param: { token },
-            json: { data, ...(email ? { email } : {}) },
+            json: { data, ...(email ? { email } : {}), ...(lang ? { locale: lang } : {}) },
           }),
         )
       ).json(),
     onSuccess: () => localStorage.removeItem(storageKey(token)),
   });
   const data = link.data;
+  const lang = data ? (picked ?? startLanguage(data.lang, data.translations, search)) : null;
+  const sections = useMemo(
+    () =>
+      data && lang ? translateSections(data.sections, stringsFor(data.translations, lang)) : [],
+    [data, lang],
+  );
   const start = useMemo(() => {
     if (!data) return {};
     const locked = new Set(data.lockedKeys);
@@ -165,6 +196,12 @@ function SharedForm() {
         <h1 className="text-2xl font-semibold">{data.name}</h1>
         <p className="text-sm text-muted-foreground">{data.label}</p>
         {data.description && <p className="text-sm text-muted-foreground">{data.description}</p>}
+        <LanguagePicker
+          lang={data.lang}
+          translations={data.translations}
+          value={lang ?? data.lang}
+          onChange={setPicked}
+        />
       </div>
       <Card>
         <CardContent className="space-y-6">
@@ -186,25 +223,27 @@ function SharedForm() {
               )}
             </Field>
           )}
-          <GuidedForm
-            sections={data.sections}
-            defaultValues={start}
-            lockedKeys={data.lockedKeys}
-            review
-            submitLabel={submit.isPending ? "Sending…" : "Submit"}
-            disabled={submit.isPending}
-            onChange={(values) => {
-              try {
-                localStorage.setItem(storageKey(token), JSON.stringify(values));
-              } catch {
-                // Full storage (large images): progress just isn't kept.
-              }
-            }}
-            onSubmit={(values) => {
-              if (data.requireEmail && !emailValid) return setEmailError(true);
-              submit.mutate(values);
-            }}
-          />
+          <div dir={textDirection(lang ?? data.lang)} lang={lang ?? data.lang}>
+            <GuidedForm
+              sections={sections}
+              defaultValues={start}
+              lockedKeys={data.lockedKeys}
+              review
+              submitLabel={submit.isPending ? "Sending…" : "Submit"}
+              disabled={submit.isPending}
+              onChange={(values) => {
+                try {
+                  localStorage.setItem(storageKey(token), JSON.stringify(values));
+                } catch {
+                  // Full storage (large images): progress just isn't kept.
+                }
+              }}
+              onSubmit={(values) => {
+                if (data.requireEmail && !emailValid) return setEmailError(true);
+                submit.mutate(values);
+              }}
+            />
+          </div>
           <ErrorAlert error={submit.error} />
         </CardContent>
       </Card>

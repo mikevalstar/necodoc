@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { languageTagSchema } from "./locale";
 
 // Specs: docs/features/filling-out-a-document.md (documents),
 // docs/features/share-links-and-data-requests.md (share links). A submission is one document
@@ -32,6 +33,8 @@ export const updateSubmissionSchema = z.object({
   /** The guided-form step the user was on, so a reload reopens there. */
   step: z.int().min(0).max(1000).optional(),
   name: documentName.optional(),
+  /** The language to fill in and make the PDF in; null for the template's own. */
+  locale: languageTagSchema.nullable().optional(),
 });
 export type UpdateSubmission = z.infer<typeof updateSubmissionSchema>;
 
@@ -92,6 +95,8 @@ export type ShareLinkUnavailable = z.infer<typeof shareLinkUnavailableSchema>;
 export const shareSubmitSchema = z.object({
   data: answers,
   email: z.email().max(320).optional(),
+  /** The language the filler picked (docs/features/document-localization.md). */
+  locale: languageTagSchema.optional(),
 });
 export type ShareSubmit = z.infer<typeof shareSubmitSchema>;
 

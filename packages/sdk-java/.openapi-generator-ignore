@@ -1,0 +1,17 @@
+# Files openapi-generator must not write (ADR 0041). README.md and examples/ are hand-written.
+# Maven only: pom.xml is generated, the Gradle and sbt builds are not.
+README.md
+.github/**
+.travis.yml
+git_push.sh
+api/**
+build.gradle
+build.sbt
+settings.gradle
+gradle.properties
+gradle/**
+gradlew
+gradlew.bat
+src/main/AndroidManifest.xml
+src/test/**
+docs/**

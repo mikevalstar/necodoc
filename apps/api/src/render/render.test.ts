@@ -120,4 +120,22 @@ describe("renderPdf", () => {
     );
     expect(pageCount).toBe(1);
   });
+
+  it("renders in the document language: translations, formatting, Arabic glyphs (ADR 0040)", async () => {
+    const job = (lang: string) => ({
+      html: '<h1>{{ "Invoice" | t }}</h1><p>{{ due | date }} {{ amount | currency: "EUR" }}</p>',
+      footer: { html: '<p>{{ "Page" | t }} {{ page }}</p>', height: 10 },
+      page: pageOptionsSchema.parse({}),
+      data: { due: "2026-11-30", amount: 1234.5 },
+      output: { pdfa: null, pdfua: false, certify: false, lang },
+      translations: { fr: { Invoice: "Facture", Page: "Page" }, ar: { Invoice: "فاتورة" } },
+    });
+    const [fr] = await pageTexts((await renderPdf(job("fr"), noAssets)).pdf);
+    expect(fr).toContain(squash("Facture30 novembre 2026 1 234,50 €Page 1"));
+    const ar = (await renderPdf(job("ar"), noAssets)).pdf;
+    // The bundled face, not whatever the machine has (it loads after `load`: browser.ts waits).
+    expect(Buffer.from(ar).includes("NotoSansArabic-Bold")).toBe(true);
+    const [arText] = await pageTexts(ar);
+    expect(arText).toContain("Page1");
+  });
 });

@@ -40,7 +40,8 @@ recorded profile), [render/finish.ts](../../apps/api/src/render/finish.ts)
   All are off by default; templates that never touch them keep their publish
   fingerprint.
   - **PDF/A**: off, PDF/A-2b or PDF/A-2u.
-  - **PDF/UA**: tagged PDF/UA-1, with the document language. Designed
+  - **PDF/UA**: tagged PDF/UA-1, with the document language
+    ([Document localization](document-localization.md)). Designed
     templates and HTML renders only.
   - **Certify**: on or off.
 - **Per request.** `/api/v1/render` and `/api/v1/combine` take an `output`

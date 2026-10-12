@@ -3,6 +3,7 @@ import {
   outputOptionsSchema,
   type PdfaLevel,
   pdfaLevelSchema,
+  textDirection,
 } from "@necodoc/shared";
 import { useState } from "react";
 import { Field, FieldDescription, FieldGroup, FieldLabel } from "@/components/ui/field";
@@ -11,7 +12,8 @@ import { NativeSelect, NativeSelectOption } from "@/components/ui/native-select"
 import { Switch } from "@/components/ui/switch";
 
 // Spec: docs/features/archival-accessible-and-certified-output.md. How this template's PDFs are
-// finished: PDF/A, PDF/UA (designed only), certification. API calls can override each one.
+// finished: PDF/A, PDF/UA (designed only), certification, and the document language
+// (docs/features/document-localization.md). API calls can override each one.
 
 const pdfaLabels: Record<PdfaLevel, string> = {
   "2b": "PDF/A-2b (looks the same in the future)",
@@ -35,6 +37,30 @@ export function OutputPanel({
   return (
     <fieldset disabled={!editable}>
       <FieldGroup>
+        <Field>
+          <FieldLabel htmlFor="output-lang">Document language</FieldLabel>
+          <Input
+            id="output-lang"
+            className="w-32 font-mono"
+            value={lang}
+            aria-invalid={!validLang(lang)}
+            onChange={(e) => {
+              setLang(e.target.value);
+              if (validLang(e.target.value)) {
+                onChange({ ...output, lang: e.target.value });
+              }
+            }}
+          />
+          <FieldDescription>
+            A language tag such as en or fr-CA: the language the template is written in. Dates,
+            numbers and money format for it
+            {validLang(lang) && textDirection(lang) === "rtl" && ", text runs right to left"}, and
+            the PDF tells screen readers. The Translations tab adds other languages.
+            {kind === "designed" &&
+              output.pdfua &&
+              " Give every image alt text, or the PDF won't pass an accessibility check."}
+          </FieldDescription>
+        </Field>
         <Field>
           <FieldLabel htmlFor="output-pdfa">Archival (PDF/A)</FieldLabel>
           <NativeSelect
@@ -69,27 +95,6 @@ export function OutputPanel({
               Accessible (tagged PDF/UA): headings, tables, links and images are tagged for screen
               readers
             </FieldLabel>
-          </Field>
-        )}
-        {kind === "designed" && output.pdfua && (
-          <Field>
-            <FieldLabel htmlFor="output-lang">Document language</FieldLabel>
-            <Input
-              id="output-lang"
-              className="w-32 font-mono"
-              value={lang}
-              aria-invalid={!validLang(lang)}
-              onChange={(e) => {
-                setLang(e.target.value);
-                if (validLang(e.target.value)) {
-                  onChange({ ...output, lang: e.target.value });
-                }
-              }}
-            />
-            <FieldDescription>
-              A language tag such as en or fr-CA. Give every image alt text, or the PDF won&apos;t
-              pass an accessibility check.
-            </FieldDescription>
           </Field>
         )}
         <Field orientation="horizontal">

@@ -76,6 +76,15 @@ type Submission = typeof submission.$inferSelect;
 type Version = typeof templateVersion.$inferSelect;
 
 /**
+ * A version's language and translations, for the fill form's language picker and labels
+ * (docs/features/document-localization.md). Content saved before localization has neither.
+ */
+export const versionLocalization = ({ content }: Version) => ({
+  lang: content.output?.lang ?? "en",
+  translations: content.translations ?? {},
+});
+
+/**
  * Validates the stored answers strictly and queues the PDF from the pinned version; the document
  * points at the new generation. `wait` holds on for the worker like a synchronous generate.
  */
@@ -95,7 +104,12 @@ export async function finishSubmission({
   const parsed = templateDataSchema(version.sections).safeParse(row.data);
   if (!parsed.success) return { ok: false, fieldErrors: fieldErrors(parsed.error) } as const;
   const result = await generate({
-    request: versionRequest(version, parsed.data, row.name),
+    request: versionRequest(
+      version,
+      parsed.data,
+      row.name,
+      row.locale ? { lang: row.locale } : undefined,
+    ),
     source,
     userId: row.ownerId,
     requestId,
@@ -161,9 +175,20 @@ export const submissionRoutes = new Hono<AppEnv>()
       findOwn(actor.id, id),
     ]);
     if (!summary || !found) return c.json({ error: "Document not found" }, 404);
-    const { data, step } = found.submission;
+    const { data, step, locale } = found.submission;
     const { sections, description } = found.version;
-    return c.json({ ...summary, data, step, sections, description }, 200);
+    return c.json(
+      {
+        ...summary,
+        data,
+        step,
+        sections,
+        description,
+        locale,
+        ...versionLocalization(found.version),
+      },
+      200,
+    );
   })
   .patch("/:id", canView, idParam, zValidator("json", updateSubmissionSchema), async (c) => {
     const { id } = c.req.valid("param");

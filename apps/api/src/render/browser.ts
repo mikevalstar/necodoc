@@ -70,6 +70,9 @@ export function printPdf(html: string, options: PrintOptions, loadAsset: AssetLo
       const page = await context.newPage();
       const print = async () => {
         await page.setContent(html, { waitUntil: "load", timeout: renderLimits.timeoutMs });
+        // Fallback faces (Arabic, Hebrew: ADR 0040) only start loading once layout needs their
+        // glyphs, which can be after `load`: lay out, then wait for every font in flight.
+        await page.evaluate("document.body.offsetHeight, document.fonts.ready.then(() => {})");
         const mm = (value: number) => `${value}mm`;
         return page.pdf({
           width: mm(options.width),

@@ -1,6 +1,5 @@
 import { z } from "zod";
 import type { Field, FieldSection } from "./fields";
-import type { OverlayContent } from "./overlay";
 import type { DesignedContent } from "./template";
 
 // Spec: docs/features/document-localization.md. ADR 0040: one document language (`output.lang`)
@@ -128,17 +127,28 @@ export function translatableStrings(sections: readonly FieldSection[], texts: re
   return [...new Set([...fieldTexts(sections), ...texts].filter((text) => text !== ""))];
 }
 
+/** Content as stored, or as the editor holds it (visual docs as loose TipTap JSON). */
+export type TranslatableContent =
+  | { boxes: readonly { value: string }[] }
+  | Pick<Extract<DesignedContent, { mode: "code" }>, "mode" | "body" | "header" | "footer">
+  | {
+      mode: "visual";
+      body: unknown;
+      header: { doc: unknown; firstPage?: unknown } | null;
+      footer: { doc: unknown; firstPage?: unknown } | null;
+    };
+
 /** The content's translatable text: visual text runs, or `| t` literals in code and boxes. */
-export function contentTexts(content: DesignedContent | OverlayContent): string[] {
+export function contentTexts(content: TranslatableContent): string[] {
   if ("boxes" in content) return content.boxes.flatMap((box) => liquidTranslatables(box.value));
   if (content.mode === "code") {
-    return [content.body, content.header, content.footer]
-      .flatMap((part) =>
-        typeof part === "string" ? [part] : part ? [part.html, part.firstPageHtml ?? ""] : [],
-      )
-      .flatMap(liquidTranslatables);
+    const bands = [content.header, content.footer].flatMap((band) =>
+      band ? [band.html, band.firstPageHtml ?? ""] : [],
+    );
+    return [content.body, ...bands].flatMap(liquidTranslatables);
   }
-  return [content.body, content.header, content.footer].flatMap((part) =>
-    part && "type" in part ? docTexts(part) : part ? [part.doc, part.firstPage].flatMap(docTexts) : [],
+  const bands = [content.header, content.footer].flatMap((band) =>
+    band ? [band.doc, band.firstPage] : [],
   );
+  return [content.body, ...bands].flatMap(docTexts);
 }

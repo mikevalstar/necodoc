@@ -1,2 +1,5 @@
 src/generated/
 src/content/docs/reference/sdks/typescript.md
+src/content/docs/reference/sdks/python.md
+src/content/docs/reference/sdks/dotnet.md
+src/content/docs/reference/sdks/java.md

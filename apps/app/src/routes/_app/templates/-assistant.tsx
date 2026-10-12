@@ -41,6 +41,7 @@ const toolLabels: Record<AssistantToolName, string> = {
   setCss: "CSS",
   setPage: "Page & theme",
   setSampleData: "Sample data",
+  setTranslations: "Translations",
 };
 
 const rejectedOutput: AssistantToolOutput = {

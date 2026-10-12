@@ -267,7 +267,7 @@ const keyed = new Hono<AppEnv>()
       tags: ["Render"],
       summary: "Render HTML to PDF",
       description:
-        "HTML with Liquid (rendered with `data`), optional CSS, theme, header and footer bands, and page setup. Logged in the generation log with source `api`.",
+        "HTML with Liquid (rendered with `data`), optional CSS, theme, header and footer bands, and page setup. `output.lang` is the document language: `date`, `number` and `currency` format for it, `t` looks text up in `translations`, and right-to-left languages lay out right to left. Logged in the generation log with source `api`.",
       requestBody: { content: { "application/json": { schema: resolver(v1RenderSchema) } } },
       responses: signingRenderResponses,
     }),
@@ -398,7 +398,7 @@ const keyed = new Hono<AppEnv>()
       tags: ["Templates"],
       summary: "Generate a PDF from a template",
       description:
-        "Validates `data` against the version's fields (422 with every field error), then renders it.",
+        "Validates `data` against the version's fields (422 with every field error), then renders it. `output.lang` makes the PDF in another language than the template's: formatting, the template's translations and text direction follow it.",
       requestBody: { content: { "application/json": { schema: resolver(v1GenerateSchema) } } },
       responses: {
         ...signingRenderResponses,

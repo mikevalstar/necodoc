@@ -1,0 +1,13 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- Smoke test for Necodoc.Sdk (ADR 0041): `dotnet run` with NECODOC_URL and NECODOC_API_KEY. -->
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net8.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <RollForward>Major</RollForward>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="../../src/Necodoc.Sdk/Necodoc.Sdk.csproj" />
+  </ItemGroup>
+</Project>

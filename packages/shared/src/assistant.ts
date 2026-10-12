@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { fieldSectionsSchema } from "./fields";
+import { languageTagSchema } from "./locale";
 import { bandSchema, pageOptionsSchema } from "./render";
 import {
   createTemplateSchema,
@@ -65,6 +66,13 @@ export const assistantToolInputs = {
       .record(z.string(), z.unknown())
       .describe("Preview data: a value for every field, keyed like the fields."),
   }),
+  setTranslations: z.object({
+    summary,
+    lang: languageTagSchema.describe("The language tag, e.g. fr or fr-CA."),
+    strings: z
+      .record(z.string().min(1).max(5000), z.string().max(20_000))
+      .describe("Exact source text (from Translatable strings) to its translation."),
+  }),
 };
 
 export type AssistantToolName = keyof typeof assistantToolInputs;
@@ -80,6 +88,8 @@ export const assistantToolDescriptions: Record<AssistantToolName, string> = {
   setCss: "Propose the complete template CSS, applied after the theme.",
   setPage: "Propose page size, orientation, margins and/or the theme.",
   setSampleData: "Propose the preview's sample data.",
+  setTranslations:
+    "Propose translations for one language, merged over that language's existing ones.",
 };
 
 const visualOnly = new Set<AssistantToolName>(["editBody", "setBand"]);
@@ -140,7 +150,8 @@ export type DraftPart =
   | "body"
   | "header"
   | "footer"
-  | "css";
+  | "css"
+  | "translations";
 
 export type AppliedChange =
   | { ok: true; draft: DesignedDraft; parts: DraftPart[] }
@@ -195,6 +206,19 @@ export function applyAssistantCall(draft: DesignedDraft, call: AssistantCall): A
       next = { ...draft, content: { ...content, css: call.input.css } };
       parts = ["css"];
       break;
+    case "setTranslations": {
+      const { lang, strings } = call.input;
+      if (lang.toLowerCase() === content.output.lang.toLowerCase()) {
+        return fail(`${lang} is the template's own language; it needs no translations.`);
+      }
+      const translations = {
+        ...content.translations,
+        [lang]: { ...content.translations[lang], ...strings },
+      };
+      next = { ...draft, content: { ...content, translations } };
+      parts = ["translations"];
+      break;
+    }
     case "editBody": {
       if (content.mode !== "visual") return fail("This template is in code mode; edit its HTML.");
       const { from, to, blocks } = call.input;

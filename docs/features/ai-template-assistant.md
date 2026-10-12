@@ -26,6 +26,7 @@ A blank editor is the slowest part of authoring. GhostDraft authors start from W
   - set page size, margins and the [theme](document-themes.md)
   - fill sample data
   - edit the HTML/Liquid body, header or footer of a code-mode template, and the template CSS
+  - translate the template into a language ([Document localization](document-localization.md))
   - explain the template or a Liquid expression (plain chat, no change)
 
   The tools and how a proposal applies to the draft: [assistant.ts](../../packages/shared/src/assistant.ts); the route: [assistant.ts](../../apps/api/src/routes/assistant.ts).

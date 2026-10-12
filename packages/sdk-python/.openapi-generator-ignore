@@ -1,0 +1,13 @@
+# Files openapi-generator must not write (ADR 0041). README.md and examples/ are hand-written.
+README.md
+.github/**
+.gitlab-ci.yml
+.travis.yml
+git_push.sh
+setup.py
+setup.cfg
+tox.ini
+requirements.txt
+test-requirements.txt
+test/**
+docs/**

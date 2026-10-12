@@ -5,8 +5,8 @@ import {
   liquidTranslatables,
   stringsFor,
   textDirection,
-  translate,
   translatableStrings,
+  translate,
   translateSections,
 } from "./locale";
 import { designedContentSchema } from "./template";
@@ -90,9 +90,9 @@ describe("translateSections", () => {
 
 describe("translatable strings", () => {
   it("finds t literals in Liquid", () => {
-    expect(liquidTranslatables(`{{ "Hi" | t }} {{ 'Bye' | t | upcase }} {{ "x" | truncate }}`)).toEqual(
-      ["Hi", "Bye"],
-    );
+    expect(
+      liquidTranslatables(`{{ "Hi" | t }} {{ 'Bye' | t | upcase }} {{ "x" | truncate }}`),
+    ).toEqual(["Hi", "Bye"]);
   });
 
   it("lists fields, then content text, without repeats or blanks", () => {
@@ -104,7 +104,10 @@ describe("translatable strings", () => {
       },
       footer: {
         height: 10,
-        doc: { type: "doc", content: [{ type: "paragraph", content: [{ type: "text", text: "Page" }] }] },
+        doc: {
+          type: "doc",
+          content: [{ type: "paragraph", content: [{ type: "text", text: "Page" }] }],
+        },
       },
     });
     expect(translatableStrings(sections, contentTexts(visual))).toEqual([
@@ -117,7 +120,10 @@ describe("translatable strings", () => {
       "Children",
       "Page",
     ]);
-    const code = designedContentSchema.parse({ mode: "code", body: `<h1>{{ "Invoice" | t }}</h1>` });
+    const code = designedContentSchema.parse({
+      mode: "code",
+      body: `<h1>{{ "Invoice" | t }}</h1>`,
+    });
     expect(contentTexts(code)).toEqual(["Invoice"]);
   });
 });

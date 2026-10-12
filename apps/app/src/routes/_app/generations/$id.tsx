@@ -161,6 +161,11 @@ function GenerationDetail() {
         {generation.outputProfile && (
           <Meta label="Output">{outputSummary(generation.outputProfile)}</Meta>
         )}
+        {generation.input?.output && (
+          <Meta label="Language">
+            <span className="font-mono text-xs">{generation.input.output.lang}</span>
+          </Meta>
+        )}
         <Meta label="Worker">
           <span className="font-mono text-xs break-all">{generation.workerId ?? "—"}</span>
         </Meta>

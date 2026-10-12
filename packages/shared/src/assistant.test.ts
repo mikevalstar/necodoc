@@ -113,6 +113,30 @@ describe("applyAssistantCall", () => {
     });
   });
 
+  it("merges translations for one language, not the template's own", () => {
+    const start = draft({
+      content: {
+        mode: "visual",
+        body: { type: "doc", content: [p("A")] },
+        translations: { fr: { A: "Un" } },
+      },
+    });
+    const result = applyAssistantCall(start, {
+      tool: "setTranslations",
+      input: { summary: "x", lang: "fr", strings: { Principal: "Mandant" } },
+    });
+    expect(result.ok && result.parts).toEqual(["translations"]);
+    expect(result.ok && result.draft.content.translations).toEqual({
+      fr: { A: "Un", Principal: "Mandant" },
+    });
+    expect(
+      applyAssistantCall(start, {
+        tool: "setTranslations",
+        input: { summary: "x", lang: "EN", strings: { A: "A" } },
+      }).ok,
+    ).toBe(false);
+  });
+
   it("replaces fields wholesale", () => {
     const result = applyAssistantCall(draft(), {
       tool: "setFields",
@@ -175,6 +199,6 @@ describe("tool inputs", () => {
     expect(assistantToolsFor("visual")).not.toContain("setCodeBody");
     expect(assistantToolsFor("code")).not.toContain("editBody");
     expect(assistantToolsFor("code")).toContain("setCodeBand");
-    expect(Object.keys(assistantToolInputs)).toHaveLength(9);
+    expect(Object.keys(assistantToolInputs)).toHaveLength(10);
   });
 });

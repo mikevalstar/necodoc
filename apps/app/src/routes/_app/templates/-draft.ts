@@ -10,6 +10,7 @@ import {
   previewTemplateSchema,
   type Signer,
   type Template,
+  type Translations,
   templateSchema,
 } from "@necodoc/shared";
 import { queryOptions } from "@tanstack/react-query";
@@ -40,6 +41,7 @@ export type VisualContent = {
   css: string;
   signers: Signer[];
   output: OutputOptions;
+  translations: Translations;
 };
 export type EditorContent = VisualContent | CodeContent;
 
@@ -94,6 +96,7 @@ export function problemArea(path: readonly PropertyKey[]) {
     if (second === "footer") return "Footer";
     if (second === "boxes") return "Boxes";
     if (second === "signers") return "Signing";
+    if (second === "translations") return "Translations";
     return "Content";
   }
   return String(first ?? "Draft");
@@ -110,7 +113,7 @@ export function mergeApplied(
 ): DraftValues {
   if (d.kind !== "designed") return d;
   const has = (part: DraftPart) => parts.includes(part);
-  const contentChanged = (["body", "header", "footer", "css"] as const).some(has);
+  const contentChanged = (["body", "header", "footer", "css", "translations"] as const).some(has);
   let content: EditorContent = d.content;
   if (contentChanged) {
     content =
@@ -121,6 +124,7 @@ export function mergeApplied(
             ...(has("header") ? { header: next.content.header } : {}),
             ...(has("footer") ? { footer: next.content.footer } : {}),
             ...(has("css") ? { css: next.content.css } : {}),
+            ...(has("translations") ? { translations: next.content.translations } : {}),
           }
         : next.content;
   }

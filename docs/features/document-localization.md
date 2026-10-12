@@ -69,16 +69,18 @@ date as `12 octobre 2026` shouldn't need a custom filter per template. See
 
 ## Acceptance criteria
 
-- [ ] `date`, `number` and `currency` format for the document language; an
+- [x] `date`, `number` and `currency` format for the document language; an
   explicit locale argument wins
   ([liquid.test.ts](../../apps/api/src/render/liquid.test.ts)).
-- [ ] Translation lookup: exact tag over language over source text;
+- [x] Translation lookup: exact tag over language over source text;
   case-insensitive tags ([locale.test.ts](../../packages/shared/src/locale.test.ts)).
-- [ ] A visual template with translations compiles its text through `t`; one
-  without compiles unchanged.
-- [ ] One template renders French, German, Arabic (right to left, Arabic
-  glyphs) and Japanese PDFs.
-- [ ] The fill page shows translated labels and makes the PDF in the picked
+- [x] A visual template with translations compiles its text through `t`; one
+  without compiles unchanged ([compile.test.ts](../../packages/shared/src/compile.test.ts)).
+- [x] One template renders French, German, Arabic (right to left, Arabic
+  glyphs) and Japanese PDFs
+  ([render.test.ts](../../apps/api/src/render/render.test.ts) for French and
+  Arabic; all four checked by eye).
+- [x] The fill page shows translated labels and makes the PDF in the picked
   language.
 
 ## Open questions

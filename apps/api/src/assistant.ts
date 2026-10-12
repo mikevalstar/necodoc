@@ -6,11 +6,13 @@ import {
   assistantToolsFor,
   type CreateTemplate,
   compileDesignedContent,
+  contentTexts,
   type DesignedDraft,
   type DiffableTemplate,
   summarizeTemplateDiff,
   TemplateCompileError,
   type TemplateDiff,
+  translatableStrings,
 } from "@necodoc/shared";
 import {
   convertToModelMessages,
@@ -54,10 +56,11 @@ Make at most ONE editBody call per reply: indexes shift once it applies. To chan
 How templates work:
 - Fields are grouped into sections; each section is one step of the guided form. Keys are snake_case and unique. A field or section can have showIf, referring only to an EARLIER field. A "group" field is a repeating list of scalar child fields (line items, co-signers).
 - The visual body is TipTap JSON: an array of top-level blocks (paragraph, heading, bulletList, orderedList, blockquote, table, horizontalRule, pageBreak, image, conditionalSection, repeatingSection, rawHtml). Inline content: text (with marks bold/italic/underline/strike/link/textStyle), hardBreak, mergeField.
-- A mergeField prints a declared field: attrs { field: "key", filter: null | {name:"date",format:"MMMM D, YYYY"} | {name:"currency",currency:"USD"} | {name:"number",decimals:2} | {name:"upcase"} | {name:"lines"} ... }. Only use declared fields; propose new fields first (setFields) and the content after.
+- A mergeField prints a declared field: attrs { field: "key", filter: null | {name:"date",format:"LL"} (LL/L are the document language's long/short date) | {name:"currency",currency:"USD"} | {name:"number",decimals:2} | {name:"upcase"} | {name:"lines"} ... }. Only use declared fields; propose new fields first (setFields) and the content after.
 - conditionalSection attrs { condition } wraps blocks shown only when the condition holds (same shape as showIf). repeatingSection attrs { field: "<group key>" } repeats its blocks per item; inside it, merge fields use "group.child". A table row can repeat with attrs { repeat: "<group key>" }.
 - Headers and footers are separate docs with a height in mm; only they can use the page tokens "page" and "pages" as merge fields. No pageBreak in bands.
 - Code-mode templates are HTML + Liquid instead ({{ key }}, {% if %}, {% for item in group %}); edit them with setCodeBody / setCodeBand.
+- Translations: the template is written in its document language. setTranslations adds one language's strings, keyed by the exact source text listed under "Translatable strings" (field labels, help, choice labels, section titles, visual text runs). Code-mode text is only translatable when wrapped as {{ "Thank you" | t }}. Dates, numbers and currency format for the document language by themselves.
 - Images need an existing asset id or an image/signature field; don't invent asset ids. No scripts and no remote URLs: renders run offline.
 
 Style: legal and business documents. Use real headings, clear numbered clauses where apt, and tables for schedules. Keep chat replies short and plain text (the panel doesn't render Markdown; simple "- " lists are fine); put the work in tool calls. When building a whole template, propose in this order: setDetails, setFields, editBody (whole body), then bands, setSampleData with realistic values for every field. Mark the essentials required. Prefer a few complete proposals over many tiny ones.`;
@@ -78,6 +81,13 @@ Page: ${json(draft.page)}
 Theme: ${theme ? `${theme.name} (${theme.id})` : draft.themeId ? draft.themeId : "none"}
 Themes available: ${themes.map((t) => `${t.name} (${t.id})`).join("; ") || "none"}
 Signers: ${json(content.signers)}
+Document language: ${content.output.lang}
+
+## Translations (per language: source text → translation)
+${json(content.translations)}
+
+## Translatable strings
+${json(translatableStrings(draft.sections, contentTexts(content)))}
 
 ## Field sections
 ${json(draft.sections)}
