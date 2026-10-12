@@ -60,6 +60,7 @@ per-browser and can't be handed to a team.
 
 - A view stores ids (template, user, key, batch). If one is deleted, the view
   still filters by it and shows no rows.
+- A user's views, shared ones included, are deleted with their account.
 - No per-team sharing: shared is everyone (every deployment is one
   organisation, self-hosted).
 - Relative time ("last 7 days") is kept as relative only where the table has

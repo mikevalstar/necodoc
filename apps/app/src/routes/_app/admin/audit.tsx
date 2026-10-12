@@ -27,6 +27,7 @@ import {
   FilterSelect,
 } from "@/components/data-table";
 import { FaqLink, Page, PageHeader } from "@/components/page";
+import { SavedViews } from "@/components/saved-views";
 import { Badge } from "@/components/ui/badge";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -213,6 +214,18 @@ function AuditLog() {
         sortable={sortable}
         isFetching={entries.isPlaceholderData}
         error={entries.error}
+        actions={
+          <SavedViews
+            table="audit"
+            search={search}
+            omit={["page", "entry"]}
+            isAdmin
+            onApply={(view) => {
+              const parsed = searchSchema.safeParse(view);
+              if (parsed.success) navigate({ search: parsed.data });
+            }}
+          />
+        }
         noun="event"
         onRowClick={(entry) => setSearch({ entry: entry.id })}
         empty={hasFilter ? "No events match these filters." : "Nothing recorded yet."}

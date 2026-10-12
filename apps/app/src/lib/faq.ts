@@ -419,7 +419,7 @@ export const faq: readonly FaqEntry[] = [
     group: "Generations",
     what: "Every non-preview render is recorded: source, user, status, error, warnings, start time, duration, page count, size, the full input and the output PDF. Admins see everyone's entries and can filter by source, status, user, template and date range; everyone else sees their own under My generations.",
     howTo:
-      "Open Generations and narrow it down: search (file name, template name, error or request id, or paste a generation or batch id), status, source, template, batch, date range and minimum duration (user, date range, batch, API key and minimum duration sit under More filters, which shows how many are set); admins also filter by user. Click a column heading to sort, pick extra columns (worker, attempts, queue wait, batch) under Columns, and choose 25 to 200 rows per page. The address bar holds all of it, so copy the URL to share or bookmark a view, and Back undoes the last change. Click a row to see its input, view or download the PDF, re-run it, or delete it. Export CSV downloads everything matching the filters; admins can bulk delete it too.",
+      'Open Generations and narrow it down: type in the filter bar (free text searches file name, template name, error or request id, or a pasted generation or batch id; tokens like status:error,cancelled source:api render:>0.5s since:7d template:"Quote" key:prod batch:3f2a filter, with suggestions as you type; press Enter to apply), or use the selects below it, which stay in step with the tokens (user, date range, batch, API key and minimum duration sit under More filters, which shows how many are set); admins also filter by user. The render-time histogram above the table shows how long the matching renders took, with p50, p95, p99 and the failed count: pick a bar, or drag across several, to filter to that range. Click a column heading to sort, pick extra columns (worker, attempts, queue wait, batch) under Columns, and choose 25 to 200 rows per page. The address bar holds all of it, so copy the URL to share or bookmark a view, and Back undoes the last change. Click a row to see its input, view or download the PDF, re-run it, or delete it. Export CSV downloads everything matching the filters; admins can bulk delete it too.',
     limitations: [
       "Inputs can hold personal data and are kept until someone deletes them or the retention setting removes them (Admin › System).",
       "Stored PDFs grow the database over time.",
@@ -429,12 +429,33 @@ export const faq: readonly FaqEntry[] = [
       "Sorting and paging happen on the server, a page at a time (at most 200 rows). Sorting by a timing puts unfinished entries, which have none yet, first when sorting slowest first.",
       "The CSV export stops at 100,000 rows.",
       "Previews (the Render page's Preview mode and the theme editor) aren't logged.",
+      "The histogram and its percentiles leave out entries still queued or running (they have no end-to-end time yet), and it ignores the render-time range so you can see where the range sits.",
+      "Filter-bar names (template:, user:, key:) match what the page has loaded; an ambiguous name takes the first match, and a token that matches nothing is reported rather than dropped.",
     ],
     access: [
       { action: "See, download, re-run and delete your own", needs: view },
       { action: "See everyone's, filter by user, bulk delete", needs: "admin" },
     ],
     spec: "docs/features/generation-log.md",
+  },
+  {
+    feature: "Saved views",
+    group: "Generations",
+    what: "Save a big table's filters, sort, page size and columns under a name and get them back from the table's Views menu, in any browser. Works on the generation log and the audit log. Admins can share a view with everyone who can open that table.",
+    howTo:
+      "Set up the table, then Views › Save current view… and name it (admins can switch on Share with everyone). Pick a view from the same menu to open it; the button shows its name while the table still matches. Views › Manage views… renames a view, updates it to the current filters, shares or unshares it (admins), or deletes it.",
+    limitations: [
+      "Views store ids: if a template, user, key or batch in a view is deleted, the view still filters by it and shows nothing.",
+      "Shared means everyone who can open the table; there are no per-team views.",
+      "Only admins can change or delete a shared view; others can save their own copy.",
+      "Changes to shared views are in the audit log; private views aren't audited.",
+      "A user's views are deleted with their account, shared ones included.",
+    ],
+    access: [
+      { action: "Save, rename and delete your own views", needs: view },
+      { action: "Share views, and change or delete any shared view", needs: "admin" },
+    ],
+    spec: "docs/features/saved-views.md",
   },
   {
     feature: "Settings and preferences",

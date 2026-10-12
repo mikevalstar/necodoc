@@ -137,8 +137,13 @@ export function RenderTimeHistogram({
         <div
           role="group"
           aria-label="Render time buckets"
-          className="flex h-24 touch-none items-end gap-1 select-none"
+          className="relative flex h-24 touch-none items-end gap-1 select-none"
         >
+          {data.timed === 0 && (
+            <p className="absolute inset-0 grid place-items-center text-[13px] text-ink-3">
+              No finished renders match these filters.
+            </p>
+          )}
           {data.buckets.map((bucket, i) => {
             const selected = showsRange && overlaps(bucket, shownRange);
             const label = `${bucketLabel(bucket)}: ${bucket.count.toLocaleString()} ${bucket.count === 1 ? "generation" : "generations"}`;
@@ -173,13 +178,13 @@ export function RenderTimeHistogram({
         </div>
         <div aria-hidden className="mt-1 flex gap-1 font-mono text-[10px] text-ink-3">
           {data.buckets.map((bucket, i) => (
-            <span key={bucket.minMs} className="min-w-0 flex-1 truncate">
-              {/* Every other edge keeps the axis readable at tablet width. */}
-              {i % 2 === 0
-                ? bucket.maxMs === null
-                  ? `${edge(bucket.minMs)}+`
-                  : edge(bucket.minMs)
-                : ""}
+            // Every other edge (and the open end) keeps the axis readable at tablet width.
+            <span key={bucket.minMs} className="min-w-0 flex-1 whitespace-nowrap">
+              {bucket.maxMs === null
+                ? `${edge(bucket.minMs)}+`
+                : i % 2 === 0 && i < data.buckets.length - 2
+                  ? edge(bucket.minMs)
+                  : ""}
             </span>
           ))}
         </div>

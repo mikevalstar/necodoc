@@ -94,7 +94,7 @@ export function OpsStatusBar() {
   return (
     <section
       aria-label="System status"
-      className="sticky bottom-0 z-10 flex h-7 shrink-0 items-center gap-0.5 overflow-hidden border-t border-hair bg-surface/95 px-2 font-mono text-[11.5px] text-ink-2 backdrop-blur sm:px-6"
+      className="sticky bottom-0 z-10 mt-auto flex h-7 shrink-0 items-center gap-0.5 overflow-hidden border-t border-hair bg-surface/95 px-2 font-mono text-[11.5px] text-ink-2 backdrop-blur sm:px-6"
     >
       <Item
         to="/admin/system"
