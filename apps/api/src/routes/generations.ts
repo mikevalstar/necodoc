@@ -5,6 +5,8 @@ import {
   generationFilterSchema,
   generationListQuerySchema,
   parseRoles,
+  RENDER_TIME_EDGES_MS,
+  type RenderTimeHistogram,
   signingPackageQuerySchema,
   toCsv,
 } from "@necodoc/shared";
@@ -18,6 +20,7 @@ import {
   ilike,
   inArray,
   isNotNull,
+  lt,
   lte,
   or,
   type SQL,
@@ -47,8 +50,8 @@ function filterWhere(actor: SignedInUser, filter: GenerationFilter) {
   const userId = isAdmin(actor) ? filter.userId : actor.id;
   return and(
     userId ? eq(generation.userId, userId) : undefined,
-    filter.source ? eq(generation.source, filter.source) : undefined,
-    filter.status ? eq(generation.status, filter.status) : undefined,
+    filter.source ? inArray(generation.source, filter.source) : undefined,
+    filter.status ? inArray(generation.status, filter.status) : undefined,
     filter.templateId ? eq(generation.templateId, filter.templateId) : undefined,
     filter.batchId ? eq(generation.batchId, filter.batchId) : undefined,
     filter.apiKeyId ? eq(generation.apiKeyId, filter.apiKeyId) : undefined,
@@ -56,6 +59,7 @@ function filterWhere(actor: SignedInUser, filter: GenerationFilter) {
     filter.to ? lte(generation.queuedAt, new Date(filter.to)) : undefined,
     filter.q ? textMatch(filter.q) : undefined,
     filter.minTotalMs !== undefined ? gte(generation.totalMs, filter.minTotalMs) : undefined,
+    filter.maxTotalMs !== undefined ? lt(generation.totalMs, filter.maxTotalMs) : undefined,
     filter.minQueueWaitMs !== undefined
       ? gte(generation.queueWaitMs, filter.minQueueWaitMs)
       : undefined,
@@ -225,6 +229,47 @@ export const generationRoutes = new Hono<AppEnv>()
       "Content-Type": "text/csv; charset=utf-8",
       "Content-Disposition": `attachment; filename="generations-${new Date().toISOString().slice(0, 10)}.csv"`,
     });
+  })
+  .get("/render-times", canView, zValidator("query", generationFilterSchema), async (c) => {
+    // The histogram shows where the time range filter sits, so it doesn't apply it.
+    const { minTotalMs: _min, maxTotalMs: _max, ...filter } = c.req.valid("query");
+    const where = filterWhere(c.get("user"), filter);
+    const edges = sql.raw(`array[${RENDER_TIME_EDGES_MS.join(",")}]::int[]`);
+    // width_bucket: 0 below the first edge, i for [edge i-1, edge i), edges.length past the last.
+    const bucket = sql<number>`width_bucket(${generation.totalMs}, ${edges})`.mapWith(Number);
+    const [counts, [stats]] = await Promise.all([
+      db
+        .select({ bucket, count: count() })
+        .from(generation)
+        .where(and(where, isNotNull(generation.totalMs)))
+        .groupBy(bucket),
+      db
+        .select({
+          timed: count(generation.totalMs),
+          percentiles: sql<
+            (number | null)[] | null
+          >`percentile_disc(array[0.5, 0.95, 0.99]) within group (order by ${generation.totalMs})`,
+          failed: sql<number>`count(*) filter (where ${generation.status} = 'error')`.mapWith(
+            Number,
+          ),
+        })
+        .from(generation)
+        .where(where),
+    ]);
+    const lows = [0, ...RENDER_TIME_EDGES_MS];
+    const [p50Ms = null, p95Ms = null, p99Ms = null] = stats?.percentiles ?? [];
+    return c.json({
+      buckets: lows.map((minMs, i) => ({
+        minMs,
+        maxMs: RENDER_TIME_EDGES_MS[i] ?? null,
+        count: counts.find((row) => row.bucket === i)?.count ?? 0,
+      })),
+      timed: stats?.timed ?? 0,
+      p50Ms,
+      p95Ms,
+      p99Ms,
+      failed: stats?.failed ?? 0,
+    } satisfies RenderTimeHistogram);
   })
   .delete("/", requireRole("admin"), zValidator("query", generationFilterSchema), async (c) => {
     const filter = c.req.valid("query");

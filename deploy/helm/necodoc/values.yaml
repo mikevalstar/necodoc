@@ -38,6 +38,9 @@ config:
   RENDER_WAIT_MS: "30000"
   PREVIEW_CONCURRENCY: "2"
   STORAGE_REDIRECT: "off"
+  # The sidebar and login page label: name, and prod | staging | dev. Unset hides it.
+  # INSTANCE_NAME: Harbour Surety
+  # INSTANCE_ENV: prod
   # Logs, metrics, traces: apps/devdocs/src/content/docs/self-hosting/observability.md
   LOG_LEVEL: info
   LOG_FORMAT: json

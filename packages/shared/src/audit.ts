@@ -17,6 +17,7 @@ export const auditTargetTypes = [
   "generation",
   "setting",
   "data_subject",
+  "saved_view",
 ] as const;
 export const auditTargetTypeSchema = z.enum(auditTargetTypes);
 export type AuditTargetType = z.infer<typeof auditTargetTypeSchema>;
@@ -87,8 +88,17 @@ export const auditActions = {
   "batch.cancelled": "batch",
   "generation.bulk_deleted": "generation",
   "generation.link_created": "generation",
+  /** A failed render job run again in place from Admin > Queue (no new entry). */
+  "generation.retried": "generation",
+  "generation.bulk_retried": "generation",
+  /** Shared views only (docs/features/saved-views.md); private ones aren't audited. */
+  "saved_view.created": "saved_view",
+  "saved_view.updated": "saved_view",
+  "saved_view.deleted": "saved_view",
   "settings.retention_updated": "setting",
   "settings.publishing_updated": "setting",
+  "settings.queue_paused": "setting",
+  "settings.queue_resumed": "setting",
   /** A GDPR erasure: counts only, never who (docs/features/personal-data-masking-and-erasure.md). */
   "privacy.subject_erased": "data_subject",
 } as const satisfies Record<string, AuditTargetType>;

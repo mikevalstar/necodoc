@@ -25,11 +25,14 @@ export function OutputPanel({
   kind,
   editable,
   onChange,
+  translations = true,
 }: {
   output: OutputOptions;
   kind: "designed" | "overlay";
   editable: boolean;
   onChange: (output: OutputOptions) => void;
+  /** Whether a Translations tab sits beside it (the template editor; not the Render page). */
+  translations?: boolean;
 }) {
   // The language is checked on save; keep what's typed until it's a valid tag.
   const [lang, setLang] = useState(output.lang);
@@ -55,7 +58,8 @@ export function OutputPanel({
             A language tag such as en or fr-CA: the language the template is written in. Dates,
             numbers and money format for it
             {validLang(lang) && textDirection(lang) === "rtl" && ", text runs right to left"}, and
-            the PDF tells screen readers. The Translations tab adds other languages.
+            the PDF tells screen readers.
+            {translations && " The Translations tab adds other languages."}
             {kind === "designed" &&
               output.pdfua &&
               " Give every image alt text, or the PDF won't pass an accessibility check."}

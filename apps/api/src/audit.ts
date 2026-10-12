@@ -85,6 +85,7 @@ type RequiredDetails = {
   "auth.sign_in_failed": SignIn & { email: string | null; reason: string };
   "generation.bulk_deleted": { filter: GenerationFilter; deleted: number };
   "generation.link_created": { linkId: string; expiresAt: string };
+  "generation.bulk_retried": { queue: string | null; retried: number };
 };
 
 type Fields = Record<string, unknown>;

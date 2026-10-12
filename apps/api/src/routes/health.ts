@@ -11,7 +11,7 @@ import { onlineSince } from "../worker";
 // balancers and orchestrators; served by every role.
 
 /** A hung mount or endpoint must fail the probe, not hang it. */
-async function storageReachable() {
+export async function storageReachable() {
   let timer: NodeJS.Timeout | undefined;
   const timeout = new Promise<never>((_, reject) => {
     timer = setTimeout(() => reject(new Error("timed out after 5 s")), 5000);

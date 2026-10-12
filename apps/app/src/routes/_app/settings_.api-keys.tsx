@@ -1,7 +1,8 @@
 import { hasPermission } from "@necodoc/shared";
 import { KeyIcon } from "@phosphor-icons/react";
 import { useQuery } from "@tanstack/react-query";
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { z } from "zod";
 import { ApiKeyTable, apiKeysQuery, CreateKeyButton, ExpiryWarning } from "@/components/api-keys";
 import { DensityToggle } from "@/components/data-table";
 import { ErrorAlert } from "@/components/form";
@@ -12,11 +13,15 @@ import { WebhookSection } from "@/components/webhooks";
 // Spec: docs/features/html-to-pdf-api.md (keys), docs/features/webhooks.md. Your own keys; a
 // system's keys belong on a service account (Admin › Service accounts) so they outlive you.
 export const Route = createFileRoute("/_app/settings_/api-keys")({
+  /** ?new=true opens Create key (the command palette's action). */
+  validateSearch: z.object({ new: z.boolean().optional() }),
   component: ApiKeys,
 });
 
 function ApiKeys() {
   const { me } = Route.useRouteContext();
+  const search = Route.useSearch();
+  const navigate = useNavigate({ from: Route.fullPath });
   const keys = useQuery(apiKeysQuery({}));
   const isAdmin = me.user.roles.includes("admin");
   const active = keys.data?.filter((key) => key.status === "active").length ?? 0;
@@ -27,7 +32,11 @@ function ApiKeys() {
         actions={
           <>
             <FaqLink feature="API keys and scopes" />
-            <CreateKeyButton ownerRoles={me.user.roles} />
+            <CreateKeyButton
+              ownerRoles={me.user.roles}
+              requested={search.new === true}
+              onDone={() => search.new && navigate({ search: {}, replace: true })}
+            />
           </>
         }
         description={

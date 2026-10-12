@@ -78,6 +78,15 @@ editor and developers a code mode, on one renderer.
   [ADR 0018](../adrs/0018-claude-api-for-ai-field-detection-and-drafting.md)).
   The editor describes the content they want; the suggestion uses only declared
   fields and is inserted only on accept.
+- **Templates list.** A table or a gallery, picked per browser. Gallery cards
+  show a thumbnail of page 1, kind, status, version, last change and the same
+  actions as table rows. The thumbnail is the published version's first page
+  with its sample data, or the saved draft's while nothing is published. It is
+  rendered on the server the first time it's asked for after a publish or save,
+  cached per template, and served with long-lived browser caching; cards show a
+  placeholder until it loads. Lists of hundreds of templates load thumbnails
+  lazily, a few renders at a time. API:
+  [thumbnail.ts](../../apps/api/src/thumbnail.ts).
 - Templates are drafts until published
   ([Publishing and versions](publishing-and-versions.md)). API:
   [routes/templates.ts](../../apps/api/src/routes/templates.ts).
@@ -99,11 +108,16 @@ editor and developers a code mode, on one renderer.
 - [x] Template CSS applies after the theme, in the body and the bands.
 - [x] A template converted to code mode renders the same PDF as before
       conversion.
+- [x] The gallery shows each template's first page; publishing or saving a
+      draft (when nothing is published) updates it on the next visit, and the
+      list/gallery choice survives a reload.
 - [x] `<script>` in a template doesn't run, and a remote image URL doesn't load
       (the render still succeeds).
 
 ## Known limitations
 
+- A draft thumbnail doesn't follow later edits to its theme or snippets until
+  the draft is saved again.
 - Band content taller than the band height is clipped.
 - A first-page band variant has the same height as the band, so a tall letterhead
   on page 1 means the same reserved space on every page.

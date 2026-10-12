@@ -1,15 +1,11 @@
 import { safeReturnPath } from "@necodoc/shared";
 import {
-  BracketsCurlyIcon,
   CaretRightIcon,
   ChartBarIcon,
-  FilesIcon,
   GearSixIcon,
-  type Icon,
-  LayoutIcon,
+  MagnifyingGlassIcon,
   MoonStarsIcon,
   QuestionIcon,
-  ShieldCheckIcon,
   SidebarSimpleIcon,
   SignOutIcon,
   SunIcon,
@@ -18,15 +14,17 @@ import { useQuery } from "@tanstack/react-query";
 import {
   createFileRoute,
   Link,
-  type LinkProps,
   Outlet,
   redirect,
   useLocation,
   useMatches,
 } from "@tanstack/react-router";
 import { useState, useSyncExternalStore } from "react";
+import { CommandPalette, useCommandPalette } from "@/components/command-palette";
+import { InstanceBlock, initials } from "@/components/instance";
 import { Logo } from "@/components/logo";
 import { NotificationBell } from "@/components/notifications";
+import { OpsStatusBar, useStatusBar } from "@/components/ops-status-bar";
 import { RoleBadges } from "@/components/role-badges";
 import { Button } from "@/components/ui/button";
 import {
@@ -38,8 +36,16 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { type Access, canAccess, type Me, meQuery, useSignOut } from "@/lib/auth";
+import { type Me, meQuery, useSignOut } from "@/lib/auth";
 import { useCurrentCrumb } from "@/lib/breadcrumb";
+import {
+  inPath,
+  inSection,
+  type NavItem,
+  labelOf as navLabel,
+  otherPages,
+  visibleSections,
+} from "@/lib/nav";
 import { shareLinksQuery } from "@/lib/queries";
 import { toggleTheme, useTheme } from "@/lib/theme";
 import { cn } from "@/lib/utils";
@@ -59,102 +65,6 @@ export const Route = createFileRoute("/_app")({
   },
   component: AppShell,
 });
-
-type Roles = Me["user"]["roles"];
-type NavItem = {
-  to: LinkProps["to"];
-  label: string | ((roles: Roles) => string);
-  /** Shows the count of unseen share-link responses. */
-  unseen?: true;
-  /** Who sees it; the page's own guard (`requireAccess`) uses the same rule. */
-  access?: Access;
-};
-type NavSection = {
-  label: string;
-  icon: Icon;
-  /** Path prefixes that belong to the section, so detail pages keep it highlighted. */
-  paths: readonly string[];
-  items: readonly NavItem[];
-  /** Who sees the section. */
-  access?: Access;
-};
-
-// Grouped by who uses it: people filling documents, template designers, developers, admins.
-const sections: readonly NavSection[] = [
-  {
-    label: "Documents",
-    icon: FilesIcon,
-    paths: ["/", "/documents", "/share-links"],
-    items: [
-      { to: "/", label: "My documents" },
-      { to: "/share-links", label: "Share links", unseen: true, access: ["publish"] },
-    ],
-  },
-  {
-    label: "Templates",
-    icon: LayoutIcon,
-    paths: ["/templates", "/snippets", "/themes", "/assets"],
-    items: [
-      { to: "/templates", label: "Templates" },
-      {
-        to: "/templates/reviews",
-        label: "Reviews",
-        access: ["edit", "review", "publish"],
-      },
-      {
-        to: "/snippets",
-        label: "Snippets",
-        access: ["create", "edit", "review", "publish"],
-      },
-      { to: "/themes", label: "Themes" },
-      { to: "/assets", label: "Assets" },
-    ],
-  },
-  {
-    label: "Developers",
-    icon: BracketsCurlyIcon,
-    paths: ["/developers", "/render", "/generations", "/batches", "/settings/api-keys"],
-    items: [
-      { to: "/developers", label: "API reference" },
-      { to: "/settings/api-keys", label: "API keys" },
-      { to: "/render", label: "Render playground" },
-      {
-        to: "/generations",
-        label: (r) => (r.includes("admin") ? "Generations" : "My generations"),
-      },
-      { to: "/batches", label: "Batches" },
-    ],
-  },
-  {
-    label: "Admin",
-    icon: ShieldCheckIcon,
-    paths: ["/admin"],
-    access: "admin",
-    items: [
-      { to: "/admin/users", label: "Users" },
-      { to: "/admin/service-accounts", label: "Service accounts" },
-      { to: "/admin/api-keys", label: "API keys" },
-      { to: "/admin/system", label: "System" },
-      { to: "/admin/queue", label: "Queue" },
-      { to: "/admin/analytics", label: "Analytics" },
-      { to: "/admin/audit", label: "Audit log" },
-      { to: "/admin/privacy", label: "Data subjects" },
-      { to: "/admin/faq", label: "FAQ" },
-    ],
-  },
-];
-
-const inPath = (path: string, pathname: string) =>
-  path === "/" ? pathname === "/" : pathname === path || pathname.startsWith(`${path}/`);
-
-const inSection = (section: NavSection, pathname: string) =>
-  section.paths.some((path) => inPath(path, pathname));
-
-/** Pages outside the four sections, for the breadcrumb. */
-const otherPages: Readonly<Record<string, string>> = {
-  "/settings": "Settings",
-  "/usage": "My usage",
-};
 
 declare module "@tanstack/react-router" {
   interface StaticDataRouteOption {
@@ -191,15 +101,12 @@ function AppShell() {
   const pageCrumb = useCurrentCrumb();
   const forced = narrow || routeWantsRail;
   const rail = collapsed || forced;
-  const visible = roles.length
-    ? sections.filter((section) => !section.access || canAccess(roles, section.access))
-    : [];
-  const itemsOf = (section: NavSection) =>
-    section.items.filter((item) => !item.access || canAccess(roles, item.access));
-  const labelOf = (item: NavItem) =>
-    typeof item.label === "string" ? item.label : item.label(roles);
+  const visible = visibleSections(roles);
+  const labelOf = (item: NavItem) => navLabel(item, roles);
   const current = visible.find((section) => inSection(section, pathname));
-  const currentItems = current ? itemsOf(current) : [];
+  const currentItems = current?.items ?? [];
+  const palette = useCommandPalette();
+  const statusBar = useStatusBar() && roles.includes("admin");
   // The longest matching path wins: /templates/reviews is Reviews, /templates/abc is Templates,
   // /documents/abc falls back to the section's first page. Pages add their own last crumb with
   // usePageCrumb (lib/breadcrumb.ts): "Templates › Invoice".
@@ -255,10 +162,11 @@ function AppShell() {
             </button>
           )}
         </div>
+        <InstanceBlock rail={rail} />
         <nav aria-label="Sections" className={cn("flex flex-col gap-1", rail && "items-center")}>
           {visible.map((section) => {
             const active = section === current;
-            const items = itemsOf(section);
+            const items = section.items;
             const unseen = items.some((item) => item.unseen);
             const tab = cn(
               "flex items-center rounded-[10px] text-shell-fg-2 transition-colors hover:bg-white/7 hover:text-shell-fg [&>svg]:shrink-0",
@@ -400,6 +308,22 @@ function AppShell() {
             </ol>
           </nav>
           <div className="ml-auto flex shrink-0 items-center gap-2.5">
+            {roles.length > 0 && (
+              <button
+                type="button"
+                onClick={() => palette.setOpen(true)}
+                aria-label="Search or jump to"
+                aria-keyshortcuts={palette.shortcut.aria}
+                title={`Search or jump to (${palette.shortcut.label})`}
+                className="flex size-10 items-center gap-2.5 rounded-xl bg-surface px-3 text-ink-3 shadow-card transition-colors hover:text-ink min-[1000px]:w-[clamp(200px,24vw,340px)]"
+              >
+                <MagnifyingGlassIcon className="size-[18px] shrink-0" />
+                <span className="truncate max-[999px]:hidden">Search or jump to…</span>
+                <kbd className="ml-auto rounded-md bg-tint px-1.5 py-0.5 font-mono text-[11px] max-[999px]:hidden">
+                  {palette.shortcut.label}
+                </kbd>
+              </button>
+            )}
             {roles.includes("admin") && (
               <Button
                 variant="outline"
@@ -417,7 +341,9 @@ function AppShell() {
           </div>
         </header>
         <Outlet />
+        {statusBar && <OpsStatusBar />}
       </div>
+      {roles.length > 0 && <CommandPalette me={me} {...palette} />}
     </div>
   );
 }
@@ -466,14 +392,6 @@ function ThemeToggle() {
     </button>
   );
 }
-
-const initials = (name: string) =>
-  name
-    .split(/\s+/)
-    .filter(Boolean)
-    .slice(0, 2)
-    .map((word) => word[0]?.toUpperCase())
-    .join("") || "?";
 
 /** Your account, at the foot of the sidebar: avatar and name, opening Settings and Sign out. */
 function UserMenu({ me, rail }: { me: Me; rail: boolean }) {

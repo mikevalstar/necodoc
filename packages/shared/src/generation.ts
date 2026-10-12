@@ -44,10 +44,24 @@ export const renderTimingsSchema = z.object({
 });
 export type RenderTimings = z.infer<typeof renderTimingsSchema>;
 
+/** A comma-separated query value ("api,batch") as a list of one or more items. */
+const commaList = <T extends z.ZodType<unknown, string>>(item: T) =>
+  z
+    .string()
+    .transform((value) =>
+      value
+        .split(",")
+        .map((part) => part.trim())
+        .filter(Boolean),
+    )
+    .pipe(z.array(item).min(1));
+
 /** Filters for listing, exporting and bulk-deleting generations. Non-admins only see their own. */
 export const generationFilterSchema = z.object({
-  source: generationSourceSchema.optional(),
-  status: generationStatusSchema.optional(),
+  /** One or more, comma-separated. */
+  source: commaList(generationSourceSchema).optional(),
+  /** One or more, comma-separated. */
+  status: commaList(generationStatusSchema).optional(),
   userId: z.string().optional(),
   templateId: z.uuid().optional(),
   batchId: z.uuid().optional(),
@@ -58,6 +72,8 @@ export const generationFilterSchema = z.object({
   q: z.string().trim().min(1).max(200).optional(),
   /** Only entries at least this slow, end to end. */
   minTotalMs: z.coerce.number().int().min(0).optional(),
+  /** Only entries faster than this (exclusive), end to end. */
+  maxTotalMs: z.coerce.number().int().min(0).optional(),
   minQueueWaitMs: z.coerce.number().int().min(0).optional(),
 });
 export type GenerationFilter = z.infer<typeof generationFilterSchema>;
@@ -83,6 +99,34 @@ export const generationListQuerySchema = generationFilterSchema.extend({
   limit: z.coerce.number().int().min(1).max(200).default(50),
   offset: z.coerce.number().int().min(0).default(0),
 });
+
+/**
+ * Bucket edges for the render-time histogram, in ms: roughly log-spaced from 0.1 s to 10 s. The
+ * buckets are [0, 100), [100, 150), … [7000, 10000) and 10 s and over.
+ */
+export const RENDER_TIME_EDGES_MS = [
+  100, 150, 200, 300, 500, 700, 1000, 1500, 2000, 3000, 5000, 7000, 10000,
+] as const;
+
+/** GET /generations/render-times: end-to-end times of the filtered entries, ignoring min/max. */
+export const renderTimeHistogramSchema = z.object({
+  buckets: z.array(
+    z.object({
+      minMs: z.number().int(),
+      /** Exclusive; null for the last, open-ended bucket. */
+      maxMs: z.number().int().nullable(),
+      count: z.number().int(),
+    }),
+  ),
+  /** Entries with a time (finished ones). */
+  timed: z.number().int(),
+  p50Ms: z.number().int().nullable(),
+  p95Ms: z.number().int().nullable(),
+  p99Ms: z.number().int().nullable(),
+  /** Matching entries that failed. */
+  failed: z.number().int(),
+});
+export type RenderTimeHistogram = z.infer<typeof renderTimeHistogramSchema>;
 
 const timestamp = z.iso.datetime();
 const ms = z.number().int();

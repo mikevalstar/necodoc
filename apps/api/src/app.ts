@@ -1,10 +1,11 @@
-import { MAX_FILE_BYTES, parseRoles } from "@necodoc/shared";
+import { type Instance, MAX_FILE_BYTES, parseRoles } from "@necodoc/shared";
 import { Hono } from "hono";
 import { bodyLimit } from "hono/body-limit";
 import { HTTPException } from "hono/http-exception";
 import { aiModel } from "./ai";
 import { auditScope } from "./audit";
 import { auth } from "./auth";
+import { env } from "./env";
 import { type AppEnv, requestId } from "./middleware";
 import { observeRequests } from "./observability/http";
 import { adminUserRoutes } from "./routes/admin-users";
@@ -22,6 +23,7 @@ import { pdfSourceRoutes } from "./routes/pdf-sources";
 import { privacyRoutes } from "./routes/privacy";
 import { renderRoutes } from "./routes/render";
 import { reviewRoutes } from "./routes/reviews";
+import { savedViewRoutes } from "./routes/saved-views";
 import { serviceAccountRoutes } from "./routes/service-accounts";
 import { publicShareRoutes, shareLinkRoutes } from "./routes/share-links";
 import { snippetRoutes } from "./routes/snippets";
@@ -67,6 +69,10 @@ app.use(
 const routes = app
   .route("/health", healthRoutes)
   .route("/sso", ssoRoutes)
+  // Public: the login page shows it too. A label for this one installation, not a tenant.
+  .get("/instance", (c) =>
+    c.json({ name: env.INSTANCE_NAME ?? null, env: env.INSTANCE_ENV ?? null } satisfies Instance),
+  )
   .get("/me", (c) => {
     const user = c.get("user");
     if (!user) return c.json({ error: "Unauthorized" }, 401);
@@ -97,6 +103,7 @@ const routes = app
   .route("/webhooks", webhookRoutes)
   .route("/admin/users", adminUserRoutes)
   .route("/audit", auditRoutes)
+  .route("/saved-views", savedViewRoutes)
   .route("/privacy", privacyRoutes)
   .route("/analytics", analyticsRoutes)
   // Public, API keys only (docs/features/html-to-pdf-api.md).

@@ -41,12 +41,31 @@ an API restart replaced the page with an error.
   Items a role can't use are hidden; the pages still guard themselves: opening
   one anyway keeps the URL and shows "You don't have access to this"
   ([auth.ts](../../apps/app/src/lib/auth.ts) `requireAccess`).
+- **Instance identity**: when the deployment sets `INSTANCE_NAME` (and
+  optionally `INSTANCE_ENV`: `prod`, `staging` or `dev`), the top of the
+  sidebar names the instance with its environment ("Harbour Surety · prod"),
+  coloured per environment so staging is never mistaken for production. The
+  rail shows the name's initials; the login page shows the same label. Every
+  customer self-hosts one instance, so this is a label, not a tenant switcher
+  ([env.ts](../../apps/api/src/env.ts), public `GET /api/instance`). Unset, the
+  block is hidden.
 - **Collapsing**: the sidebar collapses to an icon rail (remembered in this
   browser) and is always a rail below 1000 px. In the rail, a section's icon
   opens a menu of its pages, so every page stays reachable.
 - **Top bar**: a breadcrumb (section, then page, then the record a detail
-  page shows, e.g. "Templates › Invoice"; [breadcrumb.ts](../../apps/app/src/lib/breadcrumb.ts)), Help (admins, to the
-  [Admin FAQ](admin-faq.md)) and the notification bell.
+  page shows, e.g. "Templates › Invoice"; [breadcrumb.ts](../../apps/app/src/lib/breadcrumb.ts)),
+  "Search or jump to…" (the [Command palette](command-palette.md), Ctrl+K /
+  Cmd+K), Help (admins, to the [Admin FAQ](admin-faq.md)) and the
+  notification bell.
+- **Ops status bar** (admins, opt-in per browser in Settings › Appearance or
+  from the command palette): a thin bar at the bottom of the shell with the
+  API connection, queue depth, workers online and their busy/total slots, p95
+  render time and failure rate over the last hour, and the API version. Each
+  item opens the admin page behind it (System or Queue). It reads the same
+  data as [Admin › System](render-queue-batch-jobs-and-scaling.md), polls
+  every 30 seconds and pauses while the tab is hidden
+  ([ops-status-bar.tsx](../../apps/app/src/components/ops-status-bar.tsx)).
+  Non-admins never see it.
 - **Account**: at the bottom of the sidebar, your initials and name with a
   light/dark toggle. It opens a menu with Settings, My usage and Sign out
   ([User preferences](user-preferences.md)).
@@ -102,6 +121,10 @@ an API restart replaced the page with an error.
 - [x] List and dashboard pages share one width; forms and editors use theirs.
 - [x] Batch "Cancel remaining" and service account "Disable" ask for
       confirmation.
+- [ ] With `INSTANCE_NAME=Harbour Surety` and `INSTANCE_ENV=prod`, the sidebar
+      and login page read "Harbour Surety · prod"; the rail shows "HS".
+- [ ] An admin who turns on the status bar sees queue depth, workers and p95;
+      it stops polling while the tab is hidden; a viewer has no toggle.
 
 ## Open questions
 

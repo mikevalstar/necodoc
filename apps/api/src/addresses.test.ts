@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { ipAllowed, isAllowedAddress } from "./addresses";
+import { hostOf, ipAllowed, isAllowedAddress } from "./addresses";
 
 describe("ipAllowed (API key allowlists)", () => {
   it("allows any address with an empty list", () => {
@@ -50,5 +50,20 @@ describe("isAllowedAddress (webhook targets)", () => {
     expect(isAllowedAddress("127.0.0.1", true)).toBe(true);
     expect(isAllowedAddress("::1", true)).toBe(true);
     expect(isAllowedAddress("10.0.0.1", true)).toBe(false);
+  });
+});
+
+describe("hostOf", () => {
+  it("keeps only the host and port", () => {
+    expect(hostOf("https://user:secret@otel.example.com:4318/v1/traces?token=x")).toBe(
+      "otel.example.com:4318",
+    );
+    expect(hostOf("http://tsa.example.com")).toBe("tsa.example.com");
+  });
+
+  it("is null for nothing or a non-URL", () => {
+    expect(hostOf(undefined)).toBeNull();
+    expect(hostOf("")).toBeNull();
+    expect(hostOf("not a url")).toBeNull();
   });
 });

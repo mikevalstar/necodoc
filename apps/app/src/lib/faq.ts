@@ -62,12 +62,13 @@ const templates: readonly FaqEntry[] = [
     group: "Templates",
     what: "A template is a document designed once and filled in many times: a certificate, quote or letter. It has content, an optional header and footer, page setup, a theme, the fields it needs and one set of sample data. The PDF preview next to the editor is the real renderer, re-run shortly after each edit.",
     howTo:
-      "Open Templates › New template, give it a name, then build it tab by tab: Content, Header & footer, Fields, Sample data, Page & theme, CSS. Save with the Save button or ⌘/Ctrl+S. The list filters by status (draft, published, unpublished changes, archived) and searches names and descriptions.",
+      "Open Templates › New template, give it a name, then build it tab by tab: Content, Header & footer, Fields, Sample data, Page & theme, CSS. Save with the Save button or ⌘/Ctrl+S. The list filters by status (draft, published, unpublished changes, archived) and searches names and descriptions. Switch between the gallery (a thumbnail of each template's first page) and the table with the buttons next to the count; your browser remembers the choice.",
     limitations: [
       "The editor shows content, not pages. Page breaks, page numbers and the header/footer layout are only visible in the preview.",
       "One draft per template. If someone else saved since you opened it, Save is refused and you have to reload, losing your unsaved changes.",
       "Table column widths aren't carried into the PDF; columns size to their content.",
       "No JavaScript runs in documents, so no client-side charts.",
+      "Gallery thumbnails show the published version's first page with its sample data, or the saved draft's before the first publish. A draft's thumbnail updates when the draft is saved, not when its theme or snippets change.",
     ],
     access: [
       { action: "See published templates", needs: view },
@@ -332,13 +333,16 @@ export const faq: readonly FaqEntry[] = [
     group: "Render",
     what: "necodoc turns HTML and CSS into a PDF with a real browser engine (Chromium), so flexbox, grid, tables that break across pages and web fonts all work. The Render page, the theme preview and every future template use this same renderer, so a preview is exactly the PDF you get.",
     howTo:
-      "Open Render, write HTML (and optional CSS), pick a theme, page size, orientation and margins on Page & theme, then press Render (or ⌘/Ctrl+Enter). The bar above the PDF shows its pages, size and how long it took. Turn on Preview to try things without adding an entry to the generation log.",
+      "Open Render, write HTML (and optional CSS), pick a theme, page size, orientation and margins on Page & theme, then press Render (or ⌘/Ctrl+Enter). The bar above the PDF shows its pages, size and how long it took. Turn on Preview to try things without adding an entry to the generation log. Output sets PDF/A, accessible PDF/UA, certification and the document language. API call shows the same render as a POST /api/v1/render call in curl, TypeScript, Python, .NET or Java, updating as you edit, with a copy button.",
     limitations: [
       "No JavaScript runs in rendered pages: no client-side charts or computed layout.",
       "Nothing is fetched from the internet. Remote images, fonts and @import URLs don't load; upload them as assets or inline them as data: URLs.",
       "Margins and header/footer heights are in millimetres. Page sizes are Letter, A4 and Legal, portrait or landscape.",
       "Chromium rounds millimetre page sizes up by under a point (A4 is 595.9 × 841.9 pt, not 595.3); headers and footers still line up.",
       "Requests and stored files are capped at 20 MB, and renders time out. Long renders aren't queued as background jobs.",
+      "The API call reads the key from $NECODOC_API_KEY; it never holds a real key. Create one with the render:html scope. API renders are always logged (no preview), and the .NET and Java snippets need C# 11 and Java 15 for their multi-line strings.",
+      "Translations aren't on the Render page; send `translations` in the API call to try them.",
+      "Certified renders fail when the server has no certificate (see Admin › System › Configuration), and previews aren't certified.",
     ],
     access: [{ action: "Render", needs: view }],
     spec: "docs/features/html-to-pdf-api.md",
@@ -506,7 +510,7 @@ export const faq: readonly FaqEntry[] = [
   {
     feature: "Navigation and getting started",
     group: "Admin",
-    what: "The sidebar groups the app into Documents, Templates, Developers and Admin, with the current section's pages underneath; the top bar shows where you are, Help and notifications. Your name at the foot of the sidebar opens the account menu (Settings, My usage, Sign out), next to a light/dark toggle. Tables have a comfortable or compact row setting. The home page shows a Get started checklist to people who set necodoc up, ticking off each step (design a template, upload a PDF, publish, fill a document, get an API key, invite the team) as it happens, with the next one in marigold.",
+    what: "The sidebar groups the app into Documents, Templates, Developers and Admin, with the current section's pages underneath; the top bar shows where you are, Search or jump to… (the command palette), Help and notifications. Your name at the foot of the sidebar opens the account menu (Settings, My usage, Sign out), next to a light/dark toggle. Tables have a comfortable or compact row setting. The home page shows a Get started checklist to people who set necodoc up, ticking off each step (design a template, upload a PDF, publish, fill a document, get an API key, invite the team) as it happens, with the next one in marigold.",
     howTo:
       "Pick a section, then a page under it. Collapse the sidebar to icons with the button by the logo; in the icon rail (always used below 1000 px wide and in the template editor) a section's icon opens a menu of its pages. Switch table rows between comfortable and compact with the toggle above a table or in Settings. The sidebar and row choices stay in that browser. Hide the checklist with Hide checklist; it stays hidden in that browser. Help links next to page titles open the matching entry here.",
     limitations: [
@@ -518,6 +522,50 @@ export const faq: readonly FaqEntry[] = [
       { action: "Use the app", needs: view },
       { action: "See the Admin section and Help links", needs: "admin" },
     ],
+    spec: "docs/features/app-shell-and-navigation.md",
+  },
+  {
+    feature: "Command palette",
+    group: "Admin",
+    what: "One search box for the whole app. It jumps to any page your roles can open, finds templates, documents, generations (by file name or id), snippets, themes and, for admins, users, and runs common actions: New template, Upload PDF, New document, Create API key, switch light/dark, compact table rows and, for admins, the ops status bar. With an empty box it lists what you opened from it recently.",
+    howTo:
+      'Press Ctrl+K (⌘K on a Mac) anywhere, or click Search or jump to… in the top bar. Type part of a name, move with the arrow keys and press Enter. "Show all" opens the list page with the search filled in.',
+    limitations: [
+      "Matches names (and template descriptions), not template content or answers inside documents.",
+      "A few hits per group; generations and users are searched once you've typed two characters.",
+      "Recent items are kept in this browser only.",
+    ],
+    access: [
+      { action: "Use it", needs: view },
+      { action: "Find users, toggle the ops status bar", needs: "admin" },
+    ],
+    spec: "docs/features/command-palette.md",
+  },
+  {
+    feature: "Instance name and environment label",
+    group: "Admin",
+    what: 'The top of the sidebar, and the sign-in page, can name this installation with its environment, e.g. "Harbour Surety · PROD", coloured red for prod, amber for staging and green for dev, so nobody mistakes staging for production. The collapsed sidebar shows the name\'s initials.',
+    howTo:
+      "Set INSTANCE_NAME (and optionally INSTANCE_ENV: prod, staging or dev) in the server's environment, e.g. the Compose .env or the Helm chart's config values, then restart.",
+    limitations: [
+      "A label only: one installation is one organisation, there's no switching between instances.",
+      "Changing it means changing the environment and restarting the API.",
+    ],
+    access: [{ action: "See it", needs: view }],
+    spec: "docs/features/app-shell-and-navigation.md",
+  },
+  {
+    feature: "Ops status bar",
+    group: "Admin",
+    what: "An optional thin bar along the bottom of every page for admins: whether the API answers, the render queue (waiting and running), workers online with busy/total slots, p95 render time and failure rate over the last hour, and the API version (flagged when other versions are online, mid-deploy). A coloured dot marks anything that needs a look. Each item opens Admin › System or Admin › Queue.",
+    howTo:
+      'Turn it on in Settings › Appearance › Ops status bar, or with "Show ops status bar" in the command palette. It\'s per browser and off by default.',
+    limitations: [
+      "Refreshes every 30 seconds, and not at all while the tab is in the background.",
+      "Admins only; there's no separate operations role.",
+      "Hides p95 and failure rate below 1000 px wide.",
+    ],
+    access: [{ action: "Turn on and see it", needs: "admin" }],
     spec: "docs/features/app-shell-and-navigation.md",
   },
   {
@@ -586,12 +634,14 @@ export const faq: readonly FaqEntry[] = [
   {
     feature: "System metrics",
     group: "Admin",
-    what: "Admin › System lists every process (role, version, renders running, event-loop lag, last heartbeat) and warns when no worker is online. It shows queue depth for interactive and batch renders, renders per minute, error rate, and p50/p95/p99 total time and queue wait, with a breakdown by source and template, over 15 minutes to 7 days.",
-    howTo: "Open Admin › System and pick a window. It refreshes every 5 seconds.",
+    what: "Admin › System lists every process (role, version, renders running, event-loop lag, last heartbeat) and warns when no worker is online. It shows queue depth for interactive and batch renders, renders per minute, error rate, and p50/p95/p99 total time and queue wait, with a breakdown by source and template, over 15 minutes to 7 days. Configuration shows how the server is set up, without secrets: Chromium version, AI on or off and its model, sign-in (password, trusted header, SSO providers), the certifying certificate (subject, issuer, expiry, with a warning under 30 days) and its timestamp authority, output storage with a live reachability check, Prometheus metrics, OpenTelemetry traces, logging and retention.",
+    howTo:
+      "Open Admin › System and pick a window. It refreshes every 5 seconds. Configuration loads once per visit; Check again re-reads it, for example after fixing storage or replacing the certificate.",
     limitations: [
       "Metrics are computed from the generation log, so deleted entries drop out of them.",
       "No alerting here; for that, scrape the Prometheus metrics (see Logs, metrics and traces) into your monitoring.",
       "Offline processes stay listed for a day.",
+      "Configuration is the environment of the API process that answered. Workers have their own; certification runs on workers, so a worker with different CERTIFY_* settings isn't shown. Changing a setting means changing the environment and restarting.",
     ],
     access: [{ action: "View", needs: "admin" }],
     spec: "docs/features/render-queue-batch-jobs-and-scaling.md",
@@ -617,15 +667,21 @@ export const faq: readonly FaqEntry[] = [
     group: "Admin",
     what: "A live view of the render queue: how many jobs are waiting, running and failed, how long the oldest has waited, which workers are online and how many of their slots are busy, then the jobs themselves with the file, batch, worker and timings for each. It refreshes every few seconds.",
     howTo:
-      "Open Admin › Queue. Click a state above the list to filter by it, or pick a queue. Pause updates to read in peace. Cancel (it asks first) removes a waiting job, or drops the result of a running one. Re-run on a failed job renders the same input again as a new entry.",
+      "Open Admin › Queue. Click a state above the list to filter by it, or pick a queue. Pause updates to read in peace. Cancel (it asks first) removes a waiting job, or drops the result of a running one. Retry on a failed render job runs it again in place: same job, same generation entry, one more attempt. Retry all failed does that for every failed render job in the chosen queue (it asks first). Re-run renders the same input again as a new entry. Pause queue (under Queues) stops every worker picking up that queue's jobs until you resume it; running jobs finish, new ones keep queuing.",
     limitations: [
       "It reads the queue library's job table directly, so it may need a fix after a library upgrade.",
       "Cancelling a running job doesn't stop the browser: the render finishes, but its result is thrown away and the generation shows as cancelled.",
       "The list has a fixed order (running first, then by priority and age) and can't be sorted.",
       "Completed jobs are only kept by the queue for 7 days.",
-      "Oldest waiting is worked out from the jobs on the current page, so with more jobs than fit on a page it can miss older ones.",
+      "A paused queue stays paused, across restarts, until an admin resumes it. Workers notice within a few seconds.",
+      "While the render queue is paused, renders from the app and the API come back as queued (202) right away and finish after you resume.",
+      "Interactive and batch renders share one queue, so pausing it pauses both.",
+      "Retry works on render jobs only, not on failed webhook or field detection jobs. A retried generation sends its webhook again when it finishes.",
     ],
-    access: [{ action: "View and cancel jobs", needs: "admin" }],
+    access: [
+      { action: "View and cancel jobs", needs: "admin" },
+      { action: "Pause, resume and retry", needs: "admin" },
+    ],
     spec: "docs/features/render-queue-batch-jobs-and-scaling.md",
   },
   {

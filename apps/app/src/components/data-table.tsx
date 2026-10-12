@@ -91,6 +91,7 @@ export function DataTable<TData extends RowData, TSort extends string>({
   error,
   noun,
   toolbar,
+  actions,
   empty = `No ${noun}s found.`,
   onRowClick,
   rowActions,
@@ -114,6 +115,8 @@ export function DataTable<TData extends RowData, TSort extends string>({
   noun: string;
   /** Filters, shown left of the Columns menu. */
   toolbar?: ReactNode;
+  /** Beside the density and Columns controls, e.g. the saved views menu. */
+  actions?: ReactNode;
   empty?: ReactNode;
   /**
    * A mouse shortcut for the link in the row's first cell, which must go to the same place (the
@@ -150,6 +153,7 @@ export function DataTable<TData extends RowData, TSort extends string>({
       <div className="flex flex-wrap items-center gap-3 border-b border-hair px-4 py-3.5">
         {toolbar}
         <div className="ml-auto flex items-center gap-2">
+          {actions}
           <DensityToggle />
           <DropdownMenu>
             <DropdownMenuTrigger render={<Button variant="secondary" size="sm" />}>

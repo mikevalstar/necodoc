@@ -1,6 +1,15 @@
+import {
+  type PausableQueue,
+  pausableQueues,
+  type QueueSettings,
+  queueSettingsSchema,
+  withPaused,
+} from "@necodoc/shared";
 import { Gauge } from "@prometheus-io/client";
+import { eq, sql } from "drizzle-orm";
 import { PgBoss } from "pg-boss";
 import { db } from "./db";
+import { setting } from "./db/schema";
 import { env, runsWorker } from "./env";
 import { log } from "./log";
 import { registry } from "./observability/metrics";
@@ -87,6 +96,47 @@ new Gauge({
     }
   },
 });
+
+new Gauge({
+  name: "necodoc_queue_paused",
+  help: "1 while an admin has the queue paused (no worker picks up its jobs), else 0.",
+  labelNames: ["queue"] as const,
+  registers: [registry],
+  async collect() {
+    const paused = await pausedQueues();
+    for (const queue of pausableQueues) this.set({ queue }, paused.includes(queue) ? 1 : 0);
+  },
+});
+
+// Paused queues (docs/features/render-queue-batch-jobs-and-scaling.md): one setting row every
+// process reads, so a pause reaches every worker and survives restarts. pg-boss 12 has no pause of
+// its own; workers stop and restart their own consumers (src/worker.ts).
+
+const PAUSE_CHANNEL = "queue_paused";
+
+export async function pausedQueues(): Promise<PausableQueue[]> {
+  const [row] = await db.select().from(setting).where(eq(setting.key, "queues"));
+  return row ? queueSettingsSchema.parse(row.value).paused : [];
+}
+
+/** Saves the queue's paused state and tells every worker to act on it now. Returns the before and after. */
+export async function setQueuePaused(queue: PausableQueue, paused: boolean, userId: string) {
+  return db.transaction(async (tx) => {
+    // Locks the row, so two admins pausing different queues at once don't drop each other's.
+    const [row] = await tx.select().from(setting).where(eq(setting.key, "queues")).for("update");
+    const before = row ? queueSettingsSchema.parse(row.value).paused : [];
+    const value: QueueSettings = { paused: withPaused(before, queue, paused) };
+    await tx
+      .insert(setting)
+      .values({ key: "queues", value, updatedBy: userId })
+      .onConflictDoUpdate({ target: setting.key, set: { value, updatedBy: userId } });
+    await tx.execute(sql`select pg_notify(${PAUSE_CHANNEL}, '')`);
+    return { before, after: value.paused };
+  });
+}
+
+/** Calls `onChange` whenever an admin pauses or resumes a queue (on any API node). */
+export const onPauseChange = (onChange: () => void) => db.$client.listen(PAUSE_CHANNEL, onChange);
 
 /** For readiness checks. */
 export const queueStatus = { started: false };

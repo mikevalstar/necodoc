@@ -140,6 +140,9 @@ export const assetFileUrl = (id: string) => `/api/assets/${id}/file`;
 export const pdfSourceUrl = (id: string) => `/api/pdf-sources/${id}/pdf`;
 export const generationPdfUrl = (id: string) => `/api/generations/${id}/pdf`;
 export const submissionPdfUrl = (id: string) => `/api/submissions/${id}/pdf`;
+/** `version` is the list's `thumbnail`, so a new publish or save fetches a new image. */
+export const templateThumbnailUrl = (id: string, version: string) =>
+  `/api/templates/${id}/thumbnail?v=${encodeURIComponent(version)}`;
 
 /** A chat message with the template assistant's typed proposals (ADR 0035). */
 export type AssistantMessage = UIMessage<unknown, UIDataTypes, AssistantTools>;

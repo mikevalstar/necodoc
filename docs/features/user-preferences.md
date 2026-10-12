@@ -45,6 +45,9 @@ Pending users need it too, since they can sign in but have no roles yet.
 - **Table rows:** comfortable or compact, the same setting as the toggle above
   tables ([Design system](design-system.md), [density.ts](../../apps/app/src/lib/density.ts)).
   Stored in this browser only.
+- **Ops status bar** (admins): show the [ops status bar](app-shell-and-navigation.md)
+  at the bottom of every page. Off by default; stored in this browser only
+  ([ops-status-bar.tsx](../../apps/app/src/components/ops-status-bar.tsx)).
 - **While impersonating:** an admin sees the user's profile and theme only.
   Password, sessions and account deletion are hidden: the password and account
   aren't the admin's to change, and the session list can't show the

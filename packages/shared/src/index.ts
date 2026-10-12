@@ -17,6 +17,7 @@ export * from "./render";
 export * from "./return-path";
 export * from "./review";
 export * from "./roles";
+export * from "./saved-view";
 export * from "./signing";
 export * from "./snippet";
 export * from "./sso";

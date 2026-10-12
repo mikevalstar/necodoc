@@ -1,11 +1,15 @@
 import {
+  type ConfigState,
+  certificationState,
   type MetricsWindow,
   metricsWindowSchema,
   type Percentiles,
   type PublishingSettings,
   publishingSettingsSchema,
   type RetentionSettings,
+  type SystemConfig,
 } from "@necodoc/shared";
+import { ArrowClockwiseIcon } from "@phosphor-icons/react";
 import {
   keepPreviousData,
   queryOptions,
@@ -58,6 +62,13 @@ const systemQuery = (window: MetricsWindow) =>
     refetchInterval: 5000,
     placeholderData: keepPreviousData,
   });
+
+/** Fetched once per visit, not polled: it starts Chromium and round-trips storage. */
+const configQuery = queryOptions({
+  queryKey: ["system", "config"],
+  queryFn: async () => (await ok(api.system.config.$get())).json(),
+  staleTime: 60_000,
+});
 
 const retentionQuery = queryOptions({
   queryKey: ["system", "retention"],
@@ -135,6 +146,7 @@ function System() {
       <ErrorAlert error={system.error} />
       {system.isPending && <ListSkeleton rows={4} />}
       {data && <Health data={data} window={window} />}
+      <ConfigurationCard />
 
       <section aria-labelledby="settings-heading" className="space-y-3">
         <h2 id="settings-heading" className="font-heading text-xl font-bold tracking-tight">
@@ -179,6 +191,11 @@ function Health({ data, window }: { data: SystemData; window: MetricsWindow }) {
             )}
             {slots > 0 && (
               <span className="text-sm text-ink-3">{plural(slots, "render slot")}</span>
+            )}
+            {data.pausedQueues.length > 0 && (
+              <Badge variant="warn" dot title="Admin › Queue resumes it">
+                Paused: {data.pausedQueues.join(", ")}
+              </Badge>
             )}
           </StatusItem>
           <StatusItem label="Version">
@@ -447,6 +464,184 @@ function Breakdown({
   );
 }
 
+const stateBadge = { ok: "ok", warn: "warn", bad: "bad", off: "secondary" } as const;
+
+function Pill({ state, children }: { state: ConfigState; children: ReactNode }) {
+  return (
+    <Badge variant={stateBadge[state]} dot>
+      {children}
+    </Badge>
+  );
+}
+
+const Detail = ({
+  children,
+  mono,
+  title,
+}: {
+  children: ReactNode;
+  mono?: boolean;
+  title?: string;
+}) => (
+  <span
+    title={title}
+    className={cn("min-w-0 truncate text-sm text-ink-3", mono && "font-mono text-xs")}
+  >
+    {children}
+  </span>
+);
+
+const typeLabels = { oidc: "OIDC", saml: "SAML", header: "Trusted header" } as const;
+
+function ConfigurationCard() {
+  const config = useQuery(configQuery);
+  return (
+    <Card className="gap-0 py-0">
+      <CardBar
+        title="Configuration"
+        description="What this API process is set up with (environment variables). No secrets are shown."
+      >
+        <Button
+          variant="secondary"
+          size="sm"
+          disabled={config.isFetching}
+          onClick={() => config.refetch()}
+        >
+          <ArrowClockwiseIcon weight="bold" />
+          {config.isFetching ? "Checking…" : "Check again"}
+        </Button>
+      </CardBar>
+      {config.data ? (
+        <ConfigurationList config={config.data} />
+      ) : (
+        <div className="px-4 py-4">
+          <ErrorAlert error={config.error} />
+          {config.isPending && <ListSkeleton rows={4} />}
+        </div>
+      )}
+    </Card>
+  );
+}
+
+function ConfigurationList({ config }: { config: SystemConfig }) {
+  const { chromium, ai, auth, certification: cert, storage, tracing, retention } = config;
+  const certified = certificationState(cert);
+  const keep = (days: number | null, what: string) =>
+    days === null ? `${what} kept forever` : `${what} deleted after ${plural(days, "day")}`;
+  return (
+    // gap-px over a hair background draws the dividers between cells in both layouts.
+    <dl className="grid gap-px overflow-hidden rounded-b-xl bg-hair md:grid-cols-2 [&>div]:bg-card">
+      <StatusItem label="Instance">
+        {config.instance.name ? (
+          <>
+            <span className="text-sm font-semibold">{config.instance.name}</span>
+            {config.instance.env && <Badge variant="secondary">{config.instance.env}</Badge>}
+          </>
+        ) : (
+          <Pill state="off">Not named</Pill>
+        )}
+        <Detail>
+          Role <span className="font-mono text-xs">{config.role}</span>
+        </Detail>
+      </StatusItem>
+      <StatusItem label="Chromium">
+        {chromium.version ? (
+          <>
+            <Pill state="ok">Running</Pill>
+            <Detail mono>{chromium.version}</Detail>
+          </>
+        ) : (
+          <>
+            <Pill state="bad">Won&apos;t start</Pill>
+            <Detail>{chromium.error}</Detail>
+          </>
+        )}
+      </StatusItem>
+      <StatusItem label="AI assistant">
+        <Pill state={ai.enabled ? "ok" : "off"}>{ai.enabled ? "On" : "Off"}</Pill>
+        <Detail mono>{ai.enabled ? ai.model : "No ANTHROPIC_KEY"}</Detail>
+      </StatusItem>
+      <StatusItem label="Sign-in">
+        <Pill state={auth.password ? "ok" : "off"}>Password {auth.password ? "on" : "off"}</Pill>
+        <Pill state={auth.trustedHeader ? "ok" : "off"}>
+          Trusted header {auth.trustedHeader ? "on" : "off"}
+        </Pill>
+        {auth.sso.length === 0 ? (
+          <Detail>No SSO providers</Detail>
+        ) : (
+          auth.sso.map((p) => (
+            <Badge key={p.id} variant="secondary" title={p.label}>
+              <span className="font-mono">{p.id}</span> · {typeLabels[p.type]}
+            </Badge>
+          ))
+        )}
+      </StatusItem>
+      <StatusItem label="Certification">
+        {!cert ? (
+          <>
+            <Pill state="off">Not configured</Pill>
+            <Detail>Certified renders fail until CERTIFY_* is set.</Detail>
+          </>
+        ) : cert.error || !cert.notAfter ? (
+          <>
+            <Pill state="bad">Can&apos;t load</Pill>
+            <Detail>{cert.error}</Detail>
+          </>
+        ) : (
+          <>
+            <Pill state={certified.state}>
+              {certified.state === "ok"
+                ? `Valid until ${dayjs(cert.notAfter).format("MMM D, YYYY")}`
+                : certified.state === "warn"
+                  ? `Expires in ${plural(certified.daysLeft ?? 0, "day")}`
+                  : "Expired"}
+            </Pill>
+            <Detail>
+              {cert.subject}
+              {cert.issuer && ` · issued by ${cert.issuer}`}
+            </Detail>
+            <Pill state={cert.tsaHost ? "ok" : "off"}>
+              {cert.tsaHost ? `Timestamps: ${cert.tsaHost}` : "No timestamp authority"}
+            </Pill>
+          </>
+        )}
+      </StatusItem>
+      <StatusItem label="Output storage">
+        <Pill state={storage.ok ? "ok" : "bad"}>{storage.ok ? "Reachable" : "Unreachable"}</Pill>
+        <Badge variant="secondary">{storage.driver}</Badge>
+        <Detail mono title={storage.ok ? storage.target : (storage.error ?? undefined)}>
+          {storage.ok ? storage.target : storage.error}
+        </Detail>
+      </StatusItem>
+      <StatusItem label="Prometheus metrics">
+        <Pill state={config.metricsPort ? "ok" : "off"}>
+          {config.metricsPort ? `Port ${config.metricsPort}` : "Off"}
+        </Pill>
+      </StatusItem>
+      <StatusItem label="Traces (OpenTelemetry)">
+        <Pill state={tracing.enabled ? "ok" : "off"}>{tracing.enabled ? "Exporting" : "Off"}</Pill>
+        {tracing.endpointHost && <Detail mono>{tracing.endpointHost}</Detail>}
+      </StatusItem>
+      <StatusItem label="Logs">
+        <Badge variant="secondary" className="font-mono">
+          {config.logging.level}
+        </Badge>
+        <Badge variant="secondary" className="font-mono">
+          {config.logging.format}
+        </Badge>
+      </StatusItem>
+      <StatusItem label="Retention">
+        <Pill state={retention.outputDays === null && retention.inputDays === null ? "off" : "ok"}>
+          {retention.outputDays === null && retention.inputDays === null ? "Off" : "On"}
+        </Pill>
+        <Detail>
+          {keep(retention.outputDays, "PDFs")} · {keep(retention.inputDays, "inputs")}
+        </Detail>
+      </StatusItem>
+    </dl>
+  );
+}
+
 /** Each switch saves on change. */
 function PublishingCard() {
   const queryClient = useQueryClient();
@@ -533,6 +728,7 @@ function RetentionForm({ saved }: { saved: RetentionSettings }) {
       ).json(),
     onSuccess: (data) => {
       queryClient.setQueryData(retentionQuery.queryKey, data);
+      queryClient.invalidateQueries({ queryKey: configQuery.queryKey });
       toast.success("Retention saved");
     },
   });

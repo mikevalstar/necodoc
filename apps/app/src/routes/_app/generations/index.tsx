@@ -8,7 +8,6 @@ import {
   DotsThreeIcon,
   DownloadSimpleIcon,
   FunnelSimpleIcon,
-  MagnifyingGlassIcon,
   TrashIcon,
   WarningCircleIcon,
   XIcon,
@@ -37,6 +36,8 @@ import {
 } from "@/components/data-table";
 import { ErrorAlert } from "@/components/form";
 import { FaqLink, Page, PageHeader } from "@/components/page";
+import { SavedViews } from "@/components/saved-views";
+import { TokenBar } from "@/components/token-bar";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -63,6 +64,14 @@ import { dayjs } from "@/lib/date";
 import { batchesQuery, templatesQuery } from "@/lib/queries";
 import { cn, formatBytes } from "@/lib/utils";
 import {
+  generationFiltersSearchSchema,
+  parseFilters,
+  serializeFilters,
+  sinceInstant,
+  suggest,
+  type TokenLookups,
+} from "./-filter-tokens";
+import {
   DeleteGenerationDialog,
   formatMs,
   SignedLinkDialog,
@@ -71,6 +80,7 @@ import {
   statusLabels,
   useRerun,
 } from "./-generation-actions";
+import { RenderTimeHistogram } from "./-render-time-histogram";
 
 // Spec: docs/features/generation-log.md. The API filters, sorts and pages (the log runs to tens
 // of thousands of rows) and scopes non-admins to their own entries.
@@ -88,40 +98,30 @@ const sortable = [
   "attempts",
 ] as const satisfies readonly GenerationSort[];
 
-const day = z.string().regex(/^\d{4}-\d{2}-\d{2}$/);
-
-const searchSchema = dataTableSearchSchema(sortable, "queuedAt").extend({
-  q: z.string().optional(),
-  source: generationSourceSchema.optional(),
-  status: generationStatusSchema.optional(),
-  userId: z.string().optional(),
-  templateId: z.uuid().optional(),
-  batchId: z.uuid().optional(),
-  /** Admin › API keys links here to show one key's calls. */
-  apiKeyId: z.string().optional(),
-  /** Inclusive days, YYYY-MM-DD in local time. */
-  from: day.optional(),
-  to: day.optional(),
-  /** Seconds, end to end. */
-  slowerThan: z.number().min(0).optional(),
-});
+const searchSchema = dataTableSearchSchema(sortable, "queuedAt").extend(
+  generationFiltersSearchSchema.shape,
+);
 type GenerationsSearch = z.infer<typeof searchSchema>;
 
-/** The API filter for the URL's filters: whole local days become instants. */
+/** Seconds → a ms query string (the API coerces). */
+const msParam = (seconds: number | undefined) =>
+  seconds === undefined ? undefined : String(Math.round(seconds * 1000));
+
+/** The API filter for the URL's filters: whole local days and relative times become instants. */
 function toFilter(search: GenerationsSearch) {
-  const { q, source, status, userId, templateId, batchId, apiKeyId, from, to, slowerThan } = search;
+  const { q, source, status, userId, templateId, batchId, apiKeyId, from, to, since } = search;
   return {
     q: q?.trim() || undefined,
-    source,
-    status,
+    source: source?.join(","),
+    status: status?.join(","),
     userId,
     templateId,
     batchId,
     apiKeyId,
-    from: from && dayjs(from).startOf("day").toISOString(),
+    from: since ? sinceInstant(since) : from && dayjs(from).startOf("day").toISOString(),
     to: to && dayjs(to).endOf("day").toISOString(),
-    // Query strings; the API coerces.
-    minTotalMs: slowerThan === undefined ? undefined : String(Math.round(slowerThan * 1000)),
+    minTotalMs: msParam(search.slowerThan),
+    maxTotalMs: msParam(search.fasterThan),
   } satisfies z.input<typeof generationFilterSchema>;
 }
 
@@ -148,6 +148,31 @@ function generationsQuery(search: GenerationsSearch) {
     queryFn: async () => (await ok(api.generations.$get({ query }))).json(),
     placeholderData: keepPreviousData,
   });
+}
+
+/** The histogram leaves out the time range (it shows it), so picking a bar doesn't refetch it. */
+function renderTimesQuery(search: GenerationsSearch) {
+  const { minTotalMs: _min, maxTotalMs: _max, ...query } = toFilter(search);
+  return queryOptions({
+    queryKey: ["generations", "render-times", query],
+    queryFn: async () => (await ok(api.generations["render-times"].$get({ query }))).json(),
+    placeholderData: keepPreviousData,
+  });
+}
+
+const sinceOptions = [
+  { value: "1h", label: "Last hour" },
+  { value: "24h", label: "Last 24 hours" },
+  { value: "7d", label: "Last 7 days" },
+  { value: "30d", label: "Last 30 days" },
+];
+
+/** One value shows as itself; several as a combined option the select can't otherwise name. */
+function listSelect<T extends string>(values: T[] | undefined, labels: Record<T, string>) {
+  if (!values?.length) return { value: undefined, extra: [] };
+  if (values.length === 1) return { value: values[0], extra: [] };
+  const value = values.join(",");
+  return { value, extra: [{ value, label: values.map((v) => labels[v]).join(", ") }] };
 }
 
 const usersQuery = queryOptions({
@@ -314,6 +339,7 @@ function Generations() {
   const templates = useQuery(templatesQuery);
   const batches = useQuery(batchesQuery);
   const keys = useQuery(apiKeysQuery(isAdmin ? { all: "true" } : {}));
+  const renderTimes = useQuery(renderTimesQuery(search));
   const rerun = useRerun();
   const [dialog, setDialog] = useState<Dialog | null>(null);
   const close = () => setDialog(null);
@@ -334,6 +360,18 @@ function Generations() {
     search.slowerThan,
   ].filter((value) => value !== undefined).length;
   const [moreOpen, setMoreOpen] = useState(moreCount > 0);
+  const lookups: TokenLookups = {
+    templates: templates.data ?? [],
+    users: (users.data?.users ?? []).map(({ id, name, email }) => ({ id, name, email })),
+    keys: keys.data ?? [],
+    batches: (batches.data ?? []).map((batch) => ({
+      id: batch.id,
+      label: `${batch.templateName} · ${dayjs(batch.createdAt).format("YYYY-MM-DD HH:mm")}`,
+    })),
+    isAdmin,
+  };
+  const status = listSelect(search.status, statusLabels);
+  const source = listSelect(search.source, sourceLabels);
 
   return (
     <Page>
@@ -364,6 +402,12 @@ function Generations() {
 
       <ErrorAlert error={rerun.error} />
 
+      <RenderTimeHistogram
+        data={renderTimes.data}
+        range={{ slowerThan: search.slowerThan, fasterThan: search.fasterThan }}
+        onRange={setFilter}
+      />
+
       <DataTable
         columns={isAdmin ? allColumns : ownColumns}
         rows={generations.data?.items}
@@ -373,6 +417,18 @@ function Generations() {
         onStateChange={setSearch}
         sortable={sortable}
         isFetching={generations.isPlaceholderData}
+        actions={
+          <SavedViews
+            table="generations"
+            search={search}
+            isAdmin={isAdmin}
+            onApply={(view) => {
+              const parsed = searchSchema.safeParse(view);
+              if (parsed.success) navigate({ search: parsed.data });
+              else toast.error("That view no longer fits this page");
+            }}
+          />
+        }
         error={generations.error}
         noun="generation"
         empty={
@@ -450,43 +506,50 @@ function Generations() {
         )}
         toolbar={
           <>
-            <div className="relative">
-              <MagnifyingGlassIcon
-                aria-hidden
-                className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-ink-3"
-              />
-              <DebouncedInput
-                type="search"
-                aria-label="Search generations"
-                className={cn("w-48 pl-9", search.q && activeFilter)}
-                placeholder="File, error or ID…"
-                title="File name, template name, error, or a generation, batch or request ID"
-                value={search.q ?? ""}
-                onCommit={(q) => setFilter({ q: q.trim() || undefined })}
-              />
-            </div>
+            <TokenBar
+              label="Filter generations"
+              className="basis-full"
+              placeholder="Search, or filter: status:error source:api render:>2s since:7d template: key: batch:"
+              value={serializeFilters(search, lookups)}
+              suggest={(text, caret) => suggest(text, caret, lookups)}
+              onApply={(text) => {
+                const { filters, errors } = parseFilters(text, lookups);
+                if (errors.length === 0) setFilter(filters);
+                return errors;
+              }}
+            />
             <FilterSelect
               label="Status"
               any="Any status"
-              value={search.status}
-              options={generationStatusSchema.options.map((value) => ({
-                value,
-                label: statusLabels[value],
-              }))}
+              value={status.value}
+              options={[
+                ...status.extra,
+                ...generationStatusSchema.options.map((value) => ({
+                  value,
+                  label: statusLabels[value],
+                })),
+              ]}
               onChange={(value) =>
-                setFilter({ status: generationStatusSchema.safeParse(value).data })
+                setFilter({
+                  status: z.array(generationStatusSchema).safeParse(value.split(",")).data,
+                })
               }
             />
             <FilterSelect
               label="Source"
               any="Any source"
-              value={search.source}
-              options={generationSourceSchema.options.map((value) => ({
-                value,
-                label: sourceLabels[value],
-              }))}
+              value={source.value}
+              options={[
+                ...source.extra,
+                ...generationSourceSchema.options.map((value) => ({
+                  value,
+                  label: sourceLabels[value],
+                })),
+              ]}
               onChange={(value) =>
-                setFilter({ source: generationSourceSchema.safeParse(value).data })
+                setFilter({
+                  source: z.array(generationSourceSchema).safeParse(value.split(",")).data,
+                })
               }
             />
             <FilterSelect
@@ -498,6 +561,14 @@ function Generations() {
                 label: template.name,
               }))}
               onChange={(value) => setFilter({ templateId: z.uuid().safeParse(value).data })}
+            />
+            <FilterSelect
+              label="Queued within"
+              any="Any time"
+              value={search.since}
+              options={sinceOptions}
+              // A relative start replaces a fixed one.
+              onChange={(value) => setFilter({ since: value || undefined, from: undefined })}
             />
             <Button
               variant="outline"
@@ -556,7 +627,9 @@ function Generations() {
                     title="Queued from"
                     className={cn("w-36", search.from && activeFilter)}
                     value={search.from ?? ""}
-                    onChange={(e) => setFilter({ from: e.target.value || undefined })}
+                    onChange={(e) =>
+                      setFilter({ from: e.target.value || undefined, since: undefined })
+                    }
                   />
                   <span className="text-[13px] text-ink-3">to</span>
                   <Input

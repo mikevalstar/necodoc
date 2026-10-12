@@ -19,6 +19,7 @@ Add one with `okq new feature "<title>"`.
 | Assets | [assets.md](assets.md) |
 | Audit log | [audit-log.md](audit-log.md) |
 | Combining PDFs into packets | [combining-pdfs-into-packets.md](combining-pdfs-into-packets.md) |
+| Command palette | [command-palette.md](command-palette.md) |
 | Competitive scope | [competitive-scope.md](competitive-scope.md) |
 | Design system | [design-system.md](design-system.md) |
 | Document localization | [document-localization.md](document-localization.md) |
@@ -33,6 +34,7 @@ Add one with `okq new feature "<title>"`.
 | Publishing and versions | [publishing-and-versions.md](publishing-and-versions.md) |
 | Render queue, batch jobs and scaling | [render-queue-batch-jobs-and-scaling.md](render-queue-batch-jobs-and-scaling.md) |
 | Review and approval | [review-and-approval.md](review-and-approval.md) |
+| Saved views | [saved-views.md](saved-views.md) |
 | Self-hosting | [self-hosting.md](self-hosting.md) |
 | Share links and data requests | [share-links-and-data-requests.md](share-links-and-data-requests.md) |
 | Signing packages | [signing-packages.md](signing-packages.md) |

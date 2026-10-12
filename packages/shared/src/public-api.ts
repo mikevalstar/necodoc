@@ -112,7 +112,7 @@ export const v1GenerationSchema = generationSummarySchema
   .meta({ id: "Generation" });
 
 export const v1TemplateSchema = templateSummarySchema
-  .omit({ hasUnpublishedChanges: true, archivedAt: true })
+  .omit({ hasUnpublishedChanges: true, archivedAt: true, thumbnail: true })
   .meta({ id: "Template" });
 
 export const v1TemplateDetailSchema = v1TemplateSchema

@@ -44,7 +44,7 @@ needs counting.
 - Live previews while editing are not logged.
 - **Generations page** ([generations](../../apps/app/src/routes/_app/generations/index.tsx)):
   admins see every entry and filter by source, status, user, template, batch,
-  date range, minimum duration and free text (file, template name, error,
+  date range, render-time range and free text (file, template name, error,
   request id, or an id); sort by time, duration, size, pages or file name;
   choose which columns show; open one to see its input, error and output.
   It stays fast at tens of thousands of entries: the server filters, sorts
@@ -52,6 +52,27 @@ needs counting.
   columns live in the URL, so a view can be shared or bookmarked and Back
   undoes the last change. Built on the shared data table
   ([ADR 0021](../adrs/0021-tanstack-table-for-server-side-data-tables.md)).
+- **Filter bar**: one text box takes typed tokens, e.g.
+  `status:error,cancelled source:api,batch render:>0.5s since:7d
+  template:"Notary bond" key:prod user:alice batch:3f2a`, plus free text
+  for the search above. It suggests keys and values as you type, and it
+  mirrors the URL both ways: changing a select rewrites the tokens and
+  applying tokens sets the selects. Status and source take several values.
+  `since` is relative (`1h`, `24h`, `7d`) or a date, so a saved view keeps
+  "the last 7 days". Unknown tokens are reported, not silently dropped. The
+  selects stay for anyone who doesn't type tokens
+  ([parser](../../apps/app/src/routes/_app/generations/-filter-tokens.ts)).
+- **Render-time histogram** above the table: end-to-end time of the entries
+  matching the current filters, in log-scale buckets from under 0.1 s to
+  10 s and over, with p50, p95, p99 and the failed count beside it. The
+  server counts the buckets (`GET /api/generations/render-times`), so it
+  stays cheap at tens of thousands of rows. It ignores the render-time
+  filter itself and highlights the selected range; picking a bucket, or
+  dragging across several, sets that range (`slowerThan` / `fasterThan`).
+  Each bar is a button with its range and count, so it works by keyboard
+  and screen reader.
+- **Saved views** of the filters, sort and columns
+  ([saved views](saved-views.md)).
 - **Export** the filtered list (metadata, not PDFs) as CSV.
 - **Retention** (admin setting): delete outputs, and optionally inputs, older
   than N days while keeping the metadata. Runs as a scheduled job; changes are
@@ -84,6 +105,10 @@ needs counting.
       after it expires.
 - [x] The entry's page makes a signed link without an API call.
 - [x] A download answers range requests with 206 and a matching ETag with 304.
+- [ ] Typing `status:error render:>2s since:7d` filters the log and sets the
+      matching selects; changing a select updates the tokens.
+- [ ] The histogram reflects the other filters, and picking a bucket filters
+      the table to that range.
 
 ## Known limitations
 
@@ -103,6 +128,10 @@ needs counting.
 - Bulk delete needs at least one filter, so one request can't wipe the whole log.
 - Re-running an entry whose input retention removed is refused.
 - The CSV export stops at 100,000 rows.
+- Entries still queued or running have no end-to-end time, so the histogram
+  and its percentiles leave them out.
+- Token values for templates, users and keys match by name against what the
+  page has loaded (up to 500 users); an ambiguous name takes the first match.
 
 ## Acceptance criteria (enterprise)
 

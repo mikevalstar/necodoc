@@ -77,3 +77,13 @@ export function ipAllowed(entries: readonly string[], ip: string) {
   }
   return list.check(address, family === 6 ? "ipv6" : "ipv4");
 }
+
+/** A URL's host (and port), never its credentials, path or query: Admin > System. Null if not a URL. */
+export function hostOf(url: string | undefined) {
+  if (!url) return null;
+  try {
+    return new URL(url).host || null;
+  } catch {
+    return null;
+  }
+}

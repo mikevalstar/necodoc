@@ -12,6 +12,7 @@ import { toast } from "sonner";
 import { z } from "zod";
 import { ErrorAlert } from "@/components/form";
 import { BackLink, EmptyState, FaqLink, Page, PageHeader } from "@/components/page";
+import { TemplateThumbnail } from "@/components/template-thumbnail";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Field, FieldDescription, FieldLabel } from "@/components/ui/field";
@@ -135,7 +136,8 @@ function NewDocument() {
             <li key={t.id}>
               {/* The Start button stretches over the card, so the whole card is one click target
                   and one tab stop. */}
-              <Card className="relative h-full gap-1.5 px-5 transition-shadow hover:shadow-float">
+              <Card className="relative h-full gap-1.5 px-5 pt-0 transition-shadow hover:shadow-float">
+                <TemplateThumbnail template={t} className="-mx-5 mb-2.5" />
                 <span className="inline-flex items-center gap-1.5 text-[11px] font-bold tracking-[0.06em] text-brand-ink uppercase">
                   <KindIcon aria-hidden className="size-3.5" />
                   {overlay ? "PDF form" : "Document"}
@@ -183,7 +185,7 @@ function NewDocument() {
           aria-label="Loading templates"
         >
           {[0, 1, 2].map((i) => (
-            <Skeleton key={i} className="h-36 rounded-xl" />
+            <Skeleton key={i} className="h-72 rounded-xl" />
           ))}
         </div>
       )}

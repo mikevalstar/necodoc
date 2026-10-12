@@ -7,6 +7,7 @@ import { closeBrowser } from "./browser";
 import {
   type Certifier,
   CertifyError,
+  certificateInfo,
   certifierFromP12,
   certifierFromPem,
   certifyPdf,
@@ -97,6 +98,10 @@ describe("certifyPdf", () => {
     );
     const { pdf } = await certifyPdf(await samplePdf(false), certifier);
     await verify(pdf);
+    const info = certificateInfo(certifier);
+    expect(info.subject).toBe(certifier.subject);
+    expect(info.issuer).toBeTruthy();
+    expect(Date.parse(info.notAfter ?? "")).toBeGreaterThan(Date.now());
   });
 
   it("refuses a wrong password and a key without its certificate", async () => {

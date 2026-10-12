@@ -24,9 +24,12 @@ A month-end run of 10,000 statements must not time out or slow down someone fill
 - **Batch jobs.** One request generates many documents from one published template: a JSON array (API) or a CSV upload (app). The batch has a status, progress (done / failed / total), per-row generations, and a cancel action. Output: one ZIP of PDFs, one combined [packet](combining-pdfs-into-packets.md), or individual downloads. Invalid rows fail alone; the rest continue.
 - **Priorities.** Interactive renders go ahead of batch rows.
 - **Retries.** A job lost to a worker or browser crash retries automatically; the attempt count is logged. Template or data errors don't retry.
+- **Pause and resume (admin).** An admin can pause a pg-boss queue (`render`, `webhook`, `detect-fields`, `retention`) from Admin > Queue. Every worker stops picking up its jobs within a few seconds; running jobs finish. The paused state lives in Postgres, so it holds across every worker and across restarts until someone resumes. Jobs keep queuing meanwhile. While `render` is paused, synchronous renders return `202` with the generation id at once instead of waiting out the timeout. Paused queues show on Admin > Queue, Admin > System and in the `necodoc_queue_paused` metric. Pausing and resuming are audit-logged.
+- **Retry in place (admin).** A failed render job (out of attempts) can be retried from Admin > Queue: the same job and the same generation entry go back to queued with one more attempt, and the attempt count carries on. Unlike Re-run, no new generation entry is created. "Retry all failed" does the same for every failed render job in the current queue filter, after a confirmation. A retried batch row reopens its batch until it finishes. Retries are audit-logged.
 - **Timing on every render**, stored on the generation: queue wait, Liquid, Chromium, bands, stamping/overlay, total. Shown in the generation detail and filterable/sortable in the log.
 - **Workers.** Each worker reports a heartbeat: host, process id, version, concurrency, jobs running, event-loop lag. Admin > System lists workers online and warns when there are none.
 - **Metrics (Admin > System):** renders per minute, p50/p95/p99 render time, error rate, and queue depth by priority, over selectable windows; breakdown by source and template.
+- **Configuration (Admin > System):** what the answering API process is set up with, so an admin can check a deployment without shell access. No secrets. Chromium version; AI on or off and its model; SSO providers (id, protocol), password sign-in and trusted-header sign-in on or off; the certifying certificate (subject, issuer, expiry, warning under 30 days; a load error if it can't be read) and the timestamp authority's host; the storage driver with a live reachability check; the metrics port; OpenTelemetry export and the endpoint's host; log level and format; retention. Each shows an ok, warn or off pill.
 - **Operator metrics, logs and traces** for external monitoring: [Observability](observability.md).
 - **Output storage.** Workers write each PDF to the storage driver (`STORAGE_DRIVER`: disk, S3-compatible or Azure Blob, see [ADR 0023](../adrs/0023-generated-outputs-in-object-storage.md)). Every API node must reach the same storage: one bucket or container, or a shared mount for disk. Admin > System shows the active driver.
 - **Scaling** is configuration only: `ROLE` and `RENDER_CONCURRENCY` (see ADR 0020). Health endpoints report role and readiness for load balancers and orchestrators; readiness fails when the node can't write and read its storage.
@@ -51,6 +54,9 @@ A month-end run of 10,000 statements must not time out or slow down someone fill
 - [x] An interactive render submitted during a running batch starts before the remaining batch rows.
 - [x] Every generation shows its timing breakdown; the log sorts by total and by queue wait.
 - [x] Admin > System shows workers, queue depth and p50/p95 render times.
+- [ ] Pausing `render` with a small batch running lets the running rows finish and starts no more until it's resumed, on every worker and across a restart.
+- [ ] Retrying a failed render job reuses its generation entry (no new entry) and shows the extra attempt.
+- [ ] Admin > System shows the configuration with no secret in the response, and warns about a certificate expiring within 30 days.
 
 ## Known limitations
 
@@ -65,8 +71,12 @@ A month-end run of 10,000 statements must not time out or slow down someone fill
 - The packet download is built in memory; the ZIP streams. Neither is stored; both are rebuilt from the stored PDFs on each download.
 - With `STORAGE_DRIVER=disk` and more than one host, the directory must be a shared mount; readiness catches a node without it, not two nodes with separate disks that both pass.
 - Metrics come from the generation log, so deleted entries drop out of them.
+- Configuration is the answering API process's own environment. Workers read theirs separately (certification runs on workers), so a worker with different `CERTIFY_*` settings isn't shown.
 - The live queue view reads pg-boss's `pgboss.job` table directly (pg-boss has no listing API), so a pg-boss major upgrade may need it adjusted.
 - When the app's Render or template page waits past the timeout, it gets the 202 body instead of a PDF.
+- `render` is one queue with priorities, so interactive and batch renders pause together; pausing only batch rows would need separate queues. `render-lost` (dead letters) can't be paused.
+- Retry in place covers render jobs only; failed webhook and detection jobs aren't retried from the queue view. A retried generation fires its `generation.*` webhook again when it finishes.
+- Workers also re-read the paused queues on every heartbeat (5 s), in case they missed the pause notification.
 
 ## Open questions
 

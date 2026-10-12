@@ -1,4 +1,5 @@
 import { hostname } from "node:os";
+import { type PausableQueue, pausableQueues } from "@necodoc/shared";
 import { trace } from "@opentelemetry/api";
 import { Gauge } from "@prometheus-io/client";
 import { lt } from "drizzle-orm";
@@ -11,7 +12,15 @@ import { loadSourceBytes, markLost, processId, runGeneration } from "./generate"
 import { log } from "./log";
 import { logContext } from "./observability/logger";
 import { jobDuration, registry } from "./observability/metrics";
-import { boss, type DetectJobData, queues, type RenderJobData, type WebhookJobData } from "./queue";
+import {
+  boss,
+  type DetectJobData,
+  onPauseChange,
+  pausedQueues,
+  queues,
+  type RenderJobData,
+  type WebhookJobData,
+} from "./queue";
 import { runRetention } from "./retention";
 import { deliver } from "./webhooks";
 
@@ -73,32 +82,98 @@ function observed<J extends JobLike, R>(queue: string, handler: (jobs: J[]) => P
   };
 }
 
-export async function startWorker() {
-  await boss.work(
-    queues.render,
-    {
-      localConcurrency: env.RENDER_CONCURRENCY,
-      includeMetadata: true,
-      // The lowest pg-boss allows, with or without NOTIFY. NOTIFY wakes idle workers for a new
-      // job, but after finishing one a worker waits out this interval before fetching again, so
-      // a longer one throttles batches. Costs two cheap polls a second per idle slot.
-      pollingIntervalSeconds: 0.5,
-      notifyPollingIntervalSeconds: 0.5,
-    },
-    observed(queues.render, async ([job]: JobWithMetadata<RenderJobData>[]) => {
-      if (!job) return;
-      running++;
-      try {
-        await runGeneration(
-          job.data.generationId,
-          job.retryCount + 1,
-          job.retryCount < job.retryLimit,
-        );
-      } finally {
-        running--;
+/** How each pausable queue is consumed; src/queue.ts holds which ones an admin paused. */
+const consumers: Record<PausableQueue, () => Promise<string>> = {
+  [queues.render]: () =>
+    boss.work(
+      queues.render,
+      {
+        localConcurrency: env.RENDER_CONCURRENCY,
+        includeMetadata: true,
+        // The lowest pg-boss allows, with or without NOTIFY. NOTIFY wakes idle workers for a new
+        // job, but after finishing one a worker waits out this interval before fetching again, so
+        // a longer one throttles batches. Costs two cheap polls a second per idle slot.
+        pollingIntervalSeconds: 0.5,
+        notifyPollingIntervalSeconds: 0.5,
+      },
+      observed(queues.render, async ([job]: JobWithMetadata<RenderJobData>[]) => {
+        if (!job) return;
+        running++;
+        try {
+          await runGeneration(
+            job.data.generationId,
+            job.retryCount + 1,
+            job.retryCount < job.retryLimit,
+          );
+        } finally {
+          running--;
+        }
+      }),
+    ),
+  [queues.detectFields]: () =>
+    boss.work(
+      queues.detectFields,
+      { localConcurrency: 2 },
+      observed(queues.detectFields, async ([job]: Job<DetectJobData>[]) => {
+        if (!job) return;
+        const bytes = await loadSourceBytes(job.data.sourceId);
+        if (!bytes) throw new Error("The PDF is gone");
+        return detectFields(bytes, { known: job.data.known, signal: job.signal });
+      }),
+    ),
+  [queues.webhook]: () =>
+    boss.work(
+      queues.webhook,
+      { localConcurrency: 4, includeMetadata: true },
+      observed(queues.webhook, async ([job]: JobWithMetadata<WebhookJobData>[]) => {
+        if (job) await deliver(job.data.deliveryId, job.retryCount < job.retryLimit);
+      }),
+    ),
+  [queues.retention]: () =>
+    boss.work(
+      queues.retention,
+      observed(queues.retention, async () => {
+        log.info({ removed: await runRetention() }, "retention ran");
+      }),
+    ),
+};
+
+const consuming = new Set<PausableQueue>();
+/** Paused queues whose running jobs may still be finishing. */
+const draining = new Map<PausableQueue, Promise<void>>();
+let syncing = Promise.resolve();
+
+/**
+ * Stops consuming paused queues and starts consuming the rest. Stopping lets running jobs finish
+ * (pg-boss keeps their heartbeats going); it only stops fetching new ones. A resume waits for that
+ * drain, so a quick pause and resume never runs more than the queue's concurrency. One at a time.
+ */
+function syncPaused() {
+  const run = syncing.then(async () => {
+    const paused = await pausedQueues();
+    for (const queue of pausableQueues) {
+      if (paused.includes(queue) && consuming.has(queue)) {
+        consuming.delete(queue);
+        draining.set(queue, boss.offWork(queue, { wait: true }));
+        log.info({ queue }, "queue paused: no longer picking up jobs");
+      } else if (!paused.includes(queue) && !consuming.has(queue)) {
+        await draining.get(queue);
+        draining.delete(queue);
+        await consumers[queue]();
+        consuming.add(queue);
+        log.info({ queue }, "consuming queue");
       }
-    }),
-  );
+    }
+  });
+  syncing = run.catch((err) => log.error({ err }, "syncing paused queues failed"));
+  return syncing;
+}
+
+export async function startWorker() {
+  await syncPaused();
+  await onPauseChange(() => void syncPaused());
+  // The fallback, for a notification lost to a dropped connection.
+  setInterval(() => void syncPaused(), HEARTBEAT_MS).unref();
   await boss.work<RenderJobData>(
     queues.renderLost,
     observed(queues.renderLost, async (jobs: Job<RenderJobData>[]) => {
@@ -106,29 +181,6 @@ export async function startWorker() {
         log.warn({ generationId: job.data.generationId }, "render lost: out of attempts");
         await markLost(job.data.generationId);
       }
-    }),
-  );
-  await boss.work(
-    queues.detectFields,
-    { localConcurrency: 2 },
-    observed(queues.detectFields, async ([job]: Job<DetectJobData>[]) => {
-      if (!job) return;
-      const bytes = await loadSourceBytes(job.data.sourceId);
-      if (!bytes) throw new Error("The PDF is gone");
-      return detectFields(bytes, { known: job.data.known, signal: job.signal });
-    }),
-  );
-  await boss.work(
-    queues.webhook,
-    { localConcurrency: 4, includeMetadata: true },
-    observed(queues.webhook, async ([job]: JobWithMetadata<WebhookJobData>[]) => {
-      if (job) await deliver(job.data.deliveryId, job.retryCount < job.retryLimit);
-    }),
-  );
-  await boss.work(
-    queues.retention,
-    observed(queues.retention, async () => {
-      log.info({ removed: await runRetention() }, "retention ran");
     }),
   );
   await boss.schedule(queues.retention, "17 3 * * *");

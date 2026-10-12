@@ -39,6 +39,11 @@ function sharedBrowser() {
   return browser;
 }
 
+/** The shared Chromium's version, starting it if it isn't running (Admin > System). */
+export async function chromiumVersion() {
+  return (await sharedBrowser()).version();
+}
+
 export async function closeBrowser() {
   const current = browser;
   browser = null;

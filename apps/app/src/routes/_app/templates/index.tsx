@@ -11,20 +11,23 @@ import {
   PencilSimpleIcon,
   type Icon as PhosphorIcon,
   PlusIcon,
+  RowsIcon,
   SparkleIcon,
+  SquaresFourIcon,
   StackIcon,
   TrashIcon,
   UploadSimpleIcon,
 } from "@phosphor-icons/react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { useState } from "react";
+import { type ReactNode, useState } from "react";
 import { z } from "zod";
 import { useAiEnabled } from "@/components/ai";
 import { ConfirmDialog } from "@/components/confirm-dialog";
 import { DebouncedInput, DensityToggle } from "@/components/data-table";
 import { ErrorAlert, useAppForm } from "@/components/form";
 import { EmptyState, FaqLink, ListSkeleton, Page, PageHeader } from "@/components/page";
+import { TemplateThumbnail } from "@/components/template-thumbnail";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import {
@@ -45,6 +48,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Field, FieldDescription, FieldGroup, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
+import { Skeleton } from "@/components/ui/skeleton";
 import {
   Table,
   TableBody,
@@ -94,6 +98,21 @@ const segments = [
   { value: "archived", label: "Archived" },
 ] as const satisfies readonly { value: TemplateStatus | "all"; label: string }[];
 
+/** Table or gallery, remembered per browser. */
+const viewSchema = z.enum(["gallery", "list"]);
+type View = z.infer<typeof viewSchema>;
+const viewKey = "necodoc-templates-view";
+
+function storedView(): View {
+  try {
+    return viewSchema.catch("gallery").parse(localStorage.getItem(viewKey));
+  } catch {
+    return "gallery"; // storage blocked
+  }
+}
+
+type Action = "create" | "edit" | "review" | "publish";
+
 const kindLabels = {
   designed: { label: "Designed", icon: PencilRulerIcon },
   overlay: { label: "PDF overlay", icon: StackIcon },
@@ -103,17 +122,25 @@ function Templates() {
   const search = Route.useSearch();
   const navigate = useNavigate({ from: Route.fullPath });
   const { me } = Route.useRouteContext();
-  const can = (action: "create" | "edit" | "review" | "publish") =>
-    hasPermission(me.user.roles, { document: [action] });
+  const can = (action: Action) => hasPermission(me.user.roles, { document: [action] });
   const seesDrafts = can("edit") || can("review") || can("publish");
   const templates = useQuery(templatesQuery);
   const duplicate = useDuplicateTemplate();
   const archive = useArchiveTemplate();
-  const [creating, setCreating] = useState<Kind | null>(
-    can("create") ? (search.new ?? null) : null,
-  );
+  // ?new= opens the dialog (first-run links, the command palette), also on this page already.
+  const [picked, setCreating] = useState<Kind | null>(null);
+  const creating = picked ?? (can("create") ? (search.new ?? null) : null);
   const [deleting, setDeleting] = useState<{ id: string; name: string } | null>(null);
   const [archiving, setArchiving] = useState<{ id: string; name: string } | null>(null);
+  const [view, setView] = useState(storedView);
+  const pickView = (next: View) => {
+    setView(next);
+    try {
+      localStorage.setItem(viewKey, next);
+    } catch {
+      // storage blocked: the choice lasts until reload
+    }
+  };
   const words = (search.q ?? "").toLowerCase().split(/\s+/).filter(Boolean);
 
   const matching = (templates.data ?? []).filter((t) => {
@@ -135,6 +162,39 @@ function Templates() {
     return search.status ? status === search.status : status !== "archived";
   });
   const filtered = words.length > 0 || search.status !== undefined;
+  const actions = (t: TemplateSummary, onCard = false) => (
+    <TemplateActions
+      onCard={onCard}
+      template={t}
+      seesDrafts={seesDrafts}
+      can={can}
+      duplicate={duplicate}
+      archive={archive}
+      onArchive={() => setArchiving(t)}
+      onDelete={() => setDeleting(t)}
+    />
+  );
+  const noMatch = (
+    <>
+      {search.status === "archived" && words.length === 0
+        ? "Nothing is archived."
+        : "No templates match."}
+      {filtered && (
+        <Button
+          variant="link"
+          className="ml-1 h-auto p-0"
+          onClick={() =>
+            navigate({
+              search: { ...search, q: undefined, status: undefined },
+              replace: true,
+            })
+          }
+        >
+          Clear filters
+        </Button>
+      )}
+    </>
+  );
 
   return (
     <Page>
@@ -191,229 +251,208 @@ function Templates() {
           }
         />
       ) : (
-        <Card className="gap-0 py-0">
-          <div className="flex flex-wrap items-center gap-3 border-b border-hair px-4 py-3.5">
-            <div className="relative w-full sm:w-72">
-              <MagnifyingGlassIcon
-                aria-hidden
-                className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-ink-3"
-              />
-              <DebouncedInput
-                type="search"
-                aria-label="Search templates"
-                className="pl-9"
-                placeholder="Search name or description"
-                value={search.q ?? ""}
-                onCommit={(q) =>
-                  navigate({ search: { ...search, q: q || undefined }, replace: true })
-                }
-              />
-            </div>
-            {seesDrafts && (
-              <Tabs
-                className="order-last xl:order-none"
-                value={search.status ?? "all"}
-                onValueChange={(value) =>
-                  navigate({ search: { ...search, status: statusSchema.safeParse(value).data } })
-                }
-              >
-                <TabsList aria-label="Status" className="h-auto flex-wrap justify-start">
-                  {segments.map((segment) => (
-                    <TabsTrigger
-                      key={segment.value}
-                      value={segment.value}
-                      className="h-8 flex-none"
-                    >
-                      {segment.label}
-                      <span className="font-mono text-[11px] text-ink-3 tabular-nums">
-                        {templates.isSuccess ? segmentCount(segment.value) : ""}
-                      </span>
-                    </TabsTrigger>
-                  ))}
-                </TabsList>
-              </Tabs>
-            )}
-            <div className="ml-auto flex items-center gap-3">
-              {templates.isSuccess && (
-                <span className="text-[13px] text-ink-3" aria-live="polite">
-                  {rows.length} {rows.length === 1 ? "template" : "templates"}
-                </span>
+        <>
+          <Card className="gap-0 py-0">
+            <div
+              className={cn(
+                "flex flex-wrap items-center gap-3 px-4 py-3.5",
+                view === "list" && "border-b border-hair",
               )}
-              <DensityToggle />
-            </div>
-          </div>
-
-          {templates.isPending ? (
-            <ListSkeleton className="p-4" />
-          ) : (
-            <Table>
-              <TableHeader>
-                <TableRow className="hover:bg-transparent">
-                  <TableHead className="pl-4 lg:w-2/5">Name</TableHead>
-                  <TableHead className="hidden lg:table-cell">Kind</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead className="hidden sm:table-cell">
-                    {seesDrafts ? "Draft saved" : "Published"}
-                  </TableHead>
-                  <TableHead className="w-0">
-                    <span className="sr-only">Actions</span>
-                  </TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {rows.map((t) => {
-                  const kind = kindLabels[t.kind];
-                  const when = seesDrafts ? t.updatedAt : (t.publishedAt ?? t.updatedAt);
-                  return (
-                    <TableRow key={t.id}>
-                      <TableCell className="max-w-60 min-w-40 pl-4 whitespace-normal lg:max-w-md">
-                        {seesDrafts ? (
-                          <Link
-                            to="/templates/$id"
-                            params={{ id: t.id }}
-                            className="font-semibold hover:text-brand-ink hover:underline"
-                          >
-                            {t.name}
-                          </Link>
-                        ) : (
-                          <span className="font-semibold">{t.name}</span>
-                        )}
-                        {t.description && (
-                          <p className="truncate text-[12.5px] text-ink-3" title={t.description}>
-                            {t.description}
-                          </p>
-                        )}
-                      </TableCell>
-                      <TableCell className="hidden text-ink-2 lg:table-cell">
-                        <span className="inline-flex items-center gap-1.5">
-                          <kind.icon aria-hidden className="size-4 text-brand-ink" />
-                          {kind.label}
+            >
+              <div className="relative w-full sm:w-72">
+                <MagnifyingGlassIcon
+                  aria-hidden
+                  className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-ink-3"
+                />
+                <DebouncedInput
+                  type="search"
+                  aria-label="Search templates"
+                  className="pl-9"
+                  placeholder="Search name or description"
+                  value={search.q ?? ""}
+                  onCommit={(q) =>
+                    navigate({ search: { ...search, q: q || undefined }, replace: true })
+                  }
+                />
+              </div>
+              {seesDrafts && (
+                <Tabs
+                  className="order-last xl:order-none"
+                  value={search.status ?? "all"}
+                  onValueChange={(value) =>
+                    navigate({ search: { ...search, status: statusSchema.safeParse(value).data } })
+                  }
+                >
+                  <TabsList aria-label="Status" className="h-auto flex-wrap justify-start">
+                    {segments.map((segment) => (
+                      <TabsTrigger
+                        key={segment.value}
+                        value={segment.value}
+                        className="h-8 flex-none"
+                      >
+                        {segment.label}
+                        <span className="font-mono text-[11px] text-ink-3 tabular-nums">
+                          {templates.isSuccess ? segmentCount(segment.value) : ""}
                         </span>
-                      </TableCell>
-                      <TableCell>
-                        {/* Draft state is editors' business; viewers see the published version. */}
-                        <TemplateStatusBadges
-                          template={seesDrafts ? t : { ...t, hasUnpublishedChanges: false }}
-                        />
-                      </TableCell>
-                      <TableCell className="hidden text-ink-3 sm:table-cell">
-                        <time dateTime={when} title={dayjs(when).format("MMM D, YYYY h:mm A")}>
-                          {dayjs(when).fromNow()}
-                        </time>
-                      </TableCell>
-                      <TableCell className="pr-4">
-                        {/* Anyone who can see a published template can fill it in. */}
-                        {!seesDrafts && (
-                          <Button
-                            variant="secondary"
-                            size="sm"
-                            nativeButton={false}
-                            aria-label={`Fill in ${t.name}`}
-                            render={<Link to="/documents/new" search={{ template: t.id }} />}
-                          >
-                            Fill in
-                          </Button>
-                        )}
-                        {seesDrafts && (
-                          <DropdownMenu>
-                            <DropdownMenuTrigger
-                              render={
-                                <Button
-                                  variant="ghost"
-                                  size="icon-sm"
-                                  aria-label={`Actions for ${t.name}`}
-                                />
-                              }
+                      </TabsTrigger>
+                    ))}
+                  </TabsList>
+                </Tabs>
+              )}
+              <div className="ml-auto flex items-center gap-3">
+                {templates.isSuccess && (
+                  <span className="text-[13px] text-ink-3" aria-live="polite">
+                    {rows.length} {rows.length === 1 ? "template" : "templates"}
+                  </span>
+                )}
+                {view === "list" && <DensityToggle />}
+                <fieldset aria-label="View" className="flex gap-0.5 rounded-[10px] bg-tint p-0.5">
+                  {(
+                    [
+                      ["gallery", "Gallery", SquaresFourIcon],
+                      ["list", "Table", RowsIcon],
+                    ] as const
+                  ).map(([value, label, ViewIcon]) => (
+                    <button
+                      key={value}
+                      type="button"
+                      aria-pressed={view === value}
+                      aria-label={label}
+                      title={label}
+                      onClick={() => pickView(value)}
+                      className={cn(
+                        "grid h-7 w-8 place-items-center rounded-[7px] text-ink-2 hover:text-ink [&>svg]:size-4",
+                        view === value && "bg-surface text-ink shadow-card",
+                      )}
+                    >
+                      <ViewIcon />
+                    </button>
+                  ))}
+                </fieldset>
+              </div>
+            </div>
+
+            {view === "gallery" ? null : templates.isPending ? (
+              <ListSkeleton className="p-4" />
+            ) : (
+              <Table>
+                <TableHeader>
+                  <TableRow className="hover:bg-transparent">
+                    <TableHead className="pl-4 lg:w-2/5">Name</TableHead>
+                    <TableHead className="hidden lg:table-cell">Kind</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead className="hidden sm:table-cell">
+                      {seesDrafts ? "Draft saved" : "Published"}
+                    </TableHead>
+                    <TableHead className="w-0">
+                      <span className="sr-only">Actions</span>
+                    </TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {rows.map((t) => {
+                    const kind = kindLabels[t.kind];
+                    const when = seesDrafts ? t.updatedAt : (t.publishedAt ?? t.updatedAt);
+                    return (
+                      <TableRow key={t.id}>
+                        <TableCell className="max-w-60 min-w-40 pl-4 whitespace-normal lg:max-w-md">
+                          {seesDrafts ? (
+                            <Link
+                              to="/templates/$id"
+                              params={{ id: t.id }}
+                              className="font-semibold hover:text-brand-ink hover:underline"
                             >
-                              <DotsThreeIcon weight="bold" />
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end" className="w-48">
-                              <DropdownMenuItem
-                                render={<Link to="/templates/$id" params={{ id: t.id }} />}
-                              >
-                                <PencilSimpleIcon />
-                                {can("edit") ? "Edit" : "Open"}
-                              </DropdownMenuItem>
-                              {t.latestVersion !== null && !t.archivedAt && (
-                                <DropdownMenuItem
-                                  render={<Link to="/documents/new" search={{ template: t.id }} />}
-                                >
-                                  <NotePencilIcon />
-                                  Fill in
-                                </DropdownMenuItem>
-                              )}
-                              {can("create") && (
-                                <DropdownMenuItem
-                                  disabled={duplicate.isPending}
-                                  onClick={() => duplicate.mutate(t.id)}
-                                >
-                                  <CopyIcon />
-                                  Duplicate
-                                </DropdownMenuItem>
-                              )}
-                              {can("publish") &&
-                                (t.archivedAt ? (
-                                  <DropdownMenuItem
-                                    onClick={() => archive.mutate({ id: t.id, archive: false })}
-                                  >
-                                    <ArrowCounterClockwiseIcon />
-                                    Restore
-                                  </DropdownMenuItem>
-                                ) : (
-                                  <DropdownMenuItem onClick={() => setArchiving(t)}>
-                                    <ArchiveIcon />
-                                    Archive…
-                                  </DropdownMenuItem>
-                                ))}
-                              {can("edit") && t.latestVersion === null && (
-                                <>
-                                  <DropdownMenuSeparator />
-                                  <DropdownMenuItem
-                                    variant="destructive"
-                                    onClick={() => setDeleting(t)}
-                                  >
-                                    <TrashIcon />
-                                    Delete…
-                                  </DropdownMenuItem>
-                                </>
-                              )}
-                            </DropdownMenuContent>
-                          </DropdownMenu>
-                        )}
+                              {t.name}
+                            </Link>
+                          ) : (
+                            <span className="font-semibold">{t.name}</span>
+                          )}
+                          {t.description && (
+                            <p className="truncate text-[12.5px] text-ink-3" title={t.description}>
+                              {t.description}
+                            </p>
+                          )}
+                        </TableCell>
+                        <TableCell className="hidden text-ink-2 lg:table-cell">
+                          <span className="inline-flex items-center gap-1.5">
+                            <kind.icon aria-hidden className="size-4 text-brand-ink" />
+                            {kind.label}
+                          </span>
+                        </TableCell>
+                        <TableCell>
+                          {/* Draft state is editors' business; viewers see the published version. */}
+                          <TemplateStatusBadges
+                            template={seesDrafts ? t : { ...t, hasUnpublishedChanges: false }}
+                          />
+                        </TableCell>
+                        <TableCell className="hidden text-ink-3 sm:table-cell">
+                          <time dateTime={when} title={dayjs(when).format("MMM D, YYYY h:mm A")}>
+                            {dayjs(when).fromNow()}
+                          </time>
+                        </TableCell>
+                        <TableCell className="pr-4">{actions(t)}</TableCell>
+                      </TableRow>
+                    );
+                  })}
+                  {rows.length === 0 && (
+                    <TableRow className="hover:bg-transparent">
+                      <TableCell
+                        colSpan={5}
+                        className="h-24 text-center whitespace-normal text-ink-3"
+                      >
+                        {noMatch}
                       </TableCell>
                     </TableRow>
-                  );
-                })}
-                {rows.length === 0 && (
-                  <TableRow className="hover:bg-transparent">
-                    <TableCell
-                      colSpan={5}
-                      className="h-24 text-center whitespace-normal text-ink-3"
-                    >
-                      {search.status === "archived" && words.length === 0
-                        ? "Nothing is archived."
-                        : "No templates match."}
-                      {filtered && (
-                        <Button
-                          variant="link"
-                          className="ml-1 h-auto p-0"
-                          onClick={() =>
-                            navigate({
-                              search: { ...search, q: undefined, status: undefined },
-                              replace: true,
-                            })
-                          }
-                        >
-                          Clear filters
-                        </Button>
-                      )}
-                    </TableCell>
-                  </TableRow>
-                )}
-              </TableBody>
-            </Table>
+                  )}
+                </TableBody>
+              </Table>
+            )}
+          </Card>
+          {view === "gallery" && (
+            <ul
+              className="grid grid-cols-[repeat(auto-fill,minmax(15rem,1fr))] gap-5"
+              aria-busy={templates.isPending}
+            >
+              {templates.isPending &&
+                [0, 1, 2, 3].map((i) => (
+                  <li key={i}>
+                    <Skeleton className="h-64 rounded-xl" />
+                  </li>
+                ))}
+              {rows.map((t) => (
+                <li key={t.id}>
+                  <GalleryCard
+                    template={t}
+                    seesDrafts={seesDrafts}
+                    menu={seesDrafts && actions(t, true)}
+                  />
+                </li>
+              ))}
+              {templates.isSuccess && rows.length === 0 && (
+                <li className="col-span-full py-8 text-center text-ink-3">{noMatch}</li>
+              )}
+              {can("create") && !filtered && templates.isSuccess && (
+                <li>
+                  <button
+                    type="button"
+                    onClick={() => setCreating("designed")}
+                    className="grid h-full min-h-64 w-full place-items-center rounded-xl border-2 border-dashed border-tint-2 p-6 text-center text-[13px] text-ink-3 transition-colors hover:border-brand hover:text-ink-2"
+                  >
+                    <span>
+                      <span className="mx-auto mb-2.5 grid size-13 place-items-center rounded-2xl bg-brand-wash text-brand">
+                        <PlusIcon aria-hidden weight="bold" className="size-6" />
+                      </span>
+                      <span className="block font-heading text-[15.5px] font-bold text-ink">
+                        Start a template
+                      </span>
+                      Design one, or upload a PDF
+                    </span>
+                  </button>
+                </li>
+              )}
+            </ul>
           )}
-        </Card>
+        </>
       )}
 
       {creating && (
@@ -444,6 +483,163 @@ function Templates() {
         />
       )}
     </Page>
+  );
+}
+
+/**
+ * A row's actions. Viewers fill in; draft users get the menu (`onCard`: on a gallery thumbnail).
+ */
+function TemplateActions({
+  template: t,
+  seesDrafts,
+  can,
+  duplicate,
+  archive,
+  onArchive,
+  onDelete,
+  onCard = false,
+}: {
+  template: TemplateSummary;
+  seesDrafts: boolean;
+  can: (action: Action) => boolean;
+  duplicate: ReturnType<typeof useDuplicateTemplate>;
+  archive: ReturnType<typeof useArchiveTemplate>;
+  onArchive: () => void;
+  onDelete: () => void;
+  onCard?: boolean;
+}) {
+  // Anyone who can see a published template can fill it in.
+  if (!seesDrafts) {
+    return (
+      <Button
+        variant="secondary"
+        size="sm"
+        nativeButton={false}
+        aria-label={`Fill in ${t.name}`}
+        render={<Link to="/documents/new" search={{ template: t.id }} />}
+      >
+        Fill in
+      </Button>
+    );
+  }
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger
+        render={
+          <Button
+            variant="ghost"
+            size="icon-sm"
+            aria-label={`Actions for ${t.name}`}
+            className={cn(onCard && "bg-surface shadow-card hover:bg-surface")}
+          />
+        }
+      >
+        <DotsThreeIcon weight="bold" />
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end" className="w-48">
+        <DropdownMenuItem render={<Link to="/templates/$id" params={{ id: t.id }} />}>
+          <PencilSimpleIcon />
+          {can("edit") ? "Edit" : "Open"}
+        </DropdownMenuItem>
+        {t.latestVersion !== null && !t.archivedAt && (
+          <DropdownMenuItem render={<Link to="/documents/new" search={{ template: t.id }} />}>
+            <NotePencilIcon />
+            Fill in
+          </DropdownMenuItem>
+        )}
+        {can("create") && (
+          <DropdownMenuItem disabled={duplicate.isPending} onClick={() => duplicate.mutate(t.id)}>
+            <CopyIcon />
+            Duplicate
+          </DropdownMenuItem>
+        )}
+        {can("publish") &&
+          (t.archivedAt ? (
+            <DropdownMenuItem onClick={() => archive.mutate({ id: t.id, archive: false })}>
+              <ArrowCounterClockwiseIcon />
+              Restore
+            </DropdownMenuItem>
+          ) : (
+            <DropdownMenuItem onClick={onArchive}>
+              <ArchiveIcon />
+              Archive…
+            </DropdownMenuItem>
+          ))}
+        {can("edit") && t.latestVersion === null && (
+          <>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem variant="destructive" onClick={onDelete}>
+              <TrashIcon />
+              Delete…
+            </DropdownMenuItem>
+          </>
+        )}
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
+}
+
+/**
+ * A template as a card with its page-1 thumbnail. The name link (the editor, or Fill in for
+ * viewers) stretches over the card, so the card is one click target; the menu sits above it.
+ */
+function GalleryCard({
+  template: t,
+  seesDrafts,
+  menu,
+}: {
+  template: TemplateSummary;
+  seesDrafts: boolean;
+  menu: ReactNode;
+}) {
+  const kind = kindLabels[t.kind];
+  const when = seesDrafts ? t.updatedAt : (t.publishedAt ?? t.updatedAt);
+  return (
+    <Card className="relative h-full gap-0 overflow-hidden py-0 transition-shadow hover:shadow-float">
+      <TemplateThumbnail template={t} />
+      <div className="flex flex-1 flex-col gap-1.5 px-4 pt-3.5 pb-4">
+        <span className="inline-flex items-center gap-1.5 text-[11px] font-bold tracking-[0.06em] text-brand-ink uppercase">
+          <kind.icon aria-hidden className="size-3.5" />
+          {kind.label}
+        </span>
+        {seesDrafts ? (
+          <Link
+            to="/templates/$id"
+            params={{ id: t.id }}
+            className="font-heading text-[15.5px] leading-tight font-bold tracking-tight after:absolute after:inset-0 hover:text-brand-ink"
+          >
+            {t.name}
+          </Link>
+        ) : (
+          <Link
+            to="/documents/new"
+            search={{ template: t.id }}
+            title={`Fill in ${t.name}`}
+            className="font-heading text-[15.5px] leading-tight font-bold tracking-tight after:absolute after:inset-0 hover:text-brand-ink"
+          >
+            {t.name}
+          </Link>
+        )}
+        {t.description && (
+          <p className="truncate text-[12.5px] text-ink-3" title={t.description}>
+            {t.description}
+          </p>
+        )}
+        <div className="mt-auto flex flex-wrap items-center gap-2 pt-1.5">
+          <TemplateStatusBadges
+            template={seesDrafts ? t : { ...t, hasUnpublishedChanges: false }}
+          />
+          <time
+            dateTime={when}
+            title={dayjs(when).format("MMM D, YYYY h:mm A")}
+            className="ml-auto text-[12.5px] text-ink-3"
+          >
+            {dayjs(when).fromNow()}
+          </time>
+        </div>
+      </div>
+      {menu && <div className="absolute top-2.5 right-2.5 z-10">{menu}</div>}
+    </Card>
   );
 }
 

@@ -140,8 +140,12 @@ GDPR erasure can find it
   Each has a smoke example: render HTML, generate from a template, fetch a
   signing package. None is published to a package registry yet.
 - **Render page** in the app ([render.tsx](../../apps/app/src/routes/_app/render.tsx)):
-  the same request field by field, for trying HTML, bands, data and themes.
-  Its preview mode isn't logged.
+  the same request field by field, for trying HTML, bands, data and themes,
+  plus the output options (PDF/A, PDF/UA, certification, document language).
+  Its preview mode isn't logged. An **API call** panel shows the equivalent
+  `POST /api/v1/render` as curl and TypeScript, Python, .NET and Java SDK
+  code, updating as the form changes, with copy buttons. Snippets read the
+  key from `$NECODOC_API_KEY`; the page never puts a real key in them.
 - Optional [webhooks](webhooks.md) per key or service account.
 
 ## Acceptance criteria
@@ -164,6 +168,8 @@ GDPR erasure can find it
 - [x] A request that references `http://169.254.169.254/` renders without
       fetching it.
 - [x] The docs page lists every `/api/v1` endpoint.
+- [ ] The render page's curl snippet, run with a real key, returns the same PDF
+      as the page's Render button.
 
 ## Known limitations
 

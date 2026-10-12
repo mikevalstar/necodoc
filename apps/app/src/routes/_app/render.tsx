@@ -1,7 +1,10 @@
 import {
   bandSchema,
+  defaultOutputOptions,
   marginsSchema,
   orientationSchema,
+  outputOptionsSchema,
+  outputWorthKeeping,
   pageSizeSchema,
   type RenderRequestInput,
 } from "@necodoc/shared";
@@ -10,6 +13,7 @@ import { skipToken, useMutation, useQuery } from "@tanstack/react-query";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState } from "react";
 import { z } from "zod";
+import { CopyButton } from "@/components/copy-button";
 import { ErrorAlert, FieldShell, useAppForm, useFieldContext } from "@/components/form";
 import { FaqLink, Page, PageHeader } from "@/components/page";
 import { PdfFrame, PdfTray } from "@/components/pdf-frame";
@@ -20,8 +24,15 @@ import { FieldDescription, FieldGroup } from "@/components/ui/field";
 import { NativeSelect, NativeSelectOption } from "@/components/ui/native-select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { renderPdf, waitForGeneration } from "@/lib/api";
+import {
+  renderSnippets,
+  type SnippetLanguage,
+  snippetLabels,
+  snippetLanguages,
+} from "@/lib/api-snippets";
 import { themesQuery } from "@/lib/queries";
 import { cn, formatBytes } from "@/lib/utils";
+import { OutputPanel } from "./templates/-output-panel";
 
 // The HTML playground: the render request of docs/features/html-to-pdf-api.md, field by field.
 export const Route = createFileRoute("/_app/render")({
@@ -58,6 +69,7 @@ const playgroundSchema = z.object({
   data: jsonObjectSchema,
   page: z.object({ size: pageSizeSchema, orientation: orientationSchema, margins: marginsSchema }),
   filename: z.string().max(200),
+  output: outputOptionsSchema,
   preview: z.boolean(),
 });
 type PlaygroundValues = z.input<typeof playgroundSchema>;
@@ -73,8 +85,11 @@ const band = ({
     ? { html, height, firstPageHtml: differentFirstPage ? firstPageHtml : undefined }
     : undefined;
 
-function toRequest(values: PlaygroundValues): RenderRequestInput {
-  const parsed = playgroundSchema.parse(values);
+/** The render request the form describes; null while a field is invalid. */
+function toRequest(values: PlaygroundValues): RenderRequestInput | null {
+  const result = playgroundSchema.safeParse(values);
+  if (!result.success) return null;
+  const parsed = result.data;
   return {
     html: parsed.html,
     css: parsed.css || undefined,
@@ -84,6 +99,8 @@ function toRequest(values: PlaygroundValues): RenderRequestInput {
     page: parsed.page,
     data: parsed.data,
     filename: parsed.filename.trim() || undefined,
+    // All-off settings in English are the server's defaults: leave them out of the call.
+    output: outputWorthKeeping(parsed.output) ? parsed.output : undefined,
     preview: parsed.preview,
   };
 }
@@ -143,6 +160,7 @@ const defaultValues: PlaygroundValues = {
     margins: { top: 20, right: 20, bottom: 20, left: 20 },
   },
   filename: "Quote",
+  output: defaultOutputOptions,
   preview: false,
 };
 
@@ -153,6 +171,8 @@ const tabs = [
   { value: "footer", label: "Footer" },
   { value: "data", label: "Data" },
   { value: "page", label: "Page & theme" },
+  { value: "output", label: "Output" },
+  { value: "api", label: "API call" },
 ] as const;
 type Tab = (typeof tabs)[number]["value"];
 
@@ -200,7 +220,10 @@ function RenderPlayground() {
   const form = useAppForm({
     defaultValues,
     validators: { onChange: playgroundSchema },
-    onSubmit: ({ value }) => render.mutate(toRequest(value)),
+    onSubmit: ({ value }) => {
+      const request = toRequest(value);
+      if (request) render.mutate(request);
+    },
   });
 
   const status = busy
@@ -302,7 +325,7 @@ function RenderPlayground() {
               >
                 {(errorTabs) => (
                   <div className="flex flex-wrap items-center gap-x-4 gap-y-3 px-5 pt-5">
-                    <TabsList className="max-w-full overflow-x-auto">
+                    <TabsList scrollable className="max-w-full">
                       {tabs.map((tab) => {
                         const invalid = errorTabs.split(",").includes(tab.value);
                         return (
@@ -454,6 +477,26 @@ function RenderPlayground() {
                   </form.AppField>
                 </FieldGroup>
               </TabsContent>
+              <TabsContent value="output" keepMounted className="p-5">
+                <form.AppField name="output">
+                  {(field) => (
+                    <OutputPanel
+                      // The form holds the schema's input type; every value it sets is complete.
+                      output={outputOptionsSchema.parse(field.state.value)}
+                      kind="designed"
+                      editable
+                      translations={false}
+                      onChange={field.handleChange}
+                    />
+                  )}
+                </form.AppField>
+              </TabsContent>
+              {/* Not kept mounted: the snippets are only built while they're shown. */}
+              <TabsContent value="api" className="p-5">
+                <form.Subscribe selector={(state) => state.values}>
+                  {(values) => <ApiCall request={toRequest(values)} />}
+                </form.Subscribe>
+              </TabsContent>
             </Tabs>
           </form>
         </Card>
@@ -488,6 +531,59 @@ function RenderPlayground() {
         </div>
       </div>
     </Page>
+  );
+}
+
+/** The form's request as a POST /api/v1/render call, in curl and each SDK. */
+function ApiCall({ request }: { request: RenderRequestInput | null }) {
+  const [language, setLanguage] = useState<SnippetLanguage>("curl");
+  if (!request) {
+    return <p className="text-sm text-ink-3">Fix the highlighted fields to see the API call.</p>;
+  }
+  // The public render has no preview mode: every call is logged.
+  const { preview: _preview, ...body } = request;
+  const snippets = renderSnippets(body, window.location.origin);
+  return (
+    <div className="space-y-4">
+      <p className="text-sm text-ink-2">
+        The same render through the public API. It needs an API key with the{" "}
+        <code className="font-mono text-xs">render:html</code> scope (
+        <Link to="/settings/api-keys" className="text-brand-ink underline underline-offset-2">
+          Developers › API keys
+        </Link>
+        ), read here from <code className="font-mono text-xs">$NECODOC_API_KEY</code>. API renders
+        are always logged.
+      </p>
+      <Tabs
+        value={language}
+        onValueChange={(value) => {
+          const next = snippetLanguages.find((l) => l === value);
+          if (next) setLanguage(next);
+        }}
+      >
+        <div className="flex flex-wrap items-center gap-3">
+          <TabsList scrollable aria-label="Language" className="max-w-full">
+            {snippetLanguages.map((l) => (
+              <TabsTrigger key={l} value={l}>
+                {snippetLabels[l]}
+              </TabsTrigger>
+            ))}
+          </TabsList>
+          <CopyButton
+            text={snippets[language]}
+            label={`Copy ${snippetLabels[language]}`}
+            className="ml-auto"
+          />
+        </div>
+        {snippetLanguages.map((l) => (
+          <TabsContent key={l} value={l} className="pt-3">
+            <pre className="max-h-[60svh] overflow-auto rounded-lg bg-tint p-3 font-mono text-xs leading-relaxed text-ink [font-variant-ligatures:none]">
+              <code>{snippets[l]}</code>
+            </pre>
+          </TabsContent>
+        ))}
+      </Tabs>
+    </div>
   );
 }
 

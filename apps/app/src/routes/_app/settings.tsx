@@ -2,6 +2,7 @@ import { changePasswordSchema, deleteAccountSchema, updateProfileSchema } from "
 import {
   DesktopIcon,
   DeviceMobileIcon,
+  EyeClosedIcon,
   ListDashesIcon,
   MonitorIcon,
   MoonIcon,
@@ -15,6 +16,7 @@ import { type ReactNode, useId, useState } from "react";
 import { toast } from "sonner";
 import type { z } from "zod";
 import { ErrorAlert, useAppForm } from "@/components/form";
+import { setStatusBar, useStatusBar } from "@/components/ops-status-bar";
 import { FaqLink, Page, PageHeader } from "@/components/page";
 import { RoleBadges } from "@/components/role-badges";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -76,7 +78,7 @@ function Settings() {
           <SessionsCard />
         </>
       )}
-      <AppearanceCard />
+      <AppearanceCard isAdmin={me.user.roles.includes("admin")} />
       {me.user.roles.length > 0 && <ApiKeysCard />}
       {!me.impersonatedBy && <DangerZone />}
     </Page>
@@ -434,7 +436,13 @@ const densityOptions = [
   { value: "compact", label: "Compact", icon: <ListDashesIcon weight="bold" /> },
 ] as const satisfies readonly { value: Density; label: string; icon: ReactNode }[];
 
-function AppearanceCard() {
+const statusBarOptions = [
+  { value: "off", label: "Off", icon: <EyeClosedIcon /> },
+  { value: "on", label: "On", icon: <TerminalWindowIcon /> },
+] as const satisfies readonly { value: "on" | "off"; label: string; icon: ReactNode }[];
+
+function AppearanceCard({ isAdmin }: { isAdmin: boolean }) {
+  const statusBar = useStatusBar();
   return (
     <Card>
       <CardHeader>
@@ -456,6 +464,15 @@ function AppearanceCard() {
           options={densityOptions}
           onChange={setDensity}
         />
+        {isAdmin && (
+          <Segmented
+            label="Ops status bar"
+            hint="Queue, workers, render time and failures along the bottom of every page."
+            value={statusBar ? "on" : "off"}
+            options={statusBarOptions}
+            onChange={(value) => setStatusBar(value === "on")}
+          />
+        )}
       </CardContent>
     </Card>
   );

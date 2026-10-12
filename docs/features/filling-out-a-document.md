@@ -49,7 +49,8 @@ they happen, reuses answers, and produces a clean document.
 - **Documents area** (the app's home page): "My documents" lists the user's
   drafts and finished documents with template, version and last edit; open,
   continue, duplicate or delete each. "New document" opens a picker of
-  published, non-archived templates with search and descriptions; it shows
+  published, non-archived templates with search, descriptions and a
+  first-page thumbnail ([Document templates](document-templates.md)); it shows
   the published name and description, never an unpublished draft's, to
   editors too. "Fill in" on the templates list opens the picker narrowed to
   that template.

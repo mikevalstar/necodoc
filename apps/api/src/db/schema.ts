@@ -18,11 +18,14 @@ import type {
   PdfPage,
   ProcessRole,
   PublishingSettings,
+  QueueSettings,
   RenderInput,
   RenderTimings,
   RetentionSettings,
   ReviewEventKind,
   ReviewStatus,
+  SavedViewSearch,
+  SavedViewTable,
   SigningPackage,
   SnippetContent,
   SubmissionSource,
@@ -188,6 +191,18 @@ export const templateVersion = pgTable(
   (t) => [unique().on(t.templateId, t.version)],
 );
 
+// Spec: docs/features/document-templates.md (templates list). A cache: one page-1 image per
+// template, replaced when `source` (what it was rendered from) is no longer current. A null image
+// records a failed render, so a broken draft isn't re-rendered on every list view.
+export const templateThumbnail = pgTable("template_thumbnail", {
+  templateId: uuid()
+    .primaryKey()
+    .references(() => template.id, { onDelete: "cascade" }),
+  source: text().notNull(),
+  image: bytea(),
+  createdAt,
+});
+
 // Spec: docs/features/snippet-library.md. Current content only: published template versions keep
 // their own compiled copy (compiled.partials), so editing a snippet never changes one.
 export const snippet = pgTable("snippet", {
@@ -316,7 +331,11 @@ export const worker = pgTable("worker", {
 });
 
 /** Admin settings, one typed row per key. */
-type Settings = { retention: RetentionSettings; publishing: PublishingSettings };
+type Settings = {
+  retention: RetentionSettings;
+  publishing: PublishingSettings;
+  queues: QueueSettings;
+};
 
 export const setting = pgTable("setting", {
   key: text().$type<keyof Settings>().primaryKey(),
@@ -617,4 +636,23 @@ export const auditEvent = pgTable(
     index("audit_event_actor_name_trgm_index").using("gin", t.actorName.op("gin_trgm_ops")),
     index("audit_event_request_id_trgm_index").using("gin", t.requestId.op("gin_trgm_ops")),
   ],
+);
+
+// Spec: docs/features/saved-views.md. A table's URL search under a name; shared ones show for
+// everyone. They go with their owner.
+export const savedView = pgTable(
+  "saved_view",
+  {
+    id: uuid().primaryKey().defaultRandom(),
+    ownerId: text()
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    table: text().$type<SavedViewTable>().notNull(),
+    name: text().notNull(),
+    search: jsonb().$type<SavedViewSearch>().notNull(),
+    shared: boolean().default(false).notNull(),
+    createdAt,
+    updatedAt,
+  },
+  (t) => [unique().on(t.ownerId, t.table, t.name), index().on(t.table, t.shared)],
 );

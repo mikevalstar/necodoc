@@ -173,6 +173,8 @@ export const templateSummarySchema = z.object({
   /** The draft was saved after the latest publish (or was never published). */
   hasUnpublishedChanges: z.boolean(),
   archivedAt: z.iso.datetime().nullable(),
+  /** Names what the page-1 thumbnail shows; changes when it does (cache-busts its URL). */
+  thumbnail: z.string(),
   ...timestamps,
 });
 export type TemplateSummary = z.infer<typeof templateSummarySchema>;

@@ -30,11 +30,12 @@ Compliance reviews ask for change history. When a published document is wrong, t
   - sign-in success and failure (password, SSO with its provider, trusted header), sign-out
   - batch jobs: start, cancel ([render queue](render-queue-batch-jobs-and-scaling.md))
   - generation log: bulk delete (with the filter and count), signed download link minted ([generation log](generation-log.md))
+  - shared [saved views](saved-views.md): create, edit (rename, update, share or unshare), delete
   - settings: retention and publishing changes
   - data subject erasure, with counts only ([personal data masking and erasure](personal-data-masking-and-erasure.md))
 - **Actors.** A person (with the admin behind them when impersonating), an API key (its owner, or a service account), the system (SSO provisioning and role sync, jobs), or the public (failed sign-ins).
 - **Append-only.** No one can edit or delete entries through the app or API, and a database trigger rejects updates and deletes.
-- **Admin > Audit log:** filter by actor, action, target type, target, date range and free text (target, actor, request id, IP); sort; page through large volumes server-side; open an entry to see its diff; export the filtered list as CSV.
+- **Admin > Audit log:** filter by actor, action, target type, target, date range and free text (target, actor, request id, IP); sort; page through large volumes server-side; open an entry to see its diff; export the filtered list as CSV; save the filters as a [saved view](saved-views.md).
 - **Per-object history:** themes, snippets, share links, service accounts, API keys and templates show their own audit trail.
 - **Request ids.** Every API response carries an `X-Request-Id`; audit and generation entries record it, so a customer's support ticket can be traced.
 - **No secrets.** Webhook secrets, link tokens and passwords are never recorded.

@@ -1,5 +1,17 @@
-import { type JobState, jobStateSchema, type QueueJob, type WorkerStatus } from "@necodoc/shared";
-import { ArrowClockwiseIcon, PauseIcon, PlayIcon } from "@phosphor-icons/react";
+import {
+  type JobState,
+  jobStateSchema,
+  type PausableQueue,
+  pausableQueues,
+  type QueueJob,
+  type WorkerStatus,
+} from "@necodoc/shared";
+import {
+  ArrowClockwiseIcon,
+  ArrowCounterClockwiseIcon,
+  PauseIcon,
+  PlayIcon,
+} from "@phosphor-icons/react";
 import {
   keepPreviousData,
   queryOptions,
@@ -66,6 +78,20 @@ const stateVariants = {
   cancelled: "secondary",
   failed: "bad",
 } as const satisfies Record<JobState, string>;
+
+const queueLabels = {
+  render: "Renders",
+  webhook: "Webhooks",
+  "detect-fields": "Field detection",
+  retention: "Retention",
+} satisfies Record<PausableQueue, string>;
+
+/** Failed render jobs whose generation was marked failed: the ones Retry puts back in place. */
+const retryable = (job: QueueJob) =>
+  job.state === "failed" &&
+  job.queue === "render" &&
+  !!job.generationId &&
+  job.generationStatus === "error";
 
 /** Jobs the worker hasn't finished with: the ones that can still be cancelled. */
 const cancellable = new Set<JobState>(["created", "retry", "active"]);
@@ -250,6 +276,8 @@ function Queue() {
   const queryClient = useQueryClient();
   const [live, setLive] = useState(true);
   const [toCancel, setToCancel] = useState<QueueJob | null>(null);
+  const [toPause, setToPause] = useState<PausableQueue | null>(null);
+  const [retryAllOpen, setRetryAllOpen] = useState(false);
   const jobs = useQuery(queueQuery(search, live && refreshMs));
   const system = useQuery(workersQuery(live && refreshMs));
   const rerun = useRerun();
@@ -263,6 +291,37 @@ function Queue() {
       if (!result.generationId || result.generationCancelled) toast.success("Job cancelled");
       else toast.info("It had already finished", { description: "Its result was kept." });
       return queryClient.invalidateQueries({ queryKey: ["system", "queue"] });
+    },
+  });
+
+  const refresh = () => queryClient.invalidateQueries({ queryKey: ["system"] });
+
+  const pause = useMutation({
+    mutationFn: async (body: { queue: PausableQueue; paused: boolean }) =>
+      (await ok(api.system.queue.pause.$post({ json: body }))).json(),
+    onSuccess: (_, { queue, paused }) => {
+      setToPause(null);
+      toast.success(`${queueLabels[queue]} ${paused ? "paused" : "resumed"}`);
+      return refresh();
+    },
+  });
+
+  const retry = useMutation({
+    mutationFn: async (jobId: string) =>
+      (await ok(api.system.queue[":jobId"].retry.$post({ param: { jobId } }))).json(),
+    onSuccess: () => {
+      toast.success("Job retried", { description: "Same entry, one more attempt." });
+      return refresh();
+    },
+  });
+
+  const retryAll = useMutation({
+    mutationFn: async () =>
+      (await ok(api.system.queue["retry-failed"].$post({ json: { queue: search.queue } }))).json(),
+    onSuccess: ({ retried }) => {
+      setRetryAllOpen(false);
+      toast.success(retried ? `${retried.toLocaleString()} jobs retried` : "Nothing to retry");
+      return refresh();
     },
   });
 
@@ -285,6 +344,12 @@ function Queue() {
     ) ?? [];
   const online = workers.filter((w) => w.online);
   const slots = online.reduce((sum, w) => sum + w.concurrency, 0);
+  const paused = system.data?.pausedQueues ?? [];
+  // Failed render jobs in view of "Retry all failed" (it retries every failed one, any age).
+  const failedRenders =
+    !search.queue || search.queue === "render"
+      ? (data?.counts.find((row) => row.queue === "render" && row.state === "failed")?.count ?? 0)
+      : 0;
 
   return (
     <Page>
@@ -322,6 +387,20 @@ function Queue() {
         </Alert>
       )}
 
+      {paused.length > 0 && (
+        <Alert className="bg-warn-wash *:[svg]:text-warn">
+          <PauseIcon />
+          <AlertTitle>
+            Paused: {paused.map((queue) => queueLabels[queue as PausableQueue] ?? queue).join(", ")}
+          </AlertTitle>
+          <AlertDescription>
+            {paused.includes("render")
+              ? "No worker starts a render until you resume. Renders still queue; the app and API answer them with 202 (queued) at once."
+              : "No worker picks up these jobs until you resume. They still queue."}
+          </AlertDescription>
+        </Alert>
+      )}
+
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         <StatTile
           label="Waiting"
@@ -352,7 +431,38 @@ function Queue() {
 
       <Workers loading={!system.data} workers={workers} />
 
-      <ErrorAlert error={rerun.error} />
+      <Card size="sm" className="flex-row flex-wrap items-center gap-x-4 gap-y-2 px-4">
+        <h2 className="font-heading text-[15px] font-bold">Queues</h2>
+        <ul className="flex min-w-0 flex-1 flex-wrap gap-2">
+          {pausableQueues.map((queue) => {
+            const isPaused = paused.includes(queue);
+            return (
+              <li key={queue} className="flex items-center gap-1">
+                <Badge variant={isPaused ? "warn" : "ok"} dot className="h-7">
+                  {queueLabels[queue]}
+                  <span className="font-normal">{isPaused ? "paused" : "running"}</span>
+                </Badge>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  aria-label={`${isPaused ? "Resume" : "Pause"} ${queueLabels[queue]}`}
+                  disabled={!system.data || pause.isPending}
+                  onClick={() => {
+                    pause.reset();
+                    if (isPaused) pause.mutate({ queue, paused: false });
+                    else setToPause(queue);
+                  }}
+                >
+                  {isPaused ? <PlayIcon /> : <PauseIcon />}
+                  {isPaused ? "Resume" : "Pause"}
+                </Button>
+              </li>
+            );
+          })}
+        </ul>
+      </Card>
+
+      <ErrorAlert error={rerun.error ?? retry.error ?? (toPause ? null : pause.error)} />
 
       <DataTable
         columns={columns}
@@ -371,7 +481,7 @@ function Queue() {
             : "The queue is clear: nothing waiting or running, and no failures in the last 24 hours."
         }
         rowActions={(job) => (
-          <div className="flex justify-end">
+          <div className="flex justify-end gap-1">
             {cancellable.has(job.state) && (
               <Button
                 variant="ghost"
@@ -386,9 +496,22 @@ function Queue() {
                 Cancel
               </Button>
             )}
-            {job.state === "failed" && job.generationId && (
+            {retryable(job) && (
               <Button
                 variant="secondary"
+                size="sm"
+                aria-label={`Retry ${job.filename ?? "job"}`}
+                title="Run this job again in place: same entry, one more attempt"
+                disabled={retry.isPending}
+                onClick={() => retry.mutate(job.id)}
+              >
+                <ArrowCounterClockwiseIcon weight="bold" />
+                Retry
+              </Button>
+            )}
+            {job.state === "failed" && job.generationId && (
+              <Button
+                variant="ghost"
                 size="sm"
                 aria-label={`Re-run ${job.filename ?? "job"}`}
                 title="Render the same input again as a new entry"
@@ -440,6 +563,19 @@ function Queue() {
               options={queues.map((queue) => ({ value: queue, label: queue }))}
               onChange={(queue) => setSearch({ queue: queue || undefined, page: 1 })}
             />
+            {failedRenders > 0 && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  retryAll.reset();
+                  setRetryAllOpen(true);
+                }}
+              >
+                <ArrowCounterClockwiseIcon weight="bold" />
+                Retry all failed
+              </Button>
+            )}
           </>
         }
       />
@@ -463,6 +599,54 @@ function Queue() {
               onClick={() => toCancel && cancel.mutate(toCancel.id)}
             >
               Cancel job
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog open={!!toPause} onOpenChange={(open) => !open && setToPause(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              Pause {toPause && queueLabels[toPause].toLowerCase()}?
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              {toPause === "render"
+                ? "Every worker stops starting renders; the ones running finish. New renders still queue, and the app and API answer them with 202 (queued) at once. It stays paused, across restarts, until you resume."
+                : "Every worker stops picking up these jobs; the ones running finish. New jobs still queue. It stays paused, across restarts, until you resume."}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <ErrorAlert error={pause.error} />
+          <AlertDialogFooter>
+            <AlertDialogCancel>Keep running</AlertDialogCancel>
+            <AlertDialogAction
+              disabled={pause.isPending}
+              onClick={() => toPause && pause.mutate({ queue: toPause, paused: true })}
+            >
+              Pause queue
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog open={retryAllOpen} onOpenChange={setRetryAllOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              Retry {failedRenders.toLocaleString()} failed render{" "}
+              {failedRenders === 1 ? "job" : "jobs"}?
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              Each goes back to the queue in place with one more attempt: same job, same generation
+              entry, no new entries. Batches they belong to reopen until they finish. Their webhooks
+              fire again when they do.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <ErrorAlert error={retryAll.error} />
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction disabled={retryAll.isPending} onClick={() => retryAll.mutate()}>
+              Retry all
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

@@ -6,7 +6,9 @@ import {
   type Percentiles,
   publishingSettingsSchema,
   queueJobsQuerySchema,
+  queuePauseSchema,
   retentionSettingsSchema,
+  retryFailedSchema,
   systemQuerySchema,
 } from "@necodoc/shared";
 import { and, desc, eq, gte, inArray, isNotNull, type SQL, sql } from "drizzle-orm";
@@ -16,11 +18,13 @@ import { recordAudit } from "../audit";
 import { db } from "../db";
 import { generation, template, worker } from "../db/schema";
 import { env } from "../env";
+import { RETRY_LIMIT, retryFailedRenders } from "../generate";
 import { type AppEnv, requireRole } from "../middleware";
-import { announceFinished, boss } from "../queue";
+import { announceFinished, boss, pausedQueues, setQueuePaused } from "../queue";
 import { retentionSettings, runRetention, saveRetentionSettings } from "../retention";
 import { publishingSettings, savePublishingSettings } from "../review";
 import { storage } from "../storage";
+import { systemConfig } from "../system-config";
 import { onlineSince } from "../worker";
 
 // Spec: docs/features/render-queue-batch-jobs-and-scaling.md (Admin > System). Metrics come from
@@ -125,10 +129,16 @@ export const systemRoutes = new Hono<AppEnv>()
       },
       bySource: bySource.map((row) => ({ ...row, source: row.source as GenerationSource })),
       byTemplate,
+      /** This API node's APP_VERSION (workers report theirs in heartbeats). */
+      version: env.APP_VERSION,
+      pausedQueues: await pausedQueues(),
       /** ADR 0023: where this API node writes and reads generated outputs. */
       storage: { driver: storage.name, target: storage.target, redirect: env.STORAGE_REDIRECT },
     });
   })
+  // Configuration status (no secrets), apart from the 5-second poll: it starts Chromium and
+  // round-trips storage.
+  .get("/config", async (c) => c.json(await systemConfig()))
   .get("/retention", async (c) => c.json(await retentionSettings()))
   .put("/retention", zValidator("json", retentionSettingsSchema), async (c) => {
     const before = await retentionSettings();
@@ -239,6 +249,45 @@ export const systemRoutes = new Hono<AppEnv>()
       : [];
     if (cancelled) await announceFinished(cancelled.id);
     return c.json({ jobId, generationId: job.generation_id, generationCancelled: !!cancelled });
+  })
+  // Pausing stops every worker fetching the queue's jobs (src/worker.ts); running ones finish.
+  .post("/queue/pause", zValidator("json", queuePauseSchema), async (c) => {
+    const { queue, paused } = c.req.valid("json");
+    const { before, after } = await setQueuePaused(queue, paused, c.get("user").id);
+    if (before.includes(queue) !== paused) {
+      await recordAudit({
+        action: paused ? "settings.queue_paused" : "settings.queue_resumed",
+        target: { id: `queue:${queue}`, name: `Queue ${queue}` },
+        before: { paused: before },
+        after: { paused: after },
+      });
+    }
+    return c.json({ pausedQueues: after });
+  })
+  // Retry in place: same job, same generation entry (unlike Re-run, which logs a new one).
+  .post("/queue/:jobId/retry", zValidator("param", z.object({ jobId: z.uuid() })), async (c) => {
+    const { jobId } = c.req.valid("param");
+    const [generationId] = await retryFailedRenders(sql`j.id = ${jobId}`);
+    if (!generationId) {
+      return c.json(
+        { error: "Only a failed render job whose generation failed can be retried" },
+        409,
+      );
+    }
+    await recordAudit({ action: "generation.retried", target: { id: generationId } });
+    return c.json({ jobId, generationId });
+  })
+  .post("/queue/retry-failed", zValidator("json", retryFailedSchema), async (c) => {
+    const { queue } = c.req.valid("json");
+    const retried = (await retryFailedRenders(queue ? sql`j.name = ${queue}` : sql`true`)).length;
+    if (retried) {
+      await recordAudit({
+        action: "generation.bulk_retried",
+        target: { id: null, name: `${retried} generations` },
+        details: { queue: queue ?? null, retried },
+      });
+    }
+    return c.json({ retried, limit: RETRY_LIMIT });
   });
 
 /** Raw queries skip drizzle's column mapping; format timestamps as the ISO strings JSON wants. */

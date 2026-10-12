@@ -777,19 +777,35 @@ export function CreateKeyDialog({
   );
 }
 
-/** "Create key" plus the secret afterwards, for pages that list one owner's keys. */
-export function CreateKeyButton(props: { ownerId?: string; ownerRoles: readonly Role[] }) {
+/**
+ * "Create key" plus the secret afterwards, for pages that list one owner's keys. `requested`
+ * opens the dialog from outside (the page's ?new=, from the command palette); `onDone` clears it.
+ */
+export function CreateKeyButton({
+  requested = false,
+  onDone,
+  ...props
+}: {
+  ownerId?: string;
+  ownerRoles: readonly Role[];
+  requested?: boolean;
+  onDone?: () => void;
+}) {
   const [open, setOpen] = useState(false);
   const [secret, setSecret] = useState<{ key: string; name: string } | null>(null);
+  const close = () => {
+    setOpen(false);
+    onDone?.();
+  };
   return (
     <>
       <Button onClick={() => setOpen(true)}>Create key</Button>
-      {open && (
+      {(open || requested) && (
         <CreateKeyDialog
           {...props}
-          onClose={() => setOpen(false)}
+          onClose={close}
           onCreated={(created) => {
-            setOpen(false);
+            close();
             setSecret(created);
           }}
         />

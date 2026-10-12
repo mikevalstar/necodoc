@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import { InstanceLabel } from "@/components/instance";
 import { Logo } from "@/components/logo";
 import { Card, CardContent, CardDescription, CardHeader } from "@/components/ui/card";
 
@@ -22,6 +23,7 @@ export function AuthFrame({
           <Logo className="size-10" accentClassName="fill-sun" />
           necodoc
         </div>
+        <InstanceLabel />
         <Card className="gap-6 shadow-float [--card-spacing:--spacing(7)]">
           <CardHeader className="gap-1.5">
             <h1 className="font-heading text-2xl leading-tight font-extrabold tracking-tight">

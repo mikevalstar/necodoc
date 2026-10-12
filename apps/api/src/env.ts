@@ -1,4 +1,4 @@
-import { processRoleSchema } from "@necodoc/shared";
+import { instanceEnvSchema, processRoleSchema } from "@necodoc/shared";
 import { z } from "zod";
 import { parseSsoProviders } from "./sso-config";
 import { storageEnvSchema } from "./storage/config";
@@ -21,6 +21,13 @@ export const env = z
     PREVIEW_CONCURRENCY: z.coerce.number().int().min(1).max(32).default(2),
     /** Reported in worker heartbeats, to spot mixed versions mid-deploy. */
     APP_VERSION: z.string().default("dev"),
+    /** The sidebar and login page label (docs/features/app-shell-and-navigation.md). */
+    INSTANCE_NAME: z
+      .string()
+      .max(60)
+      .optional()
+      .transform((name) => name?.trim() || undefined),
+    INSTANCE_ENV: instanceEnvSchema.optional(),
     /** ADR 0023: `presigned` redirects output downloads to an S3 presigned URL or Azure SAS. */
     STORAGE_REDIRECT: z.enum(["off", "presigned"]).default("off"),
     /** ADR 0022: AI is on only with a key. An empty value counts as unset. */

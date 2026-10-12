@@ -73,5 +73,6 @@ matches the brand helps self-serve users trust it, and one shared system keeps
 
 ## Open questions
 
-- A template gallery view, command palette and saved views appear in the
-  mockups but aren't built; each needs its own spec first.
+- A template gallery view and saved views appear in the mockups but aren't
+  built; each needs its own spec first. The command palette has one:
+  [Command palette](command-palette.md).

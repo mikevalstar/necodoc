@@ -25,6 +25,15 @@ The API and worker read their configuration from the environment and validate it
 | `WEBHOOK_ALLOW_LOCALHOST` | `false` | Development only. `true` lets [webhooks](/guides/webhooks/) use `http://` and loopback URLs, for a receiver on the same machine. Never set it in production. |
 | `STORAGE_REDIRECT` | `off` | `presigned` answers downloads with a redirect to a short-lived S3 presigned URL or Azure SAS instead of streaming through the API. Browsers must reach the bucket. |
 
+## Instance identity
+
+A label at the top of the app's sidebar and on the login page, so people can tell which installation they're in. It's a label only: each installation is one organisation.
+
+| Variable | Default | Description |
+| --- | --- | --- |
+| `INSTANCE_NAME` | unset | The installation's name, e.g. `Harbour Surety` (up to 60 characters). Unset hides the label. |
+| `INSTANCE_ENV` | unset | `prod`, `staging` or `dev`, shown after the name in red, amber or green. |
+
 ## Logs, metrics and traces
 
 See [Observability](/self-hosting/observability/).

@@ -88,9 +88,22 @@ function webKey(key: KeyObject) {
   return crypto.subtle.importKey("pkcs8", der, algorithm, false, ["sign"]);
 }
 
-function subjectOf(cert: pkijs.Certificate) {
-  const cn = cert.subject.typesAndValues.find((tv) => tv.type === OID.commonName);
-  return cn ? String(cn.value.valueBlock.value) : cert.subject.toString();
+/** A name's common name, or the full DN. */
+function nameOf(name: pkijs.RelativeDistinguishedNames) {
+  const cn = name.typesAndValues.find((tv) => tv.type === OID.commonName);
+  return cn ? String(cn.value.valueBlock.value) : name.toString();
+}
+
+const subjectOf = (cert: pkijs.Certificate) => nameOf(cert.subject);
+
+/** The signing certificate's details for Admin > System. */
+export function certificateInfo(certifier: Certifier) {
+  const leaf = certifier.chain[0];
+  return {
+    subject: certifier.subject,
+    issuer: leaf ? nameOf(leaf.issuer) : null,
+    notAfter: leaf ? leaf.notAfter.value.toISOString() : null,
+  };
 }
 
 /** Puts the certificate matching the key first, then its issuers in order, as far as they go. */

@@ -40,6 +40,7 @@ import {
 } from "../publish";
 import { approvedReview, closeReviewAsPublished, publishingSettings } from "../review";
 import { runTests } from "../template-tests";
+import { cachedThumbnail, thumbnailSource } from "../thumbnail";
 import { generationResponse, pdfHeaders } from "./http";
 
 // Specs: docs/features/document-templates.md, docs/features/publishing-and-versions.md,
@@ -151,6 +152,7 @@ export const templateRoutes = new Hono<AppEnv>()
         archivedAt: draft.archivedAt,
         createdAt: draft.createdAt,
         updatedAt: draft.updatedAt,
+        thumbnail: thumbnailSource(latest?.id ?? null, draft.updatedAt),
       })),
     );
   })
@@ -182,6 +184,53 @@ export const templateRoutes = new Hono<AppEnv>()
     });
     return c.json(row, 201);
   })
+  // Page 1 as WebP (docs/features/document-templates.md, templates list). `?v=` is the list's
+  // `thumbnail`: while it's current the image never changes, so browsers keep it.
+  .get(
+    "/:id/thumbnail",
+    canView,
+    idParam,
+    zValidator("query", z.object({ v: z.string().optional() })),
+    async (c) => {
+      const { id } = c.req.valid("param");
+      const [row] = await db
+        .select({ draft: template, version: templateVersion })
+        .from(template)
+        .leftJoin(latest, eq(latest.templateId, template.id))
+        .leftJoin(
+          templateVersion,
+          and(
+            eq(templateVersion.templateId, template.id),
+            eq(templateVersion.version, latest.version),
+          ),
+        )
+        .where(eq(template.id, id));
+      if (!row || (!seesDrafts(c.get("user")) && (!row.version || row.draft.archivedAt))) {
+        return c.json({ error: "Template not found" }, 404);
+      }
+      const { draft, version } = row;
+      const source = thumbnailSource(version?.id ?? null, draft.updatedAt);
+      const image = await cachedThumbnail(id, source, async () => {
+        if (version) {
+          const data = templateDataSchema(version.sections).safeParse(version.sampleData);
+          return {
+            ...versionRequest(version, data.data ?? version.sampleData, version.name),
+            preview: true,
+          };
+        }
+        const saved = savedDraft(draft);
+        return (saved && draftRenderInput(saved, saved.sampleData, draft.name).input) ?? null;
+      });
+      if (!image) return c.json({ error: "This template doesn't render" }, 404);
+      return c.body(image, 200, {
+        "Content-Type": "image/webp",
+        "Cache-Control":
+          c.req.valid("query").v === source
+            ? "private, max-age=31536000, immutable"
+            : "private, no-cache",
+      });
+    },
+  )
   .get("/:id", canSeeDrafts, idParam, async (c) => {
     const row = await findDraft(c.req.valid("param").id);
     return row ? c.json(row, 200) : c.json({ error: "Template not found" }, 404);

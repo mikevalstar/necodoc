@@ -12,12 +12,12 @@ import {
   type RenderTimings,
   type SigningPackage,
 } from "@necodoc/shared";
-import { and, eq, inArray, sql } from "drizzle-orm";
+import { and, eq, inArray, isNotNull, type SQL, sql } from "drizzle-orm";
 import { fromDrizzle } from "pg-boss";
 import { z } from "zod";
 import { certifier } from "./certifier";
 import { db } from "./db";
-import { asset, file, generation, pdfSource, theme } from "./db/schema";
+import { asset, batch, file, generation, pdfSource, theme } from "./db/schema";
 import { env } from "./env";
 import {
   deleteObjects,
@@ -30,7 +30,14 @@ import {
 import { limiter } from "./limiter";
 import { logGeneration, observeRender } from "./observability/render";
 import { withSpan } from "./observability/tracing";
-import { announceFinished, boss, priorities, queues, waitUntilFinished } from "./queue";
+import {
+  announceFinished,
+  boss,
+  pausedQueues,
+  priorities,
+  queues,
+  waitUntilFinished,
+} from "./queue";
 import type { AssetLoader } from "./render/browser";
 import { type FileLoader, renderCombine } from "./render/combine";
 import { isInfrastructureError } from "./render/errors";
@@ -255,7 +262,8 @@ export type GenerationResult =
 
 /**
  * Logs and queues a render. With `wait`, holds on for the worker up to RENDER_WAIT_MS and returns
- * the stored PDF's id; otherwise (or past the wait) returns the generation id to poll.
+ * the stored PDF's id; otherwise (or past the wait, or with the render queue paused) returns the
+ * generation id to poll.
  */
 export async function generate(
   input: GenerationInput & { wait: boolean },
@@ -264,7 +272,10 @@ export async function generate(
     enqueue(tx, [queuedRow(input)], priorities.interactive),
   );
   if (!generationId) throw new Error("Generation insert returned no row");
-  if (!input.wait) return { status: "queued", generationId };
+  // A paused queue starts nothing until resumed: answer 202 now rather than after the timeout.
+  if (!input.wait || (await pausedQueues()).includes(queues.render)) {
+    return { status: "queued", generationId };
+  }
 
   const load = () =>
     db
@@ -417,6 +428,58 @@ export async function runGeneration(generationId: string, attempt: number, retri
     outcome = { error: errorMessage(error) };
   }
   await finish(generationId, attempt, outcome, started);
+}
+
+/** The most failed render jobs one "Retry all failed" puts back. */
+export const RETRY_LIMIT = 10_000;
+
+/**
+ * Runs failed render jobs (out of attempts) again in place: the same pg-boss job gets one more
+ * attempt, and its generation entry goes back to queued with its attempt count carrying on. Only
+ * jobs whose generation was already marked failed qualify, so the dead letter has been handled.
+ * A retried batch row reopens its batch. `where` filters `pgboss.job j`. Returns the generation ids.
+ */
+export async function retryFailedRenders(where: SQL) {
+  return db.transaction(async (tx) => {
+    const failed = await tx.execute<{ id: string; generation_id: string }>(sql`
+      select j.id, g.id as generation_id from pgboss.job j
+      join ${generation} g on g.id = (j.data->>'generationId')::uuid
+      where j.name = ${queues.render} and j.state = 'failed' and g.status = 'error' and ${where}
+      order by j.created_on limit ${RETRY_LIMIT}
+      for update of g skip locked`);
+    if (!failed.length) return [];
+    const reset = await tx
+      .update(generation)
+      .set({
+        status: "queued",
+        error: null,
+        startedAt: null,
+        finishedAt: null,
+        durationMs: null,
+        queueWaitMs: null,
+        totalMs: null,
+      })
+      .where(
+        inArray(
+          generation.id,
+          failed.map((row) => row.generation_id),
+        ),
+      )
+      .returning({ id: generation.id, batchId: generation.batchId });
+    const batchIds = [...new Set(reset.flatMap((row) => row.batchId ?? []))];
+    if (batchIds.length) {
+      await tx
+        .update(batch)
+        .set({ completedAt: null })
+        .where(and(inArray(batch.id, batchIds), isNotNull(batch.completedAt)));
+    }
+    await boss.retry(
+      queues.render,
+      failed.map((row) => row.id),
+      { db: fromDrizzle(tx, sql) },
+    );
+    return reset.map((row) => row.id);
+  });
 }
 
 /** A job that ran out of attempts without recording an outcome: its workers kept dying. */
