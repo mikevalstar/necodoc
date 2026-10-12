@@ -27,7 +27,6 @@ import { setStatusBar, useStatusBar } from "@/components/ops-status-bar";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { api, ok } from "@/lib/api";
 import { canAccess, type Me } from "@/lib/auth";
-import { dayjs } from "@/lib/date";
 import {
   matches,
   parseRecent,
@@ -35,6 +34,7 @@ import {
   type Recent,
   type recentKinds,
 } from "@/lib/command-palette";
+import { dayjs } from "@/lib/date";
 import { setDensity, useDensity } from "@/lib/density";
 import { labelOf, otherPages, visibleSections } from "@/lib/nav";
 import { snippetsQuery, submissionsQuery, templatesQuery, themesQuery } from "@/lib/queries";
