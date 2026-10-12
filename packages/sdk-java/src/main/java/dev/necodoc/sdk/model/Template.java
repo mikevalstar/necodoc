@@ -26,7 +26,9 @@ import com.fasterxml.jackson.annotation.JsonTypeName;
 import com.fasterxml.jackson.annotation.JsonValue;
 import dev.necodoc.sdk.model.TemplateKind;
 import java.time.OffsetDateTime;
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.List;
 import java.util.UUID;
 import com.fasterxml.jackson.annotation.JsonPropertyOrder;
 
@@ -43,7 +45,8 @@ import dev.necodoc.sdk.ApiClient;
   Template.JSON_PROPERTY_LATEST_VERSION,
   Template.JSON_PROPERTY_PUBLISHED_AT,
   Template.JSON_PROPERTY_CREATED_AT,
-  Template.JSON_PROPERTY_UPDATED_AT
+  Template.JSON_PROPERTY_UPDATED_AT,
+  Template.JSON_PROPERTY_LANGUAGES
 })
 @javax.annotation.Generated(value = "org.openapitools.codegen.languages.JavaClientCodegen", comments = "Generator version: 7.26.0")
 public class Template {
@@ -78,6 +81,10 @@ public class Template {
   public static final String JSON_PROPERTY_UPDATED_AT = "updatedAt";
   @javax.annotation.Nonnull
   private OffsetDateTime updatedAt;
+
+  public static final String JSON_PROPERTY_LANGUAGES = "languages";
+  @javax.annotation.Nonnull
+  private List<String> languages = new ArrayList<>();
 
   public Template() { 
   }
@@ -276,6 +283,38 @@ public class Template {
   }
 
 
+  public Template languages(@javax.annotation.Nonnull List<String> languages) {
+    this.languages = languages;
+    return this;
+  }
+
+  public Template addLanguagesItem(String languagesItem) {
+    if (this.languages == null) {
+      this.languages = new ArrayList<>();
+    }
+    this.languages.add(languagesItem);
+    return this;
+  }
+
+  /**
+   * The published version&#39;s document language first, then those it has translations for. Pass one as &#x60;output.lang&#x60;, or as &#x60;?lang&#x3D;&#x60; here.
+   * @return languages
+   */
+  @javax.annotation.Nonnull
+  @JsonProperty(value = JSON_PROPERTY_LANGUAGES, required = true)
+  @JsonInclude(value = JsonInclude.Include.ALWAYS)
+  public List<String> getLanguages() {
+    return languages;
+  }
+
+
+  @JsonProperty(value = JSON_PROPERTY_LANGUAGES, required = true)
+  @JsonInclude(value = JsonInclude.Include.ALWAYS)
+  public void setLanguages(@javax.annotation.Nonnull List<String> languages) {
+    this.languages = languages;
+  }
+
+
   /**
    * Return true if this Template object is equal to o.
    */
@@ -295,12 +334,13 @@ public class Template {
         Objects.equals(this.latestVersion, template.latestVersion) &&
         Objects.equals(this.publishedAt, template.publishedAt) &&
         Objects.equals(this.createdAt, template.createdAt) &&
-        Objects.equals(this.updatedAt, template.updatedAt);
+        Objects.equals(this.updatedAt, template.updatedAt) &&
+        Objects.equals(this.languages, template.languages);
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(id, kind, name, description, latestVersion, publishedAt, createdAt, updatedAt);
+    return Objects.hash(id, kind, name, description, latestVersion, publishedAt, createdAt, updatedAt, languages);
   }
 
   @Override
@@ -315,6 +355,7 @@ public class Template {
     sb.append("    publishedAt: ").append(toIndentedString(publishedAt)).append("\n");
     sb.append("    createdAt: ").append(toIndentedString(createdAt)).append("\n");
     sb.append("    updatedAt: ").append(toIndentedString(updatedAt)).append("\n");
+    sb.append("    languages: ").append(toIndentedString(languages)).append("\n");
     sb.append("}");
     return sb.toString();
   }
@@ -397,6 +438,15 @@ public class Template {
     // add `updatedAt` to the URL query string
     if (getUpdatedAt() != null) {
       joiner.add(String.format(java.util.Locale.ROOT, "%supdatedAt%s=%s", prefix, suffix, ApiClient.urlEncode(ApiClient.valueToString(getUpdatedAt()))));
+    }
+
+    // add `languages` to the URL query string
+    if (getLanguages() != null) {
+      for (int i = 0; i < getLanguages().size(); i++) {
+        joiner.add(String.format(java.util.Locale.ROOT, "%slanguages%s%s=%s", prefix, suffix,
+            "".equals(suffix) ? "" : String.format(java.util.Locale.ROOT, "%s%d%s", containerPrefix, i, containerSuffix),
+            ApiClient.urlEncode(ApiClient.valueToString(getLanguages().get(i)))));
+      }
     }
 
     return joiner.toString();

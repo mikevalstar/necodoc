@@ -46,6 +46,7 @@ import { ApiError, api, ok, submissionPdfUrl } from "@/lib/api";
 import { usePageCrumb } from "@/lib/breadcrumb";
 import { dayjs } from "@/lib/date";
 import { submissionQuery } from "@/lib/queries";
+import { uiStrings } from "@/lib/ui-strings";
 import { cn } from "@/lib/utils";
 import { DeleteDocumentDialog, DocumentStatusBadge, useStartDocument } from "./-document-actions";
 
@@ -230,6 +231,7 @@ function Interview({ doc, onFinished }: { doc: Doc; onFinished: () => void }) {
   const autosave = useAutosave(doc.id, doc.updatedAt);
   const values = useRef<Record<string, unknown>>(doc.data);
   const language = useDocLanguage(doc);
+  const ui = uiStrings(language.lang);
   // Re-render the "Saved 2 minutes ago" text now and then.
   const [, tick] = useState(0);
   useEffect(() => {
@@ -291,10 +293,11 @@ function Interview({ doc, onFinished }: { doc: Doc; onFinished: () => void }) {
         <CardContent dir={language.dir} lang={language.lang} className="sm:px-7 sm:py-2">
           <GuidedForm
             sections={language.sections}
+            lang={language.lang}
             defaultValues={doc.data}
             initialStep={doc.step}
             review
-            submitLabel={finish.isPending ? "Making your PDF…" : "Finish and make PDF"}
+            submitLabel={finish.isPending ? ui.finishing : ui.finish}
             disabled={finish.isPending}
             onChange={(next) => {
               values.current = next;
@@ -477,7 +480,7 @@ function Finished({
           </CardTitle>
         </CardHeader>
         <CardContent dir={language.dir} lang={language.lang}>
-          <AnswerSummary sections={language.sections} values={doc.data} />
+          <AnswerSummary sections={language.sections} values={doc.data} lang={language.lang} />
         </CardContent>
       </Card>
     </div>

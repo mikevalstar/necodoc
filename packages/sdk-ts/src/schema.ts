@@ -551,6 +551,8 @@ export interface components {
       createdAt: string;
       /** Format: date-time */
       updatedAt: string;
+      /** @description The published version's document language first, then those it has translations for. Pass one as `output.lang`, or as `?lang=` here. */
+      languages: string[];
     };
     TemplateDetail: {
       /** Format: uuid */
@@ -565,6 +567,8 @@ export interface components {
       createdAt: string;
       /** Format: date-time */
       updatedAt: string;
+      /** @description The published version's document language first, then those it has translations for. Pass one as `output.lang`, or as `?lang=` here. */
+      languages: string[];
       versions: {
         /** Format: uuid */
         id: string;
@@ -802,7 +806,10 @@ export interface operations {
   };
   getTemplates: {
     parameters: {
-      query?: never;
+      query?: {
+        /** @description Return name and description in this language from the template's translations; untranslated text stays as written. */
+        lang?: string;
+      };
       header?: never;
       path?: never;
       cookie?: never;
@@ -836,6 +843,15 @@ export interface operations {
           "application/json": components["schemas"]["Error"];
         };
       };
+      /** @description Invalid request or data; `fieldErrors` lists each. */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["Error"];
+        };
+      };
       /** @description Rate limit exceeded. */
       429: {
         headers: {
@@ -851,7 +867,10 @@ export interface operations {
   };
   getTemplatesById: {
     parameters: {
-      query?: never;
+      query?: {
+        /** @description Return name and description in this language from the template's translations; untranslated text stays as written. */
+        lang?: string;
+      };
       header?: never;
       path: {
         id: string;

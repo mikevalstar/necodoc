@@ -120,11 +120,17 @@ function fieldTexts(sections: readonly FieldSection[]) {
 }
 
 /**
- * What a template can translate, in order without repeats: fields first, then content text
- * (`texts`: visual text runs, or `| t` literals in code and overlay boxes).
+ * What a template can translate, in order without repeats: its name and description (shown on
+ * share links), fields, then content text (`texts`: visual text runs, or `| t` literals in code
+ * and overlay boxes).
  */
-export function translatableStrings(sections: readonly FieldSection[], texts: readonly string[]) {
-  return [...new Set([...fieldTexts(sections), ...texts].filter((text) => text !== ""))];
+export function translatableStrings(
+  about: { name: string; description: string },
+  sections: readonly FieldSection[],
+  texts: readonly string[],
+) {
+  const all = [about.name, about.description, ...fieldTexts(sections), ...texts];
+  return [...new Set(all.filter((text) => text !== ""))];
 }
 
 /** Content as stored, or as the editor holds it (visual docs as loose TipTap JSON). */

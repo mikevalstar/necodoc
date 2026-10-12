@@ -4,8 +4,11 @@ import {
   type SigningOptions,
   signingOptionsOf,
   signingPackageQuerySchema,
+  stringsFor,
+  type Translations,
   templateDataSchema,
   templateJsonSchema,
+  translate,
   v1BatchSchema,
   v1BatchSummarySchema,
   v1CombineSchema,
@@ -17,11 +20,12 @@ import {
   v1RenderSchema,
   v1SigningPackageSchema,
   v1TemplateDetailSchema,
+  v1TemplateQuerySchema,
   v1TemplateSchema,
   versionParamSchema,
 } from "@necodoc/shared";
 import type { StandardSchemaV1 } from "@standard-schema/spec";
-import { and, desc, eq, inArray, isNull } from "drizzle-orm";
+import { and, desc, eq, inArray, isNull, sql } from "drizzle-orm";
 import { type Context, Hono } from "hono";
 import {
   type DescribeRouteOptions,
@@ -248,6 +252,9 @@ const publishedTemplates = () =>
       publishedAt: templateVersion.publishedAt,
       createdAt: template.createdAt,
       updatedAt: template.updatedAt,
+      // Just the localization, not the whole content (docs/features/document-localization.md).
+      lang: sql<string | null>`${templateVersion.content}->'output'->>'lang'`,
+      translations: sql<Translations | null>`${templateVersion.content}->'translations'`,
     })
     .from(template)
     .innerJoin(latest, eq(latest.templateId, template.id))
@@ -256,6 +263,19 @@ const publishedTemplates = () =>
       and(eq(templateVersion.templateId, template.id), eq(templateVersion.version, latest.version)),
     )
     .$dynamic();
+
+type PublishedRow = Awaited<ReturnType<typeof publishedTemplates>>[number];
+
+/** Name and description in `lang` (`?lang=`), and the languages the version comes in. */
+function localized({ lang, translations, ...row }: PublishedRow, to: string | undefined) {
+  const strings = to ? stringsFor(translations ?? {}, to) : {};
+  return {
+    ...row,
+    name: translate(strings, row.name),
+    description: translate(strings, row.description),
+    languages: [lang ?? "en", ...Object.keys(translations ?? {})],
+  };
+}
 
 // ---------------------------------------------------------------------------------------------
 // Routes
@@ -308,10 +328,16 @@ const keyed = new Hono<AppEnv>()
       summary: "List published templates",
       description:
         "Published, non-archived templates, limited to the key's templates if it has any.",
-      responses: { 200: jsonBody("Templates by name.", z.array(v1TemplateSchema)), ...keyErrors },
+      responses: {
+        200: jsonBody("Templates by name.", z.array(v1TemplateSchema)),
+        ...invalidRequest,
+        ...keyErrors,
+      },
     }),
     requireScope("templates:read"),
+    validator("query", v1TemplateQuerySchema, invalid),
     async (c) => {
+      const { lang } = c.req.valid("query");
       const { templateIds } = c.get("apiKey");
       const rows = await publishedTemplates()
         .where(
@@ -321,7 +347,10 @@ const keyed = new Hono<AppEnv>()
           ),
         )
         .orderBy(templateVersion.name);
-      return c.json(rows, 200);
+      return c.json(
+        rows.map((row) => localized(row, lang)),
+        200,
+      );
     },
   )
   .get(
@@ -341,8 +370,10 @@ const keyed = new Hono<AppEnv>()
     }),
     requireScope("templates:read"),
     params(idParams),
+    validator("query", v1TemplateQuerySchema, invalid),
     async (c) => {
       const { id } = c.req.valid("param");
+      const { lang } = c.req.valid("query");
       if (!templateAllowed(c.get("apiKey"), id)) {
         return v1Error(c, 403, "template_not_allowed", "This key can't use that template");
       }
@@ -363,7 +394,7 @@ const keyed = new Hono<AppEnv>()
         .leftJoin(user, eq(user.id, templateVersion.publishedBy))
         .where(eq(templateVersion.templateId, id))
         .orderBy(desc(templateVersion.version));
-      return c.json({ ...found, versions }, 200);
+      return c.json({ ...localized(found, lang), versions }, 200);
     },
   )
   .get(

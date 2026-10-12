@@ -47,6 +47,7 @@ import dev.necodoc.sdk.ApiClient;
   TemplateDetail.JSON_PROPERTY_PUBLISHED_AT,
   TemplateDetail.JSON_PROPERTY_CREATED_AT,
   TemplateDetail.JSON_PROPERTY_UPDATED_AT,
+  TemplateDetail.JSON_PROPERTY_LANGUAGES,
   TemplateDetail.JSON_PROPERTY_VERSIONS
 })
 @javax.annotation.Generated(value = "org.openapitools.codegen.languages.JavaClientCodegen", comments = "Generator version: 7.26.0")
@@ -82,6 +83,10 @@ public class TemplateDetail {
   public static final String JSON_PROPERTY_UPDATED_AT = "updatedAt";
   @javax.annotation.Nonnull
   private OffsetDateTime updatedAt;
+
+  public static final String JSON_PROPERTY_LANGUAGES = "languages";
+  @javax.annotation.Nonnull
+  private List<String> languages = new ArrayList<>();
 
   public static final String JSON_PROPERTY_VERSIONS = "versions";
   @javax.annotation.Nonnull
@@ -284,6 +289,38 @@ public class TemplateDetail {
   }
 
 
+  public TemplateDetail languages(@javax.annotation.Nonnull List<String> languages) {
+    this.languages = languages;
+    return this;
+  }
+
+  public TemplateDetail addLanguagesItem(String languagesItem) {
+    if (this.languages == null) {
+      this.languages = new ArrayList<>();
+    }
+    this.languages.add(languagesItem);
+    return this;
+  }
+
+  /**
+   * The published version&#39;s document language first, then those it has translations for. Pass one as &#x60;output.lang&#x60;, or as &#x60;?lang&#x3D;&#x60; here.
+   * @return languages
+   */
+  @javax.annotation.Nonnull
+  @JsonProperty(value = JSON_PROPERTY_LANGUAGES, required = true)
+  @JsonInclude(value = JsonInclude.Include.ALWAYS)
+  public List<String> getLanguages() {
+    return languages;
+  }
+
+
+  @JsonProperty(value = JSON_PROPERTY_LANGUAGES, required = true)
+  @JsonInclude(value = JsonInclude.Include.ALWAYS)
+  public void setLanguages(@javax.annotation.Nonnull List<String> languages) {
+    this.languages = languages;
+  }
+
+
   public TemplateDetail versions(@javax.annotation.Nonnull List<TemplateDetailVersionsInner> versions) {
     this.versions = versions;
     return this;
@@ -336,12 +373,13 @@ public class TemplateDetail {
         Objects.equals(this.publishedAt, templateDetail.publishedAt) &&
         Objects.equals(this.createdAt, templateDetail.createdAt) &&
         Objects.equals(this.updatedAt, templateDetail.updatedAt) &&
+        Objects.equals(this.languages, templateDetail.languages) &&
         Objects.equals(this.versions, templateDetail.versions);
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(id, kind, name, description, latestVersion, publishedAt, createdAt, updatedAt, versions);
+    return Objects.hash(id, kind, name, description, latestVersion, publishedAt, createdAt, updatedAt, languages, versions);
   }
 
   @Override
@@ -356,6 +394,7 @@ public class TemplateDetail {
     sb.append("    publishedAt: ").append(toIndentedString(publishedAt)).append("\n");
     sb.append("    createdAt: ").append(toIndentedString(createdAt)).append("\n");
     sb.append("    updatedAt: ").append(toIndentedString(updatedAt)).append("\n");
+    sb.append("    languages: ").append(toIndentedString(languages)).append("\n");
     sb.append("    versions: ").append(toIndentedString(versions)).append("\n");
     sb.append("}");
     return sb.toString();
@@ -439,6 +478,15 @@ public class TemplateDetail {
     // add `updatedAt` to the URL query string
     if (getUpdatedAt() != null) {
       joiner.add(String.format(java.util.Locale.ROOT, "%supdatedAt%s=%s", prefix, suffix, ApiClient.urlEncode(ApiClient.valueToString(getUpdatedAt()))));
+    }
+
+    // add `languages` to the URL query string
+    if (getLanguages() != null) {
+      for (int i = 0; i < getLanguages().size(); i++) {
+        joiner.add(String.format(java.util.Locale.ROOT, "%slanguages%s%s=%s", prefix, suffix,
+            "".equals(suffix) ? "" : String.format(java.util.Locale.ROOT, "%s%d%s", containerPrefix, i, containerSuffix),
+            ApiClient.urlEncode(ApiClient.valueToString(getLanguages().get(i)))));
+      }
     }
 
     // add `versions` to the URL query string

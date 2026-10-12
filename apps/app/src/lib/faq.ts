@@ -380,13 +380,14 @@ export const faq: readonly FaqEntry[] = [
     group: "Themes",
     what: "A theme is a named house style: body and heading fonts, sizes, line height, text, heading, accent and link colours, and table borders, shading and padding, plus free CSS for anything else. Three built-in starters (Plain, Formal serif, Modern sans) can be duplicated but not edited. Bundled fonts: Noto Sans, Inter, Noto Serif and JetBrains Mono; uploaded font assets work too.",
     howTo:
-      "Open Themes, duplicate a starter, then change its settings and free CSS. The sample PDF beside (or above) the settings updates as you type. Pick the theme on the Render page to use it.",
+      "Open Themes, duplicate a starter, then change its settings and free CSS. The sample PDF beside (or above) the settings updates as you type. Pick the theme on the Render page to use it. 'Used by' under the settings lists the templates using it and flags published versions on an older copy; republish those to pick up your edits.",
     limitations: [
       "Free CSS is unrestricted and can break layout; check the preview.",
       "Remote @import and font URLs don't load.",
       "An uploaded font is a single file, so bold and italic are faked by the browser.",
       "Built-in starters are reset on every server restart; copy them rather than relying on changes to them.",
       "A template uses its theme as it was when published; later theme edits only reach the draft's preview and the next version.",
+      "Deleting a theme isn't blocked: published versions keep their copy, but drafts using it lose their theme and API renders naming it fail.",
     ],
     access: [
       { action: "View and use", needs: view },
@@ -400,12 +401,12 @@ export const faq: readonly FaqEntry[] = [
     group: "Assets",
     what: "A shared library of uploaded images (PNG, JPEG, SVG, WebP) and fonts (TTF, OTF, WOFF2), up to 20 MB each. Rendered pages can't reach the internet, so logos and fonts have to live here. The server checks each file's real type, not just its name.",
     howTo:
-      "Open Assets and use Upload, or drop files on the library. Use 'Copy reference' to get the snippet: {{ 'asset-id' | asset_url }} in HTML, or https://assets.necodoc.invalid/<asset id> in CSS. Fonts are picked in the theme editor.",
+      "Open Assets and use Upload, or drop files on the library. Use 'Copy reference' to get the snippet: {{ 'asset-id' | asset_url }} in HTML, or https://assets.necodoc.invalid/<asset id> in CSS. Fonts are picked in the theme editor. Under each asset, 'Used in' lists the templates (draft and published versions), themes and snippets that reference it.",
     limitations: [
       "Assets are global: everyone with a role can see and use all of them.",
       "No crop or resize in the app.",
-      "Deleting a font a theme uses isn't blocked; the theme falls back to Noto Sans.",
-      "Deleting an image breaks any render that still references it, including re-runs.",
+      "An asset used by a published version of a template that isn't archived can't be deleted. Drafts, themes and snippets using it only get a warning; a theme whose font is deleted falls back to Noto Sans.",
+      "Usage is found by looking for the asset's id in saved content and CSS: an id built from form data, or sent only in API renders, isn't counted, and deleting it breaks those renders and re-runs.",
     ],
     access: [
       { action: "View and use", needs: view },
@@ -1220,7 +1221,7 @@ export const faq: readonly FaqEntry[] = [
   {
     feature: "Document languages and translations",
     group: "Templates",
-    what: "One template makes documents in several languages. The template is written in its document language (Output tab); dates, numbers and money format for it, Arabic, Hebrew and other right-to-left languages lay out right to left, and the PDF records its language. The Translations tab adds other languages: every field label, help text, choice, section title and piece of visual text is listed with a box for its translation, and anything left blank prints as written. The fill page and share links offer a language picker when a template has translations, and the PDF is made in the picked language. API calls pick one with output.lang.",
+    what: "One template makes documents in several languages. The template is written in its document language (Output tab); dates, numbers and money format for it, Arabic, Hebrew and other right-to-left languages lay out right to left, and the PDF records its language. The Translations tab adds other languages: the template's name and description, every field label, help text, choice, section title and piece of visual text is listed with a box for its translation, and anything left blank prints as written. The fill page and share links offer a language picker when a template has translations, and the PDF is made in the picked language. The form's own buttons, progress, review step and error messages follow it too (built in for English and French), and share links show the translated name and description. API calls pick one with output.lang; /api/v1/templates?lang=fr-CA lists translated names and each template's languages.",
     howTo:
       "Template › Output: set the document language (en, fr-CA, ar…). Template › Translations: type a language tag, Add language, then fill in the translations; the preview's language menu shows the result. In code mode or overlay boxes, wrap text as {{ \"Thank you\" | t }}. Publish to make it available. Share links take ?lang=fr to start in a language; otherwise they follow the browser's language.",
     limitations: [
@@ -1228,7 +1229,7 @@ export const faq: readonly FaqEntry[] = [
       "Editing a sentence orphans its translation: the new text prints untranslated until it's translated again (Remove unused clears the old one).",
       "Overlay templates (uploaded PDFs) can't draw right-to-left or joined scripts such as Arabic correctly; formatting and translations work there.",
       "Chinese, Japanese and Korean use the server's fonts; upload a font to a theme for a particular look.",
-      "Form validation messages and the app itself stay in English.",
+      "The form's own text is built in for English and French only; other languages show it in English. The rest of the app, and API error messages, stay in English.",
       "Translations don't handle plurals or placeholders inside a sentence.",
     ],
     access: [

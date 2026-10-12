@@ -1,6 +1,7 @@
 import type { Translations } from "@necodoc/shared";
 import { TranslateIcon } from "@phosphor-icons/react";
 import { NativeSelect, NativeSelectOption } from "@/components/ui/native-select";
+import { uiStrings } from "@/lib/ui-strings";
 
 // Spec: docs/features/document-localization.md. The fill page's and share links' language: the
 // template's own, or one it has translations for. Hidden when there's only one.
@@ -33,7 +34,7 @@ export function LanguagePicker({
       <TranslateIcon className="size-4 text-muted-foreground" />
       <NativeSelect
         size="sm"
-        aria-label="Language"
+        aria-label={uiStrings(value).language}
         value={value}
         onChange={(e) => onChange(e.target.value)}
       >

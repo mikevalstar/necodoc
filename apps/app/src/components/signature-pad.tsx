@@ -2,6 +2,7 @@ import { KeyboardIcon } from "@phosphor-icons/react";
 import { useEffect, useId, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { type UiStrings, uiStrings } from "@/lib/ui-strings";
 import { cn } from "@/lib/utils";
 
 const WIDTH = 480;
@@ -19,6 +20,7 @@ export function SignaturePad({
   onChange,
   disabled,
   invalid,
+  strings = uiStrings("en").signature,
 }: {
   id?: string;
   /** The field's label, so the pad is announced as e.g. "Applicant signature". */
@@ -27,6 +29,8 @@ export function SignaturePad({
   onChange: (value: string | undefined) => void;
   disabled?: boolean;
   invalid?: boolean;
+  /** Its text in the document language. */
+  strings?: UiStrings["signature"];
 }) {
   const canvas = useRef<HTMLCanvasElement>(null);
   const drawing = useRef(false);
@@ -93,7 +97,7 @@ export function SignaturePad({
         width={WIDTH}
         height={HEIGHT}
         role="img"
-        aria-label={`${label} pad: draw your signature, or type it instead`}
+        aria-label={strings.pad(label)}
         aria-describedby={statusId}
         aria-invalid={invalid}
         className={cn(
@@ -132,8 +136,8 @@ export function SignaturePad({
       {typing && (
         <Input
           className="max-w-md"
-          aria-label={`Type your name to sign (${label})`}
-          placeholder="Type your full name"
+          aria-label={strings.typeLabel(label)}
+          placeholder={strings.typePlaceholder}
           autoComplete="name"
           autoFocus
           disabled={disabled}
@@ -142,18 +146,18 @@ export function SignaturePad({
       )}
       <div className="flex flex-wrap items-center gap-2 text-xs text-ink-3">
         <span id={statusId} aria-live="polite">
-          {value ? "Signed." : "Sign in the box."}
+          {value ? strings.signed : strings.signHere}
         </span>
         {!disabled && !typing && (
           <Button
             type="button"
             variant="ghost"
             size="xs"
-            aria-label={`Type ${label} instead`}
+            aria-label={strings.typeInsteadLabel(label)}
             onClick={() => setTyping(true)}
           >
             <KeyboardIcon />
-            Type instead
+            {strings.typeInstead}
           </Button>
         )}
         {value && !disabled && (
@@ -161,13 +165,13 @@ export function SignaturePad({
             type="button"
             variant="ghost"
             size="xs"
-            aria-label={`Clear ${label}`}
+            aria-label={strings.clearLabel(label)}
             onClick={() => {
               setTyping(false);
               onChange(undefined);
             }}
           >
-            Clear
+            {strings.clear}
           </Button>
         )}
       </div>

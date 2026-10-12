@@ -15,8 +15,8 @@ from pydantic import validate_call, Field, StrictFloat, StrictStr, StrictInt
 from typing import Any, Dict, List, Optional, Tuple, Union
 from typing_extensions import Annotated
 
-from pydantic import Field, StrictBytes, StrictStr
-from typing import Any, Dict, List, Tuple, Union
+from pydantic import Field, StrictBytes, StrictStr, field_validator
+from typing import Any, Dict, List, Optional, Tuple, Union
 from typing_extensions import Annotated
 from uuid import UUID
 from necodoc.models.generate_request import GenerateRequest
@@ -44,6 +44,7 @@ class TemplatesApi:
     @validate_call
     def get_templates(
         self,
+        lang: Annotated[Optional[Annotated[str, Field(strict=True)]], Field(description="Return name and description in this language from the template's translations; untranslated text stays as written.")] = None,
         _request_timeout: Union[
             None,
             Annotated[StrictFloat, Field(gt=0)],
@@ -61,6 +62,8 @@ class TemplatesApi:
 
         Published, non-archived templates, limited to the key's templates if it has any.
 
+        :param lang: Return name and description in this language from the template's translations; untranslated text stays as written.
+        :type lang: str
         :param _request_timeout: timeout setting for this request. If one
                                  number provided, it will be total request
                                  timeout. It can also be a pair (tuple) of
@@ -84,6 +87,7 @@ class TemplatesApi:
         """ # noqa: E501
 
         _param = self._get_templates_serialize(
+            lang=lang,
             _request_auth=_request_auth,
             _content_type=_content_type,
             _headers=_headers,
@@ -94,6 +98,7 @@ class TemplatesApi:
             '200': "List[Template]",
             '401': "Error",
             '403': "Error",
+            '422': "Error",
             '429': "Error",
         }
         response_data = self.api_client.call_api(
@@ -110,6 +115,7 @@ class TemplatesApi:
     @validate_call
     def get_templates_with_http_info(
         self,
+        lang: Annotated[Optional[Annotated[str, Field(strict=True)]], Field(description="Return name and description in this language from the template's translations; untranslated text stays as written.")] = None,
         _request_timeout: Union[
             None,
             Annotated[StrictFloat, Field(gt=0)],
@@ -127,6 +133,8 @@ class TemplatesApi:
 
         Published, non-archived templates, limited to the key's templates if it has any.
 
+        :param lang: Return name and description in this language from the template's translations; untranslated text stays as written.
+        :type lang: str
         :param _request_timeout: timeout setting for this request. If one
                                  number provided, it will be total request
                                  timeout. It can also be a pair (tuple) of
@@ -150,6 +158,7 @@ class TemplatesApi:
         """ # noqa: E501
 
         _param = self._get_templates_serialize(
+            lang=lang,
             _request_auth=_request_auth,
             _content_type=_content_type,
             _headers=_headers,
@@ -160,6 +169,7 @@ class TemplatesApi:
             '200': "List[Template]",
             '401': "Error",
             '403': "Error",
+            '422': "Error",
             '429': "Error",
         }
         response_data = self.api_client.call_api(
@@ -176,6 +186,7 @@ class TemplatesApi:
     @validate_call
     def get_templates_without_preload_content(
         self,
+        lang: Annotated[Optional[Annotated[str, Field(strict=True)]], Field(description="Return name and description in this language from the template's translations; untranslated text stays as written.")] = None,
         _request_timeout: Union[
             None,
             Annotated[StrictFloat, Field(gt=0)],
@@ -193,6 +204,8 @@ class TemplatesApi:
 
         Published, non-archived templates, limited to the key's templates if it has any.
 
+        :param lang: Return name and description in this language from the template's translations; untranslated text stays as written.
+        :type lang: str
         :param _request_timeout: timeout setting for this request. If one
                                  number provided, it will be total request
                                  timeout. It can also be a pair (tuple) of
@@ -216,6 +229,7 @@ class TemplatesApi:
         """ # noqa: E501
 
         _param = self._get_templates_serialize(
+            lang=lang,
             _request_auth=_request_auth,
             _content_type=_content_type,
             _headers=_headers,
@@ -226,6 +240,7 @@ class TemplatesApi:
             '200': "List[Template]",
             '401': "Error",
             '403': "Error",
+            '422': "Error",
             '429': "Error",
         }
         response_data = self.api_client.call_api(
@@ -237,6 +252,7 @@ class TemplatesApi:
 
     def _get_templates_serialize(
         self,
+        lang,
         _request_auth,
         _content_type,
         _headers,
@@ -259,6 +275,10 @@ class TemplatesApi:
 
         # process the path parameters
         # process the query parameters
+        if lang is not None:
+            
+            _query_params.append(('lang', lang))
+            
         # process the header parameters
         # process the form parameters
         # process the body parameter
@@ -300,6 +320,7 @@ class TemplatesApi:
     def get_templates_by_id(
         self,
         id: UUID,
+        lang: Annotated[Optional[Annotated[str, Field(strict=True)]], Field(description="Return name and description in this language from the template's translations; untranslated text stays as written.")] = None,
         _request_timeout: Union[
             None,
             Annotated[StrictFloat, Field(gt=0)],
@@ -318,6 +339,8 @@ class TemplatesApi:
 
         :param id: (required)
         :type id: UUID
+        :param lang: Return name and description in this language from the template's translations; untranslated text stays as written.
+        :type lang: str
         :param _request_timeout: timeout setting for this request. If one
                                  number provided, it will be total request
                                  timeout. It can also be a pair (tuple) of
@@ -342,6 +365,7 @@ class TemplatesApi:
 
         _param = self._get_templates_by_id_serialize(
             id=id,
+            lang=lang,
             _request_auth=_request_auth,
             _content_type=_content_type,
             _headers=_headers,
@@ -371,6 +395,7 @@ class TemplatesApi:
     def get_templates_by_id_with_http_info(
         self,
         id: UUID,
+        lang: Annotated[Optional[Annotated[str, Field(strict=True)]], Field(description="Return name and description in this language from the template's translations; untranslated text stays as written.")] = None,
         _request_timeout: Union[
             None,
             Annotated[StrictFloat, Field(gt=0)],
@@ -389,6 +414,8 @@ class TemplatesApi:
 
         :param id: (required)
         :type id: UUID
+        :param lang: Return name and description in this language from the template's translations; untranslated text stays as written.
+        :type lang: str
         :param _request_timeout: timeout setting for this request. If one
                                  number provided, it will be total request
                                  timeout. It can also be a pair (tuple) of
@@ -413,6 +440,7 @@ class TemplatesApi:
 
         _param = self._get_templates_by_id_serialize(
             id=id,
+            lang=lang,
             _request_auth=_request_auth,
             _content_type=_content_type,
             _headers=_headers,
@@ -442,6 +470,7 @@ class TemplatesApi:
     def get_templates_by_id_without_preload_content(
         self,
         id: UUID,
+        lang: Annotated[Optional[Annotated[str, Field(strict=True)]], Field(description="Return name and description in this language from the template's translations; untranslated text stays as written.")] = None,
         _request_timeout: Union[
             None,
             Annotated[StrictFloat, Field(gt=0)],
@@ -460,6 +489,8 @@ class TemplatesApi:
 
         :param id: (required)
         :type id: UUID
+        :param lang: Return name and description in this language from the template's translations; untranslated text stays as written.
+        :type lang: str
         :param _request_timeout: timeout setting for this request. If one
                                  number provided, it will be total request
                                  timeout. It can also be a pair (tuple) of
@@ -484,6 +515,7 @@ class TemplatesApi:
 
         _param = self._get_templates_by_id_serialize(
             id=id,
+            lang=lang,
             _request_auth=_request_auth,
             _content_type=_content_type,
             _headers=_headers,
@@ -508,6 +540,7 @@ class TemplatesApi:
     def _get_templates_by_id_serialize(
         self,
         id,
+        lang,
         _request_auth,
         _content_type,
         _headers,
@@ -532,6 +565,10 @@ class TemplatesApi:
         if id is not None:
             _path_params['id'] = id
         # process the query parameters
+        if lang is not None:
+            
+            _query_params.append(('lang', lang))
+            
         # process the header parameters
         # process the form parameters
         # process the body parameter

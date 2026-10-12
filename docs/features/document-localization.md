@@ -40,9 +40,10 @@ date as `12 octobre 2026` shouldn't need a custom filter per template. See
   `LL`, `L` and `LLL` next to fixed ones.
 - **Translations.** The Translations tab
   ([-translations-panel.tsx](../../apps/app/src/routes/_app/templates/-translations-panel.tsx))
-  adds languages and lists every translatable string the template uses: field
-  labels, help, placeholders, choice labels, section titles and descriptions,
-  visual text, and `"..." | t` in code mode and overlay boxes. Untranslated
+  adds languages and lists every translatable string the template uses: the
+  template's name and description, field labels, help, placeholders, choice
+  labels, section titles and descriptions, visual text, and `"..." | t` in
+  code mode and overlay boxes. Untranslated
   strings fall back to the source text. Translations are content, so they're
   versioned, reviewed and diffed with the template.
   - `{{ "Thank you" | t }}` translates a literal; `{{ status | t }}` translates
@@ -55,7 +56,21 @@ date as `12 octobre 2026` shouldn't need a custom filter per template. See
   [Share links and data requests](share-links-and-data-requests.md)). Labels,
   help and choices show in that language, the form lays out right to left for
   RTL languages, and the PDF is made in it. The document remembers its
-  language.
+  language. Share links also show the template's name and description in it,
+  since their fillers are often outside customers.
+- **Form text.** The guided form's own text (Next, Back, Step 2 of 5, the
+  review step, required markers, validation messages, Yes/No, dates in the
+  answer summary) and the share page around it come from built-in string
+  tables in the app ([ui-strings.ts](../../apps/app/src/lib/ui-strings.ts)),
+  not from the template. Tables exist for English and French (`fr`, written
+  for Québec and also used for `fr-CA`); other languages fall back to English.
+  Adding a language is adding a table; the type checker makes it complete. The
+  rest of the app stays English.
+- **API.** The share endpoint already returns the translation tables, so the
+  share page translates name and description itself. `/api/v1/templates` and
+  `/api/v1/templates/{id}` take `?lang=` and return name and description in
+  that language, plus `languages`: the template's own language first, then
+  those it has translations for.
 - **Right to left.** RTL languages set `dir="rtl"` on the document and its
   header and footer, so text, lists and tables flow right to left.
 - **Fonts.** Arabic and Hebrew render with bundled Noto Sans Arabic and
@@ -82,6 +97,12 @@ date as `12 octobre 2026` shouldn't need a custom filter per template. See
   Arabic; all four checked by eye).
 - [x] The fill page shows translated labels and makes the PDF in the picked
   language.
+- [x] Filled in French, the guided form's buttons, progress, review step and
+  validation messages are French, and a share link shows the translated
+  template name and description
+  ([ui-strings.test.ts](../../apps/app/src/lib/ui-strings.test.ts)).
+- [x] `/api/v1/templates?lang=fr-CA` returns translated names and each
+  template's `languages`.
 
 ## Open questions
 

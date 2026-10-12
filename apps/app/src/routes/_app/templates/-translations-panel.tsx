@@ -15,12 +15,13 @@ import { Field, FieldDescription, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 
 // Spec: docs/features/document-localization.md (ADR 0040). Per-language tables keyed by the
-// template's own text: field labels and help, visual text runs, and `"..." | t` in code mode and
+// template's own text: its name and description, field labels and help, visual text runs, and `"..." | t` in code mode and
 // overlay boxes. A missing translation prints the source text.
 
 export function TranslationsPanel({
   translations,
   lang,
+  about,
   sections,
   content,
   editable,
@@ -29,6 +30,8 @@ export function TranslationsPanel({
   translations: Translations;
   /** The template's own language: what the source text is written in. */
   lang: string;
+  /** The template's name and description: share links show them translated. */
+  about: { name: string; description: string };
   sections: readonly FieldSection[];
   content: TranslatableContent;
   editable: boolean;
@@ -41,7 +44,7 @@ export function TranslationsPanel({
   const [removing, setRemoving] = useState<string | null>(null);
   const current = selected && Object.hasOwn(translations, selected) ? selected : languages[0];
   const table = current ? (translations[current] ?? {}) : {};
-  const strings = translatableStrings(sections, contentTexts(content));
+  const strings = translatableStrings(about, sections, contentTexts(content));
   const unused = Object.keys(table).filter((source) => !strings.includes(source));
   const done = strings.filter((source) => table[source]).length;
 

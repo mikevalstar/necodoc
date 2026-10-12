@@ -45,9 +45,10 @@ namespace Necodoc.Sdk.Api
         /// Published, non-archived templates, limited to the key&#39;s templates if it has any.
         /// </remarks>
         /// <exception cref="ApiException">Thrown when fails to make API call</exception>
+        /// <param name="lang">Return name and description in this language from the template&#39;s translations; untranslated text stays as written. (optional)</param>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
         /// <returns><see cref="Task"/>&lt;<see cref="IGetTemplatesApiResponse"/>&gt;</returns>
-        Task<IGetTemplatesApiResponse> GetTemplatesAsync(System.Threading.CancellationToken cancellationToken = default);
+        Task<IGetTemplatesApiResponse> GetTemplatesAsync(Option<string> lang = default, System.Threading.CancellationToken cancellationToken = default);
 
         /// <summary>
         /// List published templates
@@ -55,9 +56,10 @@ namespace Necodoc.Sdk.Api
         /// <remarks>
         /// Published, non-archived templates, limited to the key&#39;s templates if it has any.
         /// </remarks>
+        /// <param name="lang">Return name and description in this language from the template&#39;s translations; untranslated text stays as written. (optional)</param>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
         /// <returns><see cref="Task"/>&lt;<see cref="IGetTemplatesApiResponse"/>?&gt;</returns>
-        Task<IGetTemplatesApiResponse?> GetTemplatesOrDefaultAsync(System.Threading.CancellationToken cancellationToken = default);
+        Task<IGetTemplatesApiResponse?> GetTemplatesOrDefaultAsync(Option<string> lang = default, System.Threading.CancellationToken cancellationToken = default);
 
         /// <summary>
         /// Get a template and its versions
@@ -67,9 +69,10 @@ namespace Necodoc.Sdk.Api
         /// </remarks>
         /// <exception cref="ApiException">Thrown when fails to make API call</exception>
         /// <param name="id"></param>
+        /// <param name="lang">Return name and description in this language from the template&#39;s translations; untranslated text stays as written. (optional)</param>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
         /// <returns><see cref="Task"/>&lt;<see cref="IGetTemplatesByIdApiResponse"/>&gt;</returns>
-        Task<IGetTemplatesByIdApiResponse> GetTemplatesByIdAsync(Guid id, System.Threading.CancellationToken cancellationToken = default);
+        Task<IGetTemplatesByIdApiResponse> GetTemplatesByIdAsync(Guid id, Option<string> lang = default, System.Threading.CancellationToken cancellationToken = default);
 
         /// <summary>
         /// Get a template and its versions
@@ -78,9 +81,10 @@ namespace Necodoc.Sdk.Api
         /// 
         /// </remarks>
         /// <param name="id"></param>
+        /// <param name="lang">Return name and description in this language from the template&#39;s translations; untranslated text stays as written. (optional)</param>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
         /// <returns><see cref="Task"/>&lt;<see cref="IGetTemplatesByIdApiResponse"/>?&gt;</returns>
-        Task<IGetTemplatesByIdApiResponse?> GetTemplatesByIdOrDefaultAsync(Guid id, System.Threading.CancellationToken cancellationToken = default);
+        Task<IGetTemplatesByIdApiResponse?> GetTemplatesByIdOrDefaultAsync(Guid id, Option<string> lang = default, System.Threading.CancellationToken cancellationToken = default);
 
         /// <summary>
         /// Get a version&#39;s JSON Schema
@@ -138,7 +142,7 @@ namespace Necodoc.Sdk.Api
     /// <summary>
     /// The <see cref="IGetTemplatesApiResponse"/>
     /// </summary>
-    public interface IGetTemplatesApiResponse : Necodoc.Sdk.Client.IApiResponse, IOk<List<Template>?>, IUnauthorized<Necodoc.Sdk.Model.Error?>, IForbidden<Necodoc.Sdk.Model.Error?>, ITooManyRequests<Necodoc.Sdk.Model.Error?>
+    public interface IGetTemplatesApiResponse : Necodoc.Sdk.Client.IApiResponse, IOk<List<Template>?>, IUnauthorized<Necodoc.Sdk.Model.Error?>, IForbidden<Necodoc.Sdk.Model.Error?>, IUnprocessableContent<Necodoc.Sdk.Model.Error?>, ITooManyRequests<Necodoc.Sdk.Model.Error?>
     {
         /// <summary>
         /// Returns true if the response is 200 Ok
@@ -157,6 +161,12 @@ namespace Necodoc.Sdk.Api
         /// </summary>
         /// <returns></returns>
         bool IsForbidden { get; }
+
+        /// <summary>
+        /// Returns true if the response is 422 UnprocessableContent
+        /// </summary>
+        /// <returns></returns>
+        bool IsUnprocessableContent { get; }
 
         /// <summary>
         /// Returns true if the response is 429 TooManyRequests
@@ -430,14 +440,28 @@ namespace Necodoc.Sdk.Api
             ApiKeyProvider = apiKeyProvider;
         }
 
+        partial void FormatGetTemplates(ref Option<string> lang);
+
+        /// <summary>
+        /// Validates the request parameters
+        /// </summary>
+        /// <param name="lang"></param>
+        /// <returns></returns>
+        private void ValidateGetTemplates(Option<string> lang)
+        {
+            if (lang.IsSet && lang.Value == null)
+                throw new ArgumentNullException(nameof(lang));
+        }
+
         /// <summary>
         /// Processes the server response
         /// </summary>
         /// <param name="apiResponseLocalVar"></param>
-        private void AfterGetTemplatesDefaultImplementation(IGetTemplatesApiResponse apiResponseLocalVar)
+        /// <param name="lang"></param>
+        private void AfterGetTemplatesDefaultImplementation(IGetTemplatesApiResponse apiResponseLocalVar, Option<string> lang)
         {
             bool suppressDefaultLog = false;
-            AfterGetTemplates(ref suppressDefaultLog, apiResponseLocalVar);
+            AfterGetTemplates(ref suppressDefaultLog, apiResponseLocalVar, lang);
             if (!suppressDefaultLog)
                 Logger.LogInformation(RestLogEvents.ApiRequestCompleted, "{0,-9} | {1} | {2}", (apiResponseLocalVar.DownloadedAt - apiResponseLocalVar.RequestedAt).TotalSeconds, apiResponseLocalVar.StatusCode, apiResponseLocalVar.Path);
         }
@@ -447,7 +471,8 @@ namespace Necodoc.Sdk.Api
         /// </summary>
         /// <param name="suppressDefaultLog"></param>
         /// <param name="apiResponseLocalVar"></param>
-        partial void AfterGetTemplates(ref bool suppressDefaultLog, IGetTemplatesApiResponse apiResponseLocalVar);
+        /// <param name="lang"></param>
+        partial void AfterGetTemplates(ref bool suppressDefaultLog, IGetTemplatesApiResponse apiResponseLocalVar, Option<string> lang);
 
         /// <summary>
         /// Logs exceptions that occur while retrieving the server response
@@ -455,10 +480,11 @@ namespace Necodoc.Sdk.Api
         /// <param name="exceptionLocalVar"></param>
         /// <param name="pathFormatLocalVar"></param>
         /// <param name="pathLocalVar"></param>
-        private void OnErrorGetTemplatesDefaultImplementation(Exception exceptionLocalVar, string pathFormatLocalVar, string pathLocalVar)
+        /// <param name="lang"></param>
+        private void OnErrorGetTemplatesDefaultImplementation(Exception exceptionLocalVar, string pathFormatLocalVar, string pathLocalVar, Option<string> lang)
         {
             bool suppressDefaultLogLocalVar = false;
-            OnErrorGetTemplates(ref suppressDefaultLogLocalVar, exceptionLocalVar, pathFormatLocalVar, pathLocalVar);
+            OnErrorGetTemplates(ref suppressDefaultLogLocalVar, exceptionLocalVar, pathFormatLocalVar, pathLocalVar, lang);
             if (!suppressDefaultLogLocalVar)
                 Logger.LogError(RestLogEvents.ApiRequestFailed, exceptionLocalVar, "An error occurred while sending the request to the server.");
         }
@@ -470,18 +496,20 @@ namespace Necodoc.Sdk.Api
         /// <param name="exceptionLocalVar"></param>
         /// <param name="pathFormatLocalVar"></param>
         /// <param name="pathLocalVar"></param>
-        partial void OnErrorGetTemplates(ref bool suppressDefaultLogLocalVar, Exception exceptionLocalVar, string pathFormatLocalVar, string pathLocalVar);
+        /// <param name="lang"></param>
+        partial void OnErrorGetTemplates(ref bool suppressDefaultLogLocalVar, Exception exceptionLocalVar, string pathFormatLocalVar, string pathLocalVar, Option<string> lang);
 
         /// <summary>
         /// List published templates Published, non-archived templates, limited to the key&#39;s templates if it has any.
         /// </summary>
+        /// <param name="lang">Return name and description in this language from the template&#39;s translations; untranslated text stays as written. (optional)</param>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
         /// <returns><see cref="Task"/>&lt;<see cref="IGetTemplatesApiResponse"/>&gt;</returns>
-        public async Task<IGetTemplatesApiResponse?> GetTemplatesOrDefaultAsync(System.Threading.CancellationToken cancellationToken = default)
+        public async Task<IGetTemplatesApiResponse?> GetTemplatesOrDefaultAsync(Option<string> lang = default, System.Threading.CancellationToken cancellationToken = default)
         {
             try
             {
-                return await GetTemplatesAsync(cancellationToken).ConfigureAwait(false);
+                return await GetTemplatesAsync(lang, cancellationToken).ConfigureAwait(false);
             }
             catch (Exception)
             {
@@ -493,14 +521,19 @@ namespace Necodoc.Sdk.Api
         /// List published templates Published, non-archived templates, limited to the key&#39;s templates if it has any.
         /// </summary>
         /// <exception cref="ApiException">Thrown when fails to make API call</exception>
+        /// <param name="lang">Return name and description in this language from the template&#39;s translations; untranslated text stays as written. (optional)</param>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
         /// <returns><see cref="Task"/>&lt;<see cref="IGetTemplatesApiResponse"/>&gt;</returns>
-        public async Task<IGetTemplatesApiResponse> GetTemplatesAsync(System.Threading.CancellationToken cancellationToken = default)
+        public async Task<IGetTemplatesApiResponse> GetTemplatesAsync(Option<string> lang = default, System.Threading.CancellationToken cancellationToken = default)
         {
             UriBuilder uriBuilderLocalVar = new UriBuilder();
 
             try
             {
+                ValidateGetTemplates(lang);
+
+                FormatGetTemplates(ref lang);
+
                 using (HttpRequestMessage httpRequestMessageLocalVar = new HttpRequestMessage())
                 {
                     uriBuilderLocalVar.Host = HttpClient.BaseAddress!.Host;
@@ -509,6 +542,13 @@ namespace Necodoc.Sdk.Api
                     uriBuilderLocalVar.Path = HttpClient.BaseAddress.AbsolutePath == "/"
                         ? "/templates"
                         : string.Concat(HttpClient.BaseAddress.AbsolutePath.TrimEnd('/'), "/templates");
+
+                    System.Collections.Specialized.NameValueCollection parseQueryStringLocalVar = System.Web.HttpUtility.ParseQueryString(string.Empty);
+
+                    if (lang.IsSet)
+                        parseQueryStringLocalVar["lang"] = ClientUtils.ParameterToString(lang.Value);
+
+                    uriBuilderLocalVar.Query = parseQueryStringLocalVar.ToString();
 
                     List<TokenBase> tokenBaseLocalVars = new List<TokenBase>();
                     ApiKeyToken apiKeyTokenLocalVar1 = (ApiKeyToken) await ApiKeyProvider.GetAsync("x-api-key", cancellationToken).ConfigureAwait(false);
@@ -543,7 +583,7 @@ namespace Necodoc.Sdk.Api
                             }
                         }
 
-                        AfterGetTemplatesDefaultImplementation(apiResponseLocalVar);
+                        AfterGetTemplatesDefaultImplementation(apiResponseLocalVar, lang);
 
                         Events.ExecuteOnGetTemplates(apiResponseLocalVar);
 
@@ -557,7 +597,7 @@ namespace Necodoc.Sdk.Api
             }
             catch(Exception e)
             {
-                OnErrorGetTemplatesDefaultImplementation(e, "/templates", uriBuilderLocalVar.Path);
+                OnErrorGetTemplatesDefaultImplementation(e, "/templates", uriBuilderLocalVar.Path, lang);
                 Events.ExecuteOnErrorGetTemplates(e);
                 throw;
             }
@@ -758,6 +798,56 @@ namespace Necodoc.Sdk.Api
             }
 
             /// <summary>
+            /// Returns true if the response is 422 UnprocessableContent
+            /// </summary>
+            /// <returns></returns>
+            public bool IsUnprocessableContent => 422 == (int)StatusCode;
+
+            /// <summary>
+            /// Deserializes the response if the response is 422 UnprocessableContent
+            /// </summary>
+            /// <returns></returns>
+            public Necodoc.Sdk.Model.Error? UnprocessableContent()
+            {
+                bool suppressDefault = false;
+                Necodoc.Sdk.Model.Error? result = null;
+                OnUnprocessableContent(ref suppressDefault, ref result);
+                if (!suppressDefault)
+                    result = DefaultUnprocessableContent();
+                return result;
+            }
+
+            private Necodoc.Sdk.Model.Error? DefaultUnprocessableContent()
+            {
+                // NOTICE: Consider this AsModel template deprecated. Implement the appropriate partial method instead
+                return IsUnprocessableContent
+                    ? System.Text.Json.JsonSerializer.Deserialize<Necodoc.Sdk.Model.Error>(RawContent, _jsonSerializerOptions)
+                    : null;
+            }
+
+            partial void OnUnprocessableContent(ref bool suppressDefault, ref Necodoc.Sdk.Model.Error? result);
+
+            /// <summary>
+            /// Returns true if the response is 422 UnprocessableContent and the deserialized response is not null
+            /// </summary>
+            /// <param name="result"></param>
+            /// <returns></returns>
+            public bool TryUnprocessableContent([NotNullWhen(true)]out Necodoc.Sdk.Model.Error? result)
+            {
+                result = null;
+
+                try
+                {
+                    result = UnprocessableContent();
+                } catch (Exception e)
+                {
+                    OnDeserializationErrorDefaultImplementation(e, (HttpStatusCode)422);
+                }
+
+                return result != null;
+            }
+
+            /// <summary>
             /// Returns true if the response is 429 TooManyRequests
             /// </summary>
             /// <returns></returns>
@@ -818,17 +908,29 @@ namespace Necodoc.Sdk.Api
             partial void OnDeserializationError(ref bool suppressDefaultLog, Exception exception, HttpStatusCode httpStatusCode);
         }
 
-        partial void FormatGetTemplatesById(ref Guid id);
+        partial void FormatGetTemplatesById(ref Guid id, ref Option<string> lang);
+
+        /// <summary>
+        /// Validates the request parameters
+        /// </summary>
+        /// <param name="lang"></param>
+        /// <returns></returns>
+        private void ValidateGetTemplatesById(Option<string> lang)
+        {
+            if (lang.IsSet && lang.Value == null)
+                throw new ArgumentNullException(nameof(lang));
+        }
 
         /// <summary>
         /// Processes the server response
         /// </summary>
         /// <param name="apiResponseLocalVar"></param>
         /// <param name="id"></param>
-        private void AfterGetTemplatesByIdDefaultImplementation(IGetTemplatesByIdApiResponse apiResponseLocalVar, Guid id)
+        /// <param name="lang"></param>
+        private void AfterGetTemplatesByIdDefaultImplementation(IGetTemplatesByIdApiResponse apiResponseLocalVar, Guid id, Option<string> lang)
         {
             bool suppressDefaultLog = false;
-            AfterGetTemplatesById(ref suppressDefaultLog, apiResponseLocalVar, id);
+            AfterGetTemplatesById(ref suppressDefaultLog, apiResponseLocalVar, id, lang);
             if (!suppressDefaultLog)
                 Logger.LogInformation(RestLogEvents.ApiRequestCompleted, "{0,-9} | {1} | {2}", (apiResponseLocalVar.DownloadedAt - apiResponseLocalVar.RequestedAt).TotalSeconds, apiResponseLocalVar.StatusCode, apiResponseLocalVar.Path);
         }
@@ -839,7 +941,8 @@ namespace Necodoc.Sdk.Api
         /// <param name="suppressDefaultLog"></param>
         /// <param name="apiResponseLocalVar"></param>
         /// <param name="id"></param>
-        partial void AfterGetTemplatesById(ref bool suppressDefaultLog, IGetTemplatesByIdApiResponse apiResponseLocalVar, Guid id);
+        /// <param name="lang"></param>
+        partial void AfterGetTemplatesById(ref bool suppressDefaultLog, IGetTemplatesByIdApiResponse apiResponseLocalVar, Guid id, Option<string> lang);
 
         /// <summary>
         /// Logs exceptions that occur while retrieving the server response
@@ -848,10 +951,11 @@ namespace Necodoc.Sdk.Api
         /// <param name="pathFormatLocalVar"></param>
         /// <param name="pathLocalVar"></param>
         /// <param name="id"></param>
-        private void OnErrorGetTemplatesByIdDefaultImplementation(Exception exceptionLocalVar, string pathFormatLocalVar, string pathLocalVar, Guid id)
+        /// <param name="lang"></param>
+        private void OnErrorGetTemplatesByIdDefaultImplementation(Exception exceptionLocalVar, string pathFormatLocalVar, string pathLocalVar, Guid id, Option<string> lang)
         {
             bool suppressDefaultLogLocalVar = false;
-            OnErrorGetTemplatesById(ref suppressDefaultLogLocalVar, exceptionLocalVar, pathFormatLocalVar, pathLocalVar, id);
+            OnErrorGetTemplatesById(ref suppressDefaultLogLocalVar, exceptionLocalVar, pathFormatLocalVar, pathLocalVar, id, lang);
             if (!suppressDefaultLogLocalVar)
                 Logger.LogError(RestLogEvents.ApiRequestFailed, exceptionLocalVar, "An error occurred while sending the request to the server.");
         }
@@ -864,19 +968,21 @@ namespace Necodoc.Sdk.Api
         /// <param name="pathFormatLocalVar"></param>
         /// <param name="pathLocalVar"></param>
         /// <param name="id"></param>
-        partial void OnErrorGetTemplatesById(ref bool suppressDefaultLogLocalVar, Exception exceptionLocalVar, string pathFormatLocalVar, string pathLocalVar, Guid id);
+        /// <param name="lang"></param>
+        partial void OnErrorGetTemplatesById(ref bool suppressDefaultLogLocalVar, Exception exceptionLocalVar, string pathFormatLocalVar, string pathLocalVar, Guid id, Option<string> lang);
 
         /// <summary>
         /// Get a template and its versions 
         /// </summary>
         /// <param name="id"></param>
+        /// <param name="lang">Return name and description in this language from the template&#39;s translations; untranslated text stays as written. (optional)</param>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
         /// <returns><see cref="Task"/>&lt;<see cref="IGetTemplatesByIdApiResponse"/>&gt;</returns>
-        public async Task<IGetTemplatesByIdApiResponse?> GetTemplatesByIdOrDefaultAsync(Guid id, System.Threading.CancellationToken cancellationToken = default)
+        public async Task<IGetTemplatesByIdApiResponse?> GetTemplatesByIdOrDefaultAsync(Guid id, Option<string> lang = default, System.Threading.CancellationToken cancellationToken = default)
         {
             try
             {
-                return await GetTemplatesByIdAsync(id, cancellationToken).ConfigureAwait(false);
+                return await GetTemplatesByIdAsync(id, lang, cancellationToken).ConfigureAwait(false);
             }
             catch (Exception)
             {
@@ -889,15 +995,18 @@ namespace Necodoc.Sdk.Api
         /// </summary>
         /// <exception cref="ApiException">Thrown when fails to make API call</exception>
         /// <param name="id"></param>
+        /// <param name="lang">Return name and description in this language from the template&#39;s translations; untranslated text stays as written. (optional)</param>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
         /// <returns><see cref="Task"/>&lt;<see cref="IGetTemplatesByIdApiResponse"/>&gt;</returns>
-        public async Task<IGetTemplatesByIdApiResponse> GetTemplatesByIdAsync(Guid id, System.Threading.CancellationToken cancellationToken = default)
+        public async Task<IGetTemplatesByIdApiResponse> GetTemplatesByIdAsync(Guid id, Option<string> lang = default, System.Threading.CancellationToken cancellationToken = default)
         {
             UriBuilder uriBuilderLocalVar = new UriBuilder();
 
             try
             {
-                FormatGetTemplatesById(ref id);
+                ValidateGetTemplatesById(lang);
+
+                FormatGetTemplatesById(ref id, ref lang);
 
                 using (HttpRequestMessage httpRequestMessageLocalVar = new HttpRequestMessage())
                 {
@@ -908,6 +1017,13 @@ namespace Necodoc.Sdk.Api
                         ? "/templates/{id}"
                         : string.Concat(HttpClient.BaseAddress.AbsolutePath.TrimEnd('/'), "/templates/{id}");
                     uriBuilderLocalVar.Path = uriBuilderLocalVar.Path.Replace("%7Bid%7D", Uri.EscapeDataString(id.ToString()));
+
+                    System.Collections.Specialized.NameValueCollection parseQueryStringLocalVar = System.Web.HttpUtility.ParseQueryString(string.Empty);
+
+                    if (lang.IsSet)
+                        parseQueryStringLocalVar["lang"] = ClientUtils.ParameterToString(lang.Value);
+
+                    uriBuilderLocalVar.Query = parseQueryStringLocalVar.ToString();
 
                     List<TokenBase> tokenBaseLocalVars = new List<TokenBase>();
                     ApiKeyToken apiKeyTokenLocalVar1 = (ApiKeyToken) await ApiKeyProvider.GetAsync("x-api-key", cancellationToken).ConfigureAwait(false);
@@ -942,7 +1058,7 @@ namespace Necodoc.Sdk.Api
                             }
                         }
 
-                        AfterGetTemplatesByIdDefaultImplementation(apiResponseLocalVar, id);
+                        AfterGetTemplatesByIdDefaultImplementation(apiResponseLocalVar, id, lang);
 
                         Events.ExecuteOnGetTemplatesById(apiResponseLocalVar);
 
@@ -956,7 +1072,7 @@ namespace Necodoc.Sdk.Api
             }
             catch(Exception e)
             {
-                OnErrorGetTemplatesByIdDefaultImplementation(e, "/templates/{id}", uriBuilderLocalVar.Path, id);
+                OnErrorGetTemplatesByIdDefaultImplementation(e, "/templates/{id}", uriBuilderLocalVar.Path, id, lang);
                 Events.ExecuteOnErrorGetTemplatesById(e);
                 throw;
             }

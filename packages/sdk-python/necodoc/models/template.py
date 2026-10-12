@@ -18,7 +18,7 @@ import re  # noqa: F401
 import json
 
 from datetime import datetime
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 from typing import Any, ClassVar, Dict, List, Optional
 from typing_extensions import Annotated
 from uuid import UUID
@@ -39,7 +39,8 @@ class Template(BaseModel):
     published_at: Optional[datetime] = Field(alias="publishedAt")
     created_at: datetime = Field(alias="createdAt")
     updated_at: datetime = Field(alias="updatedAt")
-    __properties: ClassVar[List[str]] = ["id", "kind", "name", "description", "latestVersion", "publishedAt", "createdAt", "updatedAt"]
+    languages: List[Annotated[str, Field(strict=True)]] = Field(description="The published version's document language first, then those it has translations for. Pass one as `output.lang`, or as `?lang=` here.")
+    __properties: ClassVar[List[str]] = ["id", "kind", "name", "description", "latestVersion", "publishedAt", "createdAt", "updatedAt", "languages"]
 
     model_config = ConfigDict(
         validate_by_name=True,
@@ -109,7 +110,8 @@ class Template(BaseModel):
             "latestVersion": obj.get("latestVersion"),
             "publishedAt": obj.get("publishedAt"),
             "createdAt": obj.get("createdAt"),
-            "updatedAt": obj.get("updatedAt")
+            "updatedAt": obj.get("updatedAt"),
+            "languages": obj.get("languages")
         })
         return _obj
 

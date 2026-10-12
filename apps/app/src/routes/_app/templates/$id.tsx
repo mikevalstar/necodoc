@@ -825,6 +825,7 @@ function TemplateEditor({
               <TranslationsPanel
                 translations={draft.content.translations}
                 lang={draft.content.output.lang}
+                about={draft}
                 sections={draft.sections}
                 content={draft.content}
                 editable={canEdit}

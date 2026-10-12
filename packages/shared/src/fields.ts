@@ -311,6 +311,20 @@ function resolveVisible(list: readonly Entry[], raw: Record<string, unknown>) {
   return out;
 }
 
+/**
+ * The fixed messages of filled-in values. The app's string tables translate them by key
+ * (apps/app/src/lib/ui-strings.ts); parametric ones carry `params` instead.
+ */
+export const VALUE_MESSAGES = {
+  required: "Required",
+  pattern: "Doesn't match the expected format",
+  pickOne: "Pick one of the options",
+  pickOnce: "Pick each option once",
+  image: "Upload a PNG, JPEG or WebP image",
+  signature: "Draw a signature",
+} as const;
+export type ValueMessage = keyof typeof VALUE_MESSAGES;
+
 const DATA_URL = /^data:image\/(png|jpeg|webp);base64,[A-Za-z0-9+/]+={0,2}$/;
 const PNG_DATA_URL = /^data:image\/png;base64,[A-Za-z0-9+/]+={0,2}$/;
 
@@ -336,7 +350,7 @@ function valueSchema(field: Field, mode: Mode, nonEmpty = false): z.ZodType {
       if (minLength !== undefined) s = s.min(minLength);
       if (field.maxLength !== undefined) s = s.max(field.maxLength);
       if (field.pattern !== undefined && compiles(field.pattern)) {
-        s = s.regex(new RegExp(`^(?:${field.pattern})$`), "Doesn't match the expected format");
+        s = s.regex(new RegExp(`^(?:${field.pattern})$`), VALUE_MESSAGES.pattern);
       }
       return s;
     }
@@ -349,32 +363,39 @@ function valueSchema(field: Field, mode: Mode, nonEmpty = false): z.ZodType {
       if (decimals === 0) return s.int();
       return s.refine((n) => Number(n.toFixed(decimals)) === n, {
         message: `Use at most ${decimals} decimal places`,
+        params: { decimals },
       });
     }
     case "date": {
       const { min, max } = field;
       return isoDate
-        .refine((d) => min === undefined || d >= min, { message: `Must be on or after ${min}` })
-        .refine((d) => max === undefined || d <= max, { message: `Must be on or before ${max}` });
+        .refine((d) => min === undefined || d >= min, {
+          message: `Must be on or after ${min}`,
+          params: { onOrAfter: min },
+        })
+        .refine((d) => max === undefined || d <= max, {
+          message: `Must be on or before ${max}`,
+          params: { onOrBefore: max },
+        });
     }
     case "boolean":
       return nonEmpty ? z.literal(true) : z.boolean();
     case "choice": {
       const values = field.options.map((o) => o.value);
-      const one = z.enum(values as [string, ...string[]], { error: "Pick one of the options" });
+      const one = z.enum(values as [string, ...string[]], { error: VALUE_MESSAGES.pickOne });
       if (!field.multiple) return one;
       let list = z.array(one);
       const minItems = field.minItems ?? (nonEmpty ? 1 : undefined);
       if (minItems !== undefined) list = list.min(minItems);
       if (field.maxItems !== undefined) list = list.max(field.maxItems);
-      return list.refine((l) => new Set(l).size === l.length, { message: "Pick each option once" });
+      return list.refine((l) => new Set(l).size === l.length, { message: VALUE_MESSAGES.pickOnce });
     }
     case "email":
       return z.email();
     case "image":
-      return z.string().regex(DATA_URL, "Upload a PNG, JPEG or WebP image");
+      return z.string().regex(DATA_URL, VALUE_MESSAGES.image);
     case "signature":
-      return z.string().regex(PNG_DATA_URL, "Draw a signature");
+      return z.string().regex(PNG_DATA_URL, VALUE_MESSAGES.signature);
     case "group": {
       let list = z.array(objectSchema(entries(field.fields), mode));
       const minItems = field.minItems ?? (nonEmpty ? 1 : undefined);
@@ -414,13 +435,14 @@ function objectSchema(list: readonly Entry[], mode: Mode): z.ZodType {
       if (entry.field.required && visible(entry, data) && isEmptyValue(data[entry.field.key])) {
         issues.push({
           code: "custom",
-          message: "Required",
+          message: VALUE_MESSAGES.required,
           path: [entry.field.key],
           input: undefined,
         });
       }
     }
-    for (const { message, path } of issues) ctx.addIssue({ code: "custom", message, path });
+    // Whole issues, not just messages: the app translates by code and params (ui-strings.ts).
+    for (const issue of issues) ctx.addIssue({ ...issue });
     return parsed.success && !issues.length ? parsed.data : z.NEVER;
   });
 }
@@ -440,11 +462,14 @@ export const templateJsonSchema = (sections: readonly FieldSection[]) =>
   z.toJSONSchema(objectSchema(sectionEntries(sections), "describe"), { io: "input" });
 
 /** Validation errors keyed by field path (`client_name`, `line_items.0.qty`, or "" for the root). */
-export function fieldErrors(error: z.ZodError): Record<string, string[]> {
+export function fieldErrors(
+  error: z.ZodError,
+  message: (issue: z.core.$ZodIssue) => string = (issue) => issue.message,
+): Record<string, string[]> {
   const out: Record<string, string[]> = {};
   for (const issue of error.issues) {
     const key = issue.path.map(String).join(".");
-    out[key] = [...(out[key] ?? []), issue.message];
+    out[key] = [...(out[key] ?? []), message(issue)];
   }
   return out;
 }

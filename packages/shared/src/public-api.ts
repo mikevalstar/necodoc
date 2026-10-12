@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { batchJsonSchema, batchSummarySchema } from "./batch";
 import { generationStatusSchema, generationSummarySchema } from "./generation";
+import { languageTagSchema } from "./locale";
 import { outputOptionsSchema, outputProfileSchema } from "./output";
 import { subjectSchema } from "./privacy";
 import { renderRequestSchema } from "./render";
@@ -113,7 +114,21 @@ export const v1GenerationSchema = generationSummarySchema
 
 export const v1TemplateSchema = templateSummarySchema
   .omit({ hasUnpublishedChanges: true, archivedAt: true, thumbnail: true })
+  .extend({
+    languages: z.array(languageTagSchema).meta({
+      description:
+        "The published version's document language first, then those it has translations for. Pass one as `output.lang`, or as `?lang=` here.",
+    }),
+  })
   .meta({ id: "Template" });
+
+/** `?lang=` on the template list and detail. */
+export const v1TemplateQuerySchema = z.object({
+  lang: languageTagSchema.optional().meta({
+    description:
+      "Return name and description in this language from the template's translations; untranslated text stays as written.",
+  }),
+});
 
 export const v1TemplateDetailSchema = v1TemplateSchema
   .extend({ versions: z.array(templateVersionSummarySchema.omit({ publishedBy: true })) })

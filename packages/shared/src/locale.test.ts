@@ -95,7 +95,7 @@ describe("translatable strings", () => {
     ).toEqual(["Hi", "Bye"]);
   });
 
-  it("lists fields, then content text, without repeats or blanks", () => {
+  it("lists name and description, fields, then content text, without repeats or blanks", () => {
     const visual = designedContentSchema.parse({
       mode: "visual",
       body: {
@@ -110,7 +110,10 @@ describe("translatable strings", () => {
         },
       },
     });
-    expect(translatableStrings(sections, contentTexts(visual))).toEqual([
+    expect(
+      translatableStrings({ name: "Intake", description: "" }, sections, contentTexts(visual)),
+    ).toEqual([
+      "Intake",
       "You",
       "About you",
       "Name",

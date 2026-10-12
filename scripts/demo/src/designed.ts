@@ -350,6 +350,9 @@ const declarationsBody = doc(
 
 /** fr-CA for every string the declarations can translate; the seed checks none is missing. */
 const declarationsFr: Record<string, string> = {
+  "Commercial Policy Declarations": "Conditions particulières – police d'assurance commerciale",
+  "Declarations page for a commercial liability policy: insured, period, coverages and premium. English, with a Canadian French translation for Québec insureds.":
+    "Conditions particulières d'une police d'assurance responsabilité civile commerciale\u00a0: assuré, période, garanties et prime.",
   Policy: "Police",
   "Policy number": "Numéro de police",
   "Policy period starts": "Début de la période d'assurance",
@@ -395,6 +398,11 @@ const declarationsFr: Record<string, string> = {
 
 /** `french: false` is the first release, before the fr-CA translation. */
 export function policyDeclarations(ids: Ids, { french }: { french: boolean }): Designed {
+  const about = {
+    name: "Commercial Policy Declarations",
+    description:
+      "Declarations page for a commercial liability policy: insured, period, coverages and premium. English, with a Canadian French translation for Québec insureds.",
+  };
   const content = {
     mode: "visual" as const,
     header: header(ids, "Commercial liability declarations"),
@@ -405,7 +413,7 @@ export function policyDeclarations(ids: Ids, { french }: { french: boolean }): D
     translations: {} as Record<string, Record<string, string>>,
     body: declarationsBody,
   };
-  const strings = translatableStrings(declarationsSections, contentTexts(content));
+  const strings = translatableStrings(about, declarationsSections, contentTexts(content));
   const missing = strings.filter((s) => !(s in declarationsFr));
   if (missing.length) throw new Error(`Declarations: no fr-CA for ${JSON.stringify(missing)}`);
   if (french) {
@@ -415,9 +423,7 @@ export function policyDeclarations(ids: Ids, { french }: { french: boolean }): D
   }
   return {
     kind: "designed",
-    name: "Commercial Policy Declarations",
-    description:
-      "Declarations page for a commercial liability policy: insured, period, coverages and premium. English, with a Canadian French translation for Québec insureds.",
+    ...about,
     sections: declarationsSections,
     sampleData: {
       policy_number: "HS-CGL-104233",

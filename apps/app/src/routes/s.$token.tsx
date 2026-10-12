@@ -3,6 +3,7 @@ import {
   stringsFor,
   type Translations,
   textDirection,
+  translate,
   translateSections,
 } from "@necodoc/shared";
 import {
@@ -28,9 +29,12 @@ import { Field, FieldDescription, FieldError, FieldLabel } from "@/components/ui
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ApiError, api, ok } from "@/lib/api";
+import { uiStrings } from "@/lib/ui-strings";
 
 // Spec: docs/features/share-links-and-data-requests.md. Public: no session, no app chrome. The
 // answers stay in this browser until submitted; the API re-checks everything, locks included.
+// Everything the filler reads follows the language (docs/features/document-localization.md):
+// template text through its translations, the page's own through lib/ui-strings.ts.
 
 export const Route = createFileRoute("/s/$token")({
   component: SharedForm,
@@ -92,9 +96,22 @@ function startLanguage(lang: string, translations: Translations, search: string)
 }
 
 /** No app chrome: the necodoc mark, one column that reads well on a phone, an optional note under it. */
-function Shell({ children, note }: { children: ReactNode; note?: ReactNode }) {
+function Shell({
+  children,
+  note,
+  lang,
+}: {
+  children: ReactNode;
+  note?: ReactNode;
+  /** The language the page reads in; sets text direction too. */
+  lang?: string;
+}) {
   return (
-    <div className="flex min-h-svh flex-col bg-background">
+    <div
+      className="flex min-h-svh flex-col bg-background"
+      lang={lang}
+      dir={lang ? textDirection(lang) : undefined}
+    >
       <header className="bg-linear-to-b from-shell to-shell-2 text-shell-fg">
         <div className="mx-auto flex h-14 max-w-3xl items-center gap-2.5 px-4 font-heading text-lg font-bold tracking-tight sm:h-16 sm:px-6 sm:text-xl">
           <Logo className="size-7" accentClassName="fill-sun" />
@@ -183,10 +200,17 @@ function SharedForm() {
   });
   const data = link.data;
   const lang = data ? (picked ?? startLanguage(data.lang, data.translations, search)) : null;
-  const sections = useMemo(
-    () =>
-      data && lang ? translateSections(data.sections, stringsFor(data.translations, lang)) : [],
+  const strings = useMemo(
+    () => (data && lang ? stringsFor(data.translations, lang) : {}),
     [data, lang],
+  );
+  const sections = useMemo(
+    () => (data ? translateSections(data.sections, strings) : []),
+    [data, strings],
+  );
+  // Before the link loads (or when it can't), `?lang=` or the browser's language.
+  const t = uiStrings(
+    lang ?? new URLSearchParams(search).get("lang") ?? navigator.languages[0] ?? "en",
   );
   const start = useMemo(() => {
     if (!data) return {};
@@ -207,23 +231,22 @@ function SharedForm() {
     return (
       <Shell>
         {gone ? (
-          <Notice icon={LinkBreakIcon} tone="mute" title="This link is no longer available">
-            It may have expired, reached its limit, or been turned off. Ask whoever sent it to you
-            for a new one.
+          <Notice icon={LinkBreakIcon} tone="mute" title={t.share.goneTitle}>
+            {t.share.gone}
           </Notice>
         ) : (
           <Notice
             icon={WarningCircleIcon}
             tone="bad"
-            title="We couldn't open this form"
+            title={t.share.failedTitle}
             action={
               <Button variant="outline" onClick={() => link.refetch()} disabled={link.isFetching}>
                 <ArrowClockwiseIcon weight="bold" />
-                {link.isFetching ? "Trying…" : "Try again"}
+                {link.isFetching ? t.share.trying : t.share.tryAgain}
               </Button>
             }
           >
-            Check your connection and try again. Your answers so far are kept in this browser.
+            {t.share.failed}
           </Notice>
         )}
       </Shell>
@@ -232,7 +255,7 @@ function SharedForm() {
   if (!data) {
     return (
       <Shell>
-        <div className="space-y-2" role="status" aria-busy="true" aria-label="Loading">
+        <div className="space-y-2" role="status" aria-busy="true" aria-label={t.share.loading}>
           <Skeleton className="h-4 w-32" />
           <Skeleton className="h-9 w-2/3" />
         </div>
@@ -244,27 +267,27 @@ function SharedForm() {
   if (submit.data) {
     const { status, downloadUrl } = submit.data;
     return (
-      <Shell>
+      <Shell lang={lang ?? undefined}>
         <Notice
           icon={CheckCircleIcon}
           tone={status === "error" ? "mute" : "ok"}
-          title="Thanks, your answers were sent"
+          title={t.share.sentTitle}
           action={
             downloadUrl && (
               <a href={downloadUrl} className={buttonVariants()}>
                 <DownloadSimpleIcon />
-                Download your PDF
+                {t.share.download}
               </a>
             )
           }
         >
           {status === "error"
-            ? "We received your answers, but the PDF couldn't be made. The person who sent the link has them."
+            ? t.share.sentError
             : downloadUrl
-              ? "Download a copy of the completed PDF. The link works for 24 hours."
+              ? t.share.sentDownload
               : status === "success"
-                ? "The person who sent the link has your answers and the PDF. You can close this page."
-                : "The PDF is still being made; the person who sent the link will have it shortly. You can close this page."}
+                ? t.share.sentDone
+                : t.share.sentPending}
         </Notice>
       </Shell>
     );
@@ -272,21 +295,16 @@ function SharedForm() {
 
   const shownLang = lang ?? data.lang;
   return (
-    <Shell
-      note={
-        <>
-          Your answers go to whoever sent you this link. Until you submit, they're saved only in
-          this browser.
-        </>
-      }
-    >
+    <Shell note={t.share.note} lang={shownLang}>
       <div className="flex flex-wrap items-start justify-between gap-x-4 gap-y-3">
         <div className="min-w-0 space-y-1.5">
           <h1 className="font-heading text-[28px] leading-tight font-bold tracking-[-0.025em] text-balance sm:text-[34px]">
-            {data.name}
+            {translate(strings, data.name)}
           </h1>
           {data.description && (
-            <p className="max-w-prose text-[15px] text-ink-2">{data.description}</p>
+            <p className="max-w-prose text-[15px] text-ink-2">
+              {translate(strings, data.description)}
+            </p>
           )}
         </div>
         <LanguagePicker
@@ -301,7 +319,8 @@ function SharedForm() {
           <CardContent>
             <Field data-invalid={emailError && !emailValid}>
               <FieldLabel htmlFor="share-email">
-                Your email address<span className="text-destructive">*</span>
+                {t.share.emailLabel}
+                <span className="text-destructive">*</span>
               </FieldLabel>
               <Input
                 id="share-email"
@@ -316,16 +335,12 @@ function SharedForm() {
                 onChange={(e) => setEmail(e.target.value)}
                 onBlur={() => setEmailError(true)}
               />
-              <FieldDescription id="share-email-help">
-                The person who sent this link asks for it so they know who answered.
-              </FieldDescription>
+              <FieldDescription id="share-email-help">{t.share.emailHelp}</FieldDescription>
               {emailError && !emailValid && (
                 <FieldError
                   errors={[
                     {
-                      message: email.trim()
-                        ? "That doesn't look like an email address"
-                        : "Enter your email address",
+                      message: email.trim() ? t.share.emailInvalid : t.share.emailMissing,
                     },
                   ]}
                 />
@@ -336,32 +351,31 @@ function SharedForm() {
       )}
       <Card>
         <CardContent className="space-y-6">
-          <div dir={textDirection(shownLang)} lang={shownLang}>
-            <GuidedForm
-              sections={sections}
-              defaultValues={start}
-              lockedKeys={data.lockedKeys}
-              review
-              submitLabel={submit.isPending ? "Sending…" : "Submit"}
-              disabled={submit.isPending}
-              onChange={(values) => {
-                try {
-                  localStorage.setItem(storageKey(token), JSON.stringify(values));
-                } catch {
-                  // Full storage (large images): progress just isn't kept.
-                }
-              }}
-              onStepChange={() => setEmailError(true)}
-              onSubmit={(values) => {
-                if (data.requireEmail && !emailValid) {
-                  setEmailError(true);
-                  emailInput.current?.focus();
-                  return;
-                }
-                submit.mutate(values);
-              }}
-            />
-          </div>
+          <GuidedForm
+            sections={sections}
+            lang={shownLang}
+            defaultValues={start}
+            lockedKeys={data.lockedKeys}
+            review
+            submitLabel={submit.isPending ? t.sending : t.submit}
+            disabled={submit.isPending}
+            onChange={(values) => {
+              try {
+                localStorage.setItem(storageKey(token), JSON.stringify(values));
+              } catch {
+                // Full storage (large images): progress just isn't kept.
+              }
+            }}
+            onStepChange={() => setEmailError(true)}
+            onSubmit={(values) => {
+              if (data.requireEmail && !emailValid) {
+                setEmailError(true);
+                emailInput.current?.focus();
+                return;
+              }
+              submit.mutate(values);
+            }}
+          />
           <ErrorAlert error={submit.error} />
         </CardContent>
       </Card>

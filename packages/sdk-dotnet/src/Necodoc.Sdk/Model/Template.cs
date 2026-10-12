@@ -39,10 +39,11 @@ namespace Necodoc.Sdk.Model
         /// <param name="description">description</param>
         /// <param name="createdAt">createdAt</param>
         /// <param name="updatedAt">updatedAt</param>
+        /// <param name="languages">The published version&#39;s document language first, then those it has translations for. Pass one as &#x60;output.lang&#x60;, or as &#x60;?lang&#x3D;&#x60; here.</param>
         /// <param name="latestVersion">latestVersion</param>
         /// <param name="publishedAt">publishedAt</param>
         [JsonConstructor]
-        public Template(Guid id, TemplateKind kind, string name, string description, DateTime createdAt, DateTime updatedAt, long? latestVersion = default, DateTime? publishedAt = default)
+        public Template(Guid id, TemplateKind kind, string name, string description, DateTime createdAt, DateTime updatedAt, List<string> languages, long? latestVersion = default, DateTime? publishedAt = default)
         {
             Id = id;
             Kind = kind;
@@ -50,6 +51,7 @@ namespace Necodoc.Sdk.Model
             Description = description;
             CreatedAt = createdAt;
             UpdatedAt = updatedAt;
+            Languages = languages;
             LatestVersion = latestVersion;
             PublishedAt = publishedAt;
             OnCreated();
@@ -94,6 +96,13 @@ namespace Necodoc.Sdk.Model
         public DateTime UpdatedAt { get; set; }
 
         /// <summary>
+        /// The published version&#39;s document language first, then those it has translations for. Pass one as &#x60;output.lang&#x60;, or as &#x60;?lang&#x3D;&#x60; here.
+        /// </summary>
+        /// <value>The published version&#39;s document language first, then those it has translations for. Pass one as &#x60;output.lang&#x60;, or as &#x60;?lang&#x3D;&#x60; here.</value>
+        [JsonPropertyName("languages")]
+        public List<string> Languages { get; set; }
+
+        /// <summary>
         /// Gets or Sets LatestVersion
         /// </summary>
         [JsonPropertyName("latestVersion")]
@@ -119,6 +128,7 @@ namespace Necodoc.Sdk.Model
             sb.Append("  Description: ").Append(Description).Append("\n");
             sb.Append("  CreatedAt: ").Append(CreatedAt).Append("\n");
             sb.Append("  UpdatedAt: ").Append(UpdatedAt).Append("\n");
+            sb.Append("  Languages: ").Append(Languages).Append("\n");
             sb.Append("  LatestVersion: ").Append(LatestVersion).Append("\n");
             sb.Append("  PublishedAt: ").Append(PublishedAt).Append("\n");
             sb.Append("}\n");
@@ -219,6 +229,7 @@ namespace Necodoc.Sdk.Model
             Option<string?> description = default;
             Option<DateTime?> createdAt = default;
             Option<DateTime?> updatedAt = default;
+            Option<List<string>?> languages = default;
             Option<long?> latestVersion = default;
             Option<DateTime?> publishedAt = default;
 
@@ -255,6 +266,9 @@ namespace Necodoc.Sdk.Model
                         case "updatedAt":
                             updatedAt = new Option<DateTime?>(JsonSerializer.Deserialize<DateTime>(ref utf8JsonReader, jsonSerializerOptions));
                             break;
+                        case "languages":
+                            languages = new Option<List<string>?>(JsonSerializer.Deserialize<List<string>>(ref utf8JsonReader, jsonSerializerOptions)!);
+                            break;
                         case "latestVersion":
                             latestVersion = new Option<long?>(utf8JsonReader.TokenType == JsonTokenType.Null ? (int?)null : utf8JsonReader.GetInt32());
                             break;
@@ -285,6 +299,9 @@ namespace Necodoc.Sdk.Model
             if (!updatedAt.IsSet)
                 throw new JsonException("Property is required for class Template: updatedAt.");
 
+            if (!languages.IsSet)
+                throw new JsonException("Property is required for class Template: languages.");
+
             if (!latestVersion.IsSet)
                 throw new JsonException("Property is required for class Template: latestVersion.");
 
@@ -309,7 +326,10 @@ namespace Necodoc.Sdk.Model
             if (updatedAt.IsSet && updatedAt.Value == null)
                 throw new JsonException("Property is not nullable for class Template: updatedAt.");
 
-            return new Template(id.Value!.Value!, kind.Value!.Value!, name.Value!, description.Value!, createdAt.Value!.Value!, updatedAt.Value!.Value!, latestVersion.Value!, publishedAt.Value!);
+            if (languages.IsSet && languages.Value == null)
+                throw new JsonException("Property is not nullable for class Template: languages.");
+
+            return new Template(id.Value!.Value!, kind.Value!.Value!, name.Value!, description.Value!, createdAt.Value!.Value!, updatedAt.Value!.Value!, languages.Value!, latestVersion.Value!, publishedAt.Value!);
         }
 
         /// <summary>
@@ -347,6 +367,8 @@ namespace Necodoc.Sdk.Model
 
             writer.WriteString("updatedAt", template.UpdatedAt.ToString(UpdatedAtFormat));
 
+            writer.WritePropertyName("languages");
+            JsonSerializer.Serialize(writer, template.Languages, jsonSerializerOptions);
             if (template.LatestVersion != null)
                 writer.WriteNumber("latestVersion", template.LatestVersion.Value);
             else

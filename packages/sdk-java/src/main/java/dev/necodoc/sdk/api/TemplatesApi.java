@@ -172,44 +172,48 @@ public class TemplatesApi {
   /**
    * List published templates
    * Published, non-archived templates, limited to the key&#39;s templates if it has any.
+   * @param lang Return name and description in this language from the template&#39;s translations; untranslated text stays as written. (optional)
    * @return List&lt;Template&gt;
    * @throws ApiException if fails to make API call
    */
-  public List<Template> getTemplates() throws ApiException {
-    return getTemplates(null);
+  public List<Template> getTemplates(@javax.annotation.Nullable String lang) throws ApiException {
+    return getTemplates(lang, null);
   }
 
   /**
    * List published templates
    * Published, non-archived templates, limited to the key&#39;s templates if it has any.
+   * @param lang Return name and description in this language from the template&#39;s translations; untranslated text stays as written. (optional)
    * @param headers Optional headers to include in the request
    * @return List&lt;Template&gt;
    * @throws ApiException if fails to make API call
    */
-  public List<Template> getTemplates(Map<String, String> headers) throws ApiException {
-    ApiResponse<List<Template>> localVarResponse = getTemplatesWithHttpInfo(headers);
+  public List<Template> getTemplates(@javax.annotation.Nullable String lang, Map<String, String> headers) throws ApiException {
+    ApiResponse<List<Template>> localVarResponse = getTemplatesWithHttpInfo(lang, headers);
     return localVarResponse.getData();
   }
 
   /**
    * List published templates
    * Published, non-archived templates, limited to the key&#39;s templates if it has any.
+   * @param lang Return name and description in this language from the template&#39;s translations; untranslated text stays as written. (optional)
    * @return ApiResponse&lt;List&lt;Template&gt;&gt;
    * @throws ApiException if fails to make API call
    */
-  public ApiResponse<List<Template>> getTemplatesWithHttpInfo() throws ApiException {
-    return getTemplatesWithHttpInfo(null);
+  public ApiResponse<List<Template>> getTemplatesWithHttpInfo(@javax.annotation.Nullable String lang) throws ApiException {
+    return getTemplatesWithHttpInfo(lang, null);
   }
 
   /**
    * List published templates
    * Published, non-archived templates, limited to the key&#39;s templates if it has any.
+   * @param lang Return name and description in this language from the template&#39;s translations; untranslated text stays as written. (optional)
    * @param headers Optional headers to include in the request
    * @return ApiResponse&lt;List&lt;Template&gt;&gt;
    * @throws ApiException if fails to make API call
    */
-  public ApiResponse<List<Template>> getTemplatesWithHttpInfo(Map<String, String> headers) throws ApiException {
-    HttpRequest.Builder localVarRequestBuilder = getTemplatesRequestBuilder(headers);
+  public ApiResponse<List<Template>> getTemplatesWithHttpInfo(@javax.annotation.Nullable String lang, Map<String, String> headers) throws ApiException {
+    HttpRequest.Builder localVarRequestBuilder = getTemplatesRequestBuilder(lang, headers);
     try {
       HttpResponse<InputStream> localVarResponse = memberVarHttpClient.send(
           localVarRequestBuilder.build(),
@@ -256,13 +260,28 @@ public class TemplatesApi {
     }
   }
 
-  private HttpRequest.Builder getTemplatesRequestBuilder(Map<String, String> headers) throws ApiException {
+  private HttpRequest.Builder getTemplatesRequestBuilder(@javax.annotation.Nullable String lang, Map<String, String> headers) throws ApiException {
 
     HttpRequest.Builder localVarRequestBuilder = HttpRequest.newBuilder();
 
     String localVarPath = "/templates";
 
-    localVarRequestBuilder.uri(URI.create(memberVarBaseUri + localVarPath));
+    List<Pair> localVarQueryParams = new ArrayList<>();
+    StringJoiner localVarQueryStringJoiner = new StringJoiner("&");
+    String localVarQueryParameterBaseName;
+    localVarQueryParameterBaseName = "lang";
+    localVarQueryParams.addAll(ApiClient.parameterToPairs("lang", lang));
+
+    if (!localVarQueryParams.isEmpty() || localVarQueryStringJoiner.length() != 0) {
+      StringJoiner queryJoiner = new StringJoiner("&");
+      localVarQueryParams.forEach(p -> queryJoiner.add(p.getName() + '=' + p.getValue()));
+      if (localVarQueryStringJoiner.length() != 0) {
+        queryJoiner.add(localVarQueryStringJoiner.toString());
+      }
+      localVarRequestBuilder.uri(URI.create(memberVarBaseUri + localVarPath + '?' + queryJoiner.toString()));
+    } else {
+      localVarRequestBuilder.uri(URI.create(memberVarBaseUri + localVarPath));
+    }
 
     localVarRequestBuilder.header("Accept", "application/json");
 
@@ -282,23 +301,25 @@ public class TemplatesApi {
    * Get a template and its versions
    * 
    * @param id  (required)
+   * @param lang Return name and description in this language from the template&#39;s translations; untranslated text stays as written. (optional)
    * @return TemplateDetail
    * @throws ApiException if fails to make API call
    */
-  public TemplateDetail getTemplatesById(@javax.annotation.Nonnull UUID id) throws ApiException {
-    return getTemplatesById(id, null);
+  public TemplateDetail getTemplatesById(@javax.annotation.Nonnull UUID id, @javax.annotation.Nullable String lang) throws ApiException {
+    return getTemplatesById(id, lang, null);
   }
 
   /**
    * Get a template and its versions
    * 
    * @param id  (required)
+   * @param lang Return name and description in this language from the template&#39;s translations; untranslated text stays as written. (optional)
    * @param headers Optional headers to include in the request
    * @return TemplateDetail
    * @throws ApiException if fails to make API call
    */
-  public TemplateDetail getTemplatesById(@javax.annotation.Nonnull UUID id, Map<String, String> headers) throws ApiException {
-    ApiResponse<TemplateDetail> localVarResponse = getTemplatesByIdWithHttpInfo(id, headers);
+  public TemplateDetail getTemplatesById(@javax.annotation.Nonnull UUID id, @javax.annotation.Nullable String lang, Map<String, String> headers) throws ApiException {
+    ApiResponse<TemplateDetail> localVarResponse = getTemplatesByIdWithHttpInfo(id, lang, headers);
     return localVarResponse.getData();
   }
 
@@ -306,23 +327,25 @@ public class TemplatesApi {
    * Get a template and its versions
    * 
    * @param id  (required)
+   * @param lang Return name and description in this language from the template&#39;s translations; untranslated text stays as written. (optional)
    * @return ApiResponse&lt;TemplateDetail&gt;
    * @throws ApiException if fails to make API call
    */
-  public ApiResponse<TemplateDetail> getTemplatesByIdWithHttpInfo(@javax.annotation.Nonnull UUID id) throws ApiException {
-    return getTemplatesByIdWithHttpInfo(id, null);
+  public ApiResponse<TemplateDetail> getTemplatesByIdWithHttpInfo(@javax.annotation.Nonnull UUID id, @javax.annotation.Nullable String lang) throws ApiException {
+    return getTemplatesByIdWithHttpInfo(id, lang, null);
   }
 
   /**
    * Get a template and its versions
    * 
    * @param id  (required)
+   * @param lang Return name and description in this language from the template&#39;s translations; untranslated text stays as written. (optional)
    * @param headers Optional headers to include in the request
    * @return ApiResponse&lt;TemplateDetail&gt;
    * @throws ApiException if fails to make API call
    */
-  public ApiResponse<TemplateDetail> getTemplatesByIdWithHttpInfo(@javax.annotation.Nonnull UUID id, Map<String, String> headers) throws ApiException {
-    HttpRequest.Builder localVarRequestBuilder = getTemplatesByIdRequestBuilder(id, headers);
+  public ApiResponse<TemplateDetail> getTemplatesByIdWithHttpInfo(@javax.annotation.Nonnull UUID id, @javax.annotation.Nullable String lang, Map<String, String> headers) throws ApiException {
+    HttpRequest.Builder localVarRequestBuilder = getTemplatesByIdRequestBuilder(id, lang, headers);
     try {
       HttpResponse<InputStream> localVarResponse = memberVarHttpClient.send(
           localVarRequestBuilder.build(),
@@ -369,7 +392,7 @@ public class TemplatesApi {
     }
   }
 
-  private HttpRequest.Builder getTemplatesByIdRequestBuilder(@javax.annotation.Nonnull UUID id, Map<String, String> headers) throws ApiException {
+  private HttpRequest.Builder getTemplatesByIdRequestBuilder(@javax.annotation.Nonnull UUID id, @javax.annotation.Nullable String lang, Map<String, String> headers) throws ApiException {
     // verify the required parameter 'id' is set
     if (id == null) {
       throw new ApiException(400, "Missing the required parameter 'id' when calling getTemplatesById");
@@ -380,7 +403,22 @@ public class TemplatesApi {
     String localVarPath = "/templates/{id}"
         .replace("{id}", ApiClient.urlEncode(id.toString()));
 
-    localVarRequestBuilder.uri(URI.create(memberVarBaseUri + localVarPath));
+    List<Pair> localVarQueryParams = new ArrayList<>();
+    StringJoiner localVarQueryStringJoiner = new StringJoiner("&");
+    String localVarQueryParameterBaseName;
+    localVarQueryParameterBaseName = "lang";
+    localVarQueryParams.addAll(ApiClient.parameterToPairs("lang", lang));
+
+    if (!localVarQueryParams.isEmpty() || localVarQueryStringJoiner.length() != 0) {
+      StringJoiner queryJoiner = new StringJoiner("&");
+      localVarQueryParams.forEach(p -> queryJoiner.add(p.getName() + '=' + p.getValue()));
+      if (localVarQueryStringJoiner.length() != 0) {
+        queryJoiner.add(localVarQueryStringJoiner.toString());
+      }
+      localVarRequestBuilder.uri(URI.create(memberVarBaseUri + localVarPath + '?' + queryJoiner.toString()));
+    } else {
+      localVarRequestBuilder.uri(URI.create(memberVarBaseUri + localVarPath));
+    }
 
     localVarRequestBuilder.header("Accept", "application/json");
 

@@ -27,11 +27,12 @@ import {
 import { Input } from "@/components/ui/input";
 import { NativeSelect, NativeSelectOption } from "@/components/ui/native-select";
 import { Textarea } from "@/components/ui/textarea";
-import { dayjs } from "@/lib/date";
+import { formatDay, formatNumber, issueMessage, type UiStrings, uiStrings } from "@/lib/ui-strings";
 
 // Spec: docs/features/template-fields-and-guided-form.md. Renders a template's fields as a form,
 // validated with the same templateDataSchema the API applies, so what passes here passes there.
-// Used for sample data in the template editor, and by the fill flow and share links.
+// Used for sample data in the template editor, and by the fill flow and share links. Its own text
+// follows `lang` (docs/features/document-localization.md); the sections arrive translated.
 
 type Values = Record<string, unknown>;
 type ScalarValue = string | number | boolean | string[];
@@ -88,6 +89,8 @@ const stepTitle = "font-heading text-lg font-bold tracking-tight";
 
 export type GuidedFormProps = {
   sections: readonly FieldSection[];
+  /** The document language, for the form's own text and messages. Default English. */
+  lang?: string;
   /** Values to start from, e.g. saved sample data. Remount (change `key`) to load new ones. */
   defaultValues?: Readonly<Values>;
   /** `steps`: one section per step with progress. `all`: every section on one page. */
@@ -96,6 +99,7 @@ export type GuidedFormProps = {
   onChange?: (values: Values) => void;
   /** Valid data only: hidden fields dropped, defaults applied. Without it there's no submit. */
   onSubmit?: (data: TemplateData) => unknown;
+  /** Default: Submit, in `lang`. */
   submitLabel?: string;
   disabled?: boolean;
   /** Show every error from the start, not only on touched fields (sample data). */
@@ -113,11 +117,12 @@ export type GuidedFormProps = {
 
 export function GuidedForm({
   sections,
+  lang = "en",
   defaultValues,
   layout = "steps",
   onChange,
   onSubmit,
-  submitLabel = "Submit",
+  submitLabel,
   disabled,
   revealErrors = false,
   review = false,
@@ -127,6 +132,7 @@ export function GuidedForm({
   hideRequired = false,
 }: GuidedFormProps) {
   const schema = useMemo(() => templateDataSchema(sections), [sections]);
+  const t = uiStrings(lang);
   /** Shows every error, touched or not, after a blocked Next or submit. */
   const [reveal, setReveal] = useState(revealErrors);
   const [step, setStepState] = useState(initialStep);
@@ -155,12 +161,12 @@ export function GuidedForm({
   const values = useStore(form.store, (state) => state.values);
   const errors = useMemo(() => {
     const parsed = schema.safeParse(values);
-    return parsed.success ? {} : fieldErrors(parsed.error);
-  }, [schema, values]);
+    return parsed.success ? {} : fieldErrors(parsed.error, (issue) => issueMessage(issue, lang));
+  }, [schema, values, lang]);
   const visible = visibility(sections, values);
 
   if (!sections.some((s) => s.fields.length)) {
-    return <p className="text-sm text-ink-3">This template doesn't declare any fields.</p>;
+    return <p className="text-sm text-ink-3">{t.noFields}</p>;
   }
 
   const scalar = (field: ScalarField, name: string, errorKey: string, readOnly = false) => (
@@ -180,6 +186,7 @@ export function GuidedForm({
             onBlur={api.handleBlur}
             invalid={invalid}
             disabled={disabled || readOnly}
+            strings={t}
           />
         );
         return (
@@ -194,7 +201,7 @@ export function GuidedForm({
             </FieldLabel>
             {field.type !== "boolean" && input}
             {field.help && <FieldDescription>{field.help}</FieldDescription>}
-            {readOnly && <FieldDescription>Filled in for you.</FieldDescription>}
+            {readOnly && <FieldDescription>{t.prefilled}</FieldDescription>}
             {invalid && <FieldError errors={messages.map((message) => ({ message }))} />}
           </FieldBox>
         );
@@ -232,7 +239,7 @@ export function GuidedForm({
                         type="button"
                         variant="ghost"
                         size="icon-xs"
-                        aria-label={`Remove ${field.label} ${i + 1}`}
+                        aria-label={t.removeItem(`${field.label} ${i + 1}`)}
                         onClick={() => api.handleChange(items.filter((_, j) => j !== i))}
                       >
                         <TrashIcon />
@@ -262,7 +269,7 @@ export function GuidedForm({
                 onClick={() => api.handleChange([...items, newItem(field.fields)])}
               >
                 <PlusIcon weight="bold" />
-                Add {field.label.toLowerCase()}
+                {t.addItem(field.label)}
               </Button>
             )}
             {messages && (api.state.meta.isTouched || reveal || items.length > 0) && (
@@ -311,7 +318,7 @@ export function GuidedForm({
     <form.Subscribe selector={(state) => state.isSubmitting}>
       {(submitting) => (
         <Button type="submit" disabled={disabled || submitting}>
-          {submitLabel}
+          {submitLabel ?? t.submit}
         </Button>
       )}
     </form.Subscribe>
@@ -330,10 +337,8 @@ export function GuidedForm({
       <>
         <div className="space-y-1.5">
           <div className="flex justify-between text-xs text-ink-3">
-            <span>
-              Step {current + 1} of {total}
-            </span>
-            <span>{reviewing ? "Review" : sections[currentIndex]?.title}</span>
+            <span>{t.step(current + 1, total)}</span>
+            <span>{reviewing ? t.review : sections[currentIndex]?.title}</span>
           </div>
           <div className="h-1.5 overflow-hidden rounded-full bg-tint-2">
             <div
@@ -344,9 +349,14 @@ export function GuidedForm({
         </div>
         {reviewing ? (
           <FieldSet>
-            <FieldLegend className={stepTitle}>Review your answers</FieldLegend>
-            <FieldDescription>Check everything before you finish.</FieldDescription>
-            <AnswerSummary sections={sections} values={values} onEdit={(i) => setStep(i)} />
+            <FieldLegend className={stepTitle}>{t.reviewTitle}</FieldLegend>
+            <FieldDescription>{t.reviewHelp}</FieldDescription>
+            <AnswerSummary
+              sections={sections}
+              values={values}
+              lang={lang}
+              onEdit={(i) => setStep(i)}
+            />
           </FieldSet>
         ) : (
           section(currentIndex)
@@ -354,7 +364,7 @@ export function GuidedForm({
         <div className="flex flex-wrap gap-2">
           {current > 0 && (
             <Button type="button" variant="outline" onClick={() => setStep(current - 1)}>
-              Back
+              {t.back}
             </Button>
           )}
           {!last && (
@@ -366,7 +376,7 @@ export function GuidedForm({
                 setStep(current + 1);
               }}
             >
-              Next
+              {t.next}
             </Button>
           )}
           {last && submit}
@@ -388,7 +398,7 @@ export function GuidedForm({
       {body}
       {reveal && Object.keys(errors).length > 0 && (
         <p role="alert" className="text-sm text-destructive">
-          Fix the highlighted fields{layout === "steps" ? "" : " above"}.
+          {t.fixFields(layout !== "steps")}
         </p>
       )}
     </form>
@@ -407,6 +417,7 @@ export function ScalarInput({
   onBlur,
   invalid,
   disabled,
+  strings = uiStrings("en"),
 }: {
   field: ScalarField;
   id: string;
@@ -415,6 +426,8 @@ export function ScalarInput({
   onBlur?: () => void;
   invalid?: boolean;
   disabled?: boolean;
+  /** The form's own text, in the document language. */
+  strings?: UiStrings;
 }) {
   const text = typeof value === "string" ? value : "";
   const common = { id, onBlur, disabled, "aria-invalid": invalid };
@@ -481,7 +494,7 @@ export function ScalarInput({
             value={text}
             onChange={(e) => onChange(e.target.value || undefined)}
           >
-            <NativeSelectOption value="">Choose…</NativeSelectOption>
+            <NativeSelectOption value="">{strings.choose}</NativeSelectOption>
             {field.options.map((option) => (
               <NativeSelectOption key={option.value} value={option.value}>
                 {option.label}
@@ -522,6 +535,7 @@ export function ScalarInput({
           onChange={onChange}
           disabled={disabled}
           invalid={invalid}
+          removeLabel={strings.remove}
         />
       );
     case "signature":
@@ -533,6 +547,7 @@ export function ScalarInput({
           onChange={onChange}
           disabled={disabled}
           invalid={invalid}
+          strings={strings.signature}
         />
       );
   }
@@ -545,12 +560,14 @@ function ImageInput({
   onChange,
   disabled,
   invalid,
+  removeLabel,
 }: {
   id: string;
   value: string | undefined;
   onChange: (value: string | undefined) => void;
   disabled?: boolean;
   invalid?: boolean;
+  removeLabel: string;
 }) {
   return (
     <div className="flex items-center gap-3">
@@ -579,7 +596,7 @@ function ImageInput({
       />
       {value && !disabled && (
         <Button type="button" variant="ghost" size="sm" onClick={() => onChange(undefined)}>
-          Remove
+          {removeLabel}
         </Button>
       )}
     </div>
@@ -593,12 +610,16 @@ function ImageInput({
 export function AnswerSummary({
   sections,
   values,
+  lang = "en",
   onEdit,
 }: {
   sections: readonly FieldSection[];
   values: Readonly<Values>;
+  /** The document language, for Yes/No, dates and the like. */
+  lang?: string;
   onEdit?: (step: number) => void;
 }) {
+  const t = uiStrings(lang);
   const shown = visibility(sections, values);
   const open = sections.flatMap((section, i) => {
     const v = shown[i];
@@ -613,7 +634,7 @@ export function AnswerSummary({
             {onEdit && (
               <Button type="button" variant="ghost" size="sm" onClick={() => onEdit(step)}>
                 <PencilSimpleIcon />
-                Edit
+                {t.edit}
               </Button>
             )}
           </div>
@@ -625,9 +646,9 @@ export function AnswerSummary({
                   <dt className="text-ink-3">{field.label}</dt>
                   <dd className="min-w-0 break-words">
                     {field.type === "group" ? (
-                      <GroupAnswer field={field} value={values[field.key]} />
+                      <GroupAnswer field={field} value={values[field.key]} lang={lang} />
                     ) : (
-                      <ScalarAnswer field={field} value={values[field.key]} />
+                      <ScalarAnswer field={field} value={values[field.key]} lang={lang} />
                     )}
                   </dd>
                 </div>
@@ -642,12 +663,14 @@ export function AnswerSummary({
 function GroupAnswer({
   field,
   value,
+  lang,
 }: {
   field: Extract<Field, { type: "group" }>;
   value: unknown;
+  lang: string;
 }) {
   const items = Array.isArray(value) ? value.filter(isRecord) : [];
-  if (!items.length) return <span className="text-ink-3">None</span>;
+  if (!items.length) return <span className="text-ink-3">{uiStrings(lang).none}</span>;
   return (
     <ol className="space-y-2">
       {items.map((item, i) => {
@@ -663,7 +686,7 @@ function GroupAnswer({
               .map((child) => (
                 <div key={child.key}>
                   <span className="text-ink-3">{child.label}: </span>
-                  <ScalarAnswer field={child} value={item[child.key]} />
+                  <ScalarAnswer field={child} value={item[child.key]} lang={lang} />
                 </div>
               ))}
           </li>
@@ -673,15 +696,24 @@ function GroupAnswer({
   );
 }
 
-function ScalarAnswer({ field, value }: { field: ScalarField; value: unknown }) {
+function ScalarAnswer({
+  field,
+  value,
+  lang,
+}: {
+  field: ScalarField;
+  value: unknown;
+  lang: string;
+}) {
+  const t = uiStrings(lang);
   if (isEmptyValue(value) && field.type !== "boolean") {
-    return <span className="text-ink-3">Not answered</span>;
+    return <span className="text-ink-3">{t.notAnswered}</span>;
   }
   switch (field.type) {
     case "boolean":
-      return <>{value === true ? "Yes" : "No"}</>;
+      return <>{value === true ? t.yes : t.no}</>;
     case "date":
-      return <>{typeof value === "string" ? dayjs(value).format("MMM D, YYYY") : null}</>;
+      return <>{typeof value === "string" ? formatDay(value, lang) : null}</>;
     case "choice": {
       const picked = Array.isArray(value) ? value : [value];
       const label = (v: unknown) => field.options.find((o) => o.value === v)?.label ?? String(v);
@@ -692,6 +724,8 @@ function ScalarAnswer({ field, value }: { field: ScalarField; value: unknown }) 
       return typeof value === "string" ? (
         <img src={value} alt={field.label} className="max-h-16 rounded-md bg-white shadow-card" />
       ) : null;
+    case "number":
+      return <>{formatNumber(value, lang)}</>;
     case "long_text":
       return <span className="whitespace-pre-line">{String(value)}</span>;
     default:
