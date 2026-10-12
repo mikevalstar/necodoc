@@ -6,7 +6,7 @@ import { setSessionCookie } from "better-auth/cookies";
 // signed in as one shared demo user. Kept free of the database and env so it's tested against
 // an in-memory Better Auth (demo.test.ts). W11 hardening (caps, per-visitor accounts) goes here.
 
-export const DEMO_EMAIL = "demo@necodocs.com";
+export const DEMO_EMAIL = "demo@necodoc.com";
 
 type Users = Pick<
   Parameters<NonNullable<BetterAuthPlugin["init"]>>[0]["internalAdapter"],

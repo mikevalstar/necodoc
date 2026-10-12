@@ -30,7 +30,7 @@ mode, not a fork.
   the demo user from `GET /api/me`, which sets the session cookie and answers as that user
   ([ADR 0044](../adrs/0044-shared-demo-account-signed-in-by-a-server-only-better-auth-endpoint.md),
   [demo.ts](../../apps/api/src/demo.ts)). No password exists for the account and none is shown.
-- **One shared demo user**, `demo@necodocs.com`, named "Demo user", with the admin role so every
+- **One shared demo user**, `demo@necodoc.com`, named "Demo user", with the admin role so every
   page can be explored. The API creates it on startup and again on sign-in if it's missing,
   keyed by email, so a [demo seed](demo-data-and-screenshots.md) may create it or reset the
   database underneath a running instance.

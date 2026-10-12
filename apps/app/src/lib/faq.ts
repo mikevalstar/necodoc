@@ -521,7 +521,7 @@ export const faq: readonly FaqEntry[] = [
   {
     feature: "Public demo mode",
     group: "Admin",
-    what: "For a public demo only: every visitor is signed in to one shared demo account (demo@necodocs.com, an admin) with no login, and a banner says that anything entered is public and may be reset. Sign-in, registration, single sign-on and Sign out are off.",
+    what: "For a public demo only: every visitor is signed in to one shared demo account (demo@necodoc.com, an admin) with no login, and a banner says that anything entered is public and may be reset. Sign-in, registration, single sign-on and Sign out are off.",
     howTo:
       "The operator sets DEMO_MODE=true and restarts; INSTANCE_ENV=demo labels the instance. The demo account is created on start if it's missing. Never turn it on for an installation with real data.",
     limitations: [
