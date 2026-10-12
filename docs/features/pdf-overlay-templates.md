@@ -91,9 +91,9 @@ fields, or have badly named ones.
 
 ## Acceptance criteria
 
-- [ ] An editor can upload a PDF, place one box of each type, map them, and
+- [x] An editor can upload a PDF, place one box of each type, map them, and
       download a correctly filled preview.
-- [ ] A value placed at a box lands in the same spot in the output, on normal,
+- [x] A value placed at a box lands in the same spot in the output, on normal,
       rotated and cropped pages.
 - [x] Non-Latin text (accents, Polish, Greek, Cyrillic) renders, not boxes.
 - [x] Auto-shrink keeps a long value inside its box down to the minimum size;
@@ -104,7 +104,7 @@ fields, or have badly named ones.
       before they are saved.
 - [x] Every fixture in [fixtures/pdfs/surety-bonds](../../fixtures/pdfs/surety-bonds/README.md)
       uploads, previews and fills, including the empty-password encrypted ones.
-- [ ] Password-protected and pure XFA uploads are rejected with a clear message.
+- [x] Password-protected and pure XFA uploads are rejected with a clear message.
 - [x] With `ANTHROPIC_KEY` unset, no AI control shows and the AI routes answer 404.
 
 ## Known limitations

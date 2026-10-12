@@ -78,11 +78,11 @@ people; this answers it for their tooling.
 
 ## Acceptance criteria
 
-- [ ] With `LOG_FORMAT=json`, every API request and every render writes one JSON line with the fields above.
-- [ ] `curl :$METRICS_PORT/metrics` on an api and a worker process returns HTTP, render, queue and process metrics.
+- [x] With `LOG_FORMAT=json`, every API request and every render writes one JSON line with the fields above.
+- [x] `curl :$METRICS_PORT/metrics` on an api and a worker process returns HTTP, render, queue and process metrics.
 - [ ] With an OTLP endpoint set, one synchronous render shows as one trace spanning API and worker.
 - [ ] With no `OTEL_*` set, the OpenTelemetry SDK is not loaded.
-- [ ] The Helm chart renders a `PodMonitor` when enabled.
+- [x] The Helm chart renders a `PodMonitor` when enabled.
 
 ## Known limitations
 

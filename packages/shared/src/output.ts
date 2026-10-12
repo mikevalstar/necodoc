@@ -44,8 +44,24 @@ export const outputWorthKeeping = (output: OutputOptions) =>
 export const outputEnabled = (output: OutputOptions | undefined): output is OutputOptions =>
   !!output && (output.pdfa !== null || output.pdfua || output.certify);
 
-/** Per-request overrides on a template's own output settings. */
-export const outputOverridesSchema = outputOptionsSchema.partial();
+/** An option without its default: an override left out keeps the template's setting. */
+const override = <T extends z.ZodType>(option: z.ZodDefault<T>) =>
+  option
+    .unwrap()
+    .optional()
+    .meta(option.meta() ?? {});
+
+/**
+ * Per-request overrides on a template's own output settings. Not `.partial()`: that keeps the
+ * defaults, so `{ certify: false }` would also turn PDF/A and the language back off.
+ */
+const { pdfa, pdfua, certify, lang } = outputOptionsSchema.shape;
+export const outputOverridesSchema = z.object({
+  pdfa: override(pdfa),
+  pdfua: override(pdfua),
+  certify: override(certify),
+  lang: override(lang),
+});
 export type OutputOverrides = z.infer<typeof outputOverridesSchema>;
 
 /** What finishing actually did, recorded on the generation. */

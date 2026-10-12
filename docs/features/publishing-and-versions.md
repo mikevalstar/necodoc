@@ -76,9 +76,9 @@ document permissions in
 - [x] A user without `document: publish` can't publish, through the app or the
       API.
 - [x] Publishing creates version N+1; version N still renders identically.
-- [ ] Editing a theme or snippet after publishing doesn't change the published
+- [x] Editing a theme or snippet after publishing doesn't change the published
       output.
-- [ ] Only published, non-archived templates appear in the fill list.
+- [x] Only published, non-archived templates appear in the fill list.
 - [x] The diff lists added, removed and changed fields.
 - [x] With review required, only a draft matching an approved review can be
       published.

@@ -6,7 +6,10 @@ import * as pdfjs from "pdfjs-dist/legacy/build/pdf.mjs";
 // AI detection. Uploads are untrusted: no system fonts (pdf.js 6 has no eval path).
 
 const require = createRequire(import.meta.url);
-const standardFontDataUrl = `${join(dirname(require.resolve("pdfjs-dist/package.json")), "standard_fonts")}/`;
+const pdfjsDir = dirname(require.resolve("pdfjs-dist/package.json"));
+const standardFontDataUrl = `${join(pdfjsDir, "standard_fonts")}/`;
+// JPEG 2000 and JBIG2 images (scanned government forms) decode with pdf.js's wasm.
+const wasmUrl = `${join(pdfjsDir, "wasm")}/`;
 
 export { pdfjs };
 export type PdfjsDocument = Awaited<ReturnType<typeof openPdfjs>>;
@@ -22,6 +25,7 @@ export function openPdfjs(bytes: Uint8Array) {
     disableFontFace: true,
     useSystemFonts: false,
     standardFontDataUrl,
+    wasmUrl,
     verbosity: 0,
   }).promise;
 }

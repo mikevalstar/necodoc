@@ -51,8 +51,9 @@ replaces.
 - **Owner view.** Each link lists its submissions with answers, the PDF, and
   submitted time; each opens as the owner's document. CSV export is not built
   yet.
-- **Notify** through the template's or link's [webhook](webhooks.md) (not built
-  yet). In-app, the link and the nav show a count of unseen submissions.
+- **Notify** through the template's [webhook](webhooks.md): a submission's PDF
+  is a generation with source `share_link`, so it fires `generation.succeeded`
+  (or `generation.failed`). There is no `submission.created` event yet. In-app, the link and the nav show a count of unseen submissions.
 - **Language.** Templates with translations offer a language picker; `?lang=`
   or the browser's language picks the first one
   ([Document localization](document-localization.md)).

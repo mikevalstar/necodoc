@@ -453,6 +453,19 @@ describe("templateJsonSchema", () => {
     });
   });
 
+  it("refuses empty values for required fields, as validation does", () => {
+    const props = schema.properties as Record<string, Record<string, unknown>>;
+    expect(props.client_name).toMatchObject({ minLength: 1 });
+    expect(props.line_items).toMatchObject({ minItems: 1 });
+    expect(props.email).not.toHaveProperty("minLength");
+    const consent = templateJsonSchema(
+      sections([
+        { title: "S", fields: [{ type: "boolean", key: "ok", label: "OK", required: true }] },
+      ]),
+    );
+    expect((consent.properties as Record<string, unknown>).ok).toMatchObject({ const: true });
+  });
+
   it("serialises as JSON", () => {
     expect(JSON.parse(JSON.stringify(schema))).toEqual(schema);
   });

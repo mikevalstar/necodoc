@@ -46,7 +46,7 @@ A month-end run of 10,000 statements must not time out or slow down someone fill
 
 - [ ] With `ROLE=api` and two `ROLE=worker` processes, renders from the app and API complete, and the log shows both workers' ids. (Verified with a `ROLE=all` node plus two workers, and a separate `ROLE=api` node whose renders the workers ran; `/api/v1` doesn't exist yet.)
 - [x] Killing a worker mid-render retries the job on another worker; the generation shows 2 attempts.
-- [ ] A 500-row batch completes with progress visible in the app, can be cancelled mid-run, and downloads as a ZIP and as a packet. (Verified at 200 rows.)
+- [x] A 500-row batch completes with progress visible in the app, can be cancelled mid-run, and downloads as a ZIP and as a packet. (500 rows completed through the API with ZIP and 1,000-page packet; a 301-row CSV batch cancelled mid-run in the app.)
 - [x] A batch row with invalid data fails with field errors while the other rows succeed.
 - [x] An interactive render submitted during a running batch starts before the remaining batch rows.
 - [x] Every generation shows its timing breakdown; the log sorts by total and by queue wait.

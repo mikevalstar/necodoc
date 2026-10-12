@@ -82,8 +82,8 @@ to user-defined data.
       hidden required field doesn't block submission.
 - [x] The API rejects data that the form would reject, with field-level
       errors keyed by field path.
-- [ ] The JSON Schema export validates the same sample data the zod schema
-      accepts.
+- [x] The JSON Schema export validates the same sample data the zod schema
+      accepts, and refuses an empty value for an unconditionally required field.
 - [x] Renaming a field key flags every template expression that still uses the
       old key.
 
@@ -94,5 +94,7 @@ to user-defined data.
 - No cross-field validation (e.g. end date after start date).
 - Fields belong to one template. There is no shared field library.
 - The JSON Schema export leaves show-ifs out: conditional fields are optional
-  there, and the API still applies the rules.
+  there, and the API still applies the rules. It is also stricter about
+  blanks: the API treats `null` or `""` in an optional field as unanswered,
+  the schema refuses them.
 - Text sample data can't be generated from a pattern and may need editing.

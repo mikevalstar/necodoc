@@ -77,15 +77,15 @@ export function printPdf(html: string, options: PrintOptions, loadAsset: AssetLo
         await page.evaluate("document.body.offsetHeight, document.fonts.ready.then(() => {})");
         // Inches, not mm: Playwright's mm rounds Letter up to 612.96 x 792.96pt; inches give
         // exactly 612 x 792 (Chromium still snaps A4 to its pixel grid, under a point off).
-        const mm = (value: number) => `${value / 25.4}in`;
+        const inches = (mm: number) => `${mm / 25.4}in`;
         return page.pdf({
-          width: mm(options.width),
-          height: mm(options.height),
+          width: inches(options.width),
+          height: inches(options.height),
           margin: {
-            top: mm(options.margins.top),
-            right: mm(options.margins.right),
-            bottom: mm(options.margins.bottom),
-            left: mm(options.margins.left),
+            top: inches(options.margins.top),
+            right: inches(options.margins.right),
+            bottom: inches(options.margins.bottom),
+            left: inches(options.margins.left),
           },
           printBackground: true,
           tagged: options.tagged ?? false,

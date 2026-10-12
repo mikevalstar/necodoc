@@ -31,7 +31,8 @@ import {
 
 export const Route = createFileRoute("/_app/share-links/$id")({
   beforeLoad: ({ context }) => {
-    if (!hasPermission(context.me.user.roles, { document: ["publish"] })) throw redirect({ to: "/" });
+    if (!hasPermission(context.me.user.roles, { document: ["publish"] }))
+      throw redirect({ to: "/" });
   },
   component: ShareLinkResponses,
 });

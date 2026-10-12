@@ -65,6 +65,8 @@ structure.
 ## Known limitations
 
 - Tests run on the saved draft, not unsaved edits.
+- Text checks read the PDF's extracted text: wide letter-spacing can split a
+  word into letters, so a check for it fails.
 - The visual diff compares with the latest published version only; the first
   version has nothing to compare with.
 - Pages are compared at the same index: inserting a page early marks every

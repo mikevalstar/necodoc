@@ -72,6 +72,27 @@ describe("AcroForm import", () => {
     if (firstText) expect(text).toContain(`Sample ${firstText.label}`.slice(0, 12));
   });
 
+  it("shows a chosen dropdown value once flattened", async () => {
+    const bytes = read("ny-dmv-vs3-dealer-bond");
+    const imported = importAcroFields((await inspectUpload(bytes)).fields, [], []);
+    const state = imported.boxes.find((b) => b.acroField === "State1");
+    expect(state).toBeDefined();
+    const result = await renderOverlay(
+      {
+        kind: "overlay",
+        sourceId: "x",
+        boxes: state ? [state] : [],
+        flatten: true,
+        data: { [state?.value.match(/\w+/)?.[0] ?? ""]: "WY" },
+        preview: false,
+      },
+      async () => bytes,
+      noAssets,
+    );
+    expect(result.warnings).toEqual([]);
+    expect(await pageText(result.pdf)).toMatch(/\bWY\b/);
+  });
+
   it("keeps fields editable without flatten", async () => {
     const bytes = read("or-ccb-commercial-contractor-bond");
     const source = await inspectUpload(bytes);

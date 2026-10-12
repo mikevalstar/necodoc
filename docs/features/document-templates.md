@@ -86,11 +86,11 @@ editor and developers a code mode, on one renderer.
 
 - [x] An editor can create a template, set page size, orientation and margins,
       and see them in the preview.
-- [ ] Header and footer render on every page with full HTML (an image and a
+- [x] Header and footer render on every page with full HTML (an image and a
       table work), and `{{ page }} of {{ pages }}` shows correct numbers.
 - [x] A first-page header variant appears on page 1 only.
-- [ ] Body content never overlaps a band.
-- [ ] A repeating section with 200 items paginates cleanly; table header rows
+- [x] Body content never overlaps a band.
+- [x] A repeating section with 200 items paginates cleanly; table header rows
       repeat on each page.
 - [x] A conditional section disappears when its condition is false.
 - [x] A manual page break starts a new page.
@@ -99,7 +99,7 @@ editor and developers a code mode, on one renderer.
 - [x] Template CSS applies after the theme, in the body and the bands.
 - [x] A template converted to code mode renders the same PDF as before
       conversion.
-- [ ] `<script>` in a template doesn't run, and a remote image URL doesn't load
+- [x] `<script>` in a template doesn't run, and a remote image URL doesn't load
       (the render still succeeds).
 
 ## Known limitations

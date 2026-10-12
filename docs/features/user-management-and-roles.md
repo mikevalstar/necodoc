@@ -127,7 +127,7 @@ Definitions: [packages/shared/src/roles.ts](../../packages/shared/src/roles.ts),
 
 - [ ] The first sign-up on an empty database is an admin; the second has no roles.
 - [ ] A user with no roles sees only the pending page after signing in.
-- [ ] A non-admin gets 403 from the admin endpoints and sees no Admin link.
+- [x] A non-admin gets 403 from the admin endpoints and sees no Admin link.
 - [ ] An admin can do every action listed under Admin > Users.
 - [ ] Self-demotion, self-ban, self-delete and removing the last admin are
       rejected by the API.

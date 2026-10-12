@@ -260,6 +260,7 @@ const templates: readonly FaqEntry[] = [
     limitations: [
       "Tests run on the saved draft, not unsaved edits.",
       "Renders aren't logged, so they don't appear in Generations.",
+      "Text checks read the text in the PDF: wide letter-spacing can split a word into letters, so a check for it fails.",
       "Results aren't stored; they run again each time they're shown.",
       "Generations are offered only if they're yours (admins: anyone's) and still have their input; documents only if they're yours.",
     ],
@@ -485,12 +486,11 @@ export const faq: readonly FaqEntry[] = [
     group: "Generations",
     what: "Every logged render (Render page, template generation, re-runs, batch rows) is queued and run by a render worker. The caller normally waits and gets the PDF back as before; if it takes longer than the wait limit (30 s by default) the API answers 202 with the generation id, and the entry finishes in the background. Live previews skip the queue and render straight away.",
     howTo:
-      "Nothing to do in the app. API callers can send `async: true` on a render or template generate request to get 202 with `{ generationId, status }` at once, then poll GET /api/generations/:id and download /api/generations/:id/pdf once the status is success.",
+      "Nothing to do in the app. API callers can send `async: true` on a render or template generate request to get 202 with `{ generationId, status }` at once, then poll GET /api/v1/generations/:id and download /api/v1/generations/:id/pdf once the status is success, or let a webhook tell them.",
     limitations: [
       "Queue pickup adds a few milliseconds; it's shown per entry as queue wait.",
       "If no worker is running, logged renders wait until one starts (Admin › System warns about this).",
       "The app's Render and template pages expect the PDF back; a render slower than the wait limit doesn't show there, but it still finishes and appears in Generations.",
-      "There are no webhooks yet; async callers poll.",
     ],
     access: [{ action: "Render (queued like everything else)", needs: view }],
     spec: "docs/features/render-queue-batch-jobs-and-scaling.md",
@@ -515,12 +515,13 @@ export const faq: readonly FaqEntry[] = [
     group: "Generations",
     what: "Generate many documents from one published template at once: one PDF per CSV row (in the app) or JSON row (API). The batch shows progress (done, failed, total), each row is an entry in the generation log, rows with invalid data fail alone with their field errors, and batch rows queue behind interactive renders. Download everything as a ZIP of PDFs or as one combined packet PDF.",
     howTo:
-      "Open Batches › Run batch, pick a template, upload a CSV, check which column fills which field, and queue it. Open the batch to watch progress, cancel the remaining rows, or download. API: POST /api/templates/:id/versions/:version/batch with `{ rows: [...] }`, or /batch/csv with a file and a column mapping.",
+      "Open Batches › Run batch, pick a template, upload a CSV, check which column fills which field, and queue it. Open the batch to watch progress, cancel the remaining rows, or download. API: POST /api/v1/templates/:id/versions/:version/batch with `{ rows: [...] }` (JSON only; CSV upload is in the app), then GET /api/v1/batches/:id for progress and …/zip or …/packet to download.",
     limitations: [
       "Up to 10,000 rows and 20 MB of CSV or JSON per batch.",
       "Batches always use the latest published version in the app (the API takes any version).",
       "A CSV column fills one value; repeating-group items need one column per item (items.0.name, items.1.name).",
       "Cancel stops rows that haven't started; rows already rendering finish.",
+      "Rows render in no particular order, so early rows can still be queued while later ones are done.",
       "The packet download is built in memory, so very large batches are better downloaded as a ZIP.",
       "Each row stores its own copy of the template HTML as its input, which takes space on big batches.",
     ],
@@ -550,7 +551,7 @@ export const faq: readonly FaqEntry[] = [
     howTo: "Open Admin › System and pick a window. It refreshes every 5 seconds.",
     limitations: [
       "Metrics are computed from the generation log, so deleted entries drop out of them.",
-      "No Prometheus endpoint or alerting yet.",
+      "No alerting here; for that, scrape the Prometheus metrics (see Logs, metrics and traces) into your monitoring.",
       "Offline processes stay listed for a day.",
     ],
     access: [{ action: "View", needs: "admin" }],
@@ -640,7 +641,7 @@ export const faq: readonly FaqEntry[] = [
     group: "Generations",
     what: "A link to one generated PDF that works without signing in until it expires, for emails, webhooks or handing a document to another system. Each link records who made it and how often it was used.",
     howTo:
-      'POST /api/generations/<id>/link with {"expiresInSeconds": 3600} (60 seconds to 7 days) returns {url, expiresAt}. Add ?download=1 to the URL to save instead of open.',
+      'POST /api/generations/<id>/link with {"expiresInSeconds": 3600} (60 seconds to 7 days) returns {url, expiresAt}. With an API key, POST /api/v1/generations/<id>/link makes one valid for an hour. Add ?download=1 to the URL to save instead of open.',
     limitations: [
       "A link can't be revoked before it expires, except by deleting the generation.",
       "Changing DOWNLOAD_SIGNING_SECRET (or BETTER_AUTH_SECRET, if that's unset) voids every live link.",
@@ -659,7 +660,7 @@ export const faq: readonly FaqEntry[] = [
       "Text never flows from one box to the next. Auto-shrink stops at the minimum size; past it the text is cut and the generation records a warning.",
       "A signature box draws an image unless it names a signer; then it's left blank for the e-sign provider (see Signing packages).",
       "Uploaded fonts must be TTF or OTF; a WOFF2 font falls back to Noto Sans.",
-      "Pure XFA forms and PDFs that need a password to open can't be used.",
+      "Pure XFA forms (Adobe LiveCycle) and PDFs that need a password to open are refused on upload. Hybrid XFA forms are accepted; outputs drop the XFA part so every viewer shows the filled fields.",
       "No snapping to lines in the editor; use AI detection or the coordinates in the inspector for precise placement.",
       "Replaced or deleted PDFs stay in the database (published versions may still use them).",
     ],
@@ -691,7 +692,7 @@ export const faq: readonly FaqEntry[] = [
     group: "Templates",
     what: "For PDFs without form fields, 'Detect with AI' asks Claude (Sonnet) to find the blanks, checkboxes and signature lines on each page and suggest a box, key, label and type for each. The server then snaps every box onto the printed line, cell or square it belongs to. Suggestions show dashed beside your boxes; nothing is saved until you accept them. Only shown when AI is turned on.",
     howTo:
-      "On an overlay template's Boxes tab, click 'Detect with AI' and wait (5 to 10 seconds a page). Review the list: click one to see it on the page, tick to accept, × to reject. 'Accept all but approximate' takes every box that lined up with something printed; approximate ones are marked ≈. Accepting reuses a field with the same key, or creates it.",
+      "On an overlay template's Boxes tab, click 'Detect with AI' and wait (5 to 10 seconds a page). Review the list: click one to see it on the page, tick to accept, × to reject. 'Accept all' (shown as 'Accept all but approximate' when some are approximate) takes every box that lined up with something printed; approximate ones are marked ≈ and left for you to accept one by one. Accepting reuses a field with the same key, or creates it.",
     limitations: [
       "Suggestions only: check every box and rename keys; the names are guesses.",
       "Works best on typed PDFs with drawn lines or boxes. Untested on scans, rotated pages and non-Letter sizes.",
@@ -829,7 +830,7 @@ export const faq: readonly FaqEntry[] = [
       "Progress is kept in the filler's browser only; they can't continue on another device.",
       "The filler's download link lasts 24 hours. If the PDF takes too long, they get the confirmation without a download.",
       "Prefill and locking cover top-level questions, not questions inside a repeating group.",
-      "No CSV export or webhooks yet.",
+      "No CSV export of responses. Webhooks have no submission event of their own; a submission's PDF fires the template's generation.succeeded webhook (source share_link).",
     ],
     // Filling needs no account at all, which the access list can't express; `what` says so.
     access: [{ action: "Create and manage share links, see their responses", needs: publish }],
@@ -1014,12 +1015,13 @@ export const faq: readonly FaqEntry[] = [
     group: "Templates",
     what: "A template can make PDF/A-2b or PDF/A-2u files, the archive formats records offices and courts ask for, and (designed templates) tagged PDF/UA files that screen readers can follow: headings, paragraphs, tables, lists, links and images in reading order, with headers and footers marked as page furniture. The API can ask for either on any render.",
     howTo:
-      "Open the template's Output tab: pick a PDF/A level and, for designed templates, switch on Accessible and set the document language. Publish to apply it. API calls send an `output` object to override it per request. The generation page shows what was applied under Output.",
+      "Open the template's Output tab: pick a PDF/A level and, for designed templates, switch on Accessible and set the document language. Publish to apply it. API calls send an `output` object to override it per request; options left out keep the template's. The generation page shows what was applied under Output.",
     limitations: [
       "Overlay templates only get PDF/A when the uploaded PDF embeds its fonts and has no scripts or attachments; most government forms don't embed theirs. The PDF is still made, without the PDF/A claim, and the generation says why.",
       "PDF/UA is for designed templates and HTML renders only; overlays and packets aren't tagged.",
       "Accessibility depends on the content: images need alt text and tables need header rows. necodoc doesn't check that for you; run a checker such as veraPDF or PAC on a sample.",
       "Decorative images (empty alt text) and empty table cells fail the check because Chromium leaves them untagged: describe every image and put a non-breaking space in empty cells.",
+      "An image that doesn't load (remote URLs never do) fails the check the same way.",
       "Packets (combined PDFs) can be PDF/A only if every part qualifies.",
     ],
     access: [

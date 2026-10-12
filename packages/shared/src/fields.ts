@@ -314,21 +314,26 @@ function resolveVisible(list: readonly Entry[], raw: Record<string, unknown>) {
 const DATA_URL = /^data:image\/(png|jpeg|webp);base64,[A-Za-z0-9+/]+={0,2}$/;
 const PNG_DATA_URL = /^data:image\/png;base64,[A-Za-z0-9+/]+={0,2}$/;
 
-/** The schema of one value, ignoring `required` (that depends on visibility). */
-function fieldValueSchema(field: Field, mode: Mode = "validate"): z.ZodType {
-  const schema = valueSchema(field, mode);
+/**
+ * The schema of one value. Validation ignores `required` (that depends on visibility); the JSON
+ * Schema gets `nonEmpty` for unconditionally required fields, so it refuses what validation would.
+ */
+function fieldValueSchema(field: Field, mode: Mode = "validate", nonEmpty = false): z.ZodType {
+  const schema = valueSchema(field, mode, nonEmpty);
   if (mode === "validate") return schema;
   return schema.meta({ title: field.label, ...(field.help ? { description: field.help } : {}) });
 }
 
 type Mode = "validate" | "describe";
 
-function valueSchema(field: Field, mode: Mode): z.ZodType {
+/** `nonEmpty`: refuse what isEmptyValue calls empty ("", false, []), as a required field does. */
+function valueSchema(field: Field, mode: Mode, nonEmpty = false): z.ZodType {
   switch (field.type) {
     case "text":
     case "long_text": {
       let s = z.string();
-      if (field.minLength !== undefined) s = s.min(field.minLength);
+      const minLength = field.minLength ?? (nonEmpty ? 1 : undefined);
+      if (minLength !== undefined) s = s.min(minLength);
       if (field.maxLength !== undefined) s = s.max(field.maxLength);
       if (field.pattern !== undefined && compiles(field.pattern)) {
         s = s.regex(new RegExp(`^(?:${field.pattern})$`), "Doesn't match the expected format");
@@ -353,13 +358,14 @@ function valueSchema(field: Field, mode: Mode): z.ZodType {
         .refine((d) => max === undefined || d <= max, { message: `Must be on or before ${max}` });
     }
     case "boolean":
-      return z.boolean();
+      return nonEmpty ? z.literal(true) : z.boolean();
     case "choice": {
       const values = field.options.map((o) => o.value);
       const one = z.enum(values as [string, ...string[]], { error: "Pick one of the options" });
       if (!field.multiple) return one;
       let list = z.array(one);
-      if (field.minItems !== undefined) list = list.min(field.minItems);
+      const minItems = field.minItems ?? (nonEmpty ? 1 : undefined);
+      if (minItems !== undefined) list = list.min(minItems);
       if (field.maxItems !== undefined) list = list.max(field.maxItems);
       return list.refine((l) => new Set(l).size === l.length, { message: "Pick each option once" });
     }
@@ -371,7 +377,8 @@ function valueSchema(field: Field, mode: Mode): z.ZodType {
       return z.string().regex(PNG_DATA_URL, "Draw a signature");
     case "group": {
       let list = z.array(objectSchema(entries(field.fields), mode));
-      if (field.minItems !== undefined) list = list.min(field.minItems);
+      const minItems = field.minItems ?? (nonEmpty ? 1 : undefined);
+      if (minItems !== undefined) list = list.min(minItems);
       if (field.maxItems !== undefined) list = list.max(field.maxItems);
       return list;
     }
@@ -385,8 +392,8 @@ function valueSchema(field: Field, mode: Mode): z.ZodType {
 function objectSchema(list: readonly Entry[], mode: Mode): z.ZodType {
   const shape = Object.fromEntries(
     list.map((entry) => {
-      const value = fieldValueSchema(entry.field, mode);
       const required = mode === "describe" && entry.field.required && !entry.conditions.length;
+      const value = fieldValueSchema(entry.field, mode, required);
       return [entry.field.key, required ? value : value.optional()];
     }),
   );

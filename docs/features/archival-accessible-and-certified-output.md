@@ -98,7 +98,8 @@ recorded profile), [render/finish.ts](../../apps/api/src/render/finish.ts)
   tables without header cells fail an accessibility check; necodoc doesn't
   lint them. Two Chromium quirks fail it too: decorative images (`alt=""`)
   and empty table cells are left untagged, so give images real alt text and
-  put `&nbsp;` in empty cells.
+  put `&nbsp;` in empty cells. An image that doesn't load (a remote URL,
+  which renders block) leaves its alt text untagged too.
 - **Trust is the certificate's.** Acrobat shows the signature as trusted only
   if the certificate chains to a root it trusts (AATL, or the customer's own
   trust list). No revocation data is embedded: B-B or B-T, not B-LT or B-LTA.

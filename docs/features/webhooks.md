@@ -38,8 +38,9 @@ Code: [webhooks.ts](../../apps/api/src/webhooks.ts),
 - People manage their own from Settings › API keys; admins manage service
   accounts' from Admin › Service accounts.
 - **Events:** `generation.succeeded`, `generation.failed`, `batch.completed`
-  (batch rows don't fire generation events). `submission.created` comes with
-  share links. A webhook subscribes to some or all of them.
+  (batch rows don't fire generation events). A share-link submission fires
+  `generation.succeeded` (or `failed`) with source `share_link`; there is no
+  separate submission event. A webhook subscribes to some or all of them.
 - **Payload:** JSON with the event, a delivery id, the time, and the
   generation (id, status, source, template id and version, batch id, file
   name, page count, size, error, key id, request id) or the batch (id,

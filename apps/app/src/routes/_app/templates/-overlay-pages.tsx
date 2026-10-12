@@ -1,6 +1,6 @@
 import type { OverlayRect } from "@necodoc/shared";
 import { useEffect, useRef, useState } from "react";
-import { type PdfDocument, type PdfViewport, pdfjs } from "@/lib/pdfjs";
+import { openPdf, type PdfDocument, type PdfViewport } from "@/lib/pdfjs";
 import { cn } from "@/lib/utils";
 
 // ADR 0017: pages render to canvases with pdf.js; boxes are laid over them. Boxes are stored in
@@ -43,8 +43,7 @@ export function usePdfDocument(url: string) {
     let gone = false;
     setState({ doc: null, error: null });
     (async () => {
-      const lib = await pdfjs();
-      const task = lib.getDocument({ url, password: "" });
+      const task = await openPdf(url);
       try {
         doc = await task.promise;
         if (gone) await task.destroy();

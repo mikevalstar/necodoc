@@ -410,6 +410,9 @@ async function fillField(
       return "filled";
     }
     field.select(value);
+    // Without fresh appearances, viewers and flattening show the old (usually empty) choice.
+    if (field instanceof PDFRadioGroup) field.updateAppearances();
+    else field.updateAppearances(await formFont());
     return "filled";
   }
   if (field instanceof PDFTextField) {

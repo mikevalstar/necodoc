@@ -42,8 +42,8 @@ tool after every generation.
 
 ## Acceptance criteria
 
-- [ ] Combining two generations and one upload produces one PDF with all pages
-      in the chosen order.
+- [x] Combining two generations and one upload produces one PDF with all pages
+      in the chosen order. (Verified through the API; the app side isn't built.)
 - [ ] The API combine accepts all three input kinds in one request.
 - [x] A user can't combine generations they aren't allowed to see. (API: a
       key can combine only its account's generations.)

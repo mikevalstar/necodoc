@@ -76,7 +76,7 @@ needs counting.
 - [x] A failed render shows its error and has no output.
 - [x] An admin can filter, download, re-run and delete; a non-admin sees only
       their own entries.
-- [ ] A re-run produces the same PDF as the original for an unchanged version.
+- [x] A re-run produces the same PDF as the original for an unchanged version.
 - [x] Deleting removes the stored PDF bytes too.
 - [x] A signed link downloads the PDF without a session and stops working
       after it expires.
