@@ -74,6 +74,7 @@ export function RenderTimeHistogram({
     );
   }
 
+  // Square-root heights so one crowded bucket doesn't flatten the rest; counts are in each label.
   const max = Math.max(1, ...data.buckets.map((b) => b.count));
   const p95 = data.p95Ms;
   /** Buckets wholly past p95 read as slow. */
@@ -169,7 +170,8 @@ export function RenderTimeHistogram({
                     bucket.count === 0 && "bg-hair",
                   )}
                   style={{
-                    height: bucket.count === 0 ? 2 : `max(3px, ${(bucket.count / max) * 100}%)`,
+                    height:
+                      bucket.count === 0 ? 2 : `max(3px, ${Math.sqrt(bucket.count / max) * 100}%)`,
                   }}
                 />
               </button>
