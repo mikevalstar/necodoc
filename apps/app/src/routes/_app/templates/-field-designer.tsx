@@ -13,13 +13,16 @@ import {
   ArrowUpIcon,
   CaretDownIcon,
   CaretRightIcon,
+  ListBulletsIcon,
   PlusIcon,
   TrashIcon,
 } from "@phosphor-icons/react";
 import { type ReactNode, useMemo, useState } from "react";
 import { ConditionEditor, newCondition } from "@/components/condition-editor";
+import { ConfirmDialog } from "@/components/confirm-dialog";
 import type { FieldChoice } from "@/components/editor/context";
 import { ScalarInput } from "@/components/guided-form";
+import { EmptyState } from "@/components/page";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -146,6 +149,8 @@ export function FieldDesigner({
   }, [sections]);
   /** The one open field editor, by path ("s.i" or "s.i.c"). */
   const [open, setOpen] = useState<string | null>(null);
+  /** A section with fields, waiting for the delete to be confirmed. */
+  const [deleting, setDeleting] = useState<number | null>(null);
 
   const allKeys = new Set(sections.flatMap((s) => s.fields.map((f) => f.key)));
   const setSection = (s: number, section: FieldSection) =>
@@ -171,16 +176,17 @@ export function FieldDesigner({
   return (
     <div className="space-y-4">
       {sections.length === 0 && (
-        <p className="text-sm text-muted-foreground">
-          Fields are the data a document needs. Add a section, then its fields; each section is one
-          step of the guided form.
-        </p>
+        <EmptyState
+          icon={ListBulletsIcon}
+          title="No fields yet"
+          description="Fields are the data a document needs. Add a section, then its fields; each section is one step of the guided form."
+        />
       )}
       {sections.map((section, s) => {
         const earlier = choicesOf(sections.slice(0, s).flatMap((x) => x.fields));
         return (
           // biome-ignore lint/suspicious/noArrayIndexKey: sections have no ids; order is identity
-          <section key={s} className="space-y-3 rounded-lg border p-3">
+          <section key={s} className="space-y-3 rounded-xl bg-tint p-3">
             <div className="flex flex-wrap items-start gap-2">
               <div className="min-w-48 flex-1 space-y-1">
                 <Input
@@ -199,7 +205,11 @@ export function FieldDesigner({
                   index={s}
                   count={sections.length}
                   onMove={(to) => onChange(move(sections, s, to))}
-                  onDelete={() => onChange(sections.filter((_, i) => i !== s))}
+                  onDelete={() =>
+                    section.fields.length
+                      ? setDeleting(s)
+                      : onChange(sections.filter((_, i) => i !== s))
+                  }
                 />
               )}
             </div>
@@ -318,6 +328,18 @@ export function FieldDesigner({
           <PlusIcon weight="bold" />
           Add section
         </Button>
+      )}
+      {deleting !== null && (
+        <ConfirmDialog
+          title={`Delete the section ${sections[deleting]?.title ?? ""}?`}
+          description={`Its ${sections[deleting]?.fields.length ?? 0} fields go with it, and merge fields that use them are flagged. Nothing is saved until you save.`}
+          confirmLabel="Delete section"
+          onConfirm={() => {
+            onChange(sections.filter((_, i) => i !== deleting));
+            setDeleting(null);
+          }}
+          onClose={() => setDeleting(null)}
+        />
       )}
     </div>
   );
@@ -469,7 +491,7 @@ function FieldRow({
 }) {
   const bad = under(errors, errorPath);
   return (
-    <div className={cn("rounded-lg border", bad && "border-destructive/50")}>
+    <div className={cn("rounded-lg bg-card shadow-card", bad && "ring-2 ring-bad/40")}>
       <div className="flex items-center gap-2 p-1.5 pl-2">
         <button
           type="button"
@@ -484,12 +506,10 @@ function FieldRow({
           )}
           <span className="truncate font-medium">{field.label || "Untitled"}</span>
           <code className="truncate text-xs text-muted-foreground">{field.key}</code>
-          <Badge variant="secondary" className="shrink-0">
-            {fieldTypeLabels[field.type]}
-          </Badge>
-          {field.required && <Badge variant="outline">Required</Badge>}
-          {field.showIf && <Badge variant="outline">Show if</Badge>}
-          {isSensitiveField(field) && <Badge variant="outline">Sensitive</Badge>}
+          <Badge className="shrink-0">{fieldTypeLabels[field.type]}</Badge>
+          {field.required && <Badge variant="secondary">Required</Badge>}
+          {field.showIf && <Badge variant="secondary">Show if</Badge>}
+          {isSensitiveField(field) && <Badge variant="warn">Sensitive</Badge>}
           {bad && <span className="text-xs text-destructive">Needs attention</span>}
         </button>
         {!disabled && reorder}
@@ -560,7 +580,7 @@ function FieldForm({
     : (Object.keys(fieldTypeLabels) as FieldType[]);
 
   return (
-    <fieldset disabled={disabled} className="grid gap-4 border-t p-3 sm:grid-cols-2">
+    <fieldset disabled={disabled} className="grid gap-4 border-t border-hair p-3 sm:grid-cols-2">
       <FieldBox>
         <FieldLabel htmlFor={`${id}-label`}>Label</FieldLabel>
         <Input

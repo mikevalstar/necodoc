@@ -1,8 +1,10 @@
+import { StackIcon } from "@phosphor-icons/react";
 import { queryOptions, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { toast } from "sonner";
 import { SuggestButton, useAiEnabled } from "@/components/ai";
 import { ErrorAlert } from "@/components/form";
+import { EmptyState, ListSkeleton } from "@/components/page";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -65,22 +67,30 @@ export function VersionsPanel({
   const [noting, setNoting] = useState<number | null>(null);
   if (versions.data?.length === 0) {
     return (
-      <p className="text-sm text-muted-foreground">
-        Not published yet. Publishing the saved draft creates version 1.
-      </p>
+      <EmptyState
+        icon={StackIcon}
+        title="Not published yet"
+        description="Publishing the saved draft creates version 1. Documents and the API only use published versions."
+      />
     );
   }
   return (
     <div className="space-y-2">
       <ErrorAlert error={versions.error} />
+      {versions.isPending && <ListSkeleton rows={3} />}
       {versions.data?.map((v) => (
-        <div key={v.id} className="flex flex-wrap items-start gap-3 rounded-lg border p-3 text-sm">
+        <div key={v.id} className="flex flex-wrap items-start gap-3 rounded-xl bg-tint p-3 text-sm">
           <div className="min-w-0 flex-1 space-y-1">
             <div className="flex items-center gap-2">
-              <span className="font-medium">Version {v.version}</span>
+              <span className="font-semibold">Version {v.version}</span>
               {v.version === versions.data[0]?.version && <Badge>Latest</Badge>}
+              {previewing === v.version && (
+                <Badge dot variant="run">
+                  In the preview
+                </Badge>
+              )}
             </div>
-            <div className="text-xs text-muted-foreground">
+            <div className="text-xs text-ink-3">
               {dayjs(v.publishedAt).format("MMM D, YYYY h:mm A")} by{" "}
               {v.publisherName ?? "a deleted user"}
             </div>
@@ -97,11 +107,12 @@ export function VersionsPanel({
           </div>
           <div className="flex gap-2">
             <Button
-              variant={previewing === v.version ? "secondary" : "outline"}
+              variant="outline"
               size="sm"
+              aria-pressed={previewing === v.version}
               onClick={() => onPreview(previewing === v.version ? null : v.version)}
             >
-              {previewing === v.version ? "Previewing" : "Preview"}
+              {previewing === v.version ? "Stop previewing" : "Preview"}
             </Button>
             {canPublish && noting !== v.version && (
               <Button variant="ghost" size="sm" onClick={() => setNoting(v.version)}>

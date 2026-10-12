@@ -4,10 +4,12 @@ import { useQuery } from "@tanstack/react-query";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useDeferredValue, useState } from "react";
 import { z } from "zod";
+import { DensityToggle } from "@/components/data-table";
 import { ErrorAlert } from "@/components/form";
 import { EmptyState, FaqLink, ListSkeleton, Page, PageHeader } from "@/components/page";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -91,15 +93,15 @@ function Documents() {
           title="No documents yet"
           description="Pick a template to fill in. You answer its questions step by step and download the finished PDF."
           action={
-            <Button nativeButton={false} render={<Link to="/documents/new" />}>
+            <Button variant="outline" nativeButton={false} render={<Link to="/documents/new" />}>
               <PlusIcon weight="bold" />
               Pick a template
             </Button>
           }
         />
       ) : (
-        <>
-          <div className="flex flex-wrap items-end gap-3">
+        <Card className="gap-0 py-0">
+          <div className="flex flex-wrap items-end gap-3 border-b border-hair px-4 py-3.5">
             <Field className="w-full sm:w-64">
               <FieldLabel htmlFor="document-search">Search</FieldLabel>
               <Input
@@ -151,20 +153,27 @@ function Documents() {
                 <NativeSelectOption value="share_link">Share links</NativeSelectOption>
               </NativeSelect>
             </Field>
+            <div className="ml-auto">
+              <DensityToggle />
+            </div>
           </div>
 
-          <ErrorAlert error={documents.error ?? start.error} />
+          {(documents.error ?? start.error) && (
+            <div className="px-4 pt-4">
+              <ErrorAlert error={documents.error ?? start.error} />
+            </div>
+          )}
 
           {documents.isPending ? (
-            <ListSkeleton />
+            <ListSkeleton className="p-4" />
           ) : (
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Document</TableHead>
+                  <TableHead className="pl-4">Document</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead className="hidden sm:table-cell">Last edited</TableHead>
-                  <TableHead className="w-0">
+                  <TableHead className="w-0 pr-4">
                     <span className="sr-only">Actions</span>
                   </TableHead>
                 </TableRow>
@@ -172,15 +181,15 @@ function Documents() {
               <TableBody>
                 {rows.map((d) => (
                   <TableRow key={d.id}>
-                    <TableCell className="max-w-md">
+                    <TableCell className="max-w-md pl-4">
                       <Link
                         to="/documents/$id"
                         params={{ id: d.id }}
-                        className="block truncate font-medium hover:underline"
+                        className="block truncate font-semibold hover:underline"
                       >
                         {d.name}
                       </Link>
-                      <p className="truncate text-xs text-muted-foreground">
+                      <p className="truncate text-xs text-ink-3">
                         {d.templateName} · version {d.version}
                       </p>
                     </TableCell>
@@ -190,13 +199,13 @@ function Documents() {
                           status={d.status}
                           generationStatus={d.generationStatus}
                         />
-                        {d.source === "share_link" && <Badge variant="outline">Share link</Badge>}
+                        {d.source === "share_link" && <Badge variant="secondary">Share link</Badge>}
                       </span>
                     </TableCell>
-                    <TableCell className="hidden text-muted-foreground sm:table-cell">
+                    <TableCell className="hidden text-ink-3 sm:table-cell">
                       {dayjs(d.updatedAt).fromNow()}
                     </TableCell>
-                    <TableCell>
+                    <TableCell className="pr-4">
                       <DropdownMenu>
                         <DropdownMenuTrigger
                           render={
@@ -244,8 +253,8 @@ function Documents() {
                   </TableRow>
                 ))}
                 {documents.isSuccess && rows.length === 0 && (
-                  <TableRow>
-                    <TableCell colSpan={4} className="py-8 text-center text-muted-foreground">
+                  <TableRow className="hover:bg-transparent">
+                    <TableCell colSpan={4} className="h-24 text-center text-ink-3">
                       No documents match these filters.
                     </TableCell>
                   </TableRow>
@@ -253,7 +262,7 @@ function Documents() {
               </TableBody>
             </Table>
           )}
-        </>
+        </Card>
       )}
 
       {deleting && <DeleteDocumentDialog document={deleting} onClose={() => setDeleting(null)} />}

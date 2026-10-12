@@ -39,13 +39,7 @@ import { TestResults, testCasesQuery, testRunQuery, testSummary } from "./-tests
 
 type StatusSource = Pick<TemplateSummary, "archivedAt" | "latestVersion" | "hasUnpublishedChanges">;
 
-export const templateStatuses = {
-  draft: "Draft, never published",
-  published: "Published, up to date",
-  changes: "Unpublished changes",
-  archived: "Archived",
-} as const;
-export type TemplateStatus = keyof typeof templateStatuses;
+export type TemplateStatus = "draft" | "published" | "changes" | "archived";
 
 /** Archived wins; otherwise whether it was ever published and whether the draft moved on. */
 export function templateStatus(t: StatusSource): TemplateStatus {

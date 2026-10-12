@@ -9,16 +9,27 @@ import {
   templateSchema,
   toCodeMode,
 } from "@necodoc/shared";
-import { DotsThreeIcon, SparkleIcon, WarningIcon } from "@phosphor-icons/react";
+import {
+  ArchiveIcon,
+  ArrowLeftIcon,
+  CloudArrowUpIcon,
+  CloudCheckIcon,
+  DotsThreeIcon,
+  EyeIcon,
+  RocketLaunchIcon,
+  SparkleIcon,
+  WarningCircleIcon,
+  WarningIcon,
+} from "@phosphor-icons/react";
 import { useMutation, useQuery, useQueryClient, useSuspenseQuery } from "@tanstack/react-query";
-import { createFileRoute, redirect, useBlocker, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, Link, redirect, useBlocker, useNavigate } from "@tanstack/react-router";
 import { useCallback, useMemo, useState } from "react";
 import { z } from "zod";
 import { useAiEnabled } from "@/components/ai";
 import { HistoryPanel } from "@/components/audit";
 import { ErrorAlert } from "@/components/form";
-import { BackLink, FaqLink, Page } from "@/components/page";
-import { PdfFrame, usePdfPreview } from "@/components/pdf-frame";
+import { FaqLink, Page } from "@/components/page";
+import { PdfFrame, PdfTray, usePdfPreview } from "@/components/pdf-frame";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import {
   AlertDialog,
@@ -46,6 +57,7 @@ import { ApiError, api, ok, previewTemplate } from "@/lib/api";
 import { dayjs } from "@/lib/date";
 import { snippetsQuery, templatesQuery } from "@/lib/queries";
 import { useSaveShortcut } from "@/lib/save-shortcut";
+import { cn } from "@/lib/utils";
 import { AssistantPanel } from "./-assistant";
 import { BandsPanel, BodyPanel, CssPanel } from "./-content-panels";
 import {
@@ -96,6 +108,36 @@ export const Route = createFileRoute("/_app/templates/$id")({
   loader: ({ context, params }) => context.queryClient.ensureQueryData(templateQuery(params.id)),
   component: TemplatePage,
 });
+
+type TabValue =
+  | "content"
+  | "bands"
+  | "fields"
+  | "sample"
+  | "signing"
+  | "output"
+  | "translations"
+  | "page"
+  | "css"
+  | "tests"
+  | "reviews"
+  | "versions";
+
+/** The tab where a draft problem's path is fixed; null for the name in the header. */
+function issueTab(path: readonly PropertyKey[]): TabValue | null {
+  const [first, second] = path;
+  if (first === "name") return null;
+  if (first === "sections") return "fields";
+  if (first === "sampleData") return "sample";
+  if (first === "page" || first === "themeId" || first === "description") return "page";
+  if (first !== "content") return "content";
+  if (second === "header" || second === "footer") return "bands";
+  if (second === "signers") return "signing";
+  if (second === "output") return "output";
+  if (second === "translations") return "translations";
+  if (second === "css") return "css";
+  return "content";
+}
 
 function TemplatePage() {
   const { id } = Route.useParams();
@@ -302,36 +344,130 @@ function TemplateEditor({
   });
 
   const issues = parsed.success ? [] : parsed.error.issues.slice(0, 6);
-  const previewHeight = assistantOpen ? "h-[40svh]" : "h-[82svh]";
+  /** Problems per tab, so the tab to fix says so. */
+  const tabIssues = new Map<TabValue, number>();
+  for (const issue of parsed.success ? [] : parsed.error.issues) {
+    const tab = issueTab(issue.path);
+    if (tab) tabIssues.set(tab, (tabIssues.get(tab) ?? 0) + 1);
+  }
+  const fieldCount = draft.sections.reduce((n, s) => n + s.fields.length, 0);
+  const designed = draft.kind === "designed";
+  const tabs: { value: TabValue; label: string; count?: number }[] = [
+    { value: "content", label: designed ? "Content" : "Boxes" },
+    ...(designed ? [{ value: "bands" as const, label: "Header & footer" }] : []),
+    { value: "fields", label: "Fields", count: fieldCount },
+    { value: "sample", label: "Sample data" },
+    { value: "signing", label: "Signing" },
+    { value: "output", label: "Output" },
+    { value: "translations", label: "Translations" },
+    { value: "page", label: designed ? "Page & theme" : "PDF" },
+    ...(designed ? [{ value: "css" as const, label: "CSS" }] : []),
+    { value: "tests", label: "Tests" },
+    { value: "reviews", label: "Reviews" },
+    { value: "versions", label: "Versions" },
+  ];
+  /** Form-like tabs sit on a card; the editors and canvases bring their own surface. */
+  const panel = "rounded-xl bg-card p-5 shadow-card";
+  const previewHeight = assistantOpen ? "h-[40svh]" : "h-[calc(100svh-9rem)] min-h-[32rem]";
+  const canPublishNow = !dirty && !archivedAt && status.hasUnpublishedChanges && !needsApproval;
+  const nextVersion = versions.data ? (latest?.version ?? 0) + 1 : null;
+
+  const previewToolbar = (
+    <>
+      <span className="inline-flex items-center gap-2 font-bold">
+        <span
+          aria-hidden
+          className={cn(
+            "size-2 rounded-full bg-white ring-3 ring-white/25",
+            preview.isFetching && "animate-pulse",
+          )}
+        />
+        {proposal
+          ? "Proposed change"
+          : previewing === null
+            ? "Live preview"
+            : `Version ${previewing}`}
+      </span>
+      {preview.data && (
+        <span className="text-white/80">
+          {preview.data.pageCount} {preview.data.pageCount === 1 ? "page" : "pages"}
+        </span>
+      )}
+      {previewLanguages.length > 1 && (
+        <NativeSelect
+          size="sm"
+          aria-label="Preview language"
+          value={previewLang ?? previewLanguages[0]}
+          onChange={(e) => setPreviewLang(e.target.value)}
+        >
+          {previewLanguages.map((lang) => (
+            <NativeSelectOption key={lang} value={lang}>
+              {lang}
+            </NativeSelectOption>
+          ))}
+        </NativeSelect>
+      )}
+      {preview.data && !preview.data.dataValid && previewing === null && (
+        <Badge variant="warn">Sample data doesn't fit the fields</Badge>
+      )}
+      <span className="ml-auto flex items-center gap-2">
+        <span role="status" className="text-white/80">
+          {preview.isFetching
+            ? "Rendering…"
+            : previewRequest
+              ? "Up to date"
+              : "Fix the problems to preview"}
+        </span>
+        {previewing !== null && (
+          <Button variant="outline" size="xs" onClick={() => setPreviewing(null)}>
+            Back to draft
+          </Button>
+        )}
+      </span>
+    </>
+  );
 
   return (
-    <Page width="wide" className="space-y-4 py-6">
-      <div className="flex items-center justify-between gap-2">
-        <BackLink to="/templates">Templates</BackLink>
-        <FaqLink
-          feature={draft.kind === "overlay" ? "PDF overlay templates" : "Designed templates"}
-        />
-      </div>
-
-      <div className="flex flex-wrap items-center gap-3">
-        <Input
-          aria-label="Template name"
-          className="h-10 max-w-xl flex-1 border-transparent px-1 text-2xl font-semibold shadow-none hover:border-input md:text-2xl"
-          value={draft.name}
-          readOnly={!canEdit}
-          onChange={(e) => change({ name: e.target.value })}
-        />
-        <TemplateStatusBadges template={status} />
-        {draft.kind === "designed" && draft.content.mode === "code" && (
-          <Badge variant="secondary">Code mode</Badge>
-        )}
-        {draft.kind === "overlay" && <Badge variant="secondary">PDF overlay</Badge>}
-        {review?.current && (
-          <ReviewStatusBadge status={review.current.status} stale={review.current.stale} />
-        )}
-        <div className="ml-auto flex items-center gap-2">
+    <Page width="wide" className="space-y-4 pt-1 pb-6">
+      <div className="flex flex-wrap items-start gap-3">
+        <Button
+          variant="outline"
+          size="icon"
+          className="mt-0.5 shrink-0"
+          aria-label="Back to templates"
+          title="Templates"
+          nativeButton={false}
+          render={<Link to="/templates" />}
+        >
+          <ArrowLeftIcon weight="bold" />
+        </Button>
+        {/* Title, pills and save state wrap among themselves so the actions don't jump. */}
+        <div className="flex min-w-[min(100%,20rem)] flex-1 flex-wrap items-center gap-x-3 gap-y-1">
+          <Input
+            aria-label="Template name"
+            className="h-11 w-auto max-w-full min-w-48 border-transparent bg-transparent px-2 font-heading text-[26px] font-bold tracking-[-0.02em] field-sizing-content hover:border-input focus:bg-surface md:text-[26px]"
+            value={draft.name}
+            readOnly={!canEdit}
+            onChange={(e) => change({ name: e.target.value })}
+          />
+          <TemplateStatusBadges template={status} />
+          {draft.kind === "designed" && draft.content.mode === "code" && (
+            <Badge variant="secondary">Code mode</Badge>
+          )}
+          {draft.kind === "overlay" && <Badge variant="secondary">PDF overlay</Badge>}
+          {review?.current && (
+            <ReviewStatusBadge status={review.current.status} stale={review.current.stale} />
+          )}
           {canEdit && (
-            <span role="status" className="text-sm text-muted-foreground">
+            <span
+              role="status"
+              className="inline-flex items-center gap-1.5 text-[13px] whitespace-nowrap text-ink-3"
+            >
+              {dirty ? (
+                <CloudArrowUpIcon className="size-4" />
+              ) : (
+                <CloudCheckIcon className="size-4" />
+              )}
               {save.isPending
                 ? "Saving…"
                 : dirty
@@ -339,8 +475,17 @@ function TemplateEditor({
                   : `Saved ${dayjs(baseUpdatedAt).fromNow()}`}
             </span>
           )}
+        </div>
+        <div className="ml-auto flex flex-wrap items-center justify-end gap-2">
+          {assistantAvailable && !assistantOpen && (
+            <Button variant="outline" onClick={() => setAssistantOpen(true)}>
+              <SparkleIcon />
+              Assistant
+            </Button>
+          )}
           {canEdit && (
             <Button
+              variant={dirty ? "default" : "outline"}
               disabled={!dirty || save.isPending || !parsed.success}
               title={parsed.success ? "Save (⌘S)" : "Fix the problems first"}
               onClick={() => save.mutate()}
@@ -360,8 +505,8 @@ function TemplateEditor({
           )}
           {can("publish") && (
             <Button
-              variant="outline"
-              disabled={dirty || !!archivedAt || !status.hasUnpublishedChanges || needsApproval}
+              variant={canPublishNow ? "default" : "outline"}
+              disabled={!canPublishNow}
               title={
                 dirty
                   ? "Save your changes first"
@@ -375,13 +520,8 @@ function TemplateEditor({
               }
               onClick={() => setDialog("publish")}
             >
-              Publish
-            </Button>
-          )}
-          {assistantAvailable && !assistantOpen && (
-            <Button variant="outline" onClick={() => setAssistantOpen(true)}>
-              <SparkleIcon />
-              Assistant
+              <RocketLaunchIcon />
+              {nextVersion ? `Publish v${nextVersion}` : "Publish"}
             </Button>
           )}
           <DropdownMenu>
@@ -428,6 +568,7 @@ function TemplateEditor({
 
       {!canEdit && (
         <Alert>
+          <EyeIcon />
           <AlertDescription>
             You can review this draft and its preview, but not change it.
           </AlertDescription>
@@ -435,6 +576,7 @@ function TemplateEditor({
       )}
       {archivedAt && (
         <Alert>
+          <ArchiveIcon />
           <AlertDescription>
             Archived {dayjs(archivedAt).fromNow()}: hidden from filling and the API. Its versions
             stay for history and re-runs.
@@ -442,7 +584,7 @@ function TemplateEditor({
         </Alert>
       )}
       {can("publish") && needsApproval && status.hasUnpublishedChanges && !dirty && !archivedAt && (
-        <p className="text-sm text-muted-foreground">
+        <p className="text-sm text-ink-3">
           Publishing needs an approved review of this exact draft.{" "}
           {review?.current
             ? review.current.stale
@@ -469,6 +611,7 @@ function TemplateEditor({
       )}
       {canEdit && issues.length > 0 && (
         <Alert variant="destructive">
+          <WarningCircleIcon />
           <AlertTitle>Can't save or preview yet</AlertTitle>
           <AlertDescription>
             <ul className="list-disc pl-4">
@@ -482,7 +625,7 @@ function TemplateEditor({
         </Alert>
       )}
       {problems.length > 0 && (
-        <Alert>
+        <Alert className="bg-warn-wash *:[svg]:text-warn">
           <WarningIcon />
           <AlertTitle>Field references to check</AlertTitle>
           <AlertDescription>
@@ -495,264 +638,249 @@ function TemplateEditor({
         </Alert>
       )}
 
-      <div
-        className={
-          draft.kind === "overlay"
-            ? "grid gap-6 xl:grid-cols-[minmax(0,1.5fr)_minmax(0,0.6fr)]"
-            : "grid gap-6 xl:grid-cols-[minmax(0,1fr)_minmax(0,0.9fr)]"
-        }
-      >
-        <Tabs defaultValue="content">
-          <TabsList className="flex-wrap justify-start group-data-horizontal/tabs:h-auto *:data-[slot=tabs-trigger]:h-[calc(2rem-7px)] *:data-[slot=tabs-trigger]:flex-none">
-            <TabsTrigger value="content">
-              {draft.kind === "overlay" ? "Boxes" : "Content"}
-            </TabsTrigger>
-            {draft.kind === "designed" && <TabsTrigger value="bands">Header & footer</TabsTrigger>}
-            <TabsTrigger value="fields">Fields</TabsTrigger>
-            <TabsTrigger value="sample">Sample data</TabsTrigger>
-            <TabsTrigger value="signing">Signing</TabsTrigger>
-            <TabsTrigger value="output">Output</TabsTrigger>
-            <TabsTrigger value="translations">Translations</TabsTrigger>
-            <TabsTrigger value="page">
-              {draft.kind === "overlay" ? "PDF" : "Page & theme"}
-            </TabsTrigger>
-            {draft.kind === "designed" && <TabsTrigger value="css">CSS</TabsTrigger>}
-            <TabsTrigger value="tests">Tests</TabsTrigger>
-            <TabsTrigger value="reviews">Reviews</TabsTrigger>
-            <TabsTrigger value="versions">Versions</TabsTrigger>
+      <Tabs defaultValue="content" className="gap-4">
+        <div className="flex items-center gap-3">
+          {/* One row: scrolls sideways (fading at the edge) when the window is too narrow for every tab. */}
+          <TabsList
+            aria-label="Template sections"
+            className="max-w-full min-w-0 justify-start overflow-x-auto [scrollbar-width:none] *:data-[slot=tabs-trigger]:flex-none max-xl:pr-10 max-xl:[mask-image:linear-gradient(to_right,#000_calc(100%-2.5rem),transparent)]"
+          >
+            {tabs.map((tab) => {
+              const bad = tabIssues.get(tab.value);
+              return (
+                <TabsTrigger key={tab.value} value={tab.value}>
+                  {tab.label}
+                  {tab.count !== undefined && tab.count > 0 && (
+                    <span className="rounded-full bg-tint-2 px-1.5 text-[11px] tabular-nums">
+                      {tab.count}
+                    </span>
+                  )}
+                  {bad && (
+                    <span className="rounded-full bg-bad-wash px-1.5 text-[11px] text-bad tabular-nums">
+                      {bad}
+                      <span className="sr-only"> {bad === 1 ? "problem" : "problems"}</span>
+                    </span>
+                  )}
+                </TabsTrigger>
+              );
+            })}
           </TabsList>
-          {draft.kind === "overlay" ? (
-            <>
-              {/* Kept mounted: the PDF stays loaded and rendered across tab switches. */}
-              <TabsContent value="content" keepMounted>
-                <OverlayEditor
-                  content={draft.content}
-                  sections={draft.sections}
-                  editable={canEdit}
-                  onChange={(changes) =>
-                    setDraft((d) =>
-                      d.kind === "overlay"
-                        ? {
-                            ...d,
-                            content: changes.content ?? d.content,
-                            sections: changes.sections ?? d.sections,
-                          }
-                        : d,
-                    )
-                  }
-                />
-              </TabsContent>
-              <TabsContent value="page">
-                <OverlayPdfPanel
-                  description={draft.description}
-                  content={draft.content}
-                  editable={canEdit}
-                  onDescription={(description) => change({ description })}
-                  suggestDescription={suggestDescription}
-                  onContent={(content) =>
-                    setDraft((d) => (d.kind === "overlay" ? { ...d, content } : d))
-                  }
-                />
-              </TabsContent>
-            </>
-          ) : (
-            <>
-              {/* Editors stay mounted so their undo history and cursor survive tab switches. */}
-              <TabsContent value="content" keepMounted>
-                <BodyPanel
-                  content={draft.content}
-                  onChange={setContent}
-                  sections={draft.sections}
-                  editable={canEdit}
-                />
-              </TabsContent>
-              <TabsContent value="bands" keepMounted>
-                <BandsPanel
-                  content={draft.content}
-                  onChange={setContent}
-                  sections={draft.sections}
-                  editable={canEdit}
-                />
-              </TabsContent>
-              <TabsContent value="page">
-                <PagePanel
-                  draft={draft}
-                  onChange={changeDesigned}
-                  editable={canEdit}
-                  suggestDescription={suggestDescription}
-                />
-              </TabsContent>
-              <TabsContent value="css" keepMounted>
-                <CssPanel content={draft.content} onChange={setContent} editable={canEdit} />
-              </TabsContent>
-            </>
-          )}
-          <TabsContent value="fields">
-            <FieldDesigner
-              sections={draft.sections}
-              onChange={(sections) => change({ sections })}
-              disabled={!canEdit}
-            />
-          </TabsContent>
-          <TabsContent value="sample">
-            <SamplePanel
-              sections={draft.sections}
-              sampleData={draft.sampleData}
-              onChange={(sampleData) => change({ sampleData })}
-              editable={canEdit}
-            />
-          </TabsContent>
-          <TabsContent value="signing">
-            <SigningPanel
-              signers={draft.content.signers}
-              kind={draft.kind}
-              editable={canEdit}
-              onChange={(signers) =>
-                setDraft((d) =>
-                  d.kind === "overlay"
-                    ? { ...d, content: { ...d.content, signers } }
-                    : { ...d, content: { ...d.content, signers } },
-                )
-              }
-            />
-          </TabsContent>
-          <TabsContent value="output">
-            <OutputPanel
-              output={draft.content.output}
-              kind={draft.kind}
-              editable={canEdit}
-              onChange={(output) =>
-                setDraft((d) =>
-                  d.kind === "overlay"
-                    ? { ...d, content: { ...d.content, output } }
-                    : { ...d, content: { ...d.content, output } },
-                )
-              }
-            />
-          </TabsContent>
-          <TabsContent value="translations">
-            <TranslationsPanel
-              translations={draft.content.translations}
-              lang={draft.content.output.lang}
-              sections={draft.sections}
-              content={draft.content}
-              editable={canEdit}
-              onChange={(translations) =>
-                setDraft((d) =>
-                  d.kind === "overlay"
-                    ? { ...d, content: { ...d.content, translations } }
-                    : { ...d, content: { ...d.content, translations } },
-                )
-              }
-            />
-          </TabsContent>
-          <TabsContent value="tests">
-            <TestsPanel
-              id={template.id}
-              draftUpdatedAt={baseUpdatedAt}
-              canEdit={canEdit}
-              dirty={dirty}
-            />
-          </TabsContent>
-          <TabsContent value="reviews">
-            <ReviewsPanel templateId={template.id} canEdit={canEdit} dirty={dirty} />
-          </TabsContent>
-          <TabsContent value="versions">
-            <VersionsPanel
-              id={template.id}
-              canEdit={canEdit}
-              canPublish={can("publish")}
-              dirty={dirty}
-              previewing={previewing}
-              onPreview={setPreviewing}
-              onRestored={() => onReload()}
-            />
-          </TabsContent>
-        </Tabs>
+          <FaqLink
+            className="ml-auto shrink-0"
+            feature={draft.kind === "overlay" ? "PDF overlay templates" : "Designed templates"}
+          />
+        </div>
 
-        <section className="space-y-2 xl:sticky xl:top-28 xl:self-start">
-          {assistantAvailable && assistantOpen !== null && draft.kind === "designed" && (
-            <div hidden={!assistantOpen}>
-              <AssistantPanel
-                templateId={template.id}
-                draft={draft}
-                build={build}
-                onBuildSent={clearBuild}
-                onApply={(next, parts) => setDraft((d) => mergeApplied(d, next, parts))}
-                previewing={proposal?.id ?? null}
-                onPreview={setProposal}
-                onClose={() => {
-                  setAssistantOpen(false);
-                  setProposal(null);
-                }}
-              />
-            </div>
-          )}
-          <div className="flex flex-wrap items-center justify-between gap-2 text-sm text-muted-foreground">
-            <span>
-              {proposal
-                ? "Preview with the proposed change"
-                : previewing === null
-                  ? "Preview with sample data"
-                  : `Version ${previewing}`}
-              {preview.data &&
-                ` · ${preview.data.pageCount} ${preview.data.pageCount === 1 ? "page" : "pages"}`}
-            </span>
-            <span className="flex items-center gap-2">
-              {previewLanguages.length > 1 && (
-                <NativeSelect
-                  size="sm"
-                  aria-label="Preview language"
-                  value={previewLang ?? previewLanguages[0]}
-                  onChange={(e) => setPreviewLang(e.target.value)}
+        <div
+          className={
+            draft.kind === "overlay"
+              ? "grid gap-6 xl:grid-cols-[minmax(0,1.5fr)_minmax(0,0.6fr)]"
+              : "grid gap-6 xl:grid-cols-[minmax(0,1fr)_minmax(0,0.9fr)]"
+          }
+        >
+          <div className="min-w-0">
+            {draft.kind === "overlay" ? (
+              <>
+                {/* Kept mounted: the PDF stays loaded and rendered across tab switches. */}
+                <TabsContent value="content" keepMounted>
+                  <OverlayEditor
+                    content={draft.content}
+                    sections={draft.sections}
+                    editable={canEdit}
+                    onChange={(changes) =>
+                      setDraft((d) =>
+                        d.kind === "overlay"
+                          ? {
+                              ...d,
+                              content: changes.content ?? d.content,
+                              sections: changes.sections ?? d.sections,
+                            }
+                          : d,
+                      )
+                    }
+                  />
+                </TabsContent>
+                <TabsContent value="page">
+                  <OverlayPdfPanel
+                    description={draft.description}
+                    content={draft.content}
+                    editable={canEdit}
+                    onDescription={(description) => change({ description })}
+                    suggestDescription={suggestDescription}
+                    onContent={(content) =>
+                      setDraft((d) => (d.kind === "overlay" ? { ...d, content } : d))
+                    }
+                  />
+                </TabsContent>
+              </>
+            ) : (
+              <>
+                {/* Editors stay mounted so their undo history and cursor survive tab switches. */}
+                <TabsContent
+                  value="content"
+                  keepMounted
+                  className={draft.content.mode === "code" ? panel : undefined}
                 >
-                  {previewLanguages.map((lang) => (
-                    <NativeSelectOption key={lang} value={lang}>
-                      {lang}
-                    </NativeSelectOption>
-                  ))}
-                </NativeSelect>
-              )}
-              {preview.data && !preview.data.dataValid && previewing === null && (
-                <span className="text-amber-600">Sample data doesn't fit the fields</span>
-              )}
-              {preview.isFetching
-                ? "Rendering…"
-                : previewRequest
-                  ? "Up to date"
-                  : "Fix the problems to preview"}
-              {previewing !== null && (
-                <Button variant="outline" size="xs" onClick={() => setPreviewing(null)}>
-                  Back to draft
-                </Button>
-              )}
-            </span>
+                  <BodyPanel
+                    content={draft.content}
+                    onChange={setContent}
+                    sections={draft.sections}
+                    editable={canEdit}
+                  />
+                </TabsContent>
+                <TabsContent value="bands" keepMounted className={panel}>
+                  <BandsPanel
+                    content={draft.content}
+                    onChange={setContent}
+                    sections={draft.sections}
+                    editable={canEdit}
+                  />
+                </TabsContent>
+                <TabsContent value="page" className={panel}>
+                  <PagePanel
+                    draft={draft}
+                    onChange={changeDesigned}
+                    editable={canEdit}
+                    suggestDescription={suggestDescription}
+                  />
+                </TabsContent>
+                <TabsContent value="css" keepMounted className={panel}>
+                  <CssPanel content={draft.content} onChange={setContent} editable={canEdit} />
+                </TabsContent>
+              </>
+            )}
+            <TabsContent value="fields" className={panel}>
+              <FieldDesigner
+                sections={draft.sections}
+                onChange={(sections) => change({ sections })}
+                disabled={!canEdit}
+              />
+            </TabsContent>
+            <TabsContent value="sample" className={panel}>
+              <SamplePanel
+                sections={draft.sections}
+                sampleData={draft.sampleData}
+                onChange={(sampleData) => change({ sampleData })}
+                editable={canEdit}
+              />
+            </TabsContent>
+            <TabsContent value="signing" className={panel}>
+              <SigningPanel
+                signers={draft.content.signers}
+                kind={draft.kind}
+                editable={canEdit}
+                onChange={(signers) =>
+                  setDraft((d) =>
+                    d.kind === "overlay"
+                      ? { ...d, content: { ...d.content, signers } }
+                      : { ...d, content: { ...d.content, signers } },
+                  )
+                }
+              />
+            </TabsContent>
+            <TabsContent value="output" className={panel}>
+              <OutputPanel
+                output={draft.content.output}
+                kind={draft.kind}
+                editable={canEdit}
+                onChange={(output) =>
+                  setDraft((d) =>
+                    d.kind === "overlay"
+                      ? { ...d, content: { ...d.content, output } }
+                      : { ...d, content: { ...d.content, output } },
+                  )
+                }
+              />
+            </TabsContent>
+            <TabsContent value="translations" className={panel}>
+              <TranslationsPanel
+                translations={draft.content.translations}
+                lang={draft.content.output.lang}
+                sections={draft.sections}
+                content={draft.content}
+                editable={canEdit}
+                onChange={(translations) =>
+                  setDraft((d) =>
+                    d.kind === "overlay"
+                      ? { ...d, content: { ...d.content, translations } }
+                      : { ...d, content: { ...d.content, translations } },
+                  )
+                }
+              />
+            </TabsContent>
+            <TabsContent value="tests" className={panel}>
+              <TestsPanel
+                id={template.id}
+                draftUpdatedAt={baseUpdatedAt}
+                canEdit={canEdit}
+                dirty={dirty}
+              />
+            </TabsContent>
+            <TabsContent value="reviews" className={panel}>
+              <ReviewsPanel templateId={template.id} canEdit={canEdit} dirty={dirty} />
+            </TabsContent>
+            <TabsContent value="versions" className={panel}>
+              <VersionsPanel
+                id={template.id}
+                canEdit={canEdit}
+                canPublish={can("publish")}
+                dirty={dirty}
+                previewing={previewing}
+                onPreview={setPreviewing}
+                onRestored={() => onReload()}
+              />
+            </TabsContent>
           </div>
-          <ErrorAlert error={preview.error ?? version.error} />
-          {preview.data && preview.data.warnings.length > 0 && (
-            <Alert>
-              <WarningIcon />
-              <AlertTitle>Render warnings</AlertTitle>
-              <AlertDescription>
-                <ul className="list-disc pl-4">
-                  {preview.data.warnings.map((warning) => (
-                    <li key={warning}>{warning}</li>
-                  ))}
-                </ul>
-              </AlertDescription>
-            </Alert>
-          )}
-          {preview.data ? (
-            <PdfFrame pdf={preview.data.pdf} title="Template preview" className={previewHeight} />
-          ) : (
-            <div
-              className={`flex ${previewHeight} items-center justify-center rounded-lg border text-sm text-muted-foreground`}
-            >
-              {preview.error ? "The preview couldn't render." : "Rendering preview…"}
-            </div>
-          )}
-        </section>
-      </div>
+
+          <div className="min-w-0 space-y-3 xl:sticky xl:top-4 xl:self-start">
+            {assistantAvailable && assistantOpen !== null && draft.kind === "designed" && (
+              <div hidden={!assistantOpen}>
+                <AssistantPanel
+                  templateId={template.id}
+                  draft={draft}
+                  build={build}
+                  onBuildSent={clearBuild}
+                  onApply={(next, parts) => setDraft((d) => mergeApplied(d, next, parts))}
+                  previewing={proposal?.id ?? null}
+                  onPreview={setProposal}
+                  onClose={() => {
+                    setAssistantOpen(false);
+                    setProposal(null);
+                  }}
+                />
+              </div>
+            )}
+            <ErrorAlert error={preview.error ?? version.error} />
+            {preview.data && preview.data.warnings.length > 0 && (
+              <Alert className="bg-warn-wash *:[svg]:text-warn">
+                <WarningIcon />
+                <AlertTitle>Render warnings</AlertTitle>
+                <AlertDescription>
+                  <ul className="list-disc pl-4">
+                    {preview.data.warnings.map((warning) => (
+                      <li key={warning}>{warning}</li>
+                    ))}
+                  </ul>
+                </AlertDescription>
+              </Alert>
+            )}
+            {preview.data ? (
+              <PdfFrame
+                pdf={preview.data.pdf}
+                title="Template preview"
+                toolbar={previewToolbar}
+                className={previewHeight}
+              />
+            ) : (
+              <PdfTray toolbar={previewToolbar}>
+                <div className={cn("grid place-items-center text-sm text-white/80", previewHeight)}>
+                  {preview.error ? "The preview couldn't render." : "Rendering preview…"}
+                </div>
+              </PdfTray>
+            )}
+          </div>
+        </div>
+      </Tabs>
 
       {dialog === "publish" && (
         <PublishDialog

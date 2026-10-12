@@ -397,7 +397,7 @@ export const faq: readonly FaqEntry[] = [
     group: "Generations",
     what: "Every non-preview render is recorded: source, user, status, error, warnings, start time, duration, page count, size, the full input and the output PDF. Admins see everyone's entries and can filter by source, status, user, template and date range; everyone else sees their own under My generations.",
     howTo:
-      "Open Generations and narrow it down: search (file name, template name, error or request id, or paste a generation or batch id), status, source, template, batch, date range and minimum duration; admins also filter by user. Click a column heading to sort, pick extra columns (worker, attempts, queue wait, batch) under Columns, and choose 25 to 200 rows per page. The address bar holds all of it, so copy the URL to share or bookmark a view, and Back undoes the last change. Click a row to see its input, view or download the PDF, re-run it, or delete it. Export CSV downloads everything matching the filters; admins can bulk delete it too.",
+      "Open Generations and narrow it down: search (file name, template name, error or request id, or paste a generation or batch id), status, source, template, batch, date range and minimum duration (user, date range, batch, API key and minimum duration sit under More filters, which shows how many are set); admins also filter by user. Click a column heading to sort, pick extra columns (worker, attempts, queue wait, batch) under Columns, and choose 25 to 200 rows per page. The address bar holds all of it, so copy the URL to share or bookmark a view, and Back undoes the last change. Click a row to see its input, view or download the PDF, re-run it, or delete it. Export CSV downloads everything matching the filters; admins can bulk delete it too.",
     limitations: [
       "Inputs can hold personal data and are kept until someone deletes them or the retention setting removes them (Admin › System).",
       "Stored PDFs grow the database over time.",
@@ -671,7 +671,7 @@ export const faq: readonly FaqEntry[] = [
     group: "Templates",
     what: "Fill a PDF you already use (a government form, a carrier's bond) instead of rebuilding it. You upload the PDF, place boxes where the answers go, and bind each box to a template field with a Liquid expression. Generation writes the values onto the original pages, so the output looks exactly like the form. Fields, sample data, publishing, versions, batches and the generation log work as for designed templates.",
     howTo:
-      "Templates › New template › Kind: Fill an existing PDF, pick the file (up to 20 MB, 200 pages). On the Boxes tab, choose a box type in 'Draw', drag on the page, then set its value in the inspector: pick 'Bind to a field' or type a new label and 'Create field'. Click a box to move or resize it; arrow keys nudge it (Shift for 10 pt), Delete removes it, ⌘D duplicates it. The PDF tab has Flatten (no editable fields in the output) and 'Upload a new PDF' for a new revision of the form.",
+      "Templates › Upload PDF (or New template › Fill an existing PDF), pick the file (up to 20 MB, 200 pages). On the Boxes tab, choose a box type in 'Draw', drag on the page, then set its value in the inspector: pick 'Bind to a field' or type a new label and 'Create field'. Click a box to move or resize it; arrow keys nudge it (Shift for 10 pt), Delete removes it, ⌘D duplicates it. The PDF tab has Flatten (no editable fields in the output) and 'Upload a new PDF' for a new revision of the form.",
     limitations: [
       "Text never flows from one box to the next. Auto-shrink stops at the minimum size; past it the text is cut and the generation records a warning.",
       "A signature box draws an image unless it names a signer; then it's left blank for the e-sign provider (see Signing packages).",
@@ -812,7 +812,7 @@ export const faq: readonly FaqEntry[] = [
     group: "Documents",
     what: "After the last section, a review step lists every answer by section, leaving out questions that were hidden. Finishing checks everything again on the server, makes the PDF, and shows it with a download button. Every PDF is also recorded in the generation log.",
     howTo:
-      "On the review step, click Edit next to a section to change it, then Next back to the review. Click Finish and make PDF. On the finished document, Download PDF saves it; Regenerate makes it again with the same answers; Edit answers reopens it as a draft until you finish again.",
+      "On the review step, click Edit next to a section to change it, then Next back to the review. Click Finish and make PDF. On the finished document, Download PDF saves it; Edit answers reopens it as a draft until you finish again; the ⋯ menu has Regenerate PDF (same answers), Duplicate, Reuse answers in another template and Delete.",
     limitations: [
       "Reopening and finishing again makes a new PDF; the previous one stays only in the generation log.",
       "Deleting a document keeps its PDFs in the generation log.",

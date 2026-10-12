@@ -178,7 +178,7 @@ export function SignedLinkDialog({
               value={mint.data.url}
               onFocus={(e) => e.target.select()}
             />
-            <p className="text-sm text-muted-foreground">
+            <p className="text-sm text-ink-3">
               Expires {dayjs(mint.data.expiresAt).format("YYYY-MM-DD HH:mm")} (
               {dayjs(mint.data.expiresAt).fromNow()}).
             </p>

@@ -1,8 +1,19 @@
 import { type SigningPackage, signingKindLabels } from "@necodoc/shared";
-import { DownloadSimpleIcon } from "@phosphor-icons/react";
+import { DownloadSimpleIcon, EyeIcon, EyeSlashIcon, WarningIcon } from "@phosphor-icons/react";
 import { useState } from "react";
+import { PdfTray } from "@/components/pdf-frame";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Badge } from "@/components/ui/badge";
 import { Button, buttonVariants } from "@/components/ui/button";
+import { Card, CardAction, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import { generationPdfUrl } from "@/lib/api";
 import { PageCanvas, usePdfDocument } from "../templates/-overlay-pages";
 
@@ -13,7 +24,8 @@ import { PageCanvas, usePdfDocument } from "../templates/-overlay-pages";
 const packageUrl = (id: string) =>
   `/api/generations/${id}/signing-package?formats=docusign&formats=dropbox_sign&formats=adobe_sign`;
 
-const COLOURS = ["#d97706", "#2563eb", "#16a34a", "#db2777", "#7c3aed", "#0891b2"];
+/** One categorical series colour per signer (index.css), so a box's colour says whose it is. */
+const SERIES = 8;
 
 export function SigningSection({
   generationId,
@@ -26,21 +38,33 @@ export function SigningSection({
 }) {
   const [showing, setShowing] = useState(false);
   const colour = (signerId: string) =>
-    COLOURS[
-      Math.max(
+    `var(--series-${
+      (Math.max(
         0,
         signing.signers.findIndex((s) => s.id === signerId),
-      ) % COLOURS.length
-    ];
+      ) %
+        SERIES) +
+      1
+    })`;
   return (
-    <section className="space-y-3">
-      <div className="flex flex-wrap items-center gap-2">
-        <h2 className="font-medium">Signing package</h2>
-        <span className="text-sm text-muted-foreground">
-          {signing.signers.length} signers · {signing.boxes.length} boxes
-          {signing.anchors ? " · anchors in the PDF" : ""}
-        </span>
-        <div className="ml-auto flex gap-2">
+    <Card className="pb-0">
+      <CardHeader>
+        <CardTitle>Signing package</CardTitle>
+        <CardDescription>
+          {plural(signing.signers.length, "signer")} ·{" "}
+          {plural(signing.boxes.length, "sign box", "sign boxes")}
+          {signing.anchors ? " · anchor text in the PDF" : ""}
+        </CardDescription>
+        <CardAction className="flex flex-wrap gap-2">
+          <Button
+            variant="secondary"
+            size="sm"
+            aria-expanded={showing}
+            onClick={() => setShowing(!showing)}
+          >
+            {showing ? <EyeSlashIcon /> : <EyeIcon />}
+            {showing ? "Hide boxes" : "Show boxes on the PDF"}
+          </Button>
           <a
             href={packageUrl(generationId)}
             download={`${filename.replace(/\.pdf$/i, "")}.signing.json`}
@@ -57,59 +81,79 @@ export function SigningSection({
             <DownloadSimpleIcon />
             PDF
           </a>
-          <Button variant="outline" size="sm" onClick={() => setShowing(!showing)}>
-            {showing ? "Hide boxes" : "Show boxes on the PDF"}
-          </Button>
-        </div>
-      </div>
+        </CardAction>
+      </CardHeader>
       {signing.warnings.length > 0 && (
-        <Alert>
-          <AlertDescription>
-            <ul className="list-disc pl-5">
-              {signing.warnings.map((w) => (
-                <li key={w}>{w}</li>
-              ))}
-            </ul>
-          </AlertDescription>
-        </Alert>
+        <div className="px-5">
+          <Alert>
+            <WarningIcon className="text-warn" />
+            <AlertDescription>
+              <ul className="list-disc pl-5">
+                {signing.warnings.map((w) => (
+                  <li key={w}>{w}</li>
+                ))}
+              </ul>
+            </AlertDescription>
+          </Alert>
+        </div>
       )}
-      <table className="w-full text-sm">
-        <thead className="text-left text-xs text-muted-foreground">
-          <tr>
-            <th className="py-1 font-normal">Order</th>
-            <th className="font-normal">Role</th>
-            <th className="font-normal">Name</th>
-            <th className="font-normal">Email</th>
-            <th className="font-normal">Boxes</th>
-          </tr>
-        </thead>
-        <tbody>
-          {signing.signers.map((s) => (
-            <tr key={s.id} className="border-t">
-              <td className="py-1">{s.routingOrder}</td>
-              <td>
-                <span
-                  className="mr-1.5 inline-block size-2.5 rounded-full"
-                  style={{ background: colour(s.id) }}
-                />
-                {s.role} <span className="font-mono text-xs text-muted-foreground">{s.id}</span>
-              </td>
-              <td>{s.name || "—"}</td>
-              <td>{s.email || "—"}</td>
-              <td>
-                {signing.boxes
-                  .filter((b) => b.signerId === s.id)
-                  .map((b) => `${signingKindLabels[b.kind]} p${b.page}`)
-                  .join(", ") || "—"}
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-      {showing && <BoxesOnPages generationId={generationId} signing={signing} colour={colour} />}
-    </section>
+      <Table>
+        <TableHeader>
+          <TableRow>
+            <TableHead className="w-16 pl-5">Order</TableHead>
+            <TableHead>Role</TableHead>
+            <TableHead>Name</TableHead>
+            <TableHead>Email</TableHead>
+            <TableHead className="pr-5">Sign boxes</TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {signing.signers.map((s) => {
+            const boxes = signing.boxes.filter((b) => b.signerId === s.id);
+            return (
+              <TableRow key={s.id}>
+                <TableCell className="pl-5 tabular-nums">{s.routingOrder}</TableCell>
+                <TableCell>
+                  <span className="flex items-center gap-2">
+                    <span
+                      aria-hidden
+                      className="size-2.5 shrink-0 rounded-full"
+                      style={{ background: colour(s.id) }}
+                    />
+                    <span className="font-semibold">{s.role}</span>
+                    <span className="font-mono text-xs text-ink-3">{s.id}</span>
+                  </span>
+                </TableCell>
+                <TableCell>{s.name || "—"}</TableCell>
+                <TableCell>{s.email || "—"}</TableCell>
+                <TableCell className="pr-5">
+                  {boxes.length ? (
+                    <span className="flex flex-wrap gap-1">
+                      {boxes.map((b) => (
+                        <Badge key={b.id} variant="secondary">
+                          {signingKindLabels[b.kind]} · p{b.page}
+                        </Badge>
+                      ))}
+                    </span>
+                  ) : (
+                    <span className="text-ink-3">—</span>
+                  )}
+                </TableCell>
+              </TableRow>
+            );
+          })}
+        </TableBody>
+      </Table>
+      {showing && (
+        <div className="border-t border-hair p-5">
+          <BoxesOnPages generationId={generationId} signing={signing} colour={colour} />
+        </div>
+      )}
+    </Card>
   );
 }
+
+const plural = (n: number, one: string, many = `${one}s`) => `${n} ${n === 1 ? one : many}`;
 
 const SCALE = 1;
 
@@ -121,18 +165,18 @@ function BoxesOnPages({
 }: {
   generationId: string;
   signing: SigningPackage;
-  colour: (signerId: string) => string | undefined;
+  colour: (signerId: string) => string;
 }) {
   const { doc, error } = usePdfDocument(generationPdfUrl(generationId));
-  if (error) return <p className="text-sm text-destructive">{error}</p>;
-  if (!doc) return <p className="text-sm text-muted-foreground">Loading the PDF…</p>;
+  if (error) return <p className="text-sm text-bad">{error}</p>;
+  if (!doc) return <p className="text-sm text-ink-3">Loading the PDF…</p>;
   const role = (id: string) => signing.signers.find((s) => s.id === id)?.role ?? id;
   return (
-    <div className="flex flex-wrap gap-4 overflow-x-auto rounded-lg bg-muted p-4">
+    <PdfTray wellClassName="flex flex-wrap justify-center gap-4 overflow-x-auto p-4">
       {signing.pages.map((_, i) => {
         const page = i + 1;
         return (
-          <figure key={page} className="relative shadow">
+          <figure key={page} className="relative bg-white shadow-float">
             <PageCanvas doc={doc} page={page} scale={SCALE} />
             {signing.boxes
               .filter((b) => b.page === page)
@@ -148,7 +192,7 @@ function BoxesOnPages({
                     height: b.topLeft.height * SCALE,
                     borderColor: colour(b.signerId),
                     color: colour(b.signerId),
-                    background: `${colour(b.signerId)}22`,
+                    background: `color-mix(in srgb, ${colour(b.signerId)} 13%, transparent)`,
                   }}
                 >
                   <span className="absolute -top-3 left-0 whitespace-nowrap">
@@ -156,12 +200,12 @@ function BoxesOnPages({
                   </span>
                 </div>
               ))}
-            <figcaption className="absolute right-1 bottom-1 text-xs text-muted-foreground">
+            <figcaption className="absolute right-1 bottom-1 font-mono text-xs text-black/50">
               {page}
             </figcaption>
           </figure>
         );
       })}
-    </div>
+    </PdfTray>
   );
 }

@@ -4,7 +4,7 @@ import {
   type TestResult,
   testAssertionsSchema,
 } from "@necodoc/shared";
-import { CheckCircleIcon, XCircleIcon } from "@phosphor-icons/react";
+import { CheckCircleIcon, FlaskIcon, PlayIcon, PlusIcon, XCircleIcon } from "@phosphor-icons/react";
 import { queryOptions, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import type { InferResponseType } from "hono/client";
 import { useState } from "react";
@@ -12,6 +12,7 @@ import { toast } from "sonner";
 import { z } from "zod";
 import { ConfirmDialog } from "@/components/confirm-dialog";
 import { ErrorAlert } from "@/components/form";
+import { EmptyState, ListSkeleton } from "@/components/page";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -61,12 +62,12 @@ export function TestResults({ results }: { results: readonly TestResult[] }) {
   return (
     <ul className="space-y-2">
       {results.map((r) => (
-        <li key={r.caseId} className="rounded-lg border p-2 text-sm">
+        <li key={r.caseId} className="rounded-lg bg-tint px-3 py-2 text-sm">
           <div className="flex items-center gap-2">
             {r.passed ? (
-              <CheckCircleIcon className="size-4 text-emerald-600" aria-label="Passed" />
+              <CheckCircleIcon className="size-4 text-ok" aria-label="Passed" />
             ) : (
-              <XCircleIcon className="size-4 text-destructive" aria-label="Failed" />
+              <XCircleIcon className="size-4 text-bad" aria-label="Failed" />
             )}
             <span className="font-medium">{r.name}</span>
             <span className="ml-auto text-xs text-muted-foreground">
@@ -78,10 +79,7 @@ export function TestResults({ results }: { results: readonly TestResult[] }) {
             {r.checks
               .filter((check) => !r.passed || check.label !== "Renders without error")
               .map((check) => (
-                <li
-                  key={check.label}
-                  className={check.passed ? "text-muted-foreground" : "text-destructive"}
-                >
+                <li key={check.label} className={check.passed ? "text-ink-3" : "text-bad"}>
                   {check.passed ? "✓" : "✗"} {check.label}
                   {check.detail && `: ${check.detail}`}
                 </li>
@@ -100,16 +98,26 @@ export function TestRun({ id, draftUpdatedAt }: { id: string; draftUpdatedAt: st
   return (
     <div className="space-y-2">
       <div className="flex items-center gap-2 text-sm">
-        <span role="status" className="text-muted-foreground">
-          {run.isFetching
-            ? "Running tests…"
-            : summary
-              ? `${summary.passed} of ${summary.total} passing`
-              : run.data
-                ? "No test cases yet."
-                : ""}
+        <span role="status" className="text-ink-3">
+          {run.isFetching ? (
+            "Running tests…"
+          ) : summary ? (
+            <Badge dot variant={summary.allPassed ? "ok" : "bad"}>
+              {summary.passed} of {summary.total} passing
+            </Badge>
+          ) : run.data ? (
+            "No test cases to run."
+          ) : (
+            ""
+          )}
         </span>
-        <Button variant="outline" size="xs" disabled={run.isFetching} onClick={() => run.refetch()}>
+        <Button
+          variant="secondary"
+          size="sm"
+          disabled={run.isFetching}
+          onClick={() => run.refetch()}
+        >
+          <PlayIcon />
           Run tests
         </Button>
       </div>
@@ -168,25 +176,34 @@ export function TestsPanel({
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap items-center gap-2">
-        <p className="mr-auto text-sm text-muted-foreground">
+        <p className="mr-auto text-sm text-ink-2">
           Named data the saved draft is checked with before review and publish.
           {dirty && " Save to test your latest changes."}
         </p>
         {canEdit && (
-          <Button size="sm" onClick={() => setEditing("new")}>
+          <Button variant="outline" size="sm" onClick={() => setEditing("new")}>
+            <PlusIcon weight="bold" />
             New test case
           </Button>
         )}
       </div>
       <ErrorAlert error={cases.error} />
+      {cases.isPending && <ListSkeleton rows={2} />}
+      {cases.data?.length === 0 && (
+        <EmptyState
+          icon={FlaskIcon}
+          title="No test cases yet"
+          description="Save a data set with checks (page count, text it must or mustn't contain) to catch a template change that breaks a document."
+        />
+      )}
       {cases.data?.map((c) => (
-        <div key={c.id} className="flex flex-wrap items-start gap-2 rounded-lg border p-3 text-sm">
+        <div key={c.id} className="flex flex-wrap items-start gap-2 rounded-xl bg-tint p-3 text-sm">
           <div className="min-w-0 flex-1 space-y-1">
             <div className="flex items-center gap-2">
               <span className="font-medium">{c.name}</span>
-              <Badge variant="outline">{sourceLabels[c.source]}</Badge>
+              <Badge variant="secondary">{sourceLabels[c.source]}</Badge>
             </div>
-            <p className="text-xs text-muted-foreground">
+            <p className="text-xs text-ink-3">
               {assertionsText(testAssertionsSchema.parse(c.assertions)) || "renders"} · updated{" "}
               {dayjs(c.updatedAt).fromNow()}
             </p>
@@ -196,19 +213,14 @@ export function TestsPanel({
               <Button variant="outline" size="sm" onClick={() => setEditing(c)}>
                 Edit
               </Button>
-              <Button
-                variant="ghost"
-                size="sm"
-                className="text-destructive"
-                onClick={() => setDeleting(c)}
-              >
+              <Button variant="destructive" size="sm" onClick={() => setDeleting(c)}>
                 Delete…
               </Button>
             </div>
           )}
         </div>
       ))}
-      <TestRun id={id} draftUpdatedAt={draftUpdatedAt} />
+      {!!cases.data?.length && <TestRun id={id} draftUpdatedAt={draftUpdatedAt} />}
       {editing && (
         <TestCaseDialog
           id={id}

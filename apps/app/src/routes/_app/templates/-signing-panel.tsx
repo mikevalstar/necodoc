@@ -29,7 +29,7 @@ export function SigningPanel({
     onChange(signers.map((s, j) => (j === i ? { ...s, ...changes } : s)));
   return (
     <fieldset disabled={!editable} className="space-y-4">
-      <p className="text-sm text-muted-foreground">
+      <p className="max-w-prose text-sm text-ink-2">
         Every generation lists these signers and where their boxes landed, with JSON for DocuSign,
         Dropbox Sign or Adobe Sign (on the generation&apos;s page and through the API). necodoc
         doesn&apos;t collect signatures itself.{" "}
@@ -41,7 +41,7 @@ export function SigningPanel({
         <FieldGroup
           // biome-ignore lint/suspicious/noArrayIndexKey: ids are edited in place; keys must hold
           key={i}
-          className="grid grid-cols-[1fr_1fr_6rem_auto] gap-2 rounded-md border p-3"
+          className="grid grid-cols-[1fr_1fr_6rem_auto] gap-2 rounded-xl bg-tint p-3"
         >
           <Field>
             <FieldLabel htmlFor={`signer-${i}-role`}>Role</FieldLabel>

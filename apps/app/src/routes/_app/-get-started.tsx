@@ -186,7 +186,10 @@ export function GetStarted({ me }: { me: Me }) {
                 strokeDasharray={`${(doneCount / steps.length) * circumference} ${circumference}`}
               />
             </svg>
-            <span className="absolute inset-0 grid place-items-center font-heading text-[34px] leading-none font-extrabold">
+            <span
+              aria-hidden="true"
+              className="absolute inset-0 grid place-items-center font-heading text-[34px] leading-none font-extrabold tabular-nums"
+            >
               <span>
                 {doneCount}
                 <small className="text-base text-ink-3">/{steps.length}</small>

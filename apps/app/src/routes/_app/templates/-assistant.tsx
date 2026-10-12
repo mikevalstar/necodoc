@@ -189,12 +189,14 @@ export function AssistantPanel({
   return (
     <section
       aria-label="AI assistant"
-      className="flex h-[min(46svh,32rem)] flex-col rounded-lg border bg-background"
+      className="flex h-[min(46svh,32rem)] flex-col overflow-hidden rounded-xl bg-card shadow-card"
     >
-      <header className="flex items-center gap-2 border-b px-3 py-2 text-sm">
-        <SparkleIcon className="size-4" />
-        <span className="font-medium">Assistant</span>
-        <span className="truncate text-xs text-muted-foreground">
+      <header className="flex items-center gap-2 border-b border-hair px-3 py-2 text-sm">
+        <span className="grid size-7 shrink-0 place-items-center rounded-lg bg-brand-wash text-brand-ink">
+          <SparkleIcon className="size-4" />
+        </span>
+        <span className="font-heading font-bold">Assistant</span>
+        <span className="truncate text-xs text-ink-3">
           The draft and this chat go to Anthropic (Claude). Review every change.
         </span>
         <Button
@@ -209,7 +211,7 @@ export function AssistantPanel({
       </header>
       <div className="flex-1 space-y-3 overflow-y-auto p-3 text-sm">
         {chat.messages.length === 0 && (
-          <p className="text-muted-foreground">
+          <p className="text-ink-3">
             Describe the document, or ask for a change: "add a co-principal and show the second
             signature block only when there is one". Proposals show here for you to apply or reject;
             nothing changes until you do, and nothing is saved until you save.
@@ -220,7 +222,7 @@ export function AssistantPanel({
             <div
               className={
                 message.role === "user"
-                  ? "max-w-[85%] rounded-lg bg-muted px-3 py-2 whitespace-pre-wrap"
+                  ? "max-w-[85%] rounded-xl rounded-br-sm bg-brand-wash px-3 py-2 whitespace-pre-wrap text-ink"
                   : "space-y-2"
               }
             >
@@ -237,14 +239,14 @@ export function AssistantPanel({
                 const tool = getToolName(part);
                 if (part.state === "input-streaming") {
                   return (
-                    <p key={key} className="text-muted-foreground">
+                    <p key={key} className="text-ink-3">
                       Writing a proposal…
                     </p>
                   );
                 }
                 if (part.state === "output-error") {
                   return (
-                    <p key={key} className="text-xs text-muted-foreground">
+                    <p key={key} className="text-xs text-ink-3">
                       The assistant made an invalid proposal and was told why: {part.errorText}
                     </p>
                   );
@@ -256,10 +258,10 @@ export function AssistantPanel({
                   if (!output) return null;
                   return (
                     <div key={key} className="flex items-start gap-2 text-xs">
-                      <Badge variant={output.status === "applied" ? "secondary" : "outline"}>
+                      <Badge variant={output.status === "applied" ? "ok" : "secondary"}>
                         {output.status === "applied" ? "Applied" : "Rejected"}
                       </Badge>
-                      <span className="text-muted-foreground">
+                      <span className="text-ink-3">
                         {toolLabels[call.tool]}: {call.input.summary}
                         {output.status === "rejected" && output.note?.startsWith("Couldn't")
                           ? ` (${output.note})`
@@ -306,14 +308,14 @@ export function AssistantPanel({
           </Button>
         )}
         {autoApply && busy && (
-          <p className="text-muted-foreground">Applying the assistant's changes as they arrive…</p>
+          <p className="text-ink-3">Applying the assistant's changes as they arrive…</p>
         )}
-        {chat.status === "submitted" && <p className="text-muted-foreground">Thinking…</p>}
+        {chat.status === "submitted" && <p className="text-ink-3">Thinking…</p>}
         <ErrorAlert error={chat.error ?? null} />
         <div ref={bottom} />
       </div>
       <form
-        className="flex items-end gap-2 border-t p-2"
+        className="flex items-end gap-2 border-t border-hair p-2"
         onSubmit={(e) => {
           e.preventDefault();
           send();
@@ -396,15 +398,15 @@ function Proposal({
     [applied, snippets],
   );
   return (
-    <div className="space-y-2 rounded-lg border p-3">
+    <div className="space-y-2 rounded-xl bg-tint p-3">
       <div className="flex items-start gap-2">
-        <Badge variant="outline">{toolLabels[call.tool]}</Badge>
+        <Badge>{toolLabels[call.tool]}</Badge>
         <span className="font-medium">{call.input.summary}</span>
       </div>
       {!applied ? (
-        <p className="text-destructive">Fix the draft's problems before applying changes.</p>
+        <p className="text-bad">Fix the draft's problems before applying changes.</p>
       ) : !applied.ok ? (
-        <p className="text-destructive">Can't apply: {applied.error}</p>
+        <p className="text-bad">Can't apply: {applied.error}</p>
       ) : (
         <>
           {draft && (
@@ -415,7 +417,7 @@ function Proposal({
             />
           )}
           {problems.length > 0 && (
-            <ul className="list-disc pl-4 text-xs text-amber-700 dark:text-amber-300">
+            <ul className="list-disc pl-4 text-xs text-warn">
               {problems.map((message) => (
                 <li key={message}>{message}</li>
               ))}

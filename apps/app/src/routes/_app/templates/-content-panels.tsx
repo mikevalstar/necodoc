@@ -44,7 +44,8 @@ export function BodyPanel({ content, onChange, sections, editable }: Props) {
       sections={sections}
       signers={content.signers}
       editable={editable}
-      className="min-h-[60svh]"
+      // A card of its own on the canvas (the shared default is a bordered box).
+      className="min-h-[60svh] rounded-xl border-0 bg-card shadow-card"
     />
   );
 }
@@ -86,7 +87,7 @@ function HeightInput({
 /** Header and footer: each its own document at a fixed height, with an optional page-1 variant. */
 export function BandsPanel({ content, onChange, sections, editable }: Props) {
   return (
-    <div className="space-y-8">
+    <div className="divide-y divide-hair *:py-6 *:first:pt-0 *:last:pb-0">
       {(["header", "footer"] as const).map((name) => {
         const label = name === "header" ? "Header" : "Footer";
         if (content.mode === "code") {
@@ -188,6 +189,7 @@ export function BandsPanel({ content, onChange, sections, editable }: Props) {
                   sections={sections}
                   band
                   editable={editable}
+                  className="bg-card"
                   placeholder={`${label} content, e.g. a logo, a title or page numbers…`}
                 />
                 <Field orientation="horizontal">
@@ -210,6 +212,7 @@ export function BandsPanel({ content, onChange, sections, editable }: Props) {
                       sections={sections}
                       band
                       editable={editable}
+                      className="bg-card"
                       placeholder={`First page ${name}…`}
                     />
                   </>

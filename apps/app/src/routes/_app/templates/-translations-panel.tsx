@@ -9,6 +9,7 @@ import {
 } from "@necodoc/shared";
 import { PlusIcon, TrashIcon } from "@phosphor-icons/react";
 import { useState } from "react";
+import { ConfirmDialog } from "@/components/confirm-dialog";
 import { Button } from "@/components/ui/button";
 import { Field, FieldDescription, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
@@ -36,6 +37,8 @@ export function TranslationsPanel({
   const languages = Object.keys(translations);
   const [selected, setSelected] = useState(languages[0] ?? null);
   const [adding, setAdding] = useState("");
+  /** A language whose table waits for the remove to be confirmed. */
+  const [removing, setRemoving] = useState<string | null>(null);
   const current = selected && Object.hasOwn(translations, selected) ? selected : languages[0];
   const table = current ? (translations[current] ?? {}) : {};
   const strings = translatableStrings(sections, contentTexts(content));
@@ -58,7 +61,7 @@ export function TranslationsPanel({
 
   return (
     <fieldset disabled={!editable} className="space-y-4">
-      <p className="text-sm text-muted-foreground">
+      <p className="max-w-prose text-sm text-ink-2">
         Write the template in its own language ({lang}, set on the Output tab) and translate it
         here. The person filling picks a language, or an API call sets{" "}
         <code className="font-mono">output.lang</code>; anything untranslated prints as written.{" "}
@@ -76,7 +79,9 @@ export function TranslationsPanel({
           <Button
             key={language}
             size="sm"
-            variant={language === current ? "default" : "outline"}
+            className="font-mono"
+            variant={language === current ? "secondary" : "ghost"}
+            aria-pressed={language === current}
             onClick={() => setSelected(language)}
           >
             {language}
@@ -111,7 +116,7 @@ export function TranslationsPanel({
       {current ? (
         <div className="space-y-3">
           <div className="flex flex-wrap items-center justify-between gap-2 text-sm">
-            <span className="text-muted-foreground">
+            <span className="text-ink-3">
               {done} of {strings.length} translated
               {textDirection(current) === "rtl" && " · right to left"}
             </span>
@@ -132,26 +137,18 @@ export function TranslationsPanel({
                   Remove {unused.length} unused
                 </Button>
               )}
-              <Button
-                size="xs"
-                variant="outline"
-                className="text-destructive"
-                onClick={() => {
-                  const { [current]: _removed, ...rest } = translations;
-                  onChange(rest);
-                }}
-              >
+              <Button size="xs" variant="destructive" onClick={() => setRemoving(current)}>
                 <TrashIcon />
-                Remove {current}
+                Remove {current}…
               </Button>
             </span>
           </div>
           {strings.length === 0 && (
             <FieldDescription>Nothing to translate yet: add fields or text.</FieldDescription>
           )}
-          <div className="space-y-2">
+          <div className="divide-y divide-hair">
             {strings.map((source) => (
-              <div key={source} className="grid gap-2 sm:grid-cols-2">
+              <div key={source} className="grid items-center gap-2 py-2 sm:grid-cols-2">
                 <span className="text-sm break-words">{source}</span>
                 <Input
                   aria-label={`${source} in ${current}`}
@@ -166,6 +163,19 @@ export function TranslationsPanel({
         </div>
       ) : (
         <FieldDescription>No translations yet. Add a language to start.</FieldDescription>
+      )}
+      {removing && (
+        <ConfirmDialog
+          title={`Remove ${removing}?`}
+          description={`Its ${Object.keys(translations[removing] ?? {}).length} translated strings go with it. Nothing is saved until you save.`}
+          confirmLabel={`Remove ${removing}`}
+          onConfirm={() => {
+            const { [removing]: _removed, ...rest } = translations;
+            onChange(rest);
+            setRemoving(null);
+          }}
+          onClose={() => setRemoving(null)}
+        />
       )}
     </fieldset>
   );

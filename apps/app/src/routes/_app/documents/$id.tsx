@@ -4,22 +4,48 @@ import {
   translateSections,
   type UpdateSubmission,
 } from "@necodoc/shared";
-import { DownloadSimpleIcon, SpinnerGapIcon } from "@phosphor-icons/react";
+import {
+  ArrowClockwiseIcon,
+  ArrowSquareOutIcon,
+  CheckCircleIcon,
+  CircleIcon,
+  CloudWarningIcon,
+  CopyIcon,
+  DotsThreeIcon,
+  DownloadSimpleIcon,
+  FileDashedIcon,
+  FileMagnifyingGlassIcon,
+  PencilSimpleIcon,
+  SpinnerGapIcon,
+  SwapIcon,
+  TrashIcon,
+  WarningCircleIcon,
+} from "@phosphor-icons/react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import { ErrorAlert } from "@/components/form";
 import { AnswerSummary, GuidedForm } from "@/components/guided-form";
 import { LanguagePicker } from "@/components/language-picker";
-import { BackLink, ListSkeleton, Page } from "@/components/page";
-import { PdfFrame } from "@/components/pdf-frame";
-import { Badge } from "@/components/ui/badge";
+import { BackLink, EmptyState, Page, PageHeader } from "@/components/page";
+import { PdfFrame, PdfTray } from "@/components/pdf-frame";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button, buttonVariants } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
-import { api, ok, submissionPdfUrl } from "@/lib/api";
+import { Skeleton } from "@/components/ui/skeleton";
+import { ApiError, api, ok, submissionPdfUrl } from "@/lib/api";
 import { dayjs } from "@/lib/date";
 import { submissionQuery } from "@/lib/queries";
+import { cn } from "@/lib/utils";
 import { DeleteDocumentDialog, DocumentStatusBadge, useStartDocument } from "./-document-actions";
 
 // Spec: docs/features/filling-out-a-document.md. A draft opens as the interview (autosaved, back
@@ -30,6 +56,8 @@ export const Route = createFileRoute("/_app/documents/$id")({
 });
 
 type Doc = Awaited<ReturnType<NonNullable<ReturnType<typeof submissionQuery>["queryFn"]>>>;
+
+const isNotFound = (error: Error | null) => error instanceof ApiError && error.status === 404;
 
 const rendering = (doc: Doc | undefined) =>
   doc?.status === "finished" &&
@@ -42,6 +70,8 @@ function DocumentPage() {
     ...submissionQuery(id),
     // Poll while the PDF is being made.
     refetchInterval: (query) => (rendering(query.state.data) ? 1500 : false),
+    // A deleted document or an old link: say so at once instead of retrying.
+    retry: (failures, error) => !isNotFound(error) && failures < 3,
   });
   const [editing, setEditing] = useState(false);
   const [deleting, setDeleting] = useState(false);
@@ -50,8 +80,38 @@ function DocumentPage() {
   return (
     <Page width="narrow">
       <BackLink to="/">My documents</BackLink>
-      <ErrorAlert error={doc.error} />
-      {doc.isPending && <ListSkeleton rows={4} />}
+      {doc.isPending && (
+        <div role="status" aria-busy="true" aria-label="Loading" className="space-y-4">
+          <Skeleton className="h-10 w-2/3" />
+          <Skeleton className="h-5 w-1/2" />
+          <Skeleton className="h-96 w-full rounded-xl" />
+        </div>
+      )}
+      {doc.error &&
+        (isNotFound(doc.error) ? (
+          <EmptyState
+            icon={FileMagnifyingGlassIcon}
+            title="Document not found"
+            description="It may have been deleted, or the link is old."
+            action={
+              <Button nativeButton={false} render={<Link to="/" />}>
+                Back to my documents
+              </Button>
+            }
+          />
+        ) : (
+          <EmptyState
+            icon={CloudWarningIcon}
+            title="This document couldn't load"
+            description={doc.error.message}
+            action={
+              <Button onClick={() => doc.refetch()}>
+                <ArrowClockwiseIcon />
+                Try again
+              </Button>
+            }
+          />
+        ))}
       {data &&
         (data.status === "draft" || editing ? (
           <Interview key={data.id} doc={data} onFinished={() => setEditing(false)} />
@@ -141,17 +201,23 @@ function useAutosave(id: string, savedAt: string) {
 }
 
 function SaveIndicator({ state }: { state: SaveState }) {
-  const text = {
-    saved: `Saved ${dayjs(state.at).fromNow()}`,
-    pending: "Unsaved changes",
-    saving: "Saving…",
-    error: "Couldn't save; retrying with your next change",
+  const [icon, text] = {
+    saved: [<CheckCircleIcon key="i" />, `Saved ${dayjs(state.at).fromNow()}`],
+    pending: [<CircleIcon key="i" weight="bold" className="size-3" />, "Unsaved changes"],
+    saving: [<SpinnerGapIcon key="i" weight="bold" className="animate-spin" />, "Saving…"],
+    error: [<WarningCircleIcon key="i" />, "Couldn't save; retrying with your next change"],
   }[state.status];
   return (
     <span
       role="status"
-      className={state.status === "error" ? "text-destructive" : "text-muted-foreground"}
+      className={cn(
+        "inline-flex items-center gap-1.5 [&_svg:not([class*='size-'])]:size-4",
+        state.status === "error" ? "font-semibold text-bad" : "text-ink-3",
+      )}
     >
+      <span aria-hidden className="contents">
+        {icon}
+      </span>
       {text}
     </span>
   );
@@ -186,51 +252,57 @@ function Interview({ doc, onFinished }: { doc: Doc; onFinished: () => void }) {
 
   return (
     <div className="space-y-6">
-      <div className="space-y-2">
-        <Input
-          aria-label="Document name"
-          defaultValue={doc.name}
-          className="h-auto border-transparent px-0 text-2xl font-semibold shadow-none hover:border-input focus-visible:px-2 md:text-2xl"
-          onBlur={(e) => {
-            const name = e.target.value.trim();
-            if (name && name !== doc.name) autosave.queue({ name });
-          }}
-        />
-        <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm">
-          <span className="text-muted-foreground">
-            {doc.templateName} · version {doc.version}
-          </span>
-          <Badge variant="outline">Draft</Badge>
-          <SaveIndicator state={autosave.state} />
-          <LanguagePicker
-            lang={doc.lang}
-            translations={doc.translations}
-            value={language.lang}
-            onChange={(lang) => {
-              language.setLang(lang);
-              // Null: the template's own language, so it follows the template.
-              autosave.queue({ locale: lang === doc.lang ? null : lang });
+      <header className="space-y-2">
+        <h1>
+          <Input
+            aria-label="Document name"
+            defaultValue={doc.name}
+            className="-mx-2 h-auto w-[calc(100%+1rem)] border-transparent bg-transparent px-2 py-0.5 font-heading text-[28px] leading-tight font-bold tracking-[-0.025em] hover:bg-tint focus-visible:border-input focus-visible:bg-surface sm:text-[34px] md:text-[34px]"
+            onBlur={(e) => {
+              const name = e.target.value.trim();
+              if (name && name !== doc.name) autosave.queue({ name });
             }}
           />
+        </h1>
+        <div className="flex flex-wrap items-center gap-x-3 gap-y-2 text-sm">
+          <DocumentStatusBadge status="draft" generationStatus={null} />
+          <span className="text-ink-2">
+            {doc.templateName} · version {doc.version}
+          </span>
+          <SaveIndicator state={autosave.state} />
+          <span className="ms-auto">
+            <LanguagePicker
+              lang={doc.lang}
+              translations={doc.translations}
+              value={language.lang}
+              onChange={(lang) => {
+                language.setLang(lang);
+                // Null: the template's own language, so it follows the template.
+                autosave.queue({ locale: lang === doc.lang ? null : lang });
+              }}
+            />
+          </span>
         </div>
-        {doc.description && <p className="text-sm text-muted-foreground">{doc.description}</p>}
-      </div>
-      <div dir={language.dir} lang={language.lang}>
-        <GuidedForm
-          sections={language.sections}
-          defaultValues={doc.data}
-          initialStep={doc.step}
-          review
-          submitLabel={finish.isPending ? "Finishing…" : "Finish and make PDF"}
-          disabled={finish.isPending}
-          onChange={(next) => {
-            values.current = next;
-            autosave.queue({ data: next });
-          }}
-          onStepChange={(step) => autosave.queue({ step })}
-          onSubmit={() => finish.mutate()}
-        />
-      </div>
+        {doc.description && <p className="max-w-prose text-[15px] text-ink-2">{doc.description}</p>}
+      </header>
+      <Card>
+        <CardContent dir={language.dir} lang={language.lang} className="sm:px-7 sm:py-2">
+          <GuidedForm
+            sections={language.sections}
+            defaultValues={doc.data}
+            initialStep={doc.step}
+            review
+            submitLabel={finish.isPending ? "Making your PDF…" : "Finish and make PDF"}
+            disabled={finish.isPending}
+            onChange={(next) => {
+              values.current = next;
+              autosave.queue({ data: next });
+            }}
+            onStepChange={(step) => autosave.queue({ step })}
+            onSubmit={() => finish.mutate()}
+          />
+        </CardContent>
+      </Card>
       <ErrorAlert error={finish.error} />
     </div>
   );
@@ -256,85 +328,156 @@ function Finished({
   });
   const pdfUrl = submissionPdfUrl(doc.id);
   const language = useDocLanguage(doc);
+  const busy = regenerate.isPending || rendering(doc);
+  const pages =
+    doc.pageCount === null ? null : `${doc.pageCount} ${doc.pageCount === 1 ? "page" : "pages"}`;
 
   return (
     <div className="space-y-6">
-      <div className="space-y-2">
-        <h1 className="text-2xl font-semibold tracking-tight break-words">{doc.name}</h1>
-        <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-muted-foreground">
-          <span>
+      <PageHeader
+        title={doc.name}
+        description={
+          <>
             {doc.templateName} · version {doc.version}
-          </span>
-          <DocumentStatusBadge status={doc.status} generationStatus={doc.generationStatus} />
-          {doc.finishedAt && <span>Finished {dayjs(doc.finishedAt).fromNow()}</span>}
-          {doc.source === "share_link" && (
-            <span>
-              Through share link {doc.shareLinkLabel ? `“${doc.shareLinkLabel}”` : "(deleted)"}
-              {doc.respondentEmail && ` by ${doc.respondentEmail}`}
-            </span>
-          )}
-        </div>
-      </div>
-
-      <div className="flex flex-wrap gap-2">
-        {doc.generationStatus === "success" && (
-          <a
-            href={`${pdfUrl}?download=1`}
-            download
-            className={buttonVariants({ variant: "default" })}
-          >
-            <DownloadSimpleIcon />
-            Download PDF
-          </a>
-        )}
-        <Button variant="outline" onClick={onEdit}>
-          Edit answers
-        </Button>
-        <Button
-          variant="outline"
-          disabled={regenerate.isPending || rendering(doc)}
-          onClick={() => regenerate.mutate()}
-        >
-          Regenerate
-        </Button>
-        <Button
-          variant="outline"
-          disabled={start.isPending}
-          onClick={() => start.mutate({ templateId: doc.templateId, fromSubmissionId: doc.id })}
-        >
-          Duplicate
-        </Button>
-        <Button variant="outline" className="text-destructive" onClick={onDelete}>
-          Delete
-        </Button>
-      </div>
+            {doc.finishedAt && ` · finished ${dayjs(doc.finishedAt).fromNow()}`}
+            {doc.source === "share_link" && (
+              <>
+                {" · "}through share link{" "}
+                {doc.shareLinkLabel ? `“${doc.shareLinkLabel}”` : "(deleted)"}
+                {doc.respondentEmail && ` by ${doc.respondentEmail}`}
+              </>
+            )}
+          </>
+        }
+        actions={
+          <>
+            <DropdownMenu>
+              <DropdownMenuTrigger
+                render={<Button variant="outline" size="icon" aria-label="More actions" />}
+              >
+                <DotsThreeIcon weight="bold" />
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="start" className="w-72">
+                <DropdownMenuItem disabled={busy} onClick={() => regenerate.mutate()}>
+                  <ArrowClockwiseIcon />
+                  Regenerate PDF
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  disabled={start.isPending}
+                  onClick={() =>
+                    start.mutate({ templateId: doc.templateId, fromSubmissionId: doc.id })
+                  }
+                >
+                  <CopyIcon />
+                  Duplicate
+                </DropdownMenuItem>
+                <DropdownMenuItem render={<Link to="/documents/new" search={{ from: doc.id }} />}>
+                  <SwapIcon />
+                  Reuse answers in another template
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem variant="destructive" onClick={onDelete}>
+                  <TrashIcon />
+                  Delete
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+            <Button variant="outline" onClick={onEdit}>
+              <PencilSimpleIcon />
+              Edit answers
+            </Button>
+            {doc.generationStatus === "success" && (
+              <a href={`${pdfUrl}?download=1`} download className={buttonVariants()}>
+                <DownloadSimpleIcon />
+                Download PDF
+              </a>
+            )}
+          </>
+        }
+      >
+        <DocumentStatusBadge status={doc.status} generationStatus={doc.generationStatus} />
+      </PageHeader>
       <ErrorAlert error={regenerate.error ?? start.error} />
 
       {rendering(doc) && (
-        <p className="flex items-center gap-2 text-sm text-muted-foreground">
-          <SpinnerGapIcon className="size-4 animate-spin" />
-          Making your PDF…
-        </p>
+        <PdfTray
+          toolbar={
+            <span className="inline-flex items-center gap-2 font-semibold">
+              <SpinnerGapIcon weight="bold" className="size-4 animate-spin" />
+              Making your PDF…
+            </span>
+          }
+        >
+          <div className="grid h-80 place-items-center text-sm text-white/80">
+            This usually takes a few seconds.
+          </div>
+        </PdfTray>
       )}
       {doc.generationStatus === "error" && (
-        <ErrorAlert error={new Error(doc.generationError ?? "The PDF couldn't be made")} />
+        <Alert variant="destructive">
+          <WarningCircleIcon />
+          <AlertTitle>The PDF couldn't be made</AlertTitle>
+          <AlertDescription>
+            <p>{doc.generationError ?? "Something went wrong while making it."}</p>
+            <Button
+              variant="outline"
+              size="sm"
+              className="mt-2"
+              disabled={busy}
+              onClick={() => regenerate.mutate()}
+            >
+              <ArrowClockwiseIcon />
+              Try again
+            </Button>
+          </AlertDescription>
+        </Alert>
       )}
       {doc.generationStatus === null && (
-        <p className="text-sm text-muted-foreground">
-          This document's PDF was deleted from the generation log. Regenerate to make it again.
-        </p>
+        <EmptyState
+          icon={FileDashedIcon}
+          title="This document's PDF was deleted"
+          description="It was removed from the generation log. Your answers are kept, so you can make it again."
+          action={
+            <Button disabled={busy} onClick={() => regenerate.mutate()}>
+              <ArrowClockwiseIcon />
+              Make the PDF again
+            </Button>
+          }
+        />
       )}
       {doc.generationStatus === "success" && (
         // The generation id busts the iframe's cache after a regenerate.
-        <PdfFrame pdf={`${pdfUrl}?g=${doc.generationId}`} title={doc.name} />
+        <PdfFrame
+          pdf={`${pdfUrl}?g=${doc.generationId}`}
+          title={doc.name}
+          toolbar={
+            <>
+              <span className="font-semibold">PDF</span>
+              {pages && <span className="text-white/80">{pages}</span>}
+              <a
+                href={pdfUrl}
+                target="_blank"
+                rel="noreferrer"
+                className="ms-auto inline-flex items-center gap-1.5 rounded-md font-semibold hover:underline"
+              >
+                <ArrowSquareOutIcon className="size-4" />
+                Open in a new tab
+              </a>
+            </>
+          }
+        />
       )}
 
-      <section className="space-y-2">
-        <h2 className="text-lg font-semibold">Answers</h2>
-        <div dir={language.dir} lang={language.lang}>
+      <Card>
+        <CardHeader>
+          <CardTitle>
+            <h2>Answers</h2>
+          </CardTitle>
+        </CardHeader>
+        <CardContent dir={language.dir} lang={language.lang}>
           <AnswerSummary sections={language.sections} values={doc.data} />
-        </div>
-      </section>
+        </CardContent>
+      </Card>
     </div>
   );
 }

@@ -4,7 +4,15 @@ import {
   generationSourceSchema,
   generationStatusSchema,
 } from "@necodoc/shared";
-import { DotsThreeIcon, DownloadSimpleIcon } from "@phosphor-icons/react";
+import {
+  DotsThreeIcon,
+  DownloadSimpleIcon,
+  FunnelSimpleIcon,
+  MagnifyingGlassIcon,
+  TrashIcon,
+  WarningCircleIcon,
+  XIcon,
+} from "@phosphor-icons/react";
 import {
   keepPreviousData,
   queryOptions,
@@ -24,7 +32,6 @@ import {
   type DataTableFeatures,
   DebouncedInput,
   dataTableSearchSchema,
-  FilterSelect,
 } from "@/components/data-table";
 import { ErrorAlert } from "@/components/form";
 import { FaqLink, Page, PageHeader } from "@/components/page";
@@ -38,6 +45,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { Badge } from "@/components/ui/badge";
 import { Button, buttonVariants } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -46,13 +54,13 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Field, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
+import { NativeSelect, NativeSelectOption } from "@/components/ui/native-select";
 import { api, generationPdfUrl, ok } from "@/lib/api";
 import { authClient, unwrap } from "@/lib/auth";
 import { dayjs } from "@/lib/date";
 import { batchesQuery, templatesQuery } from "@/lib/queries";
-import { formatBytes } from "@/lib/utils";
+import { cn, formatBytes } from "@/lib/utils";
 import {
   DeleteGenerationDialog,
   formatMs,
@@ -156,7 +164,7 @@ const allColumns = column.columns([
       <Link
         to="/generations/$id"
         params={{ id: row.original.id }}
-        className="font-medium tabular-nums hover:underline"
+        className="font-mono text-[13px] whitespace-nowrap hover:underline"
       >
         {dayjs(row.original.queuedAt).format("YYYY-MM-DD HH:mm:ss")}
       </Link>
@@ -179,7 +187,7 @@ const allColumns = column.columns([
       <>
         <StatusBadge status={original.status} />
         {original.warnings.length > 0 && (
-          <div className="text-xs text-muted-foreground">
+          <div className="mt-0.5 text-xs text-ink-3">
             {original.warnings.length} warning{original.warnings.length > 1 && "s"}
           </div>
         )}
@@ -208,8 +216,20 @@ const allColumns = column.columns([
   }),
   column.accessor("filename", {
     header: "File",
-    cell: ({ getValue }) => <span title={getValue()}>{getValue()}</span>,
-    meta: { className: "max-w-56 truncate" },
+    cell: ({ row: { original } }) => (
+      <>
+        <div className="truncate font-semibold" title={original.filename}>
+          {original.filename}
+        </div>
+        {original.error && (
+          <div className="flex items-center gap-1 text-xs text-bad" title={original.error}>
+            <WarningCircleIcon weight="bold" className="size-3.5 shrink-0" />
+            <span className="truncate">{original.error}</span>
+          </div>
+        )}
+      </>
+    ),
+    meta: { className: "max-w-56" },
   }),
   column.accessor("pageCount", {
     header: "Pages",
@@ -241,7 +261,7 @@ const allColumns = column.columns([
   }),
   column.accessor("workerId", {
     header: "Worker",
-    cell: ({ getValue }) => <span className="font-mono text-xs">{getValue() ?? "—"}</span>,
+    cell: ({ getValue }) => <span className="font-mono text-[13px]">{getValue() ?? "—"}</span>,
     meta: { hiddenByDefault: true },
   }),
   column.accessor("attempts", {
@@ -268,7 +288,9 @@ const ownColumns = allColumns.filter(
 
 function Timestamp({ value }: { value: string | null }) {
   return (
-    <span className="tabular-nums">{value ? dayjs(value).format("YYYY-MM-DD HH:mm:ss") : "—"}</span>
+    <span className="font-mono text-[13px] whitespace-nowrap">
+      {value ? dayjs(value).format("YYYY-MM-DD HH:mm:ss") : "—"}
+    </span>
   );
 }
 
@@ -301,6 +323,16 @@ function Generations() {
   const setFilter = (next: Partial<GenerationsSearch>) => setSearch({ ...next, page: 1 });
   const hasFilter = Object.values(toFilter(search)).some((value) => value !== undefined);
   const total = generations.data?.total ?? 0;
+  /** The less-used filters sit behind "More filters", open whenever one is set. */
+  const moreCount = [
+    search.userId,
+    search.from,
+    search.to,
+    search.batchId,
+    search.apiKeyId,
+    search.slowerThan,
+  ].filter((value) => value !== undefined).length;
+  const [moreOpen, setMoreOpen] = useState(moreCount > 0);
 
   return (
     <Page>
@@ -312,12 +344,12 @@ function Generations() {
             <FaqLink feature="Generation log" />
             {isAdmin && (
               <Button
-                variant="outline"
-                className="text-destructive"
+                variant="destructive"
                 disabled={!hasFilter || total === 0}
                 title={hasFilter ? undefined : "Pick at least one filter first"}
                 onClick={() => setDialog({ kind: "bulk" })}
               >
+                <TrashIcon />
                 Delete matching…
               </Button>
             )}
@@ -417,19 +449,24 @@ function Generations() {
         )}
         toolbar={
           <>
-            <Field className="w-auto">
-              <FieldLabel htmlFor="q">Search</FieldLabel>
+            <div className="relative">
+              <MagnifyingGlassIcon
+                aria-hidden
+                className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-ink-3"
+              />
               <DebouncedInput
-                id="q"
                 type="search"
-                className="w-56"
-                placeholder="File, template, error, id…"
+                aria-label="Search generations"
+                className={cn("w-48 pl-9", search.q && active)}
+                placeholder="File, error or ID…"
+                title="File name, template name, error, or a generation, batch or request ID"
                 value={search.q ?? ""}
                 onCommit={(q) => setFilter({ q: q.trim() || undefined })}
               />
-            </Field>
-            <FilterSelect
+            </div>
+            <Filter
               label="Status"
+              any="Any status"
               value={search.status}
               options={generationStatusSchema.options.map((value) => ({
                 value,
@@ -439,8 +476,9 @@ function Generations() {
                 setFilter({ status: generationStatusSchema.safeParse(value).data })
               }
             />
-            <FilterSelect
+            <Filter
               label="Source"
+              any="Any source"
               value={search.source}
               options={generationSourceSchema.options.map((value) => ({
                 value,
@@ -450,19 +488,9 @@ function Generations() {
                 setFilter({ source: generationSourceSchema.safeParse(value).data })
               }
             />
-            {isAdmin && (
-              <FilterSelect
-                label="User"
-                value={search.userId}
-                options={(users.data?.users ?? []).map((user) => ({
-                  value: user.id,
-                  label: user.name,
-                }))}
-                onChange={(value) => setFilter({ userId: value || undefined })}
-              />
-            )}
-            <FilterSelect
+            <Filter
               label="Template"
+              any="Any template"
               value={search.templateId}
               options={(templates.data ?? []).map((template) => ({
                 value: template.id,
@@ -470,62 +498,21 @@ function Generations() {
               }))}
               onChange={(value) => setFilter({ templateId: z.uuid().safeParse(value).data })}
             />
-            <FilterSelect
-              label="Batch"
-              value={search.batchId}
-              options={(batches.data ?? []).map((batch) => ({
-                value: batch.id,
-                label: `${batch.templateName} · ${dayjs(batch.createdAt).format("YYYY-MM-DD HH:mm")}`,
-              }))}
-              onChange={(value) => setFilter({ batchId: z.uuid().safeParse(value).data })}
-            />
-            <FilterSelect
-              label="API key"
-              value={search.apiKeyId}
-              options={(keys.data ?? []).map((key) => ({
-                value: key.id,
-                label: isAdmin ? `${key.name} (${key.ownerName})` : (key.name ?? key.id),
-              }))}
-              onChange={(value) => setFilter({ apiKeyId: value || undefined })}
-            />
-            <Field className="w-auto">
-              <FieldLabel htmlFor="from">From</FieldLabel>
-              <Input
-                id="from"
-                type="date"
-                value={search.from ?? ""}
-                onChange={(e) => setFilter({ from: e.target.value || undefined })}
-              />
-            </Field>
-            <Field className="w-auto">
-              <FieldLabel htmlFor="to">To</FieldLabel>
-              <Input
-                id="to"
-                type="date"
-                value={search.to ?? ""}
-                onChange={(e) => setFilter({ to: e.target.value || undefined })}
-              />
-            </Field>
-            <Field className="w-auto">
-              <FieldLabel htmlFor="slowerThan">Slower than (s)</FieldLabel>
-              <DebouncedInput
-                id="slowerThan"
-                type="number"
-                min={0}
-                step="any"
-                className="w-28"
-                placeholder="Any"
-                value={search.slowerThan === undefined ? "" : String(search.slowerThan)}
-                onCommit={(value) =>
-                  setFilter({
-                    slowerThan: z
-                      .number()
-                      .min(0)
-                      .safeParse(Number(value) || undefined).data,
-                  })
-                }
-              />
-            </Field>
+            <Button
+              variant="outline"
+              aria-expanded={moreOpen}
+              aria-controls="more-filters"
+              onClick={() => setMoreOpen(!moreOpen)}
+            >
+              <FunnelSimpleIcon />
+              More filters
+              {moreCount > 0 && (
+                <Badge variant="secondary" className="tabular-nums">
+                  {moreCount}
+                  <span className="sr-only"> set</span>
+                </Badge>
+              )}
+            </Button>
             {hasFilter && (
               <Button
                 variant="ghost"
@@ -540,8 +527,84 @@ function Generations() {
                   })
                 }
               >
-                Clear filters
+                <XIcon weight="bold" />
+                Clear
               </Button>
+            )}
+            {moreOpen && (
+              // order-last puts this row under the density and Columns controls.
+              <div id="more-filters" className="order-last flex basis-full flex-wrap gap-3">
+                {isAdmin && (
+                  <Filter
+                    label="User"
+                    any="Any user"
+                    value={search.userId}
+                    options={(users.data?.users ?? []).map((user) => ({
+                      value: user.id,
+                      label: user.name,
+                    }))}
+                    onChange={(value) => setFilter({ userId: value || undefined })}
+                  />
+                )}
+                {/* biome-ignore lint/a11y/useSemanticElements: a fieldset can't be a flex row in every browser */}
+                <div role="group" aria-label="Queued between" className="flex items-center gap-1.5">
+                  <span className="text-[13px] text-ink-3">Queued</span>
+                  <Input
+                    type="date"
+                    aria-label="Queued from"
+                    title="Queued from"
+                    className={cn("w-36", search.from && active)}
+                    value={search.from ?? ""}
+                    onChange={(e) => setFilter({ from: e.target.value || undefined })}
+                  />
+                  <span className="text-[13px] text-ink-3">to</span>
+                  <Input
+                    type="date"
+                    aria-label="Queued to"
+                    title="Queued to"
+                    className={cn("w-36", search.to && active)}
+                    value={search.to ?? ""}
+                    onChange={(e) => setFilter({ to: e.target.value || undefined })}
+                  />
+                </div>
+                <Filter
+                  label="Batch"
+                  any="Any batch"
+                  value={search.batchId}
+                  options={(batches.data ?? []).map((batch) => ({
+                    value: batch.id,
+                    label: `${batch.templateName} · ${dayjs(batch.createdAt).format("YYYY-MM-DD HH:mm")}`,
+                  }))}
+                  onChange={(value) => setFilter({ batchId: z.uuid().safeParse(value).data })}
+                />
+                <Filter
+                  label="API key"
+                  any="Any API key"
+                  value={search.apiKeyId}
+                  options={(keys.data ?? []).map((key) => ({
+                    value: key.id,
+                    label: isAdmin ? `${key.name} (${key.ownerName})` : (key.name ?? key.id),
+                  }))}
+                  onChange={(value) => setFilter({ apiKeyId: value || undefined })}
+                />
+                <DebouncedInput
+                  type="number"
+                  aria-label="Slower than, in seconds"
+                  min={0}
+                  step="any"
+                  className={cn("w-40", search.slowerThan !== undefined && active)}
+                  placeholder="Slower than (s)"
+                  value={search.slowerThan === undefined ? "" : String(search.slowerThan)}
+                  onCommit={(value) =>
+                    setFilter({
+                      slowerThan: z
+                        .number()
+                        .min(0)
+                        .safeParse(Number(value) || undefined).data,
+                    })
+                  }
+                />
+              </div>
             )}
           </>
         }
@@ -567,6 +630,50 @@ function Generations() {
         />
       )}
     </Page>
+  );
+}
+
+/** Marks a filter that's on, like the mockup's chips. */
+const active = "border-transparent bg-sun-wash text-sun-ink";
+
+/** A compact toolbar select: the "Any" option names the filter, so there's no visible label. */
+function Filter({
+  label,
+  any,
+  value,
+  options,
+  onChange,
+}: {
+  label: string;
+  any: string;
+  value: string | undefined;
+  options: { value: string; label: string }[];
+  onChange: (value: string) => void;
+}) {
+  return (
+    <NativeSelect
+      aria-label={label}
+      title={label}
+      className={cn(
+        "max-w-40",
+        value && "[&_select]:border-transparent [&_select]:bg-sun-wash [&_select]:text-sun-ink",
+      )}
+      value={value ?? ""}
+      onChange={(e) => onChange(e.target.value)}
+    >
+      <NativeSelectOption value="">{any}</NativeSelectOption>
+      {/* A link (or a deleted entry) can set an id that isn't listed; don't show it as "Any". */}
+      {value && !options.some((option) => option.value === value) && (
+        <NativeSelectOption value={value}>
+          {label} {value.slice(0, 8)}
+        </NativeSelectOption>
+      )}
+      {options.map((option) => (
+        <NativeSelectOption key={option.value} value={option.value}>
+          {option.label}
+        </NativeSelectOption>
+      ))}
+    </NativeSelect>
   );
 }
 
