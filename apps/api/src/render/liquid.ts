@@ -4,7 +4,7 @@ import { dirname } from "node:path";
 import { ASSET_ORIGIN, type Strings, translate } from "@necodoc/shared";
 import bwipjs from "bwip-js/node";
 import dayjs from "dayjs";
-import localizedFormat from "dayjs/plugin/localizedFormat";
+import localizedFormat from "dayjs/plugin/localizedFormat.js";
 import { type FS, Liquid } from "liquidjs";
 
 // ADR 0015: one Liquid engine for templates, bands and API HTML. Escapes output by default
