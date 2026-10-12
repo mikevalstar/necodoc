@@ -8,11 +8,13 @@ import {
 } from "@necodoc/shared";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { MoreHorizontalIcon, TypeIcon, UploadIcon } from "lucide-react";
+import { ImageIcon, MoreHorizontalIcon, TypeIcon, UploadIcon } from "lucide-react";
 import { useRef, useState } from "react";
+import { toast } from "sonner";
 import { z } from "zod";
 import { CopyButton } from "@/components/copy-button";
 import { ErrorAlert, useAppForm } from "@/components/form";
+import { EmptyState, FaqLink, ListSkeleton, Page, PageHeader } from "@/components/page";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -54,7 +56,7 @@ import {
 import { api, assetFileUrl, ok } from "@/lib/api";
 import { dayjs } from "@/lib/date";
 import { assetsQuery } from "@/lib/queries";
-import { cn, formatBytes } from "@/lib/utils";
+import { cn, formatBytes, plural } from "@/lib/utils";
 
 // Spec: docs/features/assets.md
 const searchSchema = z.object({
@@ -81,14 +83,12 @@ function Assets() {
   const close = () => setDialog(null);
 
   return (
-    <main className="mx-auto max-w-6xl space-y-4 p-4 py-8">
-      <div className="space-y-1">
-        <h1 className="text-2xl font-semibold">Assets</h1>
-        <p className="text-sm text-muted-foreground">
-          Images and fonts for themes and documents. Rendered pages can't load anything from the
-          internet, so logos and fonts live here.
-        </p>
-      </div>
+    <Page>
+      <PageHeader
+        title="Assets"
+        description="Images and fonts for themes and documents. Rendered pages can't load anything from the internet, so logos and fonts live here."
+        actions={<FaqLink feature="Assets" />}
+      />
 
       {canUpload && <UploadZone />}
 
@@ -127,107 +127,127 @@ function Assets() {
 
       <ErrorAlert error={assets.error} />
 
-      <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead className="w-16">
-              <span className="sr-only">Preview</span>
-            </TableHead>
-            <TableHead>Name</TableHead>
-            <TableHead className="hidden sm:table-cell">Type</TableHead>
-            <TableHead className="hidden sm:table-cell">Size</TableHead>
-            <TableHead className="hidden md:table-cell">Uploaded</TableHead>
-            <TableHead className="w-0">
-              <span className="sr-only">Actions</span>
-            </TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {assets.data?.map((asset) => (
-            <TableRow key={asset.id}>
-              <TableCell>
-                {asset.kind === "image" ? (
-                  <img
-                    src={assetFileUrl(asset.id)}
-                    alt=""
-                    loading="lazy"
-                    className="size-12 rounded border bg-[repeating-conic-gradient(#0000000d_0_25%,transparent_0_50%)] bg-size-[12px_12px] object-contain"
-                  />
-                ) : (
-                  <div className="flex size-12 items-center justify-center rounded border text-muted-foreground">
-                    <TypeIcon />
+      {assets.isPending ? (
+        <ListSkeleton />
+      ) : assets.data?.length === 0 && !search.q && !search.kind ? (
+        <EmptyState
+          icon={ImageIcon}
+          title="No assets yet"
+          description={
+            canUpload
+              ? "Upload a logo or a font above, then copy its reference into a template, theme or API render."
+              : "Logos and fonts appear here once an editor uploads them."
+          }
+        />
+      ) : (
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead className="w-16">
+                <span className="sr-only">Preview</span>
+              </TableHead>
+              <TableHead>Name</TableHead>
+              <TableHead className="hidden sm:table-cell">Type</TableHead>
+              <TableHead className="hidden sm:table-cell">Size</TableHead>
+              <TableHead className="hidden md:table-cell">Uploaded</TableHead>
+              <TableHead className="w-0">
+                <span className="sr-only">Actions</span>
+              </TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {assets.data?.map((asset) => (
+              <TableRow key={asset.id}>
+                <TableCell>
+                  {asset.kind === "image" ? (
+                    <img
+                      src={assetFileUrl(asset.id)}
+                      alt=""
+                      loading="lazy"
+                      className="size-12 rounded border bg-[repeating-conic-gradient(#0000000d_0_25%,transparent_0_50%)] bg-size-[12px_12px] object-contain"
+                    />
+                  ) : (
+                    <div className="flex size-12 items-center justify-center rounded border text-muted-foreground">
+                      <TypeIcon />
+                    </div>
+                  )}
+                </TableCell>
+                <TableCell className="font-medium">
+                  <span className="break-all">{asset.name}</span>
+                  <div className="text-xs font-normal text-muted-foreground sm:hidden">
+                    {asset.mimeType} · {formatBytes(asset.size)}
                   </div>
-                )}
-              </TableCell>
-              <TableCell className="font-medium">
-                <span className="break-all">{asset.name}</span>
-                <div className="text-xs font-normal text-muted-foreground sm:hidden">
-                  {asset.mimeType} · {formatBytes(asset.size)}
-                </div>
-              </TableCell>
-              <TableCell className="hidden sm:table-cell">{asset.mimeType}</TableCell>
-              <TableCell className="hidden sm:table-cell">{formatBytes(asset.size)}</TableCell>
-              <TableCell className="hidden md:table-cell">
-                {dayjs(asset.createdAt).format("YYYY-MM-DD")}
-                <div className="text-xs text-muted-foreground">{asset.uploaderName ?? "—"}</div>
-              </TableCell>
-              <TableCell>
-                <div className="flex items-center gap-1">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setDialog({ kind: "use", asset })}
-                  >
-                    Copy reference
-                  </Button>
-                  <DropdownMenu>
-                    <DropdownMenuTrigger
-                      render={<Button variant="ghost" size="icon-sm" aria-label="Actions" />}
+                </TableCell>
+                <TableCell className="hidden sm:table-cell">{asset.mimeType}</TableCell>
+                <TableCell className="hidden sm:table-cell">{formatBytes(asset.size)}</TableCell>
+                <TableCell className="hidden md:table-cell">
+                  {dayjs(asset.createdAt).format("YYYY-MM-DD")}
+                  <div className="text-xs text-muted-foreground">{asset.uploaderName ?? "—"}</div>
+                </TableCell>
+                <TableCell>
+                  <div className="flex items-center gap-1">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setDialog({ kind: "use", asset })}
                     >
-                      <MoreHorizontalIcon />
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end">
-                      <DropdownMenuItem
+                      Copy reference
+                    </Button>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger
                         render={
-                          <a href={assetFileUrl(asset.id)} target="_blank" rel="noreferrer" />
+                          <Button
+                            variant="ghost"
+                            size="icon-sm"
+                            aria-label={`Actions for ${asset.name}`}
+                          />
                         }
                       >
-                        Open file
-                      </DropdownMenuItem>
-                      {canEdit && (
-                        <>
-                          <DropdownMenuItem onClick={() => setDialog({ kind: "rename", asset })}>
-                            Rename
-                          </DropdownMenuItem>
-                          <DropdownMenuSeparator />
-                          <DropdownMenuItem
-                            variant="destructive"
-                            onClick={() => setDialog({ kind: "delete", asset })}
-                          >
-                            Delete
-                          </DropdownMenuItem>
-                        </>
-                      )}
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-                </div>
-              </TableCell>
-            </TableRow>
-          ))}
-          {assets.data?.length === 0 && (
-            <TableRow>
-              <TableCell colSpan={6} className="text-center text-muted-foreground">
-                No assets found.
-              </TableCell>
-            </TableRow>
-          )}
-        </TableBody>
-      </Table>
+                        <MoreHorizontalIcon />
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuItem
+                          render={
+                            <a href={assetFileUrl(asset.id)} target="_blank" rel="noreferrer" />
+                          }
+                        >
+                          Open file
+                        </DropdownMenuItem>
+                        {canEdit && (
+                          <>
+                            <DropdownMenuItem onClick={() => setDialog({ kind: "rename", asset })}>
+                              Rename
+                            </DropdownMenuItem>
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem
+                              variant="destructive"
+                              onClick={() => setDialog({ kind: "delete", asset })}
+                            >
+                              Delete
+                            </DropdownMenuItem>
+                          </>
+                        )}
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </div>
+                </TableCell>
+              </TableRow>
+            ))}
+            {assets.data?.length === 0 && (
+              <TableRow>
+                <TableCell colSpan={6} className="py-8 text-center text-muted-foreground">
+                  No assets match.
+                </TableCell>
+              </TableRow>
+            )}
+          </TableBody>
+        </Table>
+      )}
 
       {dialog?.kind === "use" && <UseAssetDialog asset={dialog.asset} onClose={close} />}
       {dialog?.kind === "rename" && <RenameAssetDialog asset={dialog.asset} onClose={close} />}
       {dialog?.kind === "delete" && <DeleteAssetDialog asset={dialog.asset} onClose={close} />}
-    </main>
+    </Page>
   );
 }
 
@@ -243,6 +263,7 @@ function UploadZone() {
       for (const file of files) await ok(api.assets.$post({ form: { file } }));
       return files.length;
     },
+    onSuccess: (count) => toast.success(`Uploaded ${plural(count, "file")}`),
     onSettled: () => queryClient.invalidateQueries({ queryKey: ["assets"] }),
   });
   const send = (files: FileList | null) => {
@@ -288,11 +309,6 @@ function UploadZone() {
         }}
       />
       <ErrorAlert error={upload.error} />
-      {upload.isSuccess && (
-        <p role="status" className="text-sm text-muted-foreground">
-          Uploaded {upload.data} {upload.data === 1 ? "file" : "files"}.
-        </p>
-      )}
     </div>
   );
 }
@@ -342,12 +358,17 @@ function UseAssetDialog({ asset, onClose }: { asset: Asset; onClose: () => void 
   );
 }
 
-function useAssetMutation<T>(mutationFn: (value: T) => Promise<unknown>, onDone: () => void) {
+function useAssetMutation<T>(
+  mutationFn: (value: T) => Promise<unknown>,
+  onDone: () => void,
+  done: string,
+) {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn,
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: ["assets"] });
+      toast.success(done);
       onDone();
     },
   });
@@ -358,6 +379,7 @@ function RenameAssetDialog({ asset, onClose }: { asset: Asset; onClose: () => vo
     (json: z.infer<typeof renameAssetSchema>) =>
       ok(api.assets[":id"].$patch({ param: { id: asset.id }, json })),
     onClose,
+    "Renamed",
   );
   const form = useAppForm({
     defaultValues: { name: asset.name },
@@ -400,6 +422,7 @@ function DeleteAssetDialog({ asset, onClose }: { asset: Asset; onClose: () => vo
   const remove = useAssetMutation<void>(
     () => ok(api.assets[":id"].$delete({ param: { id: asset.id } })),
     onClose,
+    `Deleted ${asset.name}`,
   );
   return (
     <AlertDialog open onOpenChange={(open) => !open && onClose()}>

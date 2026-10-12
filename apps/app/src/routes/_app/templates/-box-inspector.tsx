@@ -50,6 +50,8 @@ const retype = (box: OverlayBox, type: OverlayBoxType) =>
     ...("style" in box ? { style: box.style } : {}),
   });
 
+const rectLabels = { x: "X", y: "Y", width: "Width", height: "Height" } as const;
+
 const num = (value: string, fallback: number) => {
   const n = Number(value);
   return Number.isFinite(n) ? n : fallback;
@@ -115,58 +117,62 @@ export function BoxInspector({
       </div>
 
       <FieldGroup className="gap-4">
-        <Field>
-          <FieldLabel>Value (Liquid)</FieldLabel>
-          <CodeEditor
-            label="Box value"
-            language="liquid"
-            sections={sections}
-            value={box.value}
-            readOnly={!editable}
-            placeholder="{{ field_key }}"
-            onChange={(value) => onChange({ ...box, value })}
-            className="[&_.cm-editor]:min-h-12"
-          />
-          <NativeSelect
-            aria-label="Bind to a field"
-            value=""
-            onChange={(e) => {
-              const key = e.target.value;
-              if (key)
-                onChange({
-                  ...box,
-                  value: box.type === "date" ? `{{ ${key} | date: "MM/DD/YYYY" }}` : `{{ ${key} }}`,
-                });
-            }}
-          >
-            <NativeSelectOption value="">Bind to a field…</NativeSelectOption>
-            {fields.map((f) => (
-              <NativeSelectOption key={f.key} value={f.key}>
-                {f.label} ({f.key})
-              </NativeSelectOption>
-            ))}
-          </NativeSelect>
-          <div className="flex gap-2">
-            <Input
-              aria-label="New field label"
-              placeholder="New field label"
-              value={newLabel}
-              onChange={(e) => setNewLabel(e.target.value)}
+        {/* A signer's box is left blank for the e-sign provider: its value is never drawn. */}
+        {!(box.type === "signature" && box.signerId) && (
+          <Field>
+            <FieldLabel>Value (Liquid)</FieldLabel>
+            <CodeEditor
+              label="Box value"
+              language="liquid"
+              sections={sections}
+              value={box.value}
+              readOnly={!editable}
+              placeholder="{{ field_key }}"
+              onChange={(value) => onChange({ ...box, value })}
+              className="[&_.cm-editor]:min-h-12"
             />
-            <Button
-              variant="outline"
-              size="sm"
-              disabled={!newLabel.trim()}
-              onClick={() => {
-                const bound = bindNewField(box, newLabel, sections);
-                onSections(bound.box, bound.sections);
-                setNewLabel("");
+            <NativeSelect
+              aria-label="Bind to a field"
+              value=""
+              onChange={(e) => {
+                const key = e.target.value;
+                if (key)
+                  onChange({
+                    ...box,
+                    value:
+                      box.type === "date" ? `{{ ${key} | date: "MM/DD/YYYY" }}` : `{{ ${key} }}`,
+                  });
               }}
             >
-              Create field
-            </Button>
-          </div>
-        </Field>
+              <NativeSelectOption value="">Bind to a field…</NativeSelectOption>
+              {fields.map((f) => (
+                <NativeSelectOption key={f.key} value={f.key}>
+                  {f.label} ({f.key})
+                </NativeSelectOption>
+              ))}
+            </NativeSelect>
+            <div className="flex gap-2">
+              <Input
+                aria-label="New field label"
+                placeholder="New field label"
+                value={newLabel}
+                onChange={(e) => setNewLabel(e.target.value)}
+              />
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={!newLabel.trim()}
+                onClick={() => {
+                  const bound = bindNewField(box, newLabel, sections);
+                  onSections(bound.box, bound.sections);
+                  setNewLabel("");
+                }}
+              >
+                Create field
+              </Button>
+            </div>
+          </Field>
+        )}
 
         {fillable.length > 0 && (
           <Field>
@@ -431,8 +437,8 @@ export function BoxInspector({
           </div>
         )}
 
-        <div className="grid grid-cols-5 gap-2">
-          <Field>
+        <div className="grid grid-cols-2 gap-2">
+          <Field className="col-span-2 max-w-28">
             <FieldLabel htmlFor={id("page")}>Page</FieldLabel>
             <Input
               id={id("page")}
@@ -450,14 +456,14 @@ export function BoxInspector({
           </Field>
           {(["x", "y", "width", "height"] as const).map((key) => (
             <Field key={key}>
-              <FieldLabel htmlFor={id(key)}>
-                {key === "width" ? "W" : key === "height" ? "H" : key}
-              </FieldLabel>
+              <FieldLabel htmlFor={id(key)}>{rectLabels[key]}</FieldLabel>
               <Input
                 id={id(key)}
                 type="number"
                 step={0.5}
-                value={box.rect[key]}
+                className="tabular-nums"
+                // Dragging leaves long fractions; two decimals of a point is plenty to read.
+                value={Math.round(box.rect[key] * 100) / 100}
                 onChange={(e) => {
                   const value = num(e.target.value, box.rect[key]);
                   if ((key === "width" || key === "height") && value <= 0) return;

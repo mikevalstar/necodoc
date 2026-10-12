@@ -57,6 +57,8 @@ step to [Publishing and versions](publishing-and-versions.md).
 - **Publish gate.** With review required, publishing is refused unless the
   draft's current fingerprint matches an approved review. Publishing marks
   that review published and links it to the new version.
+  In the template editor the Publish button is disabled until then, with the
+  reason shown, rather than offered only for the API to refuse.
 - **Review history** on the template page: every review with its status,
   submitter, reviewer and dates, linking to the review page.
 - **Notifications** (bell in the nav, unread count, polled): review

@@ -50,15 +50,15 @@ public class GenerateRequestOutput {
 
   public static final String JSON_PROPERTY_PDFUA = "pdfua";
   @javax.annotation.Nullable
-  private Boolean pdfua = false;
+  private Boolean pdfua;
 
   public static final String JSON_PROPERTY_CERTIFY = "certify";
   @javax.annotation.Nullable
-  private Boolean certify = false;
+  private Boolean certify;
 
   public static final String JSON_PROPERTY_LANG = "lang";
   @javax.annotation.Nullable
-  private String lang = "en";
+  private String lang;
 
   public GenerateRequestOutput() { 
   }

@@ -1,9 +1,10 @@
 import { hasPermission, type ReviewDecision, type ReviewEventKind } from "@necodoc/shared";
 import { queryOptions, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute, Link, redirect } from "@tanstack/react-router";
-import { ChevronLeftIcon } from "lucide-react";
 import { useState } from "react";
+import { toast } from "sonner";
 import { ErrorAlert } from "@/components/form";
+import { BackLink, FaqLink, ListSkeleton, Page } from "@/components/page";
 import { TemplateDiffView } from "@/components/template-diff";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
@@ -58,14 +59,14 @@ function ReviewPage() {
   const cases = useQuery({ ...testCasesQuery(templateId ?? ""), enabled: !!templateId });
   const [comment, setComment] = useState("");
   const [publishing, setPublishing] = useState(false);
-  const [notice, setNotice] = useState<string | null>(null);
 
   const refresh = () => queryClient.invalidateQueries({ queryKey: ["reviews"] });
   const decide = useMutation({
     mutationFn: async (json: ReviewDecision) =>
       (await ok(api.reviews[":id"].decision.$post({ param: { id: reviewId }, json }))).json(),
-    onSuccess: async () => {
+    onSuccess: async (_, decision) => {
       setComment("");
+      toast.success(decision.decision === "approve" ? "Approved" : "Changes requested");
       await refresh();
     },
   });
@@ -84,9 +85,10 @@ function ReviewPage() {
 
   if (!review.data) {
     return (
-      <main className="mx-auto max-w-6xl p-4 py-8">
-        <ErrorAlert error={review.error} />
-      </main>
+      <Page width="wide">
+        <BackLink to="/templates/reviews">Reviews</BackLink>
+        {review.error ? <ErrorAlert error={review.error} /> : <ListSkeleton rows={3} />}
+      </Page>
     );
   }
   const r = review.data;
@@ -100,16 +102,13 @@ function ReviewPage() {
   const publishable = r.status === "approved" && !r.stale;
 
   return (
-    <main className="mx-auto max-w-[96rem] space-y-4 p-4 py-6">
-      <Link
-        to="/templates/reviews"
-        className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground"
-      >
-        <ChevronLeftIcon className="size-4" />
-        Reviews
-      </Link>
+    <Page width="wide" className="space-y-4 py-6">
+      <div className="flex items-center justify-between gap-2">
+        <BackLink to="/templates/reviews">Reviews</BackLink>
+        <FaqLink feature="Review and approval" />
+      </div>
       <div className="flex flex-wrap items-center gap-3">
-        <h1 className="text-2xl font-semibold">{r.templateName}</h1>
+        <h1 className="text-2xl font-semibold tracking-tight">{r.templateName}</h1>
         <ReviewStatusBadge status={r.status} stale={r.stale} />
         <div className="ml-auto flex gap-2">
           <Button
@@ -141,11 +140,6 @@ function ReviewPage() {
           : ", before the first version"}
         {r.publishedVersion !== null && ` · published as version ${r.publishedVersion}`}
       </p>
-      {notice && (
-        <Alert role="status">
-          <AlertDescription>{notice}</AlertDescription>
-        </Alert>
-      )}
       {r.stale && (
         <Alert>
           <AlertTitle>The draft changed since this was submitted</AlertTitle>
@@ -267,13 +261,12 @@ function ReviewPage() {
             updatedAt: draft.data.updatedAt,
           }}
           onClose={() => setPublishing(false)}
-          onPublished={async (v) => {
+          onPublished={async () => {
             setPublishing(false);
-            setNotice(`Published version ${v}.`);
             await refresh();
           }}
         />
       )}
-    </main>
+    </Page>
   );
 }

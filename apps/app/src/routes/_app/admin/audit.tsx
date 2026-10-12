@@ -25,6 +25,7 @@ import {
   dataTableSearchSchema,
   FilterSelect,
 } from "@/components/data-table";
+import { FaqLink, Page, PageHeader } from "@/components/page";
 import { Badge } from "@/components/ui/badge";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Field, FieldLabel } from "@/components/ui/field";
@@ -168,20 +169,20 @@ function AuditLog() {
   const hasFilter = Object.values(toFilter(search)).some((value) => value !== undefined);
 
   return (
-    <main className="mx-auto max-w-7xl space-y-4 p-4 py-8">
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        <div className="space-y-1">
-          <h1 className="text-2xl font-semibold">Audit log</h1>
-          <p className="text-sm text-muted-foreground">
-            Every change to configuration and access, and every sign-in. Entries can't be edited or
-            deleted.
-          </p>
-        </div>
-        <a href={exportUrl(search)} className={buttonVariants({ variant: "outline" })}>
-          <DownloadIcon />
-          Export CSV
-        </a>
-      </div>
+    <Page>
+      <PageHeader
+        title="Audit log"
+        description="Every change to configuration and access, and every sign-in. Entries can't be edited or deleted."
+        actions={
+          <>
+            <FaqLink feature="Audit log" />
+            <a href={exportUrl(search)} className={buttonVariants({ variant: "outline" })}>
+              <DownloadIcon />
+              Export CSV
+            </a>
+          </>
+        }
+      />
 
       <DataTable
         columns={columns}
@@ -299,6 +300,6 @@ function AuditLog() {
       />
 
       <AuditEntrySheet id={search.entry ?? null} onClose={() => setSearch({ entry: undefined })} />
-    </main>
+    </Page>
   );
 }

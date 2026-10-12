@@ -8,8 +8,10 @@ import { queryOptions, useMutation, useQuery, useQueryClient } from "@tanstack/r
 import type { InferResponseType } from "hono/client";
 import { MoreHorizontalIcon } from "lucide-react";
 import { useState } from "react";
+import { toast } from "sonner";
 import { z } from "zod";
 import type { ApiKeyRow } from "@/components/api-keys";
+import { ConfirmDialog } from "@/components/confirm-dialog";
 import { CopyButton } from "@/components/copy-button";
 import { ErrorAlert, useAppForm } from "@/components/form";
 import { Badge } from "@/components/ui/badge";
@@ -54,7 +56,7 @@ import { api, ok } from "@/lib/api";
 import { dayjs } from "@/lib/date";
 import { templatesQuery } from "@/lib/queries";
 
-// Spec: docs/features/webhooks.md. One owner's webhooks: yours in Settings › API keys, a service
+// Spec: docs/features/webhooks.md. One owner's webhooks: yours in Developers › API keys, a service
 // account's on its admin page.
 
 const webhooksQuery = (ownerId: string | undefined) =>
@@ -102,7 +104,7 @@ export function WebhookSection({
   const [creating, setCreating] = useState(false);
   const [secret, setSecret] = useState<string | null>(null);
   const [log, setLog] = useState<Webhook | null>(null);
-  const [notice, setNotice] = useState<string | null>(null);
+  const [deleting, setDeleting] = useState<Webhook | null>(null);
   const refresh = () => queryClient.invalidateQueries({ queryKey: ["webhooks"] });
   const toggle = useMutation({
     mutationFn: (hook: Webhook) =>
@@ -111,11 +113,16 @@ export function WebhookSection({
   });
   const remove = useMutation({
     mutationFn: (hook: Webhook) => ok(api.webhooks[":id"].$delete({ param: { id: hook.id } })),
-    onSuccess: refresh,
+    onSuccess: async () => {
+      await refresh();
+      setDeleting(null);
+      toast.success("Webhook deleted");
+    },
   });
   const test = useMutation({
     mutationFn: (hook: Webhook) => ok(api.webhooks[":id"].test.$post({ param: { id: hook.id } })),
-    onSuccess: () => setNotice("Test event queued. Open Deliveries to see how it went."),
+    onSuccess: () =>
+      toast.success("Test event queued", { description: "Open Deliveries to see how it went." }),
   });
   return (
     <section className="space-y-3">
@@ -130,12 +137,7 @@ export function WebhookSection({
           Add webhook
         </Button>
       </div>
-      <ErrorAlert error={hooks.error ?? toggle.error ?? remove.error ?? test.error} />
-      {notice && (
-        <p className="text-sm text-muted-foreground" role="status">
-          {notice}
-        </p>
-      )}
+      <ErrorAlert error={hooks.error ?? toggle.error ?? test.error} />
       <Table>
         <TableHeader>
           <TableRow>
@@ -171,7 +173,7 @@ export function WebhookSection({
               </TableCell>
               <TableCell>
                 <Switch
-                  aria-label="Enabled"
+                  aria-label={`Enabled: ${hook.url}`}
                   checked={hook.enabled}
                   disabled={toggle.isPending}
                   onCheckedChange={() => toggle.mutate(hook)}
@@ -180,7 +182,13 @@ export function WebhookSection({
               <TableCell>
                 <DropdownMenu>
                   <DropdownMenuTrigger
-                    render={<Button variant="ghost" size="icon-sm" aria-label="Actions" />}
+                    render={
+                      <Button
+                        variant="ghost"
+                        size="icon-sm"
+                        aria-label={`Actions for ${hook.url}`}
+                      />
+                    }
                   >
                     <MoreHorizontalIcon />
                   </DropdownMenuTrigger>
@@ -188,8 +196,8 @@ export function WebhookSection({
                     <DropdownMenuItem onClick={() => setLog(hook)}>Deliveries</DropdownMenuItem>
                     <DropdownMenuItem onClick={() => test.mutate(hook)}>Send test</DropdownMenuItem>
                     <DropdownMenuSeparator />
-                    <DropdownMenuItem variant="destructive" onClick={() => remove.mutate(hook)}>
-                      Delete
+                    <DropdownMenuItem variant="destructive" onClick={() => setDeleting(hook)}>
+                      Delete…
                     </DropdownMenuItem>
                   </DropdownMenuContent>
                 </DropdownMenu>
@@ -198,8 +206,8 @@ export function WebhookSection({
           ))}
           {hooks.data?.length === 0 && (
             <TableRow>
-              <TableCell colSpan={5} className="text-center text-muted-foreground">
-                No webhooks.
+              <TableCell colSpan={5} className="py-8 text-center text-muted-foreground">
+                No webhooks yet. Add one to be told when generations and batches finish.
               </TableCell>
             </TableRow>
           )}
@@ -220,6 +228,17 @@ export function WebhookSection({
       )}
       {secret && <WebhookSecretDialog secret={secret} onClose={() => setSecret(null)} />}
       {log && <DeliveriesDialog hook={log} onClose={() => setLog(null)} />}
+      {deleting && (
+        <ConfirmDialog
+          title="Delete this webhook?"
+          description={`${deleting.url} stops receiving events at once, and its delivery history goes with it.`}
+          confirmLabel="Delete"
+          pending={remove.isPending}
+          error={remove.error}
+          onConfirm={() => remove.mutate(deleting)}
+          onClose={() => setDeleting(null)}
+        />
+      )}
     </section>
   );
 }

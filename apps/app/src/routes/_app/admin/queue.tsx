@@ -10,9 +10,11 @@ import { createFileRoute, Link, redirect } from "@tanstack/react-router";
 import { createColumnHelper } from "@tanstack/react-table";
 import { PauseIcon, PlayIcon } from "lucide-react";
 import { useState } from "react";
+import { toast } from "sonner";
 import { z } from "zod";
 import { DataTable, type DataTableFeatures, dataTableSearchSchema } from "@/components/data-table";
 import { ErrorAlert } from "@/components/form";
+import { FaqLink, Page, PageHeader } from "@/components/page";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -178,6 +180,7 @@ function Queue() {
       (await ok(api.system.queue[":jobId"].cancel.$post({ param: { jobId } }))).json(),
     onSuccess: () => {
       setToCancel(null);
+      toast.success("Job cancelled");
       return queryClient.invalidateQueries({ queryKey: ["system", "queue"] });
     },
   });
@@ -191,20 +194,20 @@ function Queue() {
   const queues = [...new Set(jobs.data?.counts.map((row) => row.queue))];
 
   return (
-    <main className="mx-auto max-w-7xl space-y-4 p-4 py-8">
-      <div className="flex flex-wrap items-end justify-between gap-2">
-        <div className="space-y-1">
-          <h1 className="text-2xl font-semibold">Queue</h1>
-          <p className="text-sm text-muted-foreground">
-            Live view of the render queue. Defaults to unfinished jobs plus failures from the last
-            24 hours.
-          </p>
-        </div>
-        <Button variant="outline" onClick={() => setLive(!live)} aria-pressed={live}>
-          {live ? <PauseIcon /> : <PlayIcon />}
-          {live ? "Pause refresh" : "Resume refresh"}
-        </Button>
-      </div>
+    <Page>
+      <PageHeader
+        title="Queue"
+        description="Live view of the render queue. Defaults to unfinished jobs plus failures from the last 24 hours."
+        actions={
+          <>
+            <FaqLink feature="Render queue view" />
+            <Button variant="outline" onClick={() => setLive(!live)} aria-pressed={live}>
+              {live ? <PauseIcon /> : <PlayIcon />}
+              {live ? "Pause refresh" : "Resume refresh"}
+            </Button>
+          </>
+        }
+      />
 
       <div className="flex flex-wrap gap-2">
         <Button
@@ -288,6 +291,6 @@ function Queue() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-    </main>
+    </Page>
   );
 }

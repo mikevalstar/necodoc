@@ -134,13 +134,16 @@ export function AssistantPanel({
     return call ? [{ id: part.toolCallId, call }] : [];
   });
 
+  /** Answered here, so a re-render before the chat catches up can't apply a proposal twice. */
+  const answered = useRef(new Set<string>());
   const answer = (call: AssistantCall, toolCallId: string, output: AssistantToolOutput) => {
     if (previewing === toolCallId) onPreview(null);
     chat.addToolOutput({ tool: call.tool, toolCallId, output });
   };
   const apply = (call: AssistantCall, toolCallId: string) => {
     const base = current.current;
-    if (!base.success) return;
+    if (!base.success || answered.current.has(toolCallId)) return;
+    answered.current.add(toolCallId);
     const result = applyAssistantCall(base.data, call);
     if (result.ok) applied(result.draft, result.parts);
     answer(
@@ -151,20 +154,34 @@ export function AssistantPanel({
   };
   const applyPending = () => {
     const base = current.current;
-    if (!base.success) return;
+    const fresh = pending.filter((p) => !answered.current.has(p.id));
+    if (!base.success || !fresh.length) return;
+    for (const p of fresh) answered.current.add(p.id);
     const all = applyAll(
       base.data,
-      pending.map((p) => p.call),
+      fresh.map((p) => p.call),
     );
     if (all.parts.length) applied(all.draft, all.parts);
-    for (const [i, p] of pending.entries()) {
+    for (const [i, p] of fresh.entries()) {
       answer(p.call, p.id, all.results[i] ?? rejectedOutput);
     }
   };
+  /**
+   * After "Apply all", the rest of this request's proposals apply as they arrive: the model
+   * often proposes in steps (details and fields, then the body), and one click means all of it.
+   * Sending a new message ends it.
+   */
+  const [autoApply, setAutoApply] = useState(false);
+  const pendingIds = pending.map((p) => p.id).join(",");
+  // biome-ignore lint/correctness/useExhaustiveDependencies: runs when new proposals arrive
+  useEffect(() => {
+    if (autoApply && pendingIds) applyPending();
+  }, [autoApply, pendingIds]);
 
   const send = () => {
     const text = input.trim();
     if (!text || busy) return;
+    setAutoApply(false);
     chat.sendMessage({ text });
     setInput("");
   };
@@ -275,10 +292,21 @@ export function AssistantPanel({
             </div>
           </div>
         ))}
-        {pending.length > 1 && (
-          <Button size="sm" disabled={!parsed.success} onClick={applyPending}>
+        {pending.length > 1 && !autoApply && (
+          <Button
+            size="sm"
+            disabled={!parsed.success}
+            title="Applies these and any further proposals for this request"
+            onClick={() => {
+              setAutoApply(true);
+              applyPending();
+            }}
+          >
             Apply all {pending.length}
           </Button>
+        )}
+        {autoApply && busy && (
+          <p className="text-muted-foreground">Applying the assistant's changes as they arrive…</p>
         )}
         {chat.status === "submitted" && <p className="text-muted-foreground">Thinking…</p>}
         <ErrorAlert error={chat.error ?? null} />

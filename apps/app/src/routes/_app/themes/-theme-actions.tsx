@@ -1,6 +1,7 @@
 import type { createThemeSchema, Theme } from "@necodoc/shared";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
+import { toast } from "sonner";
 import type { z } from "zod";
 import { ErrorAlert } from "@/components/form";
 import {
@@ -30,6 +31,7 @@ export function useDuplicateTheme() {
     onSuccess: async (created) => {
       await queryClient.invalidateQueries({ queryKey: themesQuery.queryKey });
       await navigate({ to: "/themes/$id", params: { id: created.id } });
+      toast.success(`Duplicated as ${created.name}`);
     },
   });
 }
@@ -48,6 +50,7 @@ export function DeleteThemeDialog({
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: themesQuery.queryKey });
       await navigate({ to: "/themes" });
+      toast.success(`Deleted ${theme.name}`);
     },
   });
   return (

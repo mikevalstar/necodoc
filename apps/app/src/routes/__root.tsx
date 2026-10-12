@@ -2,6 +2,7 @@ import { type QueryClient, useMutation, useQuery } from "@tanstack/react-query";
 import { createRootRouteWithContext, Outlet } from "@tanstack/react-router";
 import { ErrorAlert } from "@/components/form";
 import { Button } from "@/components/ui/button";
+import { Toaster } from "@/components/ui/sonner";
 import { authClient, meQuery, unwrap, useSessionChange } from "@/lib/auth";
 
 export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()({
@@ -9,6 +10,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     <>
       <ImpersonationBanner />
       <Outlet />
+      <Toaster position="bottom-right" />
     </>
   ),
 });

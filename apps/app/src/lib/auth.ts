@@ -26,7 +26,14 @@ async function fetchMe() {
 
 export type Me = NonNullable<Awaited<ReturnType<typeof fetchMe>>>;
 
-export const meQuery = queryOptions({ queryKey: ["me"], queryFn: fetchMe });
+// Every route waits on this, so ride out an API restart (502s for a few seconds) instead of
+// failing the page. ensureQueryData doesn't retry unless the query says so.
+export const meQuery = queryOptions({
+  queryKey: ["me"],
+  queryFn: fetchMe,
+  retry: 5,
+  retryDelay: (failures) => Math.min(1000 * failures, 4000),
+});
 
 type AuthResult<T> =
   | { data: T; error: null }

@@ -32,7 +32,8 @@ replaces.
   - a maximum number of submissions (1 for a single-use request)
   - prefilled answers, which the filler can see and, per field, edit or not
   - whether the filler can download the PDF after submitting
-  - whether the filler must give their email address
+  - whether the filler must give their email address (checked as soon as the
+    filler leaves the field or takes a step, not only at submit)
 
   The owner can disable and re-enable a link, change its options, or delete
   it (its submissions stay as documents).

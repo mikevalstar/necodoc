@@ -27,7 +27,8 @@ template carries its own CSS and they drift apart.
 
 - **Settings:** base font, size and line height; text and accent colours;
   heading fonts and sizes; table borders, header shading and cell padding;
-  link colour.
+  link colour. Paragraphs inside table cells have no outer margin, so cell
+  padding alone sets row height ([document.ts](../../apps/api/src/render/document.ts)).
 - **Free CSS** appended after the settings, for anything the settings don't
   cover.
 - **Built-in starters** (for example plain, formal serif, modern sans) that

@@ -3,6 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState } from "react";
 import { ErrorAlert } from "@/components/form";
+import { FaqLink, Page, PageHeader } from "@/components/page";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -14,6 +15,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { Skeleton } from "@/components/ui/skeleton";
 import { dayjs } from "@/lib/date";
 import { assetsQuery, themesQuery } from "@/lib/queries";
 import { DeleteThemeDialog, useDuplicateTheme } from "./-theme-actions";
@@ -38,16 +40,20 @@ function Themes() {
       : (fonts.data?.find((asset) => asset.id === font.assetId)?.name ?? "Uploaded font");
 
   return (
-    <main className="mx-auto max-w-6xl space-y-4 p-4 py-8">
-      <div className="space-y-1">
-        <h1 className="text-2xl font-semibold">Themes</h1>
-        <p className="text-sm text-muted-foreground">
-          House styles for documents.{" "}
-          {canCreate && "Duplicate a built-in starter to make your own."}
-        </p>
-      </div>
+    <Page>
+      <PageHeader
+        title="Themes"
+        description={
+          <>
+            House styles for documents: fonts, colours, headings and tables.{" "}
+            {canCreate && "Duplicate a built-in starter to make your own."}
+          </>
+        }
+        actions={<FaqLink feature="Document themes" />}
+      />
       <ErrorAlert error={themes.error ?? duplicate.error} />
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        {themes.isPending && [1, 2, 3].map((n) => <Skeleton key={n} className="h-44 rounded-xl" />)}
         {themes.data?.map((theme) => (
           <Card key={theme.id}>
             <CardHeader>
@@ -108,7 +114,7 @@ function Themes() {
         ))}
       </div>
       {deleting && <DeleteThemeDialog theme={deleting} onClose={() => setDeleting(null)} />}
-    </main>
+    </Page>
   );
 }
 
@@ -121,15 +127,19 @@ function Swatches({ settings }: { settings: ThemeSettings }) {
     ["Table header", settings.tableHeaderBackground],
   ] as const;
   return (
-    <div className="flex gap-1.5">
+    <ul className="flex gap-1.5" aria-label="Colours">
       {colors.map(([label, color]) => (
-        <span
+        <li
           key={label}
           title={`${label} ${color}`}
           className="size-6 rounded-full border"
           style={{ background: color }}
-        />
+        >
+          <span className="sr-only">
+            {label} {color}
+          </span>
+        </li>
       ))}
-    </div>
+    </ul>
   );
 }

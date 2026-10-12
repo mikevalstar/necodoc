@@ -17,6 +17,7 @@ import { createFileRoute, redirect } from "@tanstack/react-router";
 import { type ReactNode, useState } from "react";
 import { z } from "zod";
 import { ErrorAlert } from "@/components/form";
+import { FaqLink, Page, PageHeader } from "@/components/page";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -39,6 +40,9 @@ import { formatMs, sourceLabels } from "../generations/-generation-actions";
 // Spec: docs/features/render-queue-batch-jobs-and-scaling.md (Admin > System), the retention
 // setting from docs/features/generation-log.md, and the publishing settings from
 // docs/features/review-and-approval.md.
+
+/** Offline processes seen longer ago than this are folded away. */
+const STALE_MINUTES = 15;
 
 const systemQuery = (window: MetricsWindow) =>
   queryOptions({
@@ -96,33 +100,38 @@ function System() {
   const system = useQuery(systemQuery(window));
   const data = system.data;
   const workersOnline = data?.workers.filter((w) => w.online && w.role !== "api") ?? [];
+  // Restarts leave offline rows behind for a day (the API prunes after 24h); old ones are noise.
+  const [showOld, setShowOld] = useState(false);
+  const recent = dayjs().subtract(STALE_MINUTES, "minute");
+  const isOld = (w: { online: boolean; lastSeen: string }) =>
+    !w.online && dayjs(w.lastSeen).isBefore(recent);
+  const oldCount = data?.workers.filter(isOld).length ?? 0;
+  const processes = data?.workers.filter((w) => showOld || !isOld(w)) ?? [];
 
   return (
-    <main className="mx-auto max-w-6xl space-y-6 p-4 py-8">
-      <div className="flex flex-wrap items-end justify-between gap-2">
-        <div className="space-y-1">
-          <h1 className="text-2xl font-semibold">System</h1>
-          <p className="text-sm text-muted-foreground">
-            Render workers, the queue and render times. Refreshes every 5 seconds.
-          </p>
-        </div>
-        <Field className="w-auto">
-          <FieldLabel htmlFor="window">Window</FieldLabel>
-          <NativeSelect
-            id="window"
-            value={window}
-            onChange={(e) =>
-              navigate({ search: { window: metricsWindowSchema.parse(e.target.value) } })
-            }
-          >
-            {metricsWindowSchema.options.map((value) => (
-              <NativeSelectOption key={value} value={value}>
-                {windowLabels[value]}
-              </NativeSelectOption>
-            ))}
-          </NativeSelect>
-        </Field>
-      </div>
+    <Page>
+      <PageHeader
+        title="System"
+        description="Render workers, the queue and render times. Refreshes every 5 seconds."
+        actions={
+          <>
+            <FaqLink feature="System metrics" />
+            <NativeSelect
+              aria-label="Window"
+              value={window}
+              onChange={(e) =>
+                navigate({ search: { window: metricsWindowSchema.parse(e.target.value) } })
+              }
+            >
+              {metricsWindowSchema.options.map((value) => (
+                <NativeSelectOption key={value} value={value}>
+                  {windowLabels[value]}
+                </NativeSelectOption>
+              ))}
+            </NativeSelect>
+          </>
+        }
+      />
       <ErrorAlert error={system.error} />
 
       {data && workersOnline.length === 0 && (
@@ -175,7 +184,7 @@ function System() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {data.workers.map((w) => (
+                {processes.map((w) => (
                   <TableRow key={w.id} className={w.online ? undefined : "opacity-50"}>
                     <TableCell className="font-mono text-xs">{w.id}</TableCell>
                     <TableCell>
@@ -194,6 +203,13 @@ function System() {
                 ))}
               </TableBody>
             </Table>
+            {oldCount > 0 && (
+              <Button variant="ghost" size="sm" onClick={() => setShowOld(!showOld)}>
+                {showOld
+                  ? "Hide older offline processes"
+                  : `Show ${oldCount} offline ${oldCount === 1 ? "process" : "processes"} last seen over ${STALE_MINUTES} minutes ago`}
+              </Button>
+            )}
           </section>
 
           <div className="grid gap-6 lg:grid-cols-2">
@@ -219,7 +235,7 @@ function System() {
 
       <PublishingSection />
       <RetentionSection />
-    </main>
+    </Page>
   );
 }
 

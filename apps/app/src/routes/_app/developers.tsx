@@ -1,6 +1,9 @@
 import { ApiReferenceReact } from "@scalar/api-reference-react";
 import "@scalar/api-reference-react/style.css";
 import { createFileRoute, Link } from "@tanstack/react-router";
+import { KeyRoundIcon } from "lucide-react";
+import { FaqLink, Page, PageHeader } from "@/components/page";
+import { Button } from "@/components/ui/button";
 import { useTheme } from "@/lib/theme";
 
 // ADR 0030; spec: docs/features/html-to-pdf-api.md (Docs and SDK). The live /api/v1 OpenAPI
@@ -14,21 +17,29 @@ function Developers() {
   useTheme();
   const dark = document.documentElement.classList.contains("dark");
   return (
-    <main className="mx-auto max-w-7xl space-y-4 p-4 py-8">
-      <div className="space-y-1">
-        <h1 className="text-2xl font-semibold">API reference</h1>
-        <p className="text-sm text-muted-foreground">
-          Every <code>/api/v1</code> endpoint. Calls need an API key in <code>x-api-key</code>:{" "}
-          <Link to="/settings/api-keys" className="underline">
-            make one in Settings
-          </Link>
-          . The raw document is at{" "}
-          <a href="/api/v1/openapi.json" className="underline">
-            /api/v1/openapi.json
-          </a>
-          .
-        </p>
-      </div>
+    <Page>
+      <PageHeader
+        title="API reference"
+        description={
+          <>
+            Every <code>/api/v1</code> endpoint. Calls need an API key in <code>x-api-key</code>.
+            The raw document is at{" "}
+            <a href="/api/v1/openapi.json" className="underline underline-offset-4">
+              /api/v1/openapi.json
+            </a>
+            .
+          </>
+        }
+        actions={
+          <>
+            <FaqLink feature="API reference and OpenAPI" />
+            <Button nativeButton={false} render={<Link to="/settings/api-keys" />}>
+              <KeyRoundIcon />
+              Get an API key
+            </Button>
+          </>
+        }
+      />
       <div className="overflow-hidden rounded-lg border">
         <ApiReferenceReact
           configuration={{
@@ -45,6 +56,6 @@ function Developers() {
           }}
         />
       </div>
-    </main>
+    </Page>
   );
 }

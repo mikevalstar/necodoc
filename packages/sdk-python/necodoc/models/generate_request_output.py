@@ -30,9 +30,9 @@ class GenerateRequestOutput(BaseModel):
     Overrides the version's output settings. `lang` makes the PDF in that language (formatting, translations, text direction).
     """ # noqa: E501
     pdfa: Optional[OutputOptionsPdfa] = None
-    pdfua: Optional[StrictBool] = Field(default=False, description="Tagged PDF/UA-1. HTML renders only: overlays and packets have no structure to tag.")
-    certify: Optional[StrictBool] = Field(default=False, description="Certify with the server's certificate (PAdES, DocMDP: form filling and signing stay allowed).")
-    lang: Optional[Annotated[str, Field(strict=True)]] = Field(default='en', description="The document language (BCP 47): date, number and currency formatting, translations, text direction, and the PDF language.")
+    pdfua: Optional[StrictBool] = Field(default=None, description="Tagged PDF/UA-1. HTML renders only: overlays and packets have no structure to tag.")
+    certify: Optional[StrictBool] = Field(default=None, description="Certify with the server's certificate (PAdES, DocMDP: form filling and signing stay allowed).")
+    lang: Optional[Annotated[str, Field(strict=True)]] = Field(default=None, description="The document language (BCP 47): date, number and currency formatting, translations, text direction, and the PDF language.")
     __properties: ClassVar[List[str]] = ["pdfa", "pdfua", "certify", "lang"]
 
     @field_validator('lang', mode="before")
@@ -102,9 +102,9 @@ class GenerateRequestOutput(BaseModel):
 
         _obj = cls.model_validate({
             "pdfa": obj.get("pdfa"),
-            "pdfua": obj.get("pdfua") if obj.get("pdfua") is not None else False,
-            "certify": obj.get("certify") if obj.get("certify") is not None else False,
-            "lang": obj.get("lang") if obj.get("lang") is not None else 'en'
+            "pdfua": obj.get("pdfua"),
+            "certify": obj.get("certify"),
+            "lang": obj.get("lang")
         })
         return _obj
 

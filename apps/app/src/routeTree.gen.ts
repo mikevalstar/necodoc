@@ -14,6 +14,7 @@ import { Route as LoginRouteImport } from './routes/login'
 import { Route as PendingRouteImport } from './routes/pending'
 import { Route as RegisterRouteImport } from './routes/register'
 import { Route as AppIndexRouteImport } from './routes/_app/index'
+import { Route as AppSplatRouteImport } from './routes/_app/$'
 import { Route as AppAssetsRouteImport } from './routes/_app/assets'
 import { Route as AppDevelopersRouteImport } from './routes/_app/developers'
 import { Route as AppRenderRouteImport } from './routes/_app/render'
@@ -72,6 +73,11 @@ const RegisterRoute = RegisterRouteImport.update({
 const AppIndexRoute = AppIndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppSplatRoute = AppSplatRouteImport.update({
+  id: '/$',
+  path: '/$',
   getParentRoute: () => AppRoute,
 } as any)
 const AppAssetsRoute = AppAssetsRouteImport.update({
@@ -259,6 +265,7 @@ export interface FileRoutesByFullPath {
   '/login': typeof LoginRoute
   '/pending': typeof PendingRoute
   '/register': typeof RegisterRoute
+  '/$': typeof AppSplatRoute
   '/assets': typeof AppAssetsRoute
   '/developers': typeof AppDevelopersRoute
   '/render': typeof AppRenderRoute
@@ -299,6 +306,7 @@ export interface FileRoutesByTo {
   '/login': typeof LoginRoute
   '/pending': typeof PendingRoute
   '/register': typeof RegisterRoute
+  '/$': typeof AppSplatRoute
   '/assets': typeof AppAssetsRoute
   '/developers': typeof AppDevelopersRoute
   '/render': typeof AppRenderRoute
@@ -342,6 +350,7 @@ export interface FileRoutesById {
   '/login': typeof LoginRoute
   '/pending': typeof PendingRoute
   '/register': typeof RegisterRoute
+  '/_app/$': typeof AppSplatRoute
   '/_app/assets': typeof AppAssetsRoute
   '/_app/developers': typeof AppDevelopersRoute
   '/_app/render': typeof AppRenderRoute
@@ -386,6 +395,7 @@ export interface FileRouteTypes {
     | '/login'
     | '/pending'
     | '/register'
+    | '/$'
     | '/assets'
     | '/developers'
     | '/render'
@@ -426,6 +436,7 @@ export interface FileRouteTypes {
     | '/login'
     | '/pending'
     | '/register'
+    | '/$'
     | '/assets'
     | '/developers'
     | '/render'
@@ -468,6 +479,7 @@ export interface FileRouteTypes {
     | '/login'
     | '/pending'
     | '/register'
+    | '/_app/$'
     | '/_app/assets'
     | '/_app/developers'
     | '/_app/render'
@@ -549,6 +561,13 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof AppIndexRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/$': {
+      id: '/_app/$'
+      path: '/$'
+      fullPath: '/$'
+      preLoaderRoute: typeof AppSplatRouteImport
       parentRoute: typeof AppRoute
     }
     '/_app/assets': {
@@ -800,6 +819,7 @@ declare module '@tanstack/react-router' {
 }
 
 interface AppRouteChildren {
+  AppSplatRoute: typeof AppSplatRoute
   AppAssetsRoute: typeof AppAssetsRoute
   AppDevelopersRoute: typeof AppDevelopersRoute
   AppRenderRoute: typeof AppRenderRoute
@@ -838,6 +858,7 @@ interface AppRouteChildren {
 }
 
 const AppRouteChildren: AppRouteChildren = {
+  AppSplatRoute: AppSplatRoute,
   AppAssetsRoute: AppAssetsRoute,
   AppDevelopersRoute: AppDevelopersRoute,
   AppRenderRoute: AppRenderRoute,

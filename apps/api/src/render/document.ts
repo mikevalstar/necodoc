@@ -76,6 +76,8 @@ hr { border: 0; border-top: 1px solid ${s.accentColor}; }
 table { border-collapse: collapse; width: 100%; }
 th, td { border: 1px solid ${s.tableBorderColor}; padding: ${s.tableCellPadding}mm; text-align: start; vertical-align: top; }
 th { background: ${s.tableHeaderBackground}; }
+:is(th, td) > :first-child { margin-top: 0; }
+:is(th, td) > :last-child { margin-bottom: 0; }
 ${css}`;
 }
 

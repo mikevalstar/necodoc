@@ -32,7 +32,7 @@ accounts, scopes), [ADR 0030](../adrs/0030-openapi-for-the-public-api-with-hono-
 
 ### Keys
 
-- **Personal keys** (Settings › API keys): every user with a role creates,
+- **Personal keys** (Developers › API keys): every user with a role creates,
   lists, rotates and revokes their own. **Service-account keys** are managed
   by admins under Admin › Service accounts.
 - **Service accounts**: non-human identities with a name, description, owner
@@ -127,7 +127,7 @@ GDPR erasure can find it
 
 ### Docs and SDK
 
-- **API page** in the app (nav: API): the OpenAPI document rendered with
+- **API page** in the app (nav: Developers › API reference): the OpenAPI document rendered with
   Scalar, listing every endpoint with request and response schemas, and a
   try-it client.
 - The [developer docs](../adrs/0026-astro-starlight-for-the-developer-docs-site.md)

@@ -1,6 +1,7 @@
 import type { AnalyticsBucket, AnalyticsRange } from "@necodoc/shared";
 import { Link } from "@tanstack/react-router";
 import { z } from "zod";
+import { FaqLink, PageHeader } from "@/components/page";
 import { Field, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { NativeSelect, NativeSelectOption } from "@/components/ui/native-select";
@@ -131,14 +132,13 @@ const tabs = [
 /** The admin analytics title and its two dashboards. */
 export function AnalyticsHeader({ current }: { current: (typeof tabs)[number]["key"] }) {
   return (
-    <div className="space-y-3">
-      <div className="space-y-1">
-        <h1 className="text-2xl font-semibold">Analytics</h1>
-        <p className="text-sm text-muted-foreground">
-          Counted from the generation log, the audit log, share links and users when the page loads.
-        </p>
-      </div>
-      <nav className="flex gap-4 border-b text-sm">
+    <div className="space-y-4">
+      <PageHeader
+        title="Analytics"
+        description="Counted from the generation log, the audit log, share links and users when the page loads."
+        actions={<FaqLink feature="Analytics dashboards" />}
+      />
+      <nav aria-label="Analytics" className="flex gap-4 border-b text-sm">
         {tabs.map((tab) => (
           <Link
             key={tab.key}
@@ -146,7 +146,7 @@ export function AnalyticsHeader({ current }: { current: (typeof tabs)[number]["k
             className={cn(
               "-mb-px border-b-2 pb-2",
               tab.key === current
-                ? "border-foreground font-medium"
+                ? "border-primary font-medium"
                 : "border-transparent text-muted-foreground hover:text-foreground",
             )}
           >

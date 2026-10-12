@@ -595,25 +595,13 @@ export interface components {
       async?: boolean;
       /** @description Overrides the version's output settings. `lang` makes the PDF in that language (formatting, translations, text direction). */
       output?: {
-        /**
-         * @description PDF/A-2 level (`2b` or `2u`), or null for none.
-         * @default null
-         */
+        /** @description PDF/A-2 level (`2b` or `2u`), or null for none. */
         pdfa?: ("2b" | "2u") | null;
-        /**
-         * @description Tagged PDF/UA-1. HTML renders only: overlays and packets have no structure to tag.
-         * @default false
-         */
+        /** @description Tagged PDF/UA-1. HTML renders only: overlays and packets have no structure to tag. */
         pdfua?: boolean;
-        /**
-         * @description Certify with the server's certificate (PAdES, DocMDP: form filling and signing stay allowed).
-         * @default false
-         */
+        /** @description Certify with the server's certificate (PAdES, DocMDP: form filling and signing stay allowed). */
         certify?: boolean;
-        /**
-         * @description The document language (BCP 47): date, number and currency formatting, translations, text direction, and the PDF language.
-         * @default en
-         */
+        /** @description The document language (BCP 47): date, number and currency formatting, translations, text direction, and the PDF language. */
         lang?: string;
       };
       /** @description Who the document is about (an email, a customer number), for erasure. */
@@ -1607,10 +1595,11 @@ export interface operations {
   getGenerationsByIdSigningPackage: {
     parameters: {
       query?: {
-        /** @description Provider JSON to include (default `docusign`). Repeat for several. */
+        /** @description Provider JSON to include (default `docusign`). Repeat it or comma-separate for several. */
         formats?:
           | ("docusign" | "dropbox_sign" | "adobe_sign")
-          | ("docusign" | "dropbox_sign" | "adobe_sign")[];
+          | ("docusign" | "dropbox_sign" | "adobe_sign")[]
+          | string;
         /** @description Put the PDF in provider JSON as base64 (default `true`). */
         embedPdf?: "true" | "false";
         /** @description DocuSign tabs by page coordinates (default) or anchor string. */

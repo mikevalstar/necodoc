@@ -1,9 +1,10 @@
 import { useQuery } from "@tanstack/react-query";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { ChevronLeftIcon } from "lucide-react";
+import { FileTextIcon } from "lucide-react";
 import { useDeferredValue, useState } from "react";
 import { z } from "zod";
 import { ErrorAlert } from "@/components/form";
+import { BackLink, EmptyState, FaqLink, ListSkeleton, Page, PageHeader } from "@/components/page";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
@@ -39,18 +40,13 @@ function NewDocument() {
   );
 
   return (
-    <main className="mx-auto max-w-6xl space-y-4 p-4 py-8">
-      <Link
-        to="/"
-        className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground"
-      >
-        <ChevronLeftIcon className="size-4" />
-        My documents
-      </Link>
-      <div className="space-y-1">
-        <h1 className="text-2xl font-semibold">New document</h1>
-        <p className="text-sm text-muted-foreground">Pick what you want to fill in.</p>
-      </div>
+    <Page>
+      <PageHeader
+        title="New document"
+        description="Pick the template you want to fill in. You answer its questions and get the finished PDF."
+        back={<BackLink to="/">My documents</BackLink>}
+        actions={<FaqLink feature="Filling out a document" />}
+      />
 
       <div className="flex flex-wrap items-start gap-3">
         <Field className="w-full sm:w-64">
@@ -92,7 +88,11 @@ function NewDocument() {
           <Card key={t.id} className="justify-between">
             <CardHeader>
               <CardTitle>{t.name}</CardTitle>
-              {t.description && <CardDescription>{t.description}</CardDescription>}
+              {t.description && (
+                <CardDescription className="line-clamp-3" title={t.description}>
+                  {t.description}
+                </CardDescription>
+              )}
             </CardHeader>
             <CardFooter className="flex items-center justify-between gap-2">
               <span className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
@@ -106,16 +106,29 @@ function NewDocument() {
                 onClick={() => start.mutate({ templateId: t.id, fromSubmissionId: search.from })}
               >
                 Start
+                <span className="sr-only"> {t.name}</span>
               </Button>
             </CardFooter>
           </Card>
         ))}
       </div>
-      {templates.isSuccess && fillable.length === 0 && (
-        <p className="py-8 text-center text-muted-foreground">
-          {query ? "No templates match." : "Nothing has been published yet."}
-        </p>
-      )}
-    </main>
+      {templates.isPending && <ListSkeleton rows={3} />}
+      {templates.isSuccess &&
+        fillable.length === 0 &&
+        (query ? (
+          <EmptyState title="No templates match" description={`Nothing matches "${query}".`} />
+        ) : (
+          <EmptyState
+            icon={FileTextIcon}
+            title="Nothing to fill in yet"
+            description="Documents start from a published template. Once someone publishes one, it shows up here."
+            action={
+              <Button variant="outline" nativeButton={false} render={<Link to="/templates" />}>
+                Go to templates
+              </Button>
+            }
+          />
+        ))}
+    </Page>
   );
 }

@@ -1,4 +1,5 @@
 import { createFileRoute, Link, redirect } from "@tanstack/react-router";
+import { AuthFrame } from "@/components/auth-frame";
 import { ErrorAlert } from "@/components/form";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -19,7 +20,7 @@ function Pending() {
   const { me } = Route.useRouteContext();
   const signOut = useSignOut();
   return (
-    <main className="mx-auto flex min-h-svh max-w-md flex-col justify-center p-4">
+    <AuthFrame>
       <Card>
         <CardHeader>
           <CardTitle>Waiting for access</CardTitle>
@@ -29,7 +30,7 @@ function Pending() {
         </CardHeader>
         <CardContent className="space-y-4">
           <p className="text-sm">
-            Ask an admin to grant you access. Once they do, reload this page to continue.
+            Ask an admin to grant you access. Once they do, check again to continue.
           </p>
           <p className="text-sm text-muted-foreground">
             Meanwhile you can manage your account in{" "}
@@ -38,12 +39,16 @@ function Pending() {
             </Link>
             .
           </p>
+          <Button className="w-full" onClick={() => window.location.reload()}>
+            Check again
+          </Button>
           {/* While impersonating, the banner's "Stop impersonating" is the way out. */}
           {!me.impersonatedBy && (
             <>
               <ErrorAlert error={signOut.error} />
               <Button
                 variant="outline"
+                className="w-full"
                 disabled={signOut.isPending}
                 onClick={() => signOut.mutate()}
               >
@@ -53,6 +58,6 @@ function Pending() {
           )}
         </CardContent>
       </Card>
-    </main>
+    </AuthFrame>
   );
 }

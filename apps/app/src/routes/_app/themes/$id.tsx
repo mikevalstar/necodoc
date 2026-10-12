@@ -16,12 +16,12 @@ import {
   useQueryClient,
   useSuspenseQuery,
 } from "@tanstack/react-query";
-import { createFileRoute, Link } from "@tanstack/react-router";
-import { ChevronLeftIcon } from "lucide-react";
+import { createFileRoute } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import type { z } from "zod";
 import { HistoryPanel } from "@/components/audit";
 import { ErrorAlert, FieldShell, useAppForm, useFieldContext } from "@/components/form";
+import { BackLink, FaqLink, Page } from "@/components/page";
 import { PdfFrame, usePdfPreview } from "@/components/pdf-frame";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
@@ -34,6 +34,7 @@ import {
 } from "@/components/ui/native-select";
 import { api, ok, previewPdf } from "@/lib/api";
 import { assetsQuery, themesQuery } from "@/lib/queries";
+import { useSaveShortcut } from "@/lib/save-shortcut";
 import { DeleteThemeDialog, useDuplicateTheme } from "./-theme-actions";
 
 // Spec: docs/features/document-themes.md
@@ -110,6 +111,7 @@ function ThemeEditor({ theme }: { theme: Theme }) {
     onSubmit: ({ value }) => save.mutate(value),
   });
 
+  useSaveShortcut(canEdit && !save.isPending, form.handleSubmit);
   const values = useStore(form.store, (state) => state.values);
   const request = useMemo(() => {
     const draft = themeInputSchema.safeParse(values);
@@ -118,16 +120,13 @@ function ThemeEditor({ theme }: { theme: Theme }) {
   const preview = usePdfPreview(request, previewPdf);
 
   return (
-    <main className="mx-auto max-w-7xl space-y-4 p-4 py-8">
-      <Link
-        to="/themes"
-        className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground"
-      >
-        <ChevronLeftIcon className="size-4" />
-        Themes
-      </Link>
+    <Page width="wide" className="space-y-4">
+      <div className="flex items-center justify-between gap-2">
+        <BackLink to="/themes">Themes</BackLink>
+        <FaqLink feature="Document themes" />
+      </div>
       <div className="flex flex-wrap items-center gap-2">
-        <h1 className="text-2xl font-semibold">{theme.name}</h1>
+        <h1 className="text-2xl font-semibold tracking-tight">{theme.name}</h1>
         {theme.builtIn && <Badge variant="secondary">Built-in</Badge>}
         <div className="ml-auto flex gap-2">
           {canCreate && (
@@ -140,12 +139,8 @@ function ThemeEditor({ theme }: { theme: Theme }) {
             </Button>
           )}
           {canEdit && (
-            <Button
-              variant="outline"
-              className="text-destructive"
-              onClick={() => setDeleting(true)}
-            >
-              Delete
+            <Button variant="ghost" className="text-destructive" onClick={() => setDeleting(true)}>
+              Delete…
             </Button>
           )}
         </div>
@@ -267,7 +262,7 @@ function ThemeEditor({ theme }: { theme: Theme }) {
           </fieldset>
         </form>
 
-        <section className="space-y-2 lg:sticky lg:top-4 lg:self-start">
+        <section className="space-y-2 lg:sticky lg:top-28 lg:self-start">
           <div className="flex items-center justify-between text-sm text-muted-foreground">
             <span>Sample document</span>
             <span>
@@ -291,7 +286,7 @@ function ThemeEditor({ theme }: { theme: Theme }) {
 
       {deleting && <DeleteThemeDialog theme={theme} onClose={() => setDeleting(false)} />}
       <HistoryPanel targetType="theme" targetId={theme.id} />
-    </main>
+    </Page>
   );
 }
 

@@ -601,7 +601,7 @@ class GenerationsApi:
     def get_generations_by_id_signing_package(
         self,
         id: UUID,
-        formats: Annotated[Optional[List[GetGenerationsByIdSigningPackageFormatsParameterInner]], Field(description="Provider JSON to include (default `docusign`). Repeat for several.")] = None,
+        formats: Annotated[Optional[List[GetGenerationsByIdSigningPackageFormatsParameterInner]], Field(description="Provider JSON to include (default `docusign`). Repeat it or comma-separate for several.")] = None,
         embed_pdf: Annotated[Optional[GetGenerationsByIdSigningPackageEmbedPdfParameter], Field(description="Put the PDF in provider JSON as base64 (default `true`).")] = None,
         placement: Annotated[Optional[GetGenerationsByIdSigningPackagePlacementParameter], Field(description="DocuSign tabs by page coordinates (default) or anchor string.")] = None,
         _request_timeout: Union[
@@ -623,7 +623,7 @@ class GenerationsApi:
 
         :param id: (required)
         :type id: UUID
-        :param formats: Provider JSON to include (default `docusign`). Repeat for several.
+        :param formats: Provider JSON to include (default `docusign`). Repeat it or comma-separate for several.
         :type formats: List[GetGenerationsByIdSigningPackageFormatsParameterInner]
         :param embed_pdf: Put the PDF in provider JSON as base64 (default `true`).
         :type embed_pdf: GetGenerationsByIdSigningPackageEmbedPdfParameter
@@ -685,7 +685,7 @@ class GenerationsApi:
     def get_generations_by_id_signing_package_with_http_info(
         self,
         id: UUID,
-        formats: Annotated[Optional[List[GetGenerationsByIdSigningPackageFormatsParameterInner]], Field(description="Provider JSON to include (default `docusign`). Repeat for several.")] = None,
+        formats: Annotated[Optional[List[GetGenerationsByIdSigningPackageFormatsParameterInner]], Field(description="Provider JSON to include (default `docusign`). Repeat it or comma-separate for several.")] = None,
         embed_pdf: Annotated[Optional[GetGenerationsByIdSigningPackageEmbedPdfParameter], Field(description="Put the PDF in provider JSON as base64 (default `true`).")] = None,
         placement: Annotated[Optional[GetGenerationsByIdSigningPackagePlacementParameter], Field(description="DocuSign tabs by page coordinates (default) or anchor string.")] = None,
         _request_timeout: Union[
@@ -707,7 +707,7 @@ class GenerationsApi:
 
         :param id: (required)
         :type id: UUID
-        :param formats: Provider JSON to include (default `docusign`). Repeat for several.
+        :param formats: Provider JSON to include (default `docusign`). Repeat it or comma-separate for several.
         :type formats: List[GetGenerationsByIdSigningPackageFormatsParameterInner]
         :param embed_pdf: Put the PDF in provider JSON as base64 (default `true`).
         :type embed_pdf: GetGenerationsByIdSigningPackageEmbedPdfParameter
@@ -769,7 +769,7 @@ class GenerationsApi:
     def get_generations_by_id_signing_package_without_preload_content(
         self,
         id: UUID,
-        formats: Annotated[Optional[List[GetGenerationsByIdSigningPackageFormatsParameterInner]], Field(description="Provider JSON to include (default `docusign`). Repeat for several.")] = None,
+        formats: Annotated[Optional[List[GetGenerationsByIdSigningPackageFormatsParameterInner]], Field(description="Provider JSON to include (default `docusign`). Repeat it or comma-separate for several.")] = None,
         embed_pdf: Annotated[Optional[GetGenerationsByIdSigningPackageEmbedPdfParameter], Field(description="Put the PDF in provider JSON as base64 (default `true`).")] = None,
         placement: Annotated[Optional[GetGenerationsByIdSigningPackagePlacementParameter], Field(description="DocuSign tabs by page coordinates (default) or anchor string.")] = None,
         _request_timeout: Union[
@@ -791,7 +791,7 @@ class GenerationsApi:
 
         :param id: (required)
         :type id: UUID
-        :param formats: Provider JSON to include (default `docusign`). Repeat for several.
+        :param formats: Provider JSON to include (default `docusign`). Repeat it or comma-separate for several.
         :type formats: List[GetGenerationsByIdSigningPackageFormatsParameterInner]
         :param embed_pdf: Put the PDF in provider JSON as base64 (default `true`).
         :type embed_pdf: GetGenerationsByIdSigningPackageEmbedPdfParameter

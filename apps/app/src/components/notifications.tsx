@@ -52,7 +52,7 @@ export function NotificationBell() {
           </span>
         )}
       </PopoverTrigger>
-      <PopoverContent align="end" className="w-96 p-0">
+      <PopoverContent align="end" className="w-[min(24rem,calc(100vw-2rem))] p-0">
         <div className="flex items-center justify-between border-b px-3 py-2">
           <span className="text-sm font-medium">Notifications</span>
           <Button
@@ -66,7 +66,9 @@ export function NotificationBell() {
         </div>
         <ul className="max-h-96 overflow-y-auto">
           {notifications.data?.items.length === 0 && (
-            <li className="p-3 text-sm text-muted-foreground">Nothing yet.</li>
+            <li className="p-6 text-center text-sm text-muted-foreground">
+              No notifications yet. Review requests, approvals and publishes show up here.
+            </li>
           )}
           {notifications.data?.items.map((n) => (
             <li key={n.id}>

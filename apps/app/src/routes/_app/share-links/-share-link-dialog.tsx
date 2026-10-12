@@ -1,6 +1,7 @@
 import { createShareLinkSchema, isEmptyValue } from "@necodoc/shared";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
+import { toast } from "sonner";
 import { ErrorAlert } from "@/components/form";
 import { GuidedForm } from "@/components/guided-form";
 import { Badge } from "@/components/ui/badge";
@@ -58,11 +59,19 @@ export function useToggleShareLink() {
   return useMutation({
     mutationFn: ({ id, disabled }: { id: string; disabled: boolean }) =>
       ok(api["share-links"][":id"].$patch({ param: { id }, json: { disabled } })),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: shareLinksQuery.queryKey }),
+    onSuccess: (_, { disabled }) => {
+      toast.success(disabled ? "Link disabled: it stops working at once" : "Link enabled");
+      return queryClient.invalidateQueries({ queryKey: shareLinksQuery.queryKey });
+    },
   });
 }
 
 export const publicLinkUrl = (token: string) => `${window.location.origin}/s/${token}`;
+
+export async function copyLink(token: string) {
+  await navigator.clipboard.writeText(publicLinkUrl(token));
+  toast.success("Link copied");
+}
 
 type Prefill = Record<string, unknown>;
 
@@ -125,12 +134,25 @@ export function ShareLinkDialog({
         prefill,
         lockedKeys: lockedKeys.filter((key) => prefillable.some((f) => f.key === key)),
       });
-      if (!link) return ok(api["share-links"].$post({ json: options }));
+      if (!link) return (await ok(api["share-links"].$post({ json: options }))).json();
       const { templateId: _t, ...changes } = options;
-      return ok(api["share-links"][":id"].$patch({ param: { id: link.id }, json: changes }));
+      await ok(api["share-links"][":id"].$patch({ param: { id: link.id }, json: changes }));
+      return null;
     },
-    onSuccess: async () => {
+    onSuccess: async (created) => {
       await queryClient.invalidateQueries({ queryKey: shareLinksQuery.queryKey });
+      // The create answer has only the id; the refetched list has the token.
+      const token = created
+        ? queryClient.getQueryData(shareLinksQuery.queryKey)?.find((l) => l.id === created.id)
+            ?.token
+        : undefined;
+      if (created) {
+        toast.success("Share link created", {
+          action: token ? { label: "Copy link", onClick: () => void copyLink(token) } : undefined,
+        });
+      } else {
+        toast.success("Share link saved");
+      }
       onClose();
     },
   });

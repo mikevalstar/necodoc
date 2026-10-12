@@ -2,8 +2,10 @@ import { changePasswordSchema, deleteAccountSchema, updateProfileSchema } from "
 import { queryOptions, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState } from "react";
+import { toast } from "sonner";
 import type { z } from "zod";
 import { ErrorAlert, useAppForm } from "@/components/form";
+import { FaqLink, Page, PageHeader } from "@/components/page";
 import { RoleBadges } from "@/components/role-badges";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
@@ -20,6 +22,7 @@ import {
 } from "@/components/ui/dialog";
 import { Field, FieldGroup, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
+import { Skeleton } from "@/components/ui/skeleton";
 import { authClient, type Me, unwrap, useSessionChange, useUserMutation } from "@/lib/auth";
 import { dayjs } from "@/lib/date";
 import { setTheme, themes, useTheme } from "@/lib/theme";
@@ -32,8 +35,12 @@ export const Route = createFileRoute("/_app/settings")({
 function Settings() {
   const { me } = Route.useRouteContext();
   return (
-    <main className="mx-auto max-w-2xl space-y-6 p-4 py-8">
-      <h1 className="text-2xl font-semibold">Settings</h1>
+    <Page width="narrow">
+      <PageHeader
+        title="Settings"
+        description="Your profile, password, signed-in devices and how necodoc looks."
+        actions={<FaqLink feature="Settings and preferences" />}
+      />
       <ProfileCard me={me} />
       {me.impersonatedBy ? (
         // Impersonation sessions are hidden from the session list, and the password and
@@ -52,27 +59,19 @@ function Settings() {
       {me.user.roles.length > 0 && <ApiKeysCard />}
       <ThemeCard />
       {!me.impersonatedBy && <DeleteAccountCard />}
-    </main>
-  );
-}
-
-function StatusAlert({ message }: { message: string | null }) {
-  if (!message) return null;
-  return (
-    <Alert role="status">
-      <AlertDescription>{message}</AlertDescription>
-    </Alert>
+    </Page>
   );
 }
 
 function ProfileCard({ me }: { me: Me }) {
-  const update = useUserMutation((value: z.infer<typeof updateProfileSchema>) =>
-    unwrap(authClient.updateUser(value)),
+  const update = useUserMutation(
+    (value: z.infer<typeof updateProfileSchema>) => unwrap(authClient.updateUser(value)),
+    () => toast.success("Saved your name"),
   );
   const form = useAppForm({
     defaultValues: { name: me.user.name },
     validators: { onChange: updateProfileSchema },
-    // Editing again clears the last result, so a stale "Saved" never sits next to a new error.
+    // Editing again clears the last error.
     listeners: { onChange: () => update.reset() },
     onSubmit: ({ value }) => update.mutate(value),
   });
@@ -110,7 +109,6 @@ function ProfileCard({ me }: { me: Me }) {
               )}
             </Field>
             <ErrorAlert error={update.error} />
-            <StatusAlert message={update.isSuccess ? "Saved your name." : null} />
             <Button type="submit" className="w-fit" disabled={update.isPending}>
               Save
             </Button>
@@ -125,7 +123,14 @@ function PasswordCard() {
   const change = useUserMutation(
     ({ currentPassword, newPassword, revokeOtherSessions }: z.infer<typeof changePasswordSchema>) =>
       unwrap(authClient.changePassword({ currentPassword, newPassword, revokeOtherSessions })),
-    () => form.reset(),
+    ({ revokeOtherSessions }) => {
+      form.reset();
+      toast.success(
+        revokeOtherSessions
+          ? "Changed your password and signed out your other devices"
+          : "Changed your password",
+      );
+    },
   );
   const defaultValues: z.infer<typeof changePasswordSchema> = {
     currentPassword: "",
@@ -179,15 +184,6 @@ function PasswordCard() {
               {(field) => <field.CheckboxField label="Sign out my other devices" />}
             </form.AppField>
             <ErrorAlert error={change.error} />
-            <StatusAlert
-              message={
-                change.isSuccess
-                  ? change.variables.revokeOtherSessions
-                    ? "Changed your password and signed out your other devices."
-                    : "Changed your password."
-                  : null
-              }
-            />
             <Button type="submit" className="w-fit" disabled={change.isPending}>
               Change password
             </Button>
@@ -219,7 +215,10 @@ function SessionsCard() {
       token
         ? unwrap(authClient.revokeSession({ token }))
         : unwrap(authClient.revokeOtherSessions()),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: sessionsQuery.queryKey }),
+    onSuccess: (_, token) => {
+      toast.success(token ? "Signed out that device" : "Signed out every other device");
+      return queryClient.invalidateQueries({ queryKey: sessionsQuery.queryKey });
+    },
   });
   const currentToken = sessions.data?.currentToken;
   // This device first, then the most recently refreshed.
@@ -236,16 +235,8 @@ function SessionsCard() {
       </CardHeader>
       <CardContent className="space-y-4">
         <ErrorAlert error={sessions.error ?? revoke.error} />
-        <StatusAlert
-          message={
-            revoke.isSuccess
-              ? revoke.variables
-                ? "Signed out that device."
-                : "Signed out every other device."
-              : null
-          }
-        />
-        <ul className="divide-y rounded-lg border">
+        {sessions.isPending && <Skeleton className="h-16 w-full" />}
+        <ul className="divide-y rounded-lg border empty:hidden">
           {list?.map((session) => {
             const isCurrent = session.token === currentToken;
             return (
@@ -268,6 +259,7 @@ function SessionsCard() {
                     variant="outline"
                     size="sm"
                     disabled={revoke.isPending}
+                    aria-label={`Sign out ${session.userAgent || "unknown device"}`}
                     onClick={() => revoke.mutate(session.token)}
                   >
                     Sign out
@@ -295,7 +287,8 @@ function ApiKeysCard() {
       <CardHeader>
         <CardTitle>API keys</CardTitle>
         <CardDescription>
-          Personal keys and webhooks for calling necodoc from your own code.
+          Personal keys and webhooks for calling necodoc from your own code, under Developers › API
+          keys.
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -349,7 +342,7 @@ function DeleteAccountCard() {
     onSubmit: ({ value }) => remove.mutate(value),
   });
   return (
-    <Card>
+    <Card className="ring-destructive/30">
       <CardHeader>
         <CardTitle>Delete my account</CardTitle>
         <CardDescription>

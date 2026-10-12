@@ -8,9 +8,12 @@ import {
   useSuspenseQuery,
 } from "@tanstack/react-query";
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { ChevronLeftIcon, DownloadIcon } from "lucide-react";
+import { DownloadIcon } from "lucide-react";
 import { useState } from "react";
+import { toast } from "sonner";
+import { ConfirmDialog } from "@/components/confirm-dialog";
 import { ErrorAlert } from "@/components/form";
+import { BackLink, Page, PageHeader } from "@/components/page";
 import { Button, buttonVariants } from "@/components/ui/button";
 import {
   Table,
@@ -35,9 +38,13 @@ const batchQuery = (id: string) =>
     refetchInterval: (query) => (query.state.data?.status === "running" ? 1500 : false),
   });
 
-const rowsQuery = (batchId: string, page: number, running: boolean) =>
+/**
+ * `progress` (rows finished so far) is in the key, so the table refetches whenever the counter
+ * above it moves, the last time included, rather than on its own timer that can lag behind it.
+ */
+const rowsQuery = (batchId: string, page: number, progress: number) =>
   queryOptions({
-    queryKey: ["generations", "batch", batchId, page],
+    queryKey: ["generations", "batch", batchId, page, progress],
     queryFn: async () =>
       (
         await ok(
@@ -52,7 +59,6 @@ const rowsQuery = (batchId: string, page: number, running: boolean) =>
           }),
         )
       ).json(),
-    refetchInterval: running ? 1500 : false,
     placeholderData: keepPreviousData,
   });
 
@@ -65,66 +71,86 @@ function BatchDetail() {
   const { id } = Route.useParams();
   const batch = useSuspenseQuery(batchQuery(id)).data;
   const [page, setPage] = useState(1);
-  const rows = useQuery(rowsQuery(id, page, batch.status === "running"));
+  const progress = batch.done + batch.failed + batch.cancelled;
+  const rows = useQuery(rowsQuery(id, page, progress));
   const queryClient = useQueryClient();
+  const [confirmCancel, setConfirmCancel] = useState(false);
   const cancel = useMutation({
     mutationFn: async () => (await ok(api.batches[":id"].cancel.$post({ param: { id } }))).json(),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["batches"] }),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ["batches"] });
+      setConfirmCancel(false);
+      toast.success("Remaining rows cancelled");
+    },
   });
   const pages = Math.max(1, Math.ceil(batch.total / PAGE_SIZE));
   const hasPdfs = batch.done > 0;
 
   return (
-    <main className="mx-auto max-w-6xl space-y-4 p-4 py-8">
-      <Link
-        to="/batches"
-        className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground"
-      >
-        <ChevronLeftIcon className="size-4" />
-        Batches
-      </Link>
-      <div className="flex flex-wrap items-center gap-2">
-        <h1 className="text-2xl font-semibold">
-          {batch.templateName} <span className="text-muted-foreground">v{batch.version}</span>
-        </h1>
-        <BatchStatusBadge status={batch.status} />
-        <div className="ml-auto flex flex-wrap gap-2">
-          {hasPdfs && (
-            <>
-              <a href={`/api/batches/${id}/zip`} className={buttonVariants({ variant: "outline" })}>
-                <DownloadIcon />
-                ZIP
-              </a>
-              <a
-                href={`/api/batches/${id}/packet`}
-                className={buttonVariants({ variant: "outline" })}
+    <Page>
+      <PageHeader
+        back={<BackLink to="/batches">Batches</BackLink>}
+        title={
+          <>
+            {batch.templateName} <span className="text-muted-foreground">v{batch.version}</span>
+          </>
+        }
+        description={
+          <>
+            Started {dayjs(batch.createdAt).format("YYYY-MM-DD HH:mm:ss")}
+            {batch.userName && ` by ${batch.userName}`}
+            {batch.finishedAt &&
+              `, finished ${dayjs(batch.finishedAt).format("HH:mm:ss")} (${dayjs(batch.finishedAt).from(batch.createdAt, true)})`}
+            . Downloads include the PDFs rendered so far.
+          </>
+        }
+        actions={
+          <>
+            {hasPdfs && (
+              <>
+                <a
+                  href={`/api/batches/${id}/zip`}
+                  className={buttonVariants({ variant: "outline" })}
+                >
+                  <DownloadIcon />
+                  ZIP
+                </a>
+                <a
+                  href={`/api/batches/${id}/packet`}
+                  className={buttonVariants({ variant: "outline" })}
+                >
+                  <DownloadIcon />
+                  Packet PDF
+                </a>
+              </>
+            )}
+            {batch.status === "running" && (
+              <Button
+                variant="outline"
+                className="text-destructive"
+                onClick={() => setConfirmCancel(true)}
               >
-                <DownloadIcon />
-                Packet PDF
-              </a>
-            </>
-          )}
-          {batch.status === "running" && (
-            <Button
-              variant="outline"
-              className="text-destructive"
-              disabled={cancel.isPending}
-              onClick={() => cancel.mutate()}
-            >
-              Cancel remaining
-            </Button>
-          )}
-        </div>
-      </div>
-      <p className="text-sm text-muted-foreground">
-        Started {dayjs(batch.createdAt).format("YYYY-MM-DD HH:mm:ss")}
-        {batch.userName && ` by ${batch.userName}`}
-        {batch.finishedAt &&
-          `, finished ${dayjs(batch.finishedAt).format("HH:mm:ss")} (${dayjs(batch.finishedAt).from(batch.createdAt, true)})`}
-        . Downloads include the PDFs rendered so far.
-      </p>
+                Cancel remaining
+              </Button>
+            )}
+          </>
+        }
+      >
+        <BatchStatusBadge status={batch.status} />
+      </PageHeader>
       <BatchProgress {...batch} />
-      <ErrorAlert error={cancel.error ?? rows.error} />
+      <ErrorAlert error={rows.error} />
+      {confirmCancel && (
+        <ConfirmDialog
+          title="Cancel the remaining rows?"
+          description={`Rows still queued (${batch.total - progress} of ${batch.total}) are cancelled; rows already rendered keep their PDFs. This can't be undone.`}
+          confirmLabel="Cancel remaining"
+          pending={cancel.isPending}
+          error={cancel.error}
+          onConfirm={() => cancel.mutate()}
+          onClose={() => setConfirmCancel(false)}
+        />
+      )}
 
       <Table>
         <TableHeader>
@@ -189,6 +215,6 @@ function BatchDetail() {
           Next
         </Button>
       </div>
-    </main>
+    </Page>
   );
 }

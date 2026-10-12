@@ -9,6 +9,7 @@ import { skipToken, useMutation, useQuery } from "@tanstack/react-query";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { z } from "zod";
 import { ErrorAlert, FieldShell, useAppForm, useFieldContext } from "@/components/form";
+import { FaqLink, Page, PageHeader } from "@/components/page";
 import { PdfFrame } from "@/components/pdf-frame";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
@@ -162,14 +163,12 @@ function RenderPlayground() {
   });
 
   return (
-    <main className="mx-auto max-w-7xl space-y-4 p-4 py-8">
-      <div className="space-y-1">
-        <h1 className="text-2xl font-semibold">Render</h1>
-        <p className="text-sm text-muted-foreground">
-          Turn HTML, Liquid and data into a PDF with the same renderer as templates and the API.
-          Press ⌘/Ctrl+Enter to render.
-        </p>
-      </div>
+    <Page>
+      <PageHeader
+        title="Render playground"
+        description="Turn HTML, Liquid and data into a PDF with the same renderer as templates and the API. Press ⌘/Ctrl+Enter to render."
+        actions={<FaqLink feature="HTML to PDF rendering" />}
+      />
       <div className="grid gap-6 lg:grid-cols-2">
         <form
           className="space-y-4"
@@ -377,7 +376,7 @@ function RenderPlayground() {
           )}
         </section>
       </div>
-    </main>
+    </Page>
   );
 }
 

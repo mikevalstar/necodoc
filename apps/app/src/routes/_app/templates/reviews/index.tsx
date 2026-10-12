@@ -1,9 +1,10 @@
 import { hasPermission } from "@necodoc/shared";
 import { useQuery } from "@tanstack/react-query";
 import { createFileRoute, Link, redirect, useNavigate } from "@tanstack/react-router";
-import { ChevronLeftIcon } from "lucide-react";
+import { ClipboardCheckIcon } from "lucide-react";
 import { z } from "zod";
 import { ErrorAlert } from "@/components/form";
+import { EmptyState, FaqLink, ListSkeleton, Page, PageHeader } from "@/components/page";
 import { Button } from "@/components/ui/button";
 import {
   Table,
@@ -43,79 +44,83 @@ function Reviews() {
     refetchInterval: 30_000,
   });
   return (
-    <main className="mx-auto max-w-6xl space-y-4 p-4 py-8">
-      <Link
-        to="/templates"
-        className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground"
-      >
-        <ChevronLeftIcon className="size-4" />
-        Templates
-      </Link>
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        <div className="space-y-1">
-          <h1 className="text-2xl font-semibold">Reviews</h1>
-          <p className="text-sm text-muted-foreground">
-            Template drafts submitted for review. Open one to see what changed and decide.
-          </p>
-        </div>
-        <div className="flex gap-1">
-          {(["open", "all"] as const).map((s) => (
-            <Button
-              key={s}
-              size="sm"
-              variant={status === s ? "secondary" : "ghost"}
-              onClick={() => navigate({ search: { status: s === "open" ? undefined : s } })}
-            >
-              {s === "open" ? "Open" : "All"}
-            </Button>
-          ))}
-        </div>
-      </div>
+    <Page>
+      <PageHeader
+        title="Reviews"
+        description="Template drafts submitted for review. Open one to see what changed and decide."
+        actions={<FaqLink feature="Review and approval" />}
+      />
+      <fieldset className="flex gap-1" aria-label="Show">
+        {(["open", "all"] as const).map((s) => (
+          <Button
+            key={s}
+            size="sm"
+            variant={status === s ? "secondary" : "ghost"}
+            aria-pressed={status === s}
+            onClick={() => navigate({ search: { status: s === "open" ? undefined : s } })}
+          >
+            {s === "open" ? "Open" : "All"}
+          </Button>
+        ))}
+      </fieldset>
       <ErrorAlert error={reviews.error} />
-      <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead>Template</TableHead>
-            <TableHead>Status</TableHead>
-            <TableHead>Submitted</TableHead>
-            <TableHead>Note</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {reviews.data?.length === 0 && (
+      {reviews.isPending ? (
+        <ListSkeleton />
+      ) : reviews.data?.length === 0 ? (
+        <EmptyState
+          icon={ClipboardCheckIcon}
+          title={status === "open" ? "Nothing waiting for review" : "No reviews yet"}
+          description="An editor submits a saved draft from the template's page (Submit for review); it shows here for reviewers."
+          action={
+            status === "open" && (
+              <Button variant="outline" onClick={() => navigate({ search: { status: "all" } })}>
+                Show all reviews
+              </Button>
+            )
+          }
+        />
+      ) : (
+        <Table>
+          <TableHeader>
             <TableRow>
-              <TableCell colSpan={4} className="text-center text-muted-foreground">
-                {status === "open" ? "Nothing waiting for review." : "No reviews yet."}
-              </TableCell>
+              <TableHead>Template</TableHead>
+              <TableHead>Status</TableHead>
+              <TableHead>Submitted</TableHead>
+              <TableHead>Note</TableHead>
             </TableRow>
-          )}
-          {reviews.data?.map((r) => (
-            <TableRow key={r.id}>
-              <TableCell className="font-medium">
-                <Link
-                  to="/templates/reviews/$reviewId"
-                  params={{ reviewId: r.id }}
-                  className="hover:underline"
-                >
-                  {r.templateName}
-                </Link>
-                {r.baseVersion !== null && (
-                  <span className="text-xs text-muted-foreground"> · against v{r.baseVersion}</span>
-                )}
-              </TableCell>
-              <TableCell>
-                <ReviewStatusBadge status={r.status} stale={r.stale} />
-              </TableCell>
-              <TableCell className="whitespace-nowrap text-sm">
-                {r.submitterName ?? "A deleted user"}, {dayjs(r.submittedAt).fromNow()}
-              </TableCell>
-              <TableCell className="max-w-sm truncate text-sm text-muted-foreground">
-                {r.note}
-              </TableCell>
-            </TableRow>
-          ))}
-        </TableBody>
-      </Table>
-    </main>
+          </TableHeader>
+          <TableBody>
+            {reviews.data?.map((r) => (
+              <TableRow key={r.id}>
+                <TableCell className="font-medium">
+                  <Link
+                    to="/templates/reviews/$reviewId"
+                    params={{ reviewId: r.id }}
+                    className="hover:underline"
+                  >
+                    {r.templateName}
+                  </Link>
+                  {r.baseVersion !== null && (
+                    <span className="text-xs text-muted-foreground">
+                      {" "}
+                      · against v{r.baseVersion}
+                    </span>
+                  )}
+                </TableCell>
+                <TableCell>
+                  <ReviewStatusBadge status={r.status} stale={r.stale} />
+                </TableCell>
+                <TableCell className="whitespace-nowrap text-sm">
+                  {r.submitterName ?? "A deleted user"}, {dayjs(r.submittedAt).fromNow()}
+                </TableCell>
+                <TableCell className="max-w-sm truncate text-sm text-muted-foreground">
+                  {r.note}
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      )}
+    </Page>
   );
 }

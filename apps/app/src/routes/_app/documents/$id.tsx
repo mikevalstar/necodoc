@@ -5,12 +5,14 @@ import {
   type UpdateSubmission,
 } from "@necodoc/shared";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { ChevronLeftIcon, DownloadIcon, Loader2Icon } from "lucide-react";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { DownloadIcon, Loader2Icon } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { toast } from "sonner";
 import { ErrorAlert } from "@/components/form";
 import { AnswerSummary, GuidedForm } from "@/components/guided-form";
 import { LanguagePicker } from "@/components/language-picker";
+import { BackLink, ListSkeleton, Page } from "@/components/page";
 import { PdfFrame } from "@/components/pdf-frame";
 import { Badge } from "@/components/ui/badge";
 import { Button, buttonVariants } from "@/components/ui/button";
@@ -46,15 +48,10 @@ function DocumentPage() {
   const data = doc.data;
 
   return (
-    <main className="mx-auto max-w-3xl space-y-4 p-4 py-8">
-      <Link
-        to="/"
-        className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground"
-      >
-        <ChevronLeftIcon className="size-4" />
-        My documents
-      </Link>
+    <Page width="narrow">
+      <BackLink to="/">My documents</BackLink>
       <ErrorAlert error={doc.error} />
+      {doc.isPending && <ListSkeleton rows={4} />}
       {data &&
         (data.status === "draft" || editing ? (
           <Interview key={data.id} doc={data} onFinished={() => setEditing(false)} />
@@ -68,7 +65,7 @@ function DocumentPage() {
           onDeleted={() => navigate({ to: "/" })}
         />
       )}
-    </main>
+    </Page>
   );
 }
 
@@ -252,7 +249,10 @@ function Finished({
   const start = useStartDocument();
   const regenerate = useMutation({
     mutationFn: () => ok(api.submissions[":id"].finish.$post({ param: { id: doc.id }, json: {} })),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["submissions"] }),
+    onSuccess: () => {
+      toast.success("Making a new PDF from your answers");
+      return queryClient.invalidateQueries({ queryKey: ["submissions"] });
+    },
   });
   const pdfUrl = submissionPdfUrl(doc.id);
   const language = useDocLanguage(doc);
@@ -260,7 +260,7 @@ function Finished({
   return (
     <div className="space-y-6">
       <div className="space-y-2">
-        <h1 className="text-2xl font-semibold break-words">{doc.name}</h1>
+        <h1 className="text-2xl font-semibold tracking-tight break-words">{doc.name}</h1>
         <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-muted-foreground">
           <span>
             {doc.templateName} · version {doc.version}

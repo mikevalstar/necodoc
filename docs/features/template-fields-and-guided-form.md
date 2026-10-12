@@ -52,7 +52,8 @@ to user-defined data.
     must be ticked; a required group or multiple choice needs one item.
   - On a multiple choice field, "equals" means "includes".
 - **Image and signature inputs.** Image fields take an upload; signature
-  fields take a drawn signature saved as a PNG. Both are sent as `data:` URLs
+  fields take a drawn signature saved as a PNG; keyboard and screen-reader
+  users can type their name instead, drawn in a handwriting face. Both are sent as `data:` URLs
   (images PNG, JPEG or WebP).
 - **One schema.** A builder in
   [fields.ts](../../packages/shared/src/fields.ts) turns the field list into a zod

@@ -554,6 +554,8 @@ export async function renderOverlay(
             text: value,
             scale: 4,
             includetext: !TWO_D.has(bcid),
+            // A gap between the bars and the human-readable text; flush, they read as one.
+            textyoffset: -2,
           });
           drawImageIn(page, frame, await doc.embedPng(png));
           break;

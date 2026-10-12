@@ -62,7 +62,9 @@ needs counting.
 - **Signed link** (`POST /api/generations/:id/link`): anyone who can see an
   entry can mint a link to its PDF that works without a session until it
   expires (up to 7 days), for emails, webhooks or handing a PDF to another
-  system. Each link records who minted it and how often it was used.
+  system. Each link records who minted it and how often it was used. The
+  entry's page has a Download link button that mints one (1 hour, 24 hours or
+  7 days) and copies it.
 - **Re-run** renders the same input against the same template version and
   logs a new entry that links to the original.
 - **Delete** removes the entry, its input and its output, including the
@@ -80,6 +82,7 @@ needs counting.
 - [x] Deleting removes the stored PDF bytes too.
 - [x] A signed link downloads the PDF without a session and stops working
       after it expires.
+- [x] The entry's page makes a signed link without an API call.
 - [x] A download answers range requests with 206 and a matching ETag with 304.
 
 ## Known limitations

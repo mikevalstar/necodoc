@@ -17,6 +17,7 @@ import {
 } from "lucide-react";
 import { type ComponentProps, type ReactNode, useEffect, useId, useRef, useState } from "react";
 import { z } from "zod";
+import { ListSkeleton } from "@/components/page";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -262,8 +263,8 @@ export function DataTable<TData extends RowData, TSort extends string>({
                   Couldn't load {noun}s: {error.message}
                 </StatusRow>
               ) : (
-                <StatusRow colSpan={colSpan} className="text-muted-foreground">
-                  Loading…
+                <StatusRow colSpan={colSpan} className="h-auto py-2">
+                  <ListSkeleton rows={6} className="space-y-3" />
                 </StatusRow>
               ))}
           </TableBody>

@@ -10,7 +10,7 @@ export function Logo({ className }: { className?: string }) {
         fillRule="evenodd"
         d="M8 12.5A2 2 0 0 1 11.3 11L22 20H42L52.7 11A2 2 0 0 1 56 12.5V56A4 4 0 0 1 52 60H12A4 4 0 0 1 8 56ZM16 32V36H48V32ZM16 40V44H48V40ZM16 48V52H32V48Z"
       />
-      <path className="fill-[#2f6bff] dark:fill-[#6b93ff]" d="M36 47H40V53H36Z" />
+      <path className="fill-brand" d="M36 47H40V53H36Z" />
     </svg>
   );
 }

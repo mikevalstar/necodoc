@@ -1,9 +1,11 @@
 import type { createServiceAccountSchema } from "@necodoc/shared";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute, Link, redirect, useNavigate } from "@tanstack/react-router";
+import { BotIcon, PlusIcon } from "lucide-react";
 import { useState } from "react";
 import type { z } from "zod";
 import { ErrorAlert, useAppForm } from "@/components/form";
+import { EmptyState, FaqLink, ListSkeleton, Page, PageHeader } from "@/components/page";
 import { RoleBadges } from "@/components/role-badges";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -44,80 +46,92 @@ function ServiceAccounts() {
   const [creating, setCreating] = useState(false);
   const navigate = useNavigate();
   return (
-    <main className="mx-auto max-w-6xl space-y-4 p-4 py-8">
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        <div className="space-y-1">
-          <h1 className="text-2xl font-semibold">Service accounts</h1>
-          <p className="text-sm text-muted-foreground">
-            Non-human identities for the systems that call the API. They hold roles and API keys,
-            and can't sign in.
-          </p>
-        </div>
-        <Button onClick={() => setCreating(true)}>Create service account</Button>
-      </div>
+    <Page>
+      <PageHeader
+        title="Service accounts"
+        description="Non-human identities for the systems that call the API. They hold roles and API keys, and can't sign in."
+        actions={
+          <>
+            <FaqLink feature="Service accounts" />
+            <Button onClick={() => setCreating(true)}>
+              <PlusIcon />
+              Create service account
+            </Button>
+          </>
+        }
+      />
       <ErrorAlert error={accounts.error} />
-      <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead>Name</TableHead>
-            <TableHead>Owner / contact</TableHead>
-            <TableHead>Roles</TableHead>
-            <TableHead className="text-right">Active keys</TableHead>
-            <TableHead>Status</TableHead>
-            <TableHead className="hidden md:table-cell">Created</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {accounts.data?.map((account) => (
-            <TableRow
-              key={account.id}
-              className="cursor-pointer"
-              onClick={() =>
-                navigate({ to: "/admin/service-accounts/$id", params: { id: account.id } })
-              }
-            >
-              <TableCell>
-                <Link
-                  to="/admin/service-accounts/$id"
-                  params={{ id: account.id }}
-                  className="font-medium hover:underline"
-                >
-                  {account.name}
-                </Link>
-                {account.description && (
-                  <div className="max-w-72 truncate text-xs text-muted-foreground">
-                    {account.description}
-                  </div>
-                )}
-              </TableCell>
-              <TableCell>{account.contact}</TableCell>
-              <TableCell>
-                <RoleBadges roles={account.roles} />
-              </TableCell>
-              <TableCell className="text-right tabular-nums">{account.activeKeys}</TableCell>
-              <TableCell>
-                {account.disabled ? (
-                  <Badge variant="destructive">Disabled</Badge>
-                ) : (
-                  <span className="text-sm text-muted-foreground">Active</span>
-                )}
-              </TableCell>
-              <TableCell className="hidden tabular-nums md:table-cell">
-                {dayjs(account.createdAt).format("YYYY-MM-DD")}
-              </TableCell>
-            </TableRow>
-          ))}
-          {accounts.data?.length === 0 && (
+      {accounts.isPending && <ListSkeleton />}
+      {accounts.data?.length === 0 && (
+        <EmptyState
+          icon={BotIcon}
+          title="No service accounts yet"
+          description="Give each system that calls the API its own account, so its keys keep working when the person who set it up leaves."
+          action={
+            <Button onClick={() => setCreating(true)}>
+              <PlusIcon />
+              Create service account
+            </Button>
+          }
+        />
+      )}
+      {!!accounts.data?.length && (
+        <Table>
+          <TableHeader>
             <TableRow>
-              <TableCell colSpan={6} className="text-center text-muted-foreground">
-                No service accounts yet.
-              </TableCell>
+              <TableHead>Name</TableHead>
+              <TableHead>Owner / contact</TableHead>
+              <TableHead>Roles</TableHead>
+              <TableHead className="text-right">Active keys</TableHead>
+              <TableHead>Status</TableHead>
+              <TableHead className="hidden md:table-cell">Created</TableHead>
             </TableRow>
-          )}
-        </TableBody>
-      </Table>
+          </TableHeader>
+          <TableBody>
+            {accounts.data?.map((account) => (
+              <TableRow
+                key={account.id}
+                className="cursor-pointer"
+                onClick={() =>
+                  navigate({ to: "/admin/service-accounts/$id", params: { id: account.id } })
+                }
+              >
+                <TableCell>
+                  <Link
+                    to="/admin/service-accounts/$id"
+                    params={{ id: account.id }}
+                    className="font-medium hover:underline"
+                  >
+                    {account.name}
+                  </Link>
+                  {account.description && (
+                    <div className="max-w-72 truncate text-xs text-muted-foreground">
+                      {account.description}
+                    </div>
+                  )}
+                </TableCell>
+                <TableCell>{account.contact}</TableCell>
+                <TableCell>
+                  <RoleBadges roles={account.roles} />
+                </TableCell>
+                <TableCell className="text-right tabular-nums">{account.activeKeys}</TableCell>
+                <TableCell>
+                  {account.disabled ? (
+                    <Badge variant="destructive">Disabled</Badge>
+                  ) : (
+                    <span className="text-sm text-muted-foreground">Active</span>
+                  )}
+                </TableCell>
+                <TableCell className="hidden tabular-nums md:table-cell">
+                  {dayjs(account.createdAt).format("YYYY-MM-DD")}
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      )}
       {creating && <CreateServiceAccountDialog onClose={() => setCreating(false)} />}
-    </main>
+    </Page>
   );
 }
 

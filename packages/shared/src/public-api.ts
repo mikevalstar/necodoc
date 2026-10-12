@@ -125,12 +125,26 @@ export const jsonSchemaDocumentSchema = z
   .record(z.string(), z.unknown())
   .meta({ id: "JsonSchema", description: "A JSON Schema (draft 2020-12) for the data." });
 
-/** GET .../signing-package: which provider JSON to build. Repeat `formats` for several. */
+const formatList = signingFormatSchema.options.join("|");
+
+/**
+ * GET .../signing-package: which provider JSON to build. Several by repeating `formats` or as
+ * one comma-separated value (`docusign,adobe_sign`).
+ */
 export const signingPackageQuerySchema = z.object({
   formats: z
-    .union([signingFormatSchema, z.array(signingFormatSchema)])
+    .union([
+      signingFormatSchema,
+      z.array(signingFormatSchema),
+      z.string().regex(new RegExp(`^(${formatList})(,(${formatList}))*$`), {
+        error: `Expected formats from ${signingFormatSchema.options.join(", ")}, comma-separated`,
+      }),
+    ])
     .optional()
-    .meta({ description: "Provider JSON to include (default `docusign`). Repeat for several." }),
+    .meta({
+      description:
+        "Provider JSON to include (default `docusign`). Repeat it or comma-separate for several.",
+    }),
   embedPdf: z
     .enum(["true", "false"])
     .optional()

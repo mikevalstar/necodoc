@@ -409,7 +409,7 @@ public class GenerationsApi {
    * Get a generation&#39;s signing package
    * Signers, sign box positions and provider JSON (DocuSign, Dropbox Sign, Adobe Acrobat Sign) for handing the PDF to an e-sign service. Empty for documents without signers or sign boxes.
    * @param id  (required)
-   * @param formats Provider JSON to include (default &#x60;docusign&#x60;). Repeat for several. (optional)
+   * @param formats Provider JSON to include (default &#x60;docusign&#x60;). Repeat it or comma-separate for several. (optional)
    * @param embedPdf Put the PDF in provider JSON as base64 (default &#x60;true&#x60;). (optional)
    * @param placement DocuSign tabs by page coordinates (default) or anchor string. (optional)
    * @return SigningPackage
@@ -423,7 +423,7 @@ public class GenerationsApi {
    * Get a generation&#39;s signing package
    * Signers, sign box positions and provider JSON (DocuSign, Dropbox Sign, Adobe Acrobat Sign) for handing the PDF to an e-sign service. Empty for documents without signers or sign boxes.
    * @param id  (required)
-   * @param formats Provider JSON to include (default &#x60;docusign&#x60;). Repeat for several. (optional)
+   * @param formats Provider JSON to include (default &#x60;docusign&#x60;). Repeat it or comma-separate for several. (optional)
    * @param embedPdf Put the PDF in provider JSON as base64 (default &#x60;true&#x60;). (optional)
    * @param placement DocuSign tabs by page coordinates (default) or anchor string. (optional)
    * @param headers Optional headers to include in the request
@@ -439,7 +439,7 @@ public class GenerationsApi {
    * Get a generation&#39;s signing package
    * Signers, sign box positions and provider JSON (DocuSign, Dropbox Sign, Adobe Acrobat Sign) for handing the PDF to an e-sign service. Empty for documents without signers or sign boxes.
    * @param id  (required)
-   * @param formats Provider JSON to include (default &#x60;docusign&#x60;). Repeat for several. (optional)
+   * @param formats Provider JSON to include (default &#x60;docusign&#x60;). Repeat it or comma-separate for several. (optional)
    * @param embedPdf Put the PDF in provider JSON as base64 (default &#x60;true&#x60;). (optional)
    * @param placement DocuSign tabs by page coordinates (default) or anchor string. (optional)
    * @return ApiResponse&lt;SigningPackage&gt;
@@ -453,7 +453,7 @@ public class GenerationsApi {
    * Get a generation&#39;s signing package
    * Signers, sign box positions and provider JSON (DocuSign, Dropbox Sign, Adobe Acrobat Sign) for handing the PDF to an e-sign service. Empty for documents without signers or sign boxes.
    * @param id  (required)
-   * @param formats Provider JSON to include (default &#x60;docusign&#x60;). Repeat for several. (optional)
+   * @param formats Provider JSON to include (default &#x60;docusign&#x60;). Repeat it or comma-separate for several. (optional)
    * @param embedPdf Put the PDF in provider JSON as base64 (default &#x60;true&#x60;). (optional)
    * @param placement DocuSign tabs by page coordinates (default) or anchor string. (optional)
    * @param headers Optional headers to include in the request

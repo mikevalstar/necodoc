@@ -524,6 +524,7 @@ export function ScalarInput({
       return (
         <SignaturePad
           id={id}
+          label={field.label}
           value={text || undefined}
           onChange={onChange}
           disabled={disabled}

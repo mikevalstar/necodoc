@@ -22,7 +22,7 @@ const EMPTY: SigningPackage = { signers: [], boxes: [], pages: [], anchors: fals
 /** The GET query as options; unset ones take their defaults. */
 export function signingQueryOptions(query: z.infer<typeof signingPackageQuerySchema>) {
   return signingOptionsSchema.parse({
-    ...(query.formats ? { formats: [query.formats].flat() } : {}),
+    ...(query.formats ? { formats: [query.formats].flat().flatMap((f) => f.split(",")) } : {}),
     ...(query.embedPdf ? { embedPdf: query.embedPdf === "true" } : {}),
     ...(query.placement ? { placement: query.placement } : {}),
   });

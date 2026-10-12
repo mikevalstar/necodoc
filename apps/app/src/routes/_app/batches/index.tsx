@@ -1,7 +1,8 @@
 import { queryOptions, useQuery } from "@tanstack/react-query";
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { PlusIcon } from "lucide-react";
+import { LayersIcon, PlusIcon } from "lucide-react";
 import { ErrorAlert } from "@/components/form";
+import { EmptyState, FaqLink, ListSkeleton, Page, PageHeader } from "@/components/page";
 import { buttonVariants } from "@/components/ui/button";
 import {
   Table,
@@ -33,67 +34,76 @@ function Batches() {
   const isAdmin = me.user.roles.includes("admin");
   const batches = useQuery(batchesQuery);
   return (
-    <main className="mx-auto max-w-6xl space-y-4 p-4 py-8">
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        <div className="space-y-1">
-          <h1 className="text-2xl font-semibold">Batches</h1>
-          <p className="text-sm text-muted-foreground">
-            Many documents from one published template, one per CSV or JSON row. Batch rows queue
-            behind interactive renders.
-          </p>
-        </div>
-        <Link to="/batches/new" className={buttonVariants()}>
-          <PlusIcon />
-          Run batch
-        </Link>
-      </div>
+    <Page>
+      <PageHeader
+        title="Batches"
+        description="Many documents from one published template, one per CSV or JSON row. Batch rows queue behind interactive renders."
+        actions={
+          <>
+            <FaqLink feature="Batches" />
+            <Link to="/batches/new" className={buttonVariants()}>
+              <PlusIcon />
+              Run batch
+            </Link>
+          </>
+        }
+      />
       <ErrorAlert error={batches.error} />
-      <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead>Started</TableHead>
-            <TableHead>Template</TableHead>
-            <TableHead>Status</TableHead>
-            <TableHead className="w-1/3">Progress</TableHead>
-            {isAdmin && <TableHead className="hidden md:table-cell">User</TableHead>}
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {batches.data?.map((batch) => (
-            <TableRow key={batch.id}>
-              <TableCell className="whitespace-nowrap">
-                <Link
-                  to="/batches/$id"
-                  params={{ id: batch.id }}
-                  className="font-medium hover:underline"
-                >
-                  {dayjs(batch.createdAt).format("YYYY-MM-DD HH:mm:ss")}
-                </Link>
-              </TableCell>
-              <TableCell>
-                {batch.templateName}{" "}
-                <span className="text-xs text-muted-foreground">v{batch.version}</span>
-              </TableCell>
-              <TableCell>
-                <BatchStatusBadge status={batch.status} />
-              </TableCell>
-              <TableCell>
-                <BatchProgress {...batch} />
-              </TableCell>
-              {isAdmin && (
-                <TableCell className="hidden md:table-cell">{batch.userName ?? "—"}</TableCell>
-              )}
-            </TableRow>
-          ))}
-          {batches.data?.length === 0 && (
+      {batches.isPending && <ListSkeleton />}
+      {batches.data?.length === 0 && (
+        <EmptyState
+          icon={LayersIcon}
+          title="No batches yet"
+          description="Upload a CSV with one row per document and get a PDF for each, plus a ZIP or one combined packet."
+          action={
+            <Link to="/batches/new" className={buttonVariants()}>
+              <PlusIcon />
+              Run batch
+            </Link>
+          }
+        />
+      )}
+      {!!batches.data?.length && (
+        <Table>
+          <TableHeader>
             <TableRow>
-              <TableCell colSpan={5} className="text-center text-muted-foreground">
-                No batches yet.
-              </TableCell>
+              <TableHead>Started</TableHead>
+              <TableHead>Template</TableHead>
+              <TableHead>Status</TableHead>
+              <TableHead className="w-1/3">Progress</TableHead>
+              {isAdmin && <TableHead className="hidden md:table-cell">User</TableHead>}
             </TableRow>
-          )}
-        </TableBody>
-      </Table>
-    </main>
+          </TableHeader>
+          <TableBody>
+            {batches.data?.map((batch) => (
+              <TableRow key={batch.id}>
+                <TableCell className="whitespace-nowrap">
+                  <Link
+                    to="/batches/$id"
+                    params={{ id: batch.id }}
+                    className="font-medium hover:underline"
+                  >
+                    {dayjs(batch.createdAt).format("YYYY-MM-DD HH:mm:ss")}
+                  </Link>
+                </TableCell>
+                <TableCell>
+                  {batch.templateName}{" "}
+                  <span className="text-xs text-muted-foreground">v{batch.version}</span>
+                </TableCell>
+                <TableCell>
+                  <BatchStatusBadge status={batch.status} />
+                </TableCell>
+                <TableCell>
+                  <BatchProgress {...batch} />
+                </TableCell>
+                {isAdmin && (
+                  <TableCell className="hidden md:table-cell">{batch.userName ?? "—"}</TableCell>
+                )}
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      )}
+    </Page>
   );
 }

@@ -16,6 +16,7 @@ import { createColumnHelper } from "@tanstack/react-table";
 import type { InferResponseType } from "hono/client";
 import { DownloadIcon, MoreHorizontalIcon } from "lucide-react";
 import { useState } from "react";
+import { toast } from "sonner";
 import { z } from "zod";
 import { apiKeysQuery } from "@/components/api-keys";
 import {
@@ -26,7 +27,7 @@ import {
   FilterSelect,
 } from "@/components/data-table";
 import { ErrorAlert } from "@/components/form";
-import { Alert, AlertDescription } from "@/components/ui/alert";
+import { FaqLink, Page, PageHeader } from "@/components/page";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -55,6 +56,7 @@ import { formatBytes } from "@/lib/utils";
 import {
   DeleteGenerationDialog,
   formatMs,
+  SignedLinkDialog,
   StatusBadge,
   sourceLabels,
   statusLabels,
@@ -275,7 +277,9 @@ export const Route = createFileRoute("/_app/generations/")({
   component: Generations,
 });
 
-type Dialog = { kind: "delete"; generation: { id: string; filename: string } } | { kind: "bulk" };
+type Dialog =
+  | { kind: "delete" | "link"; generation: { id: string; filename: string } }
+  | { kind: "bulk" };
 
 function Generations() {
   const search = Route.useSearch();
@@ -289,7 +293,6 @@ function Generations() {
   const keys = useQuery(apiKeysQuery(isAdmin ? { all: "true" } : {}));
   const rerun = useRerun();
   const [dialog, setDialog] = useState<Dialog | null>(null);
-  const [notice, setNotice] = useState<string | null>(null);
   const close = () => setDialog(null);
 
   const setSearch = (next: Partial<GenerationsSearch>) =>
@@ -300,40 +303,33 @@ function Generations() {
   const total = generations.data?.total ?? 0;
 
   return (
-    <main className="mx-auto max-w-7xl space-y-4 p-4 py-8">
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        <div className="space-y-1">
-          <h1 className="text-2xl font-semibold">{isAdmin ? "Generations" : "My generations"}</h1>
-          <p className="text-sm text-muted-foreground">
-            Every PDF rendered{isAdmin ? "" : " by you"}, with its input and output. Previews aren't
-            logged.
-          </p>
-        </div>
-        <div className="flex gap-2">
-          <a href={exportUrl(search)} className={buttonVariants({ variant: "outline" })}>
-            <DownloadIcon />
-            Export CSV
-          </a>
-          {isAdmin && (
-            <Button
-              variant="outline"
-              className="text-destructive"
-              disabled={!hasFilter || total === 0}
-              title={hasFilter ? undefined : "Pick at least one filter first"}
-              onClick={() => setDialog({ kind: "bulk" })}
-            >
-              Delete matching…
-            </Button>
-          )}
-        </div>
-      </div>
+    <Page>
+      <PageHeader
+        title={isAdmin ? "Generations" : "My generations"}
+        description={`Every PDF rendered${isAdmin ? "" : " by you"}, with its input and output. Previews aren't logged.`}
+        actions={
+          <>
+            <FaqLink feature="Generation log" />
+            {isAdmin && (
+              <Button
+                variant="outline"
+                className="text-destructive"
+                disabled={!hasFilter || total === 0}
+                title={hasFilter ? undefined : "Pick at least one filter first"}
+                onClick={() => setDialog({ kind: "bulk" })}
+              >
+                Delete matching…
+              </Button>
+            )}
+            <a href={exportUrl(search)} className={buttonVariants({ variant: "outline" })}>
+              <DownloadIcon />
+              Export CSV
+            </a>
+          </>
+        }
+      />
 
       <ErrorAlert error={rerun.error} />
-      {notice && (
-        <Alert role="status">
-          <AlertDescription>{notice}</AlertDescription>
-        </Alert>
-      )}
 
       <DataTable
         columns={isAdmin ? allColumns : ownColumns}
@@ -346,13 +342,40 @@ function Generations() {
         isFetching={generations.isPlaceholderData}
         error={generations.error}
         noun="generation"
+        empty={
+          hasFilter ? (
+            "No generations match these filters."
+          ) : (
+            <>
+              Nothing rendered yet. Fill in a{" "}
+              <Link to="/documents/new" className="underline underline-offset-4">
+                document
+              </Link>
+              , try the{" "}
+              <Link to="/render" className="underline underline-offset-4">
+                Render playground
+              </Link>{" "}
+              or call the{" "}
+              <Link to="/developers" className="underline underline-offset-4">
+                API
+              </Link>
+              ; every PDF lands here.
+            </>
+          )
+        }
         onRowClick={(generation) =>
           navigate({ to: "/generations/$id", params: { id: generation.id } })
         }
         rowActions={(generation) => (
           <DropdownMenu>
             <DropdownMenuTrigger
-              render={<Button variant="ghost" size="icon-sm" aria-label="Actions" />}
+              render={
+                <Button
+                  variant="ghost"
+                  size="icon-sm"
+                  aria-label={`Actions for ${generation.filename}`}
+                />
+              }
             >
               <MoreHorizontalIcon />
             </DropdownMenuTrigger>
@@ -363,13 +386,18 @@ function Generations() {
                 Open
               </DropdownMenuItem>
               {generation.hasOutput && (
-                <DropdownMenuItem
-                  render={
-                    <a href={generationPdfUrl(generation.id)} download={generation.filename} />
-                  }
-                >
-                  Download PDF
-                </DropdownMenuItem>
+                <>
+                  <DropdownMenuItem
+                    render={
+                      <a href={generationPdfUrl(generation.id)} download={generation.filename} />
+                    }
+                  >
+                    Download PDF
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => setDialog({ kind: "link", generation })}>
+                    Download link…
+                  </DropdownMenuItem>
+                </>
               )}
               <DropdownMenuItem
                 disabled={rerun.isPending}
@@ -520,14 +548,10 @@ function Generations() {
       />
 
       {dialog?.kind === "delete" && (
-        <DeleteGenerationDialog
-          generation={dialog.generation}
-          onClose={close}
-          onDeleted={() => {
-            close();
-            setNotice(`Deleted ${dialog.generation.filename}.`);
-          }}
-        />
+        <DeleteGenerationDialog generation={dialog.generation} onClose={close} onDeleted={close} />
+      )}
+      {dialog?.kind === "link" && (
+        <SignedLinkDialog generation={dialog.generation} onClose={close} />
       )}
       {dialog?.kind === "bulk" && (
         <BulkDeleteDialog
@@ -536,13 +560,13 @@ function Generations() {
           onClose={close}
           onDone={(deleted) => {
             close();
-            setNotice(
-              `Deleted ${deleted.toLocaleString()} ${deleted === 1 ? "generation" : "generations"}.`,
+            toast.success(
+              `Deleted ${deleted.toLocaleString()} ${deleted === 1 ? "generation" : "generations"}`,
             );
           }}
         />
       )}
-    </main>
+    </Page>
   );
 }
 

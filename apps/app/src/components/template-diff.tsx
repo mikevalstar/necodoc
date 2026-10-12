@@ -5,6 +5,7 @@ import { ErrorAlert } from "@/components/form";
 import { Badge } from "@/components/ui/badge";
 import { api, ok } from "@/lib/api";
 import { snippetsQuery } from "@/lib/queries";
+import { plural } from "@/lib/utils";
 
 // Specs: docs/features/publishing-and-versions.md (diff), docs/features/review-and-approval.md.
 // The structural diff of the saved draft against the latest published version.
@@ -175,7 +176,7 @@ export function StructuralDiff({
       {content.lines && (content.lines.added > 0 || content.lines.removed > 0) && (
         <Group title="Code">
           <Row op="changed">
-            {content.lines.added} lines added, {content.lines.removed} removed
+            {plural(content.lines.added, "line")} added, {content.lines.removed} removed
           </Row>
         </Group>
       )}

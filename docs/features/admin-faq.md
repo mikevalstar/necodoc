@@ -26,6 +26,9 @@ work. Admins need the shipped truth inside the app.
 - One entry per shipped feature: name, what it does (a few sentences), known
   limitations, and who can use it (roles).
 - Searchable, and grouped the same way the app's nav is.
+- Pages show admins a Help link next to a feature with an entry; it opens the
+  FAQ at that entry (`/admin/faq?entry=<feature>`), see
+  [App shell and navigation](app-shell-and-navigation.md).
 - Content lives in one data file in the app, versioned with the code
   ([faq.ts](../../apps/app/src/lib/faq.ts)). "Who can use it" is derived from
   the [roles](../../packages/shared/src/roles.ts), so it can't drift.
@@ -42,6 +45,7 @@ limitations", in plain words. Reviewers reject feature PRs that don't.
 - [x] Every feature spec whose feature has shipped has an entry.
 - [x] Each entry lists limitations and roles.
 - [x] Search finds an entry by a word in its text.
+- [x] A Help link opens the FAQ with its entry expanded and scrolled to.
 
 ## Known limitations
 

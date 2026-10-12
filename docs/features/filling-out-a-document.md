@@ -50,6 +50,14 @@ they happen, reuses answers, and produces a clean document.
   drafts and finished documents with template, version and last edit; open,
   continue, duplicate or delete each. "New document" opens a picker of
   published, non-archived templates with search and descriptions.
+- **Get started.** For people who set necodoc up (admins, and anyone who can
+  create or publish templates) the home page opens with a checklist: design a
+  template, upload a PDF form, publish one, fill in a first document, get an
+  API key and, for admins, invite the team. Only steps the user's roles allow
+  are listed; each ticks itself off from real data, and the checklist can be
+  dismissed (per browser and account). People who only fill documents get an
+  empty state pointing to the template picker instead
+  ([-get-started.tsx](../../apps/app/src/routes/_app/-get-started.tsx)).
 - **Interview.** One section per step with progress, Back and Next, show-if
   and repeating groups, then a review step summarising every answer with a
   way back to each step. Finish validates strictly and generates the PDF.
@@ -81,6 +89,8 @@ they happen, reuses answers, and produces a clean document.
 - [x] Both template kinds (designed and overlay) can be filled and generated.
 - [x] A document started on version 1 still generates from version 1 after
       version 2 is published.
+- [x] A new admin or template author sees what to do next on the home page,
+      and the checklist only lists steps their roles allow.
 
 ## Known limitations
 

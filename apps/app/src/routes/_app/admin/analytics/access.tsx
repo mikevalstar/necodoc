@@ -24,6 +24,7 @@ import {
   timeTable,
 } from "@/components/charts";
 import { ErrorAlert } from "@/components/form";
+import { Page } from "@/components/page";
 import { api, ok } from "@/lib/api";
 import { dayjs } from "@/lib/date";
 
@@ -136,7 +137,7 @@ function AccessAnalytics() {
   ) => navigate({ to: "/admin/audit", search: { action, ...at } });
 
   return (
-    <main className="mx-auto max-w-7xl space-y-4 p-4 py-8">
+    <Page>
       <AnalyticsHeader current="access" />
       <div className="flex flex-wrap items-end gap-3">
         <RangeControls search={search} onChange={(next) => navigate({ search: next })} />
@@ -450,6 +451,6 @@ function AccessAnalytics() {
           </ChartCard>
         </>
       )}
-    </main>
+    </Page>
   );
 }

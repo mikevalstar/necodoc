@@ -1,6 +1,8 @@
 import { hasPermission, roleSchema } from "@necodoc/shared";
 import { createFileRoute, redirect } from "@tanstack/react-router";
-import { useDeferredValue, useState } from "react";
+import { useDeferredValue, useEffect, useState } from "react";
+import { z } from "zod";
+import { Page, PageHeader } from "@/components/page";
 import { RoleBadges } from "@/components/role-badges";
 import {
   Accordion,
@@ -16,8 +18,12 @@ export const Route = createFileRoute("/_app/admin/faq")({
   beforeLoad: ({ context }) => {
     if (!context.me.user.roles.includes("admin")) throw redirect({ to: "/" });
   },
+  // ?entry= opens one entry: the "Help" links next to features (components/page.tsx FaqLink).
+  validateSearch: z.object({ entry: z.string().optional() }),
   component: Faq,
 });
+
+const entryId = (feature: string) => `faq-${feature.toLowerCase().replace(/[^a-z0-9]+/g, "-")}`;
 
 const searchText = (entry: FaqEntry) =>
   [
@@ -31,6 +37,7 @@ const searchText = (entry: FaqEntry) =>
     .toLowerCase();
 
 function Faq() {
+  const { entry: linked } = Route.useSearch();
   const [query, setQuery] = useState("");
   const words = useDeferredValue(query).toLowerCase().split(/\s+/).filter(Boolean);
   const matches = faq.filter((entry) => {
@@ -38,14 +45,22 @@ function Faq() {
     return words.every((word) => text.includes(word));
   });
 
+  // After the router's own scroll-to-top on navigation.
+  useEffect(() => {
+    if (!linked) return;
+    const timer = setTimeout(
+      () => document.getElementById(entryId(linked))?.scrollIntoView({ block: "start" }),
+      50,
+    );
+    return () => clearTimeout(timer);
+  }, [linked]);
+
   return (
-    <main className="mx-auto max-w-3xl space-y-6 p-4 py-8">
-      <div className="space-y-1">
-        <h1 className="text-2xl font-semibold">FAQ</h1>
-        <p className="text-sm text-muted-foreground">
-          What necodoc does today, how to use it, and where it stops.
-        </p>
-      </div>
+    <Page width="narrow">
+      <PageHeader
+        title="FAQ"
+        description="What necodoc does today, how to use it, and where it stops."
+      />
       <Input
         type="search"
         aria-label="Search the FAQ"
@@ -62,12 +77,21 @@ function Faq() {
             <Accordion
               multiple
               // A search opens every match, so the matching text is visible.
-              key={words.join(" ")}
-              defaultValue={words.length ? entries.map((entry) => entry.feature) : []}
+              key={`${words.join(" ")}|${linked}`}
+              defaultValue={
+                words.length
+                  ? entries.map((entry) => entry.feature)
+                  : entries.filter((entry) => entry.feature === linked).map((e) => e.feature)
+              }
               className="rounded-lg border px-3"
             >
               {entries.map((entry) => (
-                <AccordionItem key={entry.feature} value={entry.feature}>
+                <AccordionItem
+                  key={entry.feature}
+                  value={entry.feature}
+                  id={entryId(entry.feature)}
+                  className="scroll-mt-28"
+                >
                   <AccordionTrigger>{entry.feature}</AccordionTrigger>
                   <AccordionContent>
                     <FaqBody entry={entry} />
@@ -79,7 +103,7 @@ function Faq() {
         );
       })}
       {!matches.length && <p className="text-muted-foreground">Nothing matches "{query}".</p>}
-    </main>
+    </Page>
   );
 }
 

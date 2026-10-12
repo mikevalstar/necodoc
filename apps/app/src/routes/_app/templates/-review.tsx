@@ -2,6 +2,7 @@ import { type ReviewStatus, reviewStatusLabels } from "@necodoc/shared";
 import { queryOptions, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
 import { useState } from "react";
+import { toast } from "sonner";
 import { ErrorAlert } from "@/components/form";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -68,6 +69,7 @@ export function SubmitReviewDialog({
       ).json(),
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: ["reviews"] });
+      toast.success(resubmit ? "Resubmitted for review" : "Submitted for review");
       onClose();
     },
   });
@@ -128,7 +130,10 @@ export function ReviewsPanel({
   const withdraw = useMutation({
     mutationFn: async (id: string) =>
       (await ok(api.reviews[":id"].withdraw.$post({ param: { id } }))).json(),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["reviews"] }),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ["reviews"] });
+      toast.success("Review withdrawn");
+    },
   });
   const current = state.data?.current;
   return (
@@ -194,21 +199,5 @@ export function ReviewsPanel({
         />
       )}
     </div>
-  );
-}
-
-/** Templates › Reviews, with how many are open. */
-export function ReviewsLink() {
-  const open = useQuery({
-    queryKey: ["reviews", "list", "open"],
-    queryFn: async () => (await ok(api.reviews.$get({ query: { status: "open" } }))).json(),
-    refetchInterval: 60_000,
-  });
-  const count = open.data?.length ?? 0;
-  return (
-    <Button variant="outline" nativeButton={false} render={<Link to="/templates/reviews" />}>
-      Reviews
-      {count > 0 && <Badge variant="secondary">{count}</Badge>}
-    </Button>
   );
 }

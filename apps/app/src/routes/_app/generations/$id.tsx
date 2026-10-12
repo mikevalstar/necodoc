@@ -1,10 +1,11 @@
 import { isFinishedStatus, type OutputProfile } from "@necodoc/shared";
 import { queryOptions, useSuspenseQuery } from "@tanstack/react-query";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { ChevronLeftIcon, DownloadIcon } from "lucide-react";
+import { DownloadIcon, LinkIcon, RotateCcwIcon } from "lucide-react";
 import { type ReactNode, useState } from "react";
 import { CopyButton } from "@/components/copy-button";
 import { ErrorAlert } from "@/components/form";
+import { BackLink, FaqLink, Page, PageHeader } from "@/components/page";
 import { PdfFrame } from "@/components/pdf-frame";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button, buttonVariants } from "@/components/ui/button";
@@ -14,6 +15,7 @@ import { formatBytes } from "@/lib/utils";
 import {
   DeleteGenerationDialog,
   formatMs,
+  SignedLinkDialog,
   StatusBadge,
   sourceLabels,
   useRerun,
@@ -42,44 +44,54 @@ function GenerationDetail() {
   const navigate = useNavigate();
   const rerun = useRerun();
   const [deleting, setDeleting] = useState(false);
+  const [linking, setLinking] = useState(false);
   const input = generation.input ? JSON.stringify(generation.input, null, 2) : null;
   const { timings } = generation;
 
   return (
-    <main className="mx-auto max-w-6xl space-y-4 p-4 py-8">
-      <Link
-        to="/generations"
-        className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground"
-      >
-        <ChevronLeftIcon className="size-4" />
-        Generations
-      </Link>
-      <div className="flex flex-wrap items-center gap-2">
-        <h1 className="text-2xl font-semibold break-all">{generation.filename}</h1>
-        <StatusBadge status={generation.status} />
-        <div className="ml-auto flex gap-2">
-          {generation.hasOutput && (
-            <a
-              href={generationPdfUrl(generation.id)}
-              download={generation.filename}
-              className={buttonVariants({ variant: "outline" })}
+    <Page>
+      <PageHeader
+        back={<BackLink to="/generations">Generations</BackLink>}
+        title={<span className="break-all">{generation.filename}</span>}
+        actions={
+          <>
+            <FaqLink feature="Generation log" />
+            <Button
+              variant="outline"
+              className="text-destructive"
+              onClick={() => setDeleting(true)}
             >
-              <DownloadIcon />
-              Download
-            </a>
-          )}
-          <Button
-            variant="outline"
-            disabled={rerun.isPending}
-            onClick={() => rerun.mutate(generation.id)}
-          >
-            {rerun.isPending ? "Re-running…" : "Re-run"}
-          </Button>
-          <Button variant="outline" className="text-destructive" onClick={() => setDeleting(true)}>
-            Delete
-          </Button>
-        </div>
-      </div>
+              Delete
+            </Button>
+            <Button
+              variant="outline"
+              disabled={rerun.isPending}
+              onClick={() => rerun.mutate(generation.id)}
+            >
+              <RotateCcwIcon />
+              {rerun.isPending ? "Re-running…" : "Re-run"}
+            </Button>
+            {generation.hasOutput && (
+              <>
+                <Button variant="outline" onClick={() => setLinking(true)}>
+                  <LinkIcon />
+                  Download link
+                </Button>
+                <a
+                  href={generationPdfUrl(generation.id)}
+                  download={generation.filename}
+                  className={buttonVariants()}
+                >
+                  <DownloadIcon />
+                  Download
+                </a>
+              </>
+            )}
+          </>
+        }
+      >
+        <StatusBadge status={generation.status} />
+      </PageHeader>
       <ErrorAlert error={rerun.error} />
 
       {generation.error && (
@@ -236,7 +248,8 @@ function GenerationDetail() {
           onDeleted={() => navigate({ to: "/generations" })}
         />
       )}
-    </main>
+      {linking && <SignedLinkDialog generation={generation} onClose={() => setLinking(false)} />}
+    </Page>
   );
 }
 

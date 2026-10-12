@@ -10,12 +10,14 @@ import {
 import { queryOptions, useMutation, useQueryClient, useSuspenseQuery } from "@tanstack/react-query";
 import { createFileRoute, Link, redirect, useBlocker, useNavigate } from "@tanstack/react-router";
 import type { JSONContent } from "@tiptap/core";
-import { ChevronLeftIcon, TriangleAlertIcon } from "lucide-react";
+import { TriangleAlertIcon } from "lucide-react";
 import { useMemo, useState } from "react";
+import { toast } from "sonner";
 import { HistoryPanel } from "@/components/audit";
 import { CodeEditor } from "@/components/code-editor";
 import { DocEditor } from "@/components/editor/doc-editor";
 import { ErrorAlert } from "@/components/form";
+import { BackLink, FaqLink, Page } from "@/components/page";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import {
   AlertDialog,
@@ -36,6 +38,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { api, ok } from "@/lib/api";
 import { dayjs } from "@/lib/date";
 import { snippetsQuery } from "@/lib/queries";
+import { useSaveShortcut } from "@/lib/save-shortcut";
 
 // Spec: docs/features/snippet-library.md. Editors change the snippet; everyone who opens drafts
 // sees it read-only, with the templates that use it and which published versions are behind.
@@ -148,7 +151,10 @@ function SnippetEditor({ snippet }: { snippet: SnippetDetail }) {
       (
         await ok(api.snippets[":id"].$patch({ param: { id: snippet.id }, json: { archived } }))
       ).json(),
-    onSuccess: store,
+    onSuccess: async (row) => {
+      toast.success(row.archivedAt ? `Archived ${row.name}` : `Restored ${row.name}`);
+      await store(row);
+    },
   });
   const remove = useMutation({
     mutationFn: async () => ok(api.snippets[":id"].$delete({ param: { id: snippet.id } })),
@@ -157,8 +163,10 @@ function SnippetEditor({ snippet }: { snippet: SnippetDetail }) {
       await queryClient.invalidateQueries({ queryKey: snippetsQuery.queryKey, exact: true });
       setSaved(JSON.stringify(values));
       await navigate({ to: "/snippets" });
+      toast.success(`Deleted ${snippet.name}`);
     },
   });
+  useSaveShortcut(dirty && !save.isPending && parsed.success, save.mutate);
 
   const blocker = useBlocker({
     shouldBlockFn: () => dirty && !remove.isPending,
@@ -184,14 +192,11 @@ function SnippetEditor({ snippet }: { snippet: SnippetDetail }) {
   const { content } = values;
 
   return (
-    <main className="mx-auto max-w-6xl space-y-4 p-4 py-6">
-      <Link
-        to="/snippets"
-        className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground"
-      >
-        <ChevronLeftIcon className="size-4" />
-        Snippets
-      </Link>
+    <Page className="space-y-4 py-6">
+      <div className="flex items-center justify-between gap-2">
+        <BackLink to="/snippets">Snippets</BackLink>
+        <FaqLink feature="Snippet library" />
+      </div>
 
       <div className="flex flex-wrap items-center gap-3">
         <Input
@@ -215,6 +220,7 @@ function SnippetEditor({ snippet }: { snippet: SnippetDetail }) {
             </span>
             <Button
               disabled={!dirty || save.isPending || !parsed.success}
+              title={parsed.success ? "Save (⌘S)" : "Fix the problems first"}
               onClick={() => save.mutate()}
             >
               Save
@@ -473,6 +479,6 @@ function SnippetEditor({ snippet }: { snippet: SnippetDetail }) {
         </AlertDialog>
       )}
       <HistoryPanel targetType="snippet" targetId={snippet.id} />
-    </main>
+    </Page>
   );
 }

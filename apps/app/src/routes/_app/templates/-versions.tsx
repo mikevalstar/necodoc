@@ -1,5 +1,6 @@
 import { queryOptions, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
+import { toast } from "sonner";
 import { SuggestButton, useAiEnabled } from "@/components/ai";
 import { ErrorAlert } from "@/components/form";
 import {
@@ -156,6 +157,7 @@ function RestoreDialog({
       ).json(),
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: ["templates"] });
+      toast.success(`Restored version ${version} into the draft`);
       onRestored();
     },
   });

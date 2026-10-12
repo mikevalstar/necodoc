@@ -1,11 +1,12 @@
 import { createTemplateSchema, hasPermission } from "@necodoc/shared";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { MoreHorizontalIcon, PlusIcon } from "lucide-react";
+import { FileTextIcon, MoreHorizontalIcon, PlusIcon, UploadIcon } from "lucide-react";
 import { useDeferredValue, useState } from "react";
 import { z } from "zod";
 import { useAiEnabled } from "@/components/ai";
 import { ErrorAlert, useAppForm } from "@/components/form";
+import { EmptyState, FaqLink, ListSkeleton, Page, PageHeader } from "@/components/page";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -39,7 +40,6 @@ import { api, ok } from "@/lib/api";
 import { dayjs } from "@/lib/date";
 import { templatesQuery } from "@/lib/queries";
 import { uploadPdfSource } from "./-overlay-editor";
-import { ReviewsLink } from "./-review";
 import {
   DeleteTemplateDialog,
   TemplateStatusBadges,
@@ -56,6 +56,8 @@ const statusSchema = z.enum(["draft", "published", "changes", "archived"]);
 const searchSchema = z.object({
   q: z.string().optional(),
   status: statusSchema.optional(),
+  /** Opens the New template dialog on that kind: the first-run links ("upload a PDF"). */
+  new: z.enum(["designed", "overlay"]).optional(),
 });
 
 export const Route = createFileRoute("/_app/templates/")({
@@ -73,7 +75,9 @@ function Templates() {
   const templates = useQuery(templatesQuery);
   const duplicate = useDuplicateTemplate();
   const archive = useArchiveTemplate();
-  const [creating, setCreating] = useState(false);
+  const [creating, setCreating] = useState<Kind | null>(
+    can("create") ? (search.new ?? null) : null,
+  );
   const [deleting, setDeleting] = useState<{ id: string; name: string } | null>(null);
   const [query, setQuery] = useState(search.q ?? "");
   const words = useDeferredValue(query).toLowerCase().split(/\s+/).filter(Boolean);
@@ -87,29 +91,29 @@ function Templates() {
   });
 
   return (
-    <main className="mx-auto max-w-6xl space-y-4 p-4 py-8">
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        <div className="space-y-1">
-          <h1 className="text-2xl font-semibold">Templates</h1>
-          <p className="text-sm text-muted-foreground">
-            {seesDrafts
-              ? "Documents designed once and filled in many times. Edit the draft, publish a version."
-              : "Published templates you can fill in."}
-          </p>
-        </div>
-        <div className="flex gap-2">
-          {seesDrafts && <ReviewsLink />}
-          {can("create") && (
-            <Button onClick={() => setCreating(true)}>
-              <PlusIcon />
-              New template
-            </Button>
-          )}
-        </div>
-      </div>
+    <Page>
+      <PageHeader
+        title="Templates"
+        description={
+          seesDrafts
+            ? "Documents designed once and filled in many times. Edit the draft, publish a version."
+            : "Published templates you can fill in."
+        }
+        actions={
+          <>
+            <FaqLink feature="Designed templates" />
+            {can("create") && (
+              <Button onClick={() => setCreating("designed")}>
+                <PlusIcon />
+                New template
+              </Button>
+            )}
+          </>
+        }
+      />
 
       <div className="flex flex-wrap items-end gap-3">
-        <Field className="w-64">
+        <Field className="w-full sm:w-64">
           <FieldLabel htmlFor="template-search">Search</FieldLabel>
           <Input
             id="template-search"
@@ -145,108 +149,142 @@ function Templates() {
 
       <ErrorAlert error={templates.error ?? duplicate.error ?? archive.error} />
 
-      <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead>Name</TableHead>
-            <TableHead>Status</TableHead>
-            <TableHead className="hidden sm:table-cell">
-              {seesDrafts ? "Draft saved" : "Published"}
-            </TableHead>
-            <TableHead className="w-0">
-              <span className="sr-only">Actions</span>
-            </TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {rows.map((t) => (
-            <TableRow key={t.id}>
-              <TableCell className="max-w-md">
-                {seesDrafts ? (
-                  <Link
-                    to="/templates/$id"
-                    params={{ id: t.id }}
-                    className="font-medium hover:underline"
-                  >
-                    {t.name}
-                  </Link>
-                ) : (
-                  <span className="font-medium">{t.name}</span>
-                )}
-                {t.description && (
-                  <p className="truncate text-xs text-muted-foreground">{t.description}</p>
-                )}
-              </TableCell>
-              <TableCell>
-                {/* Draft state is editors' business; viewers see the published version. */}
-                <TemplateStatusBadges
-                  template={seesDrafts ? t : { ...t, hasUnpublishedChanges: false }}
-                />
-              </TableCell>
-              <TableCell className="hidden text-muted-foreground sm:table-cell">
-                {dayjs(seesDrafts ? t.updatedAt : (t.publishedAt ?? t.updatedAt)).fromNow()}
-              </TableCell>
-              <TableCell>
-                {seesDrafts && (
-                  <DropdownMenu>
-                    <DropdownMenuTrigger
-                      render={
-                        <Button
-                          variant="ghost"
-                          size="icon-sm"
-                          aria-label={`Actions for ${t.name}`}
-                        />
-                      }
-                    >
-                      <MoreHorizontalIcon />
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end">
-                      <DropdownMenuItem render={<Link to="/templates/$id" params={{ id: t.id }} />}>
-                        {can("edit") ? "Edit" : "Open"}
-                      </DropdownMenuItem>
-                      {can("create") && (
-                        <DropdownMenuItem onClick={() => duplicate.mutate(t.id)}>
-                          Duplicate
-                        </DropdownMenuItem>
-                      )}
-                      {can("publish") && (
-                        <DropdownMenuItem
-                          onClick={() => archive.mutate({ id: t.id, archive: !t.archivedAt })}
-                        >
-                          {t.archivedAt ? "Restore" : "Archive"}
-                        </DropdownMenuItem>
-                      )}
-                      {can("edit") && t.latestVersion === null && (
-                        <>
-                          <DropdownMenuSeparator />
-                          <DropdownMenuItem variant="destructive" onClick={() => setDeleting(t)}>
-                            Delete
-                          </DropdownMenuItem>
-                        </>
-                      )}
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-                )}
-              </TableCell>
-            </TableRow>
-          ))}
-          {templates.isSuccess && rows.length === 0 && (
+      {templates.isPending ? (
+        <ListSkeleton />
+      ) : templates.data?.length === 0 ? (
+        <EmptyState
+          icon={FileTextIcon}
+          title={seesDrafts ? "No templates yet" : "Nothing published yet"}
+          description={
+            can("create")
+              ? "Design a document from scratch, or upload a PDF you already use and place the answers on it."
+              : "Templates appear here once someone publishes one."
+          }
+          action={
+            can("create") && (
+              <>
+                <Button onClick={() => setCreating("designed")}>
+                  <PlusIcon />
+                  Design a template
+                </Button>
+                <Button variant="outline" onClick={() => setCreating("overlay")}>
+                  <UploadIcon />
+                  Upload a PDF
+                </Button>
+              </>
+            )
+          }
+        />
+      ) : (
+        <Table>
+          <TableHeader>
             <TableRow>
-              <TableCell colSpan={4} className="py-8 text-center text-muted-foreground">
-                {templates.data.length === 0
-                  ? seesDrafts
-                    ? "No templates yet."
-                    : "Nothing has been published yet."
-                  : "No templates match."}
-              </TableCell>
+              <TableHead>Name</TableHead>
+              <TableHead>Status</TableHead>
+              <TableHead className="hidden sm:table-cell">
+                {seesDrafts ? "Draft saved" : "Published"}
+              </TableHead>
+              <TableHead className="w-0">
+                <span className="sr-only">Actions</span>
+              </TableHead>
             </TableRow>
-          )}
-        </TableBody>
-      </Table>
+          </TableHeader>
+          <TableBody>
+            {rows.map((t) => (
+              <TableRow key={t.id}>
+                <TableCell className="max-w-md">
+                  {seesDrafts ? (
+                    <Link
+                      to="/templates/$id"
+                      params={{ id: t.id }}
+                      className="font-medium hover:underline"
+                    >
+                      {t.name}
+                    </Link>
+                  ) : (
+                    <span className="font-medium">{t.name}</span>
+                  )}
+                  {t.description && (
+                    <p className="truncate text-xs text-muted-foreground">{t.description}</p>
+                  )}
+                </TableCell>
+                <TableCell>
+                  {/* Draft state is editors' business; viewers see the published version. */}
+                  <TemplateStatusBadges
+                    template={seesDrafts ? t : { ...t, hasUnpublishedChanges: false }}
+                  />
+                </TableCell>
+                <TableCell className="hidden text-muted-foreground sm:table-cell">
+                  {dayjs(seesDrafts ? t.updatedAt : (t.publishedAt ?? t.updatedAt)).fromNow()}
+                </TableCell>
+                <TableCell>
+                  {seesDrafts && (
+                    <DropdownMenu>
+                      <DropdownMenuTrigger
+                        render={
+                          <Button
+                            variant="ghost"
+                            size="icon-sm"
+                            aria-label={`Actions for ${t.name}`}
+                          />
+                        }
+                      >
+                        <MoreHorizontalIcon />
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuItem
+                          render={<Link to="/templates/$id" params={{ id: t.id }} />}
+                        >
+                          {can("edit") ? "Edit" : "Open"}
+                        </DropdownMenuItem>
+                        {can("create") && (
+                          <DropdownMenuItem onClick={() => duplicate.mutate(t.id)}>
+                            Duplicate
+                          </DropdownMenuItem>
+                        )}
+                        {can("publish") && (
+                          <DropdownMenuItem
+                            onClick={() => archive.mutate({ id: t.id, archive: !t.archivedAt })}
+                          >
+                            {t.archivedAt ? "Restore" : "Archive"}
+                          </DropdownMenuItem>
+                        )}
+                        {can("edit") && t.latestVersion === null && (
+                          <>
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem variant="destructive" onClick={() => setDeleting(t)}>
+                              Delete
+                            </DropdownMenuItem>
+                          </>
+                        )}
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  )}
+                </TableCell>
+              </TableRow>
+            ))}
+            {rows.length === 0 && (
+              <TableRow>
+                <TableCell colSpan={4} className="py-8 text-center text-muted-foreground">
+                  No templates match.
+                </TableCell>
+              </TableRow>
+            )}
+          </TableBody>
+        </Table>
+      )}
 
-      {creating && <CreateTemplateDialog onClose={() => setCreating(false)} />}
+      {creating && (
+        <CreateTemplateDialog
+          initialKind={creating}
+          onClose={() => {
+            setCreating(null);
+            if (search.new) navigate({ search: { ...search, new: undefined }, replace: true });
+          }}
+        />
+      )}
       {deleting && <DeleteTemplateDialog template={deleting} onClose={() => setDeleting(null)} />}
-    </main>
+    </Page>
   );
 }
 
@@ -270,11 +308,17 @@ const buildSchema = z
  * A designed template from scratch, an overlay template on an uploaded PDF, or (AI on) a designed
  * template the assistant builds from a description (docs/features/ai-template-assistant.md).
  */
-function CreateTemplateDialog({ onClose }: { onClose: () => void }) {
+function CreateTemplateDialog({
+  initialKind,
+  onClose,
+}: {
+  initialKind: Kind;
+  onClose: () => void;
+}) {
   const queryClient = useQueryClient();
   const navigate = useNavigate();
   const aiEnabled = useAiEnabled();
-  const [kind, setKind] = useState<Kind>("designed");
+  const [kind, setKind] = useState<Kind>(initialKind);
   const [file, setFile] = useState<File | null>(null);
   const [prompt, setPrompt] = useState("");
   const build = buildSchema.safeParse(prompt);

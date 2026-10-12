@@ -1,6 +1,7 @@
 import type { CreateSubmission, GenerationStatus, SubmissionStatus } from "@necodoc/shared";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
+import { toast } from "sonner";
 import { ErrorAlert } from "@/components/form";
 import {
   AlertDialog,
@@ -40,7 +41,8 @@ export function useStartDocument() {
   return useMutation({
     mutationFn: async (json: CreateSubmission) =>
       (await ok(api.submissions.$post({ json }))).json(),
-    onSuccess: async ({ id }) => {
+    onSuccess: async ({ id }, { fromSubmissionId }) => {
+      if (fromSubmissionId) toast.success("New draft started from the earlier answers");
       await queryClient.invalidateQueries({ queryKey: ["submissions", "list"] });
       await navigate({ to: "/documents/$id", params: { id } });
     },
@@ -62,6 +64,7 @@ export function DeleteDocumentDialog({
     onSuccess: async () => {
       queryClient.removeQueries({ queryKey: ["submissions", document.id] });
       await queryClient.invalidateQueries({ queryKey: ["submissions", "list"] });
+      toast.success(`Deleted ${document.name}`);
       onClose();
       onDeleted?.();
     },

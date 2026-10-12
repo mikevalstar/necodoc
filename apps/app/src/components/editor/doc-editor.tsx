@@ -319,7 +319,9 @@ export function DocEditor({
                 <PopoverContent align="start" className="w-80">
                   {fieldChoices.length === 0 ? (
                     <p className="text-sm text-muted-foreground">
-                      Declare fields on the Fields tab first.
+                      {snippetId
+                        ? "No fields to insert yet. List the field keys this snippet needs under Expected fields (comma-separated), then pick one here."
+                        : "No fields to insert yet. Add fields on the Fields tab, then pick one here."}
                     </p>
                   ) : (
                     <form

@@ -2,6 +2,7 @@ import { publishTemplateSchema, type TemplateSummary } from "@necodoc/shared";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
+import { toast } from "sonner";
 import { z } from "zod";
 import { SuggestButton, useAiEnabled } from "@/components/ai";
 import { ErrorAlert, useAppForm } from "@/components/form";
@@ -82,6 +83,7 @@ export function useDuplicateTemplate() {
     onSuccess: async (created) => {
       await queryClient.invalidateQueries({ queryKey: templatesQuery.queryKey });
       await navigate({ to: "/templates/$id", params: { id: created.id } });
+      toast.success(`Duplicated as ${created.name}`);
     },
   });
 }
@@ -94,7 +96,10 @@ export function useArchiveTemplate() {
       const call = archive ? api.templates[":id"].archive : api.templates[":id"].restore;
       return (await ok(call.$post({ param: { id } }))).json();
     },
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: templatesQuery.queryKey }),
+    onSuccess: async (row) => {
+      toast.success(row.archivedAt ? `Archived ${row.name}` : `Restored ${row.name}`);
+      await queryClient.invalidateQueries({ queryKey: templatesQuery.queryKey });
+    },
   });
 }
 
@@ -115,6 +120,7 @@ export function DeleteTemplateDialog({
       await queryClient.invalidateQueries({ queryKey: templatesQuery.queryKey, exact: true });
       // The editor's unsaved-changes guard doesn't apply to a deleted draft.
       await navigate({ to: "/templates", ignoreBlocker: true });
+      toast.success(`Deleted ${template.name}`);
       onClose();
     },
   });
@@ -169,7 +175,9 @@ export function PublishDialog({
     onSuccess: async (summary) => {
       await queryClient.invalidateQueries({ queryKey: ["templates"] });
       await queryClient.invalidateQueries({ queryKey: ["reviews"] });
-      onPublished(summary?.version ?? (template.latestVersion ?? 0) + 1);
+      const version = summary?.version ?? (template.latestVersion ?? 0) + 1;
+      toast.success(`Published ${template.name} as version ${version}`);
+      onPublished(version);
     },
   });
   const form = useAppForm({

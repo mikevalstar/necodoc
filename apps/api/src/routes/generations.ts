@@ -21,6 +21,7 @@ import {
   lte,
   or,
   type SQL,
+  sql,
 } from "drizzle-orm";
 import type { SelectedFields } from "drizzle-orm/pg-core";
 import { Hono } from "hono";
@@ -188,12 +189,14 @@ export const generationRoutes = new Hono<AppEnv>()
     const { sort, order, limit, offset, ...filter } = c.req.valid("query");
     const where = filterWhere(c.get("user"), filter);
     const direction = order === "asc" ? asc : desc;
+    // Rows without a value (unfinished, failed) go last both ways. Ascending is Postgres's
+    // default, so the per-column index serves it; descending NULLS LAST is a top-N sort instead.
+    const column = generation[sort];
+    const primary = order === "asc" ? asc(column) : sql`${column} desc nulls last`;
     const [items, [total]] = await Promise.all([
       selectSummaries()
         .where(where)
-        // Plain asc/desc so the per-column indexes serve the sort; rows without a value yet
-        // (unfinished) sort as Postgres puts nulls: last ascending, first descending.
-        .orderBy(direction(generation[sort]), direction(generation.id))
+        .orderBy(primary, direction(generation.id))
         .limit(limit)
         .offset(offset),
       db.select({ count: count() }).from(generation).where(where),

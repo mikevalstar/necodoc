@@ -1,11 +1,12 @@
 import { createSnippetSchema, hasPermission, snippetKeySchema } from "@necodoc/shared";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute, Link, redirect, useNavigate } from "@tanstack/react-router";
-import { PlusIcon } from "lucide-react";
+import { PlusIcon, PuzzleIcon } from "lucide-react";
 import { useDeferredValue, useState } from "react";
 import { z } from "zod";
 import { snippetText } from "@/components/editor/snippet";
 import { ErrorAlert, useAppForm } from "@/components/form";
+import { EmptyState, FaqLink, ListSkeleton, Page, PageHeader } from "@/components/page";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -72,24 +73,25 @@ function Snippets() {
   });
 
   return (
-    <main className="mx-auto max-w-6xl space-y-4 p-4 py-8">
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        <div className="space-y-1">
-          <h1 className="text-2xl font-semibold">Snippets</h1>
-          <p className="text-sm text-muted-foreground">
-            Clauses, disclaimers and signature blocks written once and used in many templates.
-          </p>
-        </div>
-        {canCreate && (
-          <Button onClick={() => setCreating(true)}>
-            <PlusIcon />
-            New snippet
-          </Button>
-        )}
-      </div>
+    <Page>
+      <PageHeader
+        title="Snippets"
+        description="Clauses, disclaimers and signature blocks written once and used in many templates."
+        actions={
+          <>
+            <FaqLink feature="Snippet library" />
+            {canCreate && (
+              <Button onClick={() => setCreating(true)}>
+                <PlusIcon />
+                New snippet
+              </Button>
+            )}
+          </>
+        }
+      />
 
       <div className="flex flex-wrap items-end gap-3">
-        <Field className="w-64">
+        <Field className="w-full sm:w-64">
           <FieldLabel htmlFor="snippet-search">Search</FieldLabel>
           <Input
             id="snippet-search"
@@ -134,62 +136,80 @@ function Snippets() {
 
       <ErrorAlert error={snippets.error} />
 
-      <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead>Name</TableHead>
-            <TableHead className="hidden md:table-cell">Content</TableHead>
-            <TableHead>Tags</TableHead>
-            <TableHead className="hidden sm:table-cell">Saved</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {rows.map((s) => (
-            <TableRow key={s.id}>
-              <TableCell className="max-w-xs">
-                <Link
-                  to="/snippets/$id"
-                  params={{ id: s.id }}
-                  className="font-medium hover:underline"
-                >
-                  {s.name}
-                </Link>
-                <p className="truncate text-xs text-muted-foreground">
-                  <code>{s.key}</code>
-                  {s.description && ` · ${s.description}`}
-                </p>
-              </TableCell>
-              <TableCell className="hidden max-w-md md:table-cell">
-                <p className="line-clamp-2 text-xs whitespace-normal text-muted-foreground">
-                  {snippetText(s.content)}
-                </p>
-              </TableCell>
-              <TableCell>
-                <span className="flex flex-wrap gap-1">
-                  {s.tags.map((tag) => (
-                    <Badge key={tag} variant="outline">
-                      {tag}
-                    </Badge>
-                  ))}
-                </span>
-              </TableCell>
-              <TableCell className="hidden text-muted-foreground sm:table-cell">
-                {dayjs(s.updatedAt).fromNow()}
-              </TableCell>
-            </TableRow>
-          ))}
-          {snippets.isSuccess && rows.length === 0 && (
+      {snippets.isPending ? (
+        <ListSkeleton />
+      ) : all.length === 0 ? (
+        <EmptyState
+          icon={PuzzleIcon}
+          title="No snippets yet"
+          description="Write a clause once, then insert it into any template from the editor's Insert menu. Editing the snippet updates every draft that uses it."
+          action={
+            canCreate && (
+              <Button onClick={() => setCreating(true)}>
+                <PlusIcon />
+                New snippet
+              </Button>
+            )
+          }
+        />
+      ) : (
+        <Table>
+          <TableHeader>
             <TableRow>
-              <TableCell colSpan={4} className="py-8 text-center text-muted-foreground">
-                {all.length === 0 ? "No snippets yet." : "No snippets match."}
-              </TableCell>
+              <TableHead>Name</TableHead>
+              <TableHead className="hidden md:table-cell">Content</TableHead>
+              <TableHead>Tags</TableHead>
+              <TableHead className="hidden sm:table-cell">Saved</TableHead>
             </TableRow>
-          )}
-        </TableBody>
-      </Table>
+          </TableHeader>
+          <TableBody>
+            {rows.map((s) => (
+              <TableRow key={s.id}>
+                <TableCell className="max-w-xs">
+                  <Link
+                    to="/snippets/$id"
+                    params={{ id: s.id }}
+                    className="font-medium hover:underline"
+                  >
+                    {s.name}
+                  </Link>
+                  <p className="truncate text-xs text-muted-foreground">
+                    <code>{s.key}</code>
+                    {s.description && ` · ${s.description}`}
+                  </p>
+                </TableCell>
+                <TableCell className="hidden max-w-md md:table-cell">
+                  <p className="line-clamp-2 text-xs whitespace-normal text-muted-foreground">
+                    {snippetText(s.content)}
+                  </p>
+                </TableCell>
+                <TableCell>
+                  <span className="flex flex-wrap gap-1">
+                    {s.tags.map((tag) => (
+                      <Badge key={tag} variant="outline">
+                        {tag}
+                      </Badge>
+                    ))}
+                  </span>
+                </TableCell>
+                <TableCell className="hidden text-muted-foreground sm:table-cell">
+                  {dayjs(s.updatedAt).fromNow()}
+                </TableCell>
+              </TableRow>
+            ))}
+            {rows.length === 0 && (
+              <TableRow>
+                <TableCell colSpan={4} className="py-8 text-center text-muted-foreground">
+                  No snippets match.
+                </TableCell>
+              </TableRow>
+            )}
+          </TableBody>
+        </Table>
+      )}
 
       {creating && <CreateSnippetDialog onClose={() => setCreating(false)} />}
-    </main>
+    </Page>
   );
 }
 

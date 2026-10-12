@@ -92,12 +92,13 @@ const tickFormats = { hour: "HH:00", day: "MMM D", week: "MMM D" } satisfies Rec
 export const formatBucket = (bucket: AnalyticsBucket, t: number) =>
   dayjs(t).format(bucketFormats[bucket]);
 
-/** A clean step near max/4: 1, 2 or 5 times a power of ten. */
-function niceTicks(max: number) {
+/** A clean step near max/4: 1, 2 or 5 times a power of ten; whole numbers for counts. */
+function niceTicks(max: number, counts: boolean) {
   if (max <= 0) return [0, 1];
   const raw = max / 4;
   const power = 10 ** Math.floor(Math.log10(raw));
-  const step = [1, 2, 5, 10].map((m) => m * power).find((s) => s >= raw) ?? raw;
+  const nice = [1, 2, 5, 10].map((m) => m * power).find((s) => s >= raw) ?? raw;
+  const step = counts ? Math.max(1, nice) : nice;
   const ticks: number[] = [];
   for (let v = 0; v <= max + step * 0.999; v += step) ticks.push(v);
   return ticks;
@@ -156,7 +157,7 @@ export function TimeChart<K extends string>({
     kind === "stacked"
       ? Math.max(0, ...buckets.map((_, i) => stackTotal(i)))
       : Math.max(0, ...values.flatMap((row) => [...row.values()].map((v) => v ?? 0)));
-  const ticks = niceTicks(max);
+  const ticks = niceTicks(max, format === formatCount);
   const top = ticks.at(-1) ?? 1;
   const y = (v: number) => MARGIN.top + PLOT_HEIGHT - (v / top) * PLOT_HEIGHT;
   const xCenter = (i: number) => MARGIN.left + band * (i + 0.5);

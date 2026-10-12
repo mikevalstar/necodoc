@@ -126,7 +126,14 @@ function formatNumber(value: unknown, locale: string, options: Intl.NumberFormat
 /** SVG, so codes stay vector in the PDF. */
 function barcodeDataUrl(bcid: string, value: unknown) {
   if (value === null || value === undefined || value === "") return "";
-  const svg = bwipjs.toSVG({ bcid, text: String(value), scale: 3, includetext: bcid !== "qrcode" });
+  const svg = bwipjs.toSVG({
+    bcid,
+    text: String(value),
+    scale: 3,
+    includetext: bcid !== "qrcode",
+    // A gap between the bars and the human-readable text; flush, they read as one.
+    textyoffset: -2,
+  });
   return `data:image/svg+xml;base64,${Buffer.from(svg).toString("base64")}`;
 }
 

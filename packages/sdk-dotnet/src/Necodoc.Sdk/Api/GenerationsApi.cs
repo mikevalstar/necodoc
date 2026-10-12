@@ -92,7 +92,7 @@ namespace Necodoc.Sdk.Api
         /// </remarks>
         /// <exception cref="ApiException">Thrown when fails to make API call</exception>
         /// <param name="id"></param>
-        /// <param name="formats">Provider JSON to include (default &#x60;docusign&#x60;). Repeat for several. (optional)</param>
+        /// <param name="formats">Provider JSON to include (default &#x60;docusign&#x60;). Repeat it or comma-separate for several. (optional)</param>
         /// <param name="embedPdf">Put the PDF in provider JSON as base64 (default &#x60;true&#x60;). (optional)</param>
         /// <param name="placement">DocuSign tabs by page coordinates (default) or anchor string. (optional)</param>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
@@ -106,7 +106,7 @@ namespace Necodoc.Sdk.Api
         /// Signers, sign box positions and provider JSON (DocuSign, Dropbox Sign, Adobe Acrobat Sign) for handing the PDF to an e-sign service. Empty for documents without signers or sign boxes.
         /// </remarks>
         /// <param name="id"></param>
-        /// <param name="formats">Provider JSON to include (default &#x60;docusign&#x60;). Repeat for several. (optional)</param>
+        /// <param name="formats">Provider JSON to include (default &#x60;docusign&#x60;). Repeat it or comma-separate for several. (optional)</param>
         /// <param name="embedPdf">Put the PDF in provider JSON as base64 (default &#x60;true&#x60;). (optional)</param>
         /// <param name="placement">DocuSign tabs by page coordinates (default) or anchor string. (optional)</param>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
@@ -1514,7 +1514,7 @@ namespace Necodoc.Sdk.Api
         /// Get a generation&#39;s signing package Signers, sign box positions and provider JSON (DocuSign, Dropbox Sign, Adobe Acrobat Sign) for handing the PDF to an e-sign service. Empty for documents without signers or sign boxes.
         /// </summary>
         /// <param name="id"></param>
-        /// <param name="formats">Provider JSON to include (default &#x60;docusign&#x60;). Repeat for several. (optional)</param>
+        /// <param name="formats">Provider JSON to include (default &#x60;docusign&#x60;). Repeat it or comma-separate for several. (optional)</param>
         /// <param name="embedPdf">Put the PDF in provider JSON as base64 (default &#x60;true&#x60;). (optional)</param>
         /// <param name="placement">DocuSign tabs by page coordinates (default) or anchor string. (optional)</param>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
@@ -1536,7 +1536,7 @@ namespace Necodoc.Sdk.Api
         /// </summary>
         /// <exception cref="ApiException">Thrown when fails to make API call</exception>
         /// <param name="id"></param>
-        /// <param name="formats">Provider JSON to include (default &#x60;docusign&#x60;). Repeat for several. (optional)</param>
+        /// <param name="formats">Provider JSON to include (default &#x60;docusign&#x60;). Repeat it or comma-separate for several. (optional)</param>
         /// <param name="embedPdf">Put the PDF in provider JSON as base64 (default &#x60;true&#x60;). (optional)</param>
         /// <param name="placement">DocuSign tabs by page coordinates (default) or anchor string. (optional)</param>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>

@@ -35,7 +35,7 @@ Code: [webhooks.ts](../../apps/api/src/webhooks.ts),
   - a template (needs `document: edit`): every generation of it, from any
     source
   A key or template webhook can also be narrowed to the other.
-- People manage their own from Settings › API keys; admins manage service
+- People manage their own from Developers › API keys; admins manage service
   accounts' from Admin › Service accounts.
 - **Events:** `generation.succeeded`, `generation.failed`, `batch.completed`
   (batch rows don't fire generation events). A share-link submission fires

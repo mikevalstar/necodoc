@@ -33,7 +33,7 @@ A blank editor is the slowest part of authoring. GhostDraft authors start from W
 - **Context it sees:** the draft (fields, content, page settings), the theme names, and the conversation. It does not see other templates, generation data or users.
 - **Reviewed changes.** Each proposed change shows as a structural diff (the one [review](review-and-approval.md) uses), with field-reference warnings and an optional preview of the PDF with the change, which the author applies or rejects. Applied changes land in the draft like a manual edit (undo works, nothing is published). The live preview updates.
 - **Streaming** responses; the author can stop a response.
-- **Start from a description:** the new-template dialog takes a description; the template is created empty and opens with the assistant building it from that description, through the same reviewed proposals (with an "Apply all").
+- **Start from a description:** the new-template dialog takes a description; the template is created empty and opens with the assistant building it from that description, through the same reviewed proposals (with an "Apply all" that also applies the proposals that follow for the same request, so a build in steps takes one click).
 - **Errors** (refusal, invalid tool call, provider error) show in the chat and change nothing.
 - **Summaries.** A template's description and a version's publish note are written by people and can be drafted by AI:
   - *Template summary:* "Suggest with AI" next to the description drafts a plain-language summary from the fields and content (what the document is, who fills it, key conditions).

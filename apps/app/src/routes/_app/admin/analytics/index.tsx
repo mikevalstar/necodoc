@@ -33,6 +33,7 @@ import {
 } from "@/components/charts";
 import { FilterSelect } from "@/components/data-table";
 import { ErrorAlert } from "@/components/form";
+import { Page } from "@/components/page";
 import { Button } from "@/components/ui/button";
 import { api, ok } from "@/lib/api";
 import { authClient, unwrap } from "@/lib/auth";
@@ -158,7 +159,7 @@ function DocumentAnalytics() {
   const finished = data ? data.totals.success + data.totals.errors : 0;
 
   return (
-    <main className="mx-auto max-w-7xl space-y-4 p-4 py-8">
+    <Page>
       <AnalyticsHeader current="documents" />
 
       <div className="flex flex-wrap items-end gap-3">
@@ -437,7 +438,7 @@ function DocumentAnalytics() {
           </ChartCard>
         </>
       )}
-    </main>
+    </Page>
   );
 }
 

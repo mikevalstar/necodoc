@@ -18,14 +18,27 @@ import { dayjs } from "@/lib/date";
 // Spec: docs/features/audit-log.md. The entry drawer and the History panel object pages show;
 // Admin › Audit log (routes/_app/admin/audit.tsx) uses both. Admins only, like the API.
 
-const words = (id: string) => id.replaceAll("_", " ").replace(/^\w/, (c) => c.toUpperCase());
+const acronyms = new Set(["api", "ai", "pdf", "sso", "csv", "url", "ip", "html", "json"]);
 
-/** "theme.updated" → "Theme updated", "auth.sign_in_failed" → "Sign in failed". */
+/** "api_key" → "API key", "sign_in_failed" → "Sign in failed"; `lower` keeps the first word lower. */
+const words = (id: string, lower = false) =>
+  id
+    .split("_")
+    .map((word, i) =>
+      acronyms.has(word)
+        ? word.toUpperCase()
+        : i === 0 && !lower
+          ? word.charAt(0).toUpperCase() + word.slice(1)
+          : word,
+    )
+    .join(" ");
+
+/** "theme.updated" → "Theme updated", "template.ai_requested" → "Template AI requested". */
 export const actionLabel = (action: AuditAction) => {
   const [type = "", verb = ""] = action.split(".");
   return type === "auth" || type === "settings"
     ? words(verb)
-    : `${words(type)} ${words(verb).toLowerCase()}`;
+    : `${words(type)} ${words(verb, true)}`;
 };
 export const targetTypeLabel = (type: AuditTargetType) => words(type);
 

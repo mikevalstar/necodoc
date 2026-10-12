@@ -24,6 +24,7 @@ import {
   timeTable,
 } from "@/components/charts";
 import { ErrorAlert } from "@/components/form";
+import { FaqLink, Page, PageHeader } from "@/components/page";
 import { api, ok } from "@/lib/api";
 import { formatBytes } from "@/lib/utils";
 import { formatMs, statusLabels } from "./generations/-generation-actions";
@@ -88,13 +89,12 @@ function Usage() {
     hasPermission(me.user.roles, { document: ["edit"] });
 
   return (
-    <main className="mx-auto max-w-6xl space-y-4 p-4 py-8">
-      <div className="space-y-1">
-        <h1 className="text-2xl font-semibold">My usage</h1>
-        <p className="text-sm text-muted-foreground">
-          What you generated and filled in{editor ? ", and how often your templates are used" : ""}.
-        </p>
-      </div>
+    <Page>
+      <PageHeader
+        title="My usage"
+        description={`What you generated and filled in${editor ? ", and how often your templates are used" : ""}.`}
+        actions={<FaqLink feature="My usage" />}
+      />
       <div className="flex flex-wrap items-end gap-3">
         <RangeControls search={search} onChange={(next) => navigate({ search: next })} />
         <Link
@@ -231,6 +231,6 @@ function Usage() {
           )}
         </>
       )}
-    </main>
+    </Page>
   );
 }

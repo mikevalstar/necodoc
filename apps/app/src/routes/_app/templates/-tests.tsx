@@ -8,7 +8,9 @@ import { queryOptions, useMutation, useQuery, useQueryClient } from "@tanstack/r
 import type { InferResponseType } from "hono/client";
 import { CheckCircle2Icon, XCircleIcon } from "lucide-react";
 import { useState } from "react";
+import { toast } from "sonner";
 import { z } from "zod";
+import { ConfirmDialog } from "@/components/confirm-dialog";
 import { ErrorAlert } from "@/components/form";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -153,10 +155,15 @@ export function TestsPanel({
   const queryClient = useQueryClient();
   const cases = useQuery(testCasesQuery(id));
   const [editing, setEditing] = useState<TestCase | "new" | null>(null);
+  const [deleting, setDeleting] = useState<TestCase | null>(null);
   const remove = useMutation({
     mutationFn: (caseId: string) =>
       ok(api.templates[":id"].tests[":caseId"].$delete({ param: { id, caseId } })),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["templates", id, "tests"] }),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ["templates", id, "tests"] });
+      toast.success(`Deleted test case ${deleting?.name ?? ""}`.trim());
+      setDeleting(null);
+    },
   });
   return (
     <div className="space-y-4">
@@ -171,7 +178,7 @@ export function TestsPanel({
           </Button>
         )}
       </div>
-      <ErrorAlert error={cases.error ?? remove.error} />
+      <ErrorAlert error={cases.error} />
       {cases.data?.map((c) => (
         <div key={c.id} className="flex flex-wrap items-start gap-2 rounded-lg border p-3 text-sm">
           <div className="min-w-0 flex-1 space-y-1">
@@ -192,10 +199,10 @@ export function TestsPanel({
               <Button
                 variant="ghost"
                 size="sm"
-                disabled={remove.isPending}
-                onClick={() => remove.mutate(c.id)}
+                className="text-destructive"
+                onClick={() => setDeleting(c)}
               >
-                Delete
+                Delete…
               </Button>
             </div>
           )}
@@ -207,6 +214,17 @@ export function TestsPanel({
           id={id}
           testCase={editing === "new" ? null : editing}
           onClose={() => setEditing(null)}
+        />
+      )}
+      {deleting && (
+        <ConfirmDialog
+          title={`Delete test case ${deleting.name}?`}
+          description="Its data and checks are removed; publishing no longer runs it. It can't be undone."
+          confirmLabel="Delete test case"
+          pending={remove.isPending}
+          error={remove.error}
+          onConfirm={() => remove.mutate(deleting.id)}
+          onClose={() => setDeleting(null)}
         />
       )}
     </div>

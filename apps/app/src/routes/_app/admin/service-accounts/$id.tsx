@@ -1,12 +1,15 @@
 import type { updateServiceAccountSchema } from "@necodoc/shared";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { createFileRoute, Link, redirect } from "@tanstack/react-router";
+import { createFileRoute, redirect } from "@tanstack/react-router";
 import type { InferResponseType } from "hono/client";
 import { useState } from "react";
+import { toast } from "sonner";
 import type { z } from "zod";
 import { ApiKeyTable, apiKeysQuery, CreateKeyButton, ExpiryWarning } from "@/components/api-keys";
 import { HistoryPanel } from "@/components/audit";
+import { ConfirmDialog } from "@/components/confirm-dialog";
 import { ErrorAlert, useAppForm } from "@/components/form";
+import { BackLink, FaqLink, ListSkeleton, Page, PageHeader } from "@/components/page";
 import { RoleBadges } from "@/components/role-badges";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -44,51 +47,78 @@ function ServiceAccount() {
   });
   const keys = useQuery(apiKeysQuery({ ownerId: id }));
   const [editing, setEditing] = useState(false);
+  const [confirmDisable, setConfirmDisable] = useState(false);
   const update = useUpdate(id);
   const data = account.data;
+  const setDisabled = (disabled: boolean) =>
+    update.mutate(
+      { disabled },
+      {
+        onSuccess: () => {
+          setConfirmDisable(false);
+          toast.success(disabled ? `Disabled ${data?.name}` : `Enabled ${data?.name}`);
+        },
+      },
+    );
   return (
-    <main className="mx-auto max-w-6xl space-y-6 p-4 py-8">
-      <Link to="/admin/service-accounts" className="text-sm text-muted-foreground hover:underline">
-        ← Service accounts
-      </Link>
-      <ErrorAlert error={account.error ?? update.error} />
+    <Page>
+      <ErrorAlert error={account.error ?? (confirmDisable ? null : update.error)} />
+      {account.isPending && <ListSkeleton rows={3} />}
       {data && (
-        <div className="flex flex-wrap items-start justify-between gap-4">
-          <div className="space-y-2">
-            <div className="flex items-center gap-2">
-              <h1 className="text-2xl font-semibold">{data.name}</h1>
-              {data.disabled && <Badge variant="destructive">Disabled</Badge>}
-            </div>
-            <p className="text-sm">
-              <span className="text-muted-foreground">Owner / contact:</span> {data.contact}
-            </p>
-            {data.description && (
-              <p className="max-w-2xl text-sm text-muted-foreground">{data.description}</p>
-            )}
-            <RoleBadges roles={data.roles} />
-            <p className="text-xs text-muted-foreground">
-              Created {dayjs(data.createdAt).format("YYYY-MM-DD")}. Can't sign in; acts only through
-              its keys.
-            </p>
-          </div>
-          <div className="flex gap-2">
-            <Button variant="outline" onClick={() => setEditing(true)}>
-              Edit
-            </Button>
-            <Button
-              variant={data.disabled ? "outline" : "destructive"}
-              disabled={update.isPending}
-              onClick={() => update.mutate({ disabled: !data.disabled })}
-            >
-              {data.disabled ? "Enable" : "Disable"}
-            </Button>
-          </div>
-        </div>
+        <PageHeader
+          back={<BackLink to="/admin/service-accounts">Service accounts</BackLink>}
+          title={data.name}
+          description={
+            <>
+              <span className="text-foreground">Owner / contact:</span> {data.contact}
+              {data.description && <span className="block">{data.description}</span>}
+              <span className="block text-xs">
+                Created {dayjs(data.createdAt).format("YYYY-MM-DD")}. Can't sign in; acts only
+                through its keys.
+              </span>
+            </>
+          }
+          actions={
+            <>
+              <FaqLink feature="Service accounts" />
+              <Button variant="outline" onClick={() => setEditing(true)}>
+                Edit
+              </Button>
+              {data.disabled ? (
+                <Button
+                  variant="outline"
+                  disabled={update.isPending}
+                  onClick={() => setDisabled(false)}
+                >
+                  Enable
+                </Button>
+              ) : (
+                <Button variant="destructive" onClick={() => setConfirmDisable(true)}>
+                  Disable
+                </Button>
+              )}
+            </>
+          }
+        >
+          {data.disabled && <Badge variant="destructive">Disabled</Badge>}
+          <RoleBadges roles={data.roles} />
+        </PageHeader>
       )}
       {data?.disabled && (
         <p className="text-sm text-muted-foreground">
           Disabled: every call with its keys gets 401 until it's enabled again.
         </p>
+      )}
+      {confirmDisable && data && (
+        <ConfirmDialog
+          title={`Disable ${data.name}?`}
+          description="Every call with its keys gets 401 at once. The keys stay; enable it again to restore them."
+          confirmLabel="Disable"
+          pending={update.isPending}
+          error={update.error}
+          onConfirm={() => setDisabled(true)}
+          onClose={() => setConfirmDisable(false)}
+        />
       )}
       <section className="space-y-3">
         <div className="flex flex-wrap items-center justify-between gap-2">
@@ -102,7 +132,7 @@ function ServiceAccount() {
       <WebhookSection ownerId={id} keys={keys.data} canTemplateWebhooks />
       {editing && data && <EditDialog account={data} onClose={() => setEditing(false)} />}
       <HistoryPanel targetType="service_account" targetId={id} />
-    </main>
+    </Page>
   );
 }
 

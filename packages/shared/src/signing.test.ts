@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { z } from "zod";
+import { signingPackageQuerySchema } from "./public-api";
 import {
   adobeSignAgreement,
   displayedRect,
@@ -221,5 +222,17 @@ describe("displayedRect", () => {
       height: 100,
     });
     expect(displayedRect(r, { view, rotate: 90 }).normalized.x).toBeCloseTo(30 / 792);
+  });
+});
+
+describe("signing-package query", () => {
+  it("takes formats repeated or comma-separated", () => {
+    const parse = (formats: unknown) => signingPackageQuerySchema.safeParse({ formats }).success;
+    expect(parse("docusign")).toBe(true);
+    expect(parse(["docusign", "adobe_sign"])).toBe(true);
+    expect(parse("docusign,dropbox_sign,adobe_sign")).toBe(true);
+    expect(parse("docusign,")).toBe(false);
+    expect(parse("docusign,nope")).toBe(false);
+    expect(parse("nope")).toBe(false);
   });
 });

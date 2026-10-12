@@ -10,13 +10,14 @@ import {
   toCodeMode,
 } from "@necodoc/shared";
 import { useMutation, useQuery, useQueryClient, useSuspenseQuery } from "@tanstack/react-query";
-import { createFileRoute, Link, redirect, useBlocker, useNavigate } from "@tanstack/react-router";
-import { ChevronLeftIcon, MoreHorizontalIcon, SparklesIcon, TriangleAlertIcon } from "lucide-react";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { createFileRoute, redirect, useBlocker, useNavigate } from "@tanstack/react-router";
+import { MoreHorizontalIcon, SparklesIcon, TriangleAlertIcon } from "lucide-react";
+import { useCallback, useMemo, useState } from "react";
 import { z } from "zod";
 import { useAiEnabled } from "@/components/ai";
 import { HistoryPanel } from "@/components/audit";
 import { ErrorAlert } from "@/components/form";
+import { BackLink, FaqLink, Page } from "@/components/page";
 import { PdfFrame, usePdfPreview } from "@/components/pdf-frame";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import {
@@ -44,6 +45,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ApiError, api, ok, previewTemplate } from "@/lib/api";
 import { dayjs } from "@/lib/date";
 import { snippetsQuery, templatesQuery } from "@/lib/queries";
+import { useSaveShortcut } from "@/lib/save-shortcut";
 import { AssistantPanel } from "./-assistant";
 import { BandsPanel, BodyPanel, CssPanel } from "./-content-panels";
 import {
@@ -122,8 +124,10 @@ function TemplateEditor({
   const duplicate = useDuplicateTemplate();
   const navigate = useNavigate();
   const archive = useArchiveTemplate();
-  const versions = useQuery(versionsQuery(template.id));
-  const review = useQuery(reviewStateQuery(template.id)).data;
+  // Polled: someone may publish or review this template elsewhere, and the badges and the
+  // Publish button must not go stale.
+  const versions = useQuery({ ...versionsQuery(template.id), refetchInterval: 30_000 });
+  const review = useQuery({ ...reviewStateQuery(template.id), refetchInterval: 30_000 }).data;
 
   const [draft, setDraft] = useState<DraftValues>(() => toDraftValues(template));
   const [saved, setSaved] = useState(() => JSON.stringify(toDraftValues(template)));
@@ -131,7 +135,6 @@ function TemplateEditor({
   const [baseUpdatedAt, setBaseUpdatedAt] = useState(template.updatedAt);
   const [archivedAt, setArchivedAt] = useState(template.archivedAt);
   const [dialog, setDialog] = useState<"publish" | "review" | "delete" | "code" | null>(null);
-  const [notice, setNotice] = useState<string | null>(null);
   const [previewing, setPreviewing] = useState<number | null>(null);
   const [codeError, setCodeError] = useState<string | null>(null);
 
@@ -216,17 +219,7 @@ function TemplateEditor({
   });
   const conflict = save.error instanceof ApiError && save.error.status === 409;
 
-  // ⌘/Ctrl+S saves.
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === "s" && (e.metaKey || e.ctrlKey)) {
-        e.preventDefault();
-        if (dirty && !save.isPending) save.mutate();
-      }
-    };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [dirty, save]);
+  useSaveShortcut(dirty && !save.isPending && parsed.success, save.mutate);
 
   const blocker = useBlocker({
     shouldBlockFn: () => dirty,
@@ -263,6 +256,9 @@ function TemplateEditor({
     latestVersion: latest?.version ?? null,
     hasUnpublishedChanges: !latest || dayjs(baseUpdatedAt).isAfter(latest.publishedAt) || dirty,
   };
+  // The API's review gate (docs/features/review-and-approval.md), so Publish isn't offered
+  // only to be refused.
+  const needsApproval = !!review?.settings.requireReview && !review.approved;
 
   /** The draft's content compiled to code mode, or null with the reason shown in the dialog. */
   const codeContent = () => {
@@ -308,14 +304,13 @@ function TemplateEditor({
   const previewHeight = assistantOpen ? "h-[40svh]" : "h-[82svh]";
 
   return (
-    <main className="mx-auto max-w-[96rem] space-y-4 p-4 py-6">
-      <Link
-        to="/templates"
-        className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground"
-      >
-        <ChevronLeftIcon className="size-4" />
-        Templates
-      </Link>
+    <Page width="wide" className="space-y-4 py-6">
+      <div className="flex items-center justify-between gap-2">
+        <BackLink to="/templates">Templates</BackLink>
+        <FaqLink
+          feature={draft.kind === "overlay" ? "PDF overlay templates" : "Designed templates"}
+        />
+      </div>
 
       <div className="flex flex-wrap items-center gap-3">
         <Input
@@ -365,15 +360,17 @@ function TemplateEditor({
           {can("publish") && (
             <Button
               variant="outline"
-              disabled={dirty || !!archivedAt || !status.hasUnpublishedChanges}
+              disabled={dirty || !!archivedAt || !status.hasUnpublishedChanges || needsApproval}
               title={
                 dirty
                   ? "Save your changes first"
                   : archivedAt
                     ? "Restore it first"
-                    : status.hasUnpublishedChanges
-                      ? undefined
-                      : `Nothing changed since version ${latest?.version}`
+                    : !status.hasUnpublishedChanges
+                      ? `Nothing changed since version ${latest?.version}`
+                      : needsApproval
+                        ? "Publishing needs an approved review of this draft: submit it for review first"
+                        : undefined
               }
               onClick={() => setDialog("publish")}
             >
@@ -443,10 +440,15 @@ function TemplateEditor({
           </AlertDescription>
         </Alert>
       )}
-      {notice && (
-        <Alert role="status">
-          <AlertDescription>{notice}</AlertDescription>
-        </Alert>
+      {can("publish") && needsApproval && status.hasUnpublishedChanges && !dirty && !archivedAt && (
+        <p className="text-sm text-muted-foreground">
+          Publishing needs an approved review of this exact draft.{" "}
+          {review?.current
+            ? review.current.stale
+              ? "The draft changed since the review: resubmit it."
+              : "The review isn't approved yet."
+            : "Submit it for review first."}
+        </p>
       )}
       {conflict ? (
         <Alert variant="destructive">
@@ -667,7 +669,7 @@ function TemplateEditor({
           </TabsContent>
         </Tabs>
 
-        <section className="space-y-2 xl:sticky xl:top-4 xl:self-start">
+        <section className="space-y-2 xl:sticky xl:top-28 xl:self-start">
           {assistantAvailable && assistantOpen !== null && draft.kind === "designed" && (
             <div hidden={!assistantOpen}>
               <AssistantPanel
@@ -760,10 +762,7 @@ function TemplateEditor({
             updatedAt: baseUpdatedAt,
           }}
           onClose={() => setDialog(null)}
-          onPublished={(v) => {
-            setDialog(null);
-            setNotice(`Published version ${v}.`);
-          }}
+          onPublished={() => setDialog(null)}
         />
       )}
       {dialog === "review" && (
@@ -845,6 +844,6 @@ function TemplateEditor({
         </AlertDialog>
       )}
       <HistoryPanel targetType="template" targetId={template.id} />
-    </main>
+    </Page>
   );
 }

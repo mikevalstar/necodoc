@@ -16,6 +16,7 @@ import { Link } from "@tanstack/react-router";
 import type { InferResponseType } from "hono/client";
 import { MoreHorizontalIcon, TriangleAlertIcon } from "lucide-react";
 import { useState } from "react";
+import { toast } from "sonner";
 import { z } from "zod";
 import { CopyButton } from "@/components/copy-button";
 import { ErrorAlert, useAppForm } from "@/components/form";
@@ -73,7 +74,7 @@ import { meQuery } from "@/lib/auth";
 import { dayjs } from "@/lib/date";
 import { templatesQuery } from "@/lib/queries";
 
-// Spec: docs/features/html-to-pdf-api.md (keys). Shared by Settings › API keys (your own),
+// Spec: docs/features/html-to-pdf-api.md (keys). Shared by Settings › API keys (your own, Developers › API keys),
 // Admin › Service accounts (theirs) and Admin › API keys (everyone's). ADR 0029.
 
 type KeyQuery = z.input<typeof apiKeyListQuerySchema>;
@@ -215,14 +216,27 @@ export function ApiKeyTable({
                 {key.requests.toLocaleString()}
               </TableCell>
               <TableCell>
-                <Badge variant={statusBadge[key.status].variant}>
-                  {statusBadge[key.status].label}
-                </Badge>
+                {key.status === "active" && key.ownerDisabled ? (
+                  // The key itself is fine, but its owner is disabled, so every call gets 401.
+                  <Badge variant="outline" title="Its owner is disabled; calls get 401">
+                    Owner disabled
+                  </Badge>
+                ) : (
+                  <Badge variant={statusBadge[key.status].variant}>
+                    {statusBadge[key.status].label}
+                  </Badge>
+                )}
               </TableCell>
               <TableCell>
                 <DropdownMenu>
                   <DropdownMenuTrigger
-                    render={<Button variant="ghost" size="icon-sm" aria-label="Actions" />}
+                    render={
+                      <Button
+                        variant="ghost"
+                        size="icon-sm"
+                        aria-label={`Actions for ${key.name}`}
+                      />
+                    }
                   >
                     <MoreHorizontalIcon />
                   </DropdownMenuTrigger>
@@ -267,8 +281,11 @@ export function ApiKeyTable({
           ))}
           {keys?.length === 0 && (
             <TableRow>
-              <TableCell colSpan={showOwner ? 9 : 8} className="text-center text-muted-foreground">
-                No API keys.
+              <TableCell
+                colSpan={showOwner ? 9 : 8}
+                className="py-8 text-center text-muted-foreground"
+              >
+                No API keys yet. A key lets a script or another system call <code>/api/v1</code>.
               </TableCell>
             </TableRow>
           )}
@@ -394,6 +411,7 @@ function RevokeDialog({ apiKey, onClose }: { apiKey: ApiKeyRow; onClose: () => v
     onSuccess: async () => {
       await invalidate();
       onClose();
+      toast.success(`Revoked ${apiKey.name}`);
     },
   });
   return (

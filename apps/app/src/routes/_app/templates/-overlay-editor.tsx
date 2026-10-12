@@ -25,6 +25,7 @@ import {
   ZoomOutIcon,
 } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
+import { toast } from "sonner";
 import { SuggestButton, useAiEnabled } from "@/components/ai";
 import { ErrorAlert } from "@/components/form";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -36,7 +37,7 @@ import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { api, ok, pdfSourceUrl } from "@/lib/api";
 import type { PdfViewport } from "@/lib/pdfjs";
-import { cn } from "@/lib/utils";
+import { cn, plural } from "@/lib/utils";
 import { BoxInspector, boxTypeLabels } from "./-box-inspector";
 import { PageCanvas, toPdf, toView, usePdfDocument, type ViewRect } from "./-overlay-pages";
 
@@ -199,10 +200,10 @@ export function OverlayEditor({
     handled.current = detection.jobId;
     setSuggestions(done.fields.map((f, i) => ({ ...f, sid: `s${i}` })));
     setNotice(
-      `${done.fields.length} suggestions from ${done.pagesSent} pages in ${(done.ms / 1000).toFixed(0)} s` +
-        (done.pagesSkipped ? `; ${done.pagesSkipped} pages had no lines or boxes` : "") +
+      `${plural(done.fields.length, "suggestion")} from ${plural(done.pagesSent, "page")} in ${(done.ms / 1000).toFixed(0)} s` +
+        (done.pagesSkipped ? `; ${plural(done.pagesSkipped, "page")} had no lines or boxes` : "") +
         (done.pagesNotChecked
-          ? `; ${done.pagesNotChecked} pages past the limit weren't checked`
+          ? `; ${plural(done.pagesNotChecked, "page")} past the limit weren't checked`
           : ""),
     );
   }, [done, detection.jobId]);
@@ -458,7 +459,11 @@ export function OverlayEditor({
                     return (
                       <div
                         key={box.id}
-                        title={`${boxTypeLabels[box.type]}: ${box.value || "(no value)"}${box.acroField ? ` → form field ${box.acroField}` : ""}`}
+                        title={
+                          box.type === "signature" && box.signerId
+                            ? `${boxTypeLabels[box.type]}: ${boxName(box)}`
+                            : `${boxTypeLabels[box.type]}: ${box.value || "(no value)"}${box.acroField ? ` → form field ${box.acroField}` : ""}`
+                        }
                         className={cn(
                           "absolute cursor-move overflow-hidden border text-[10px] leading-tight",
                           box.type === "signature" && box.signerId
@@ -650,8 +655,8 @@ export function OverlayEditor({
             </p>
           )}
           <p className="text-xs text-muted-foreground">
-            {content.boxes.length} boxes · blue draws on the page, green fills a form field, amber
-            is for a signer
+            {plural(content.boxes.length, "box", "boxes")} · blue draws on the page, green fills a
+            form field, amber is for a signer
           </p>
         </aside>
       </div>
@@ -680,7 +685,10 @@ export function OverlayPdfPanel({
   const input = useRef<HTMLInputElement>(null);
   const replace = useMutation({
     mutationFn: uploadPdfSource,
-    onSuccess: (uploaded) => onContent({ ...content, sourceId: uploaded.id }),
+    onSuccess: (uploaded) => {
+      onContent({ ...content, sourceId: uploaded.id });
+      toast.success("New PDF uploaded. Check the boxes still line up, then save.");
+    },
   });
   const s = source.data;
   return (

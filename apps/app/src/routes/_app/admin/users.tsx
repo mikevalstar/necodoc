@@ -2,12 +2,13 @@ import { parseRoles, type Role } from "@necodoc/shared";
 import { keepPreviousData, queryOptions, useMutation, useQuery } from "@tanstack/react-query";
 import { createFileRoute, redirect, useNavigate } from "@tanstack/react-router";
 import type { UserWithRole } from "better-auth/plugins";
-import { MoreHorizontalIcon } from "lucide-react";
+import { MoreHorizontalIcon, PlusIcon } from "lucide-react";
 import { useState } from "react";
+import { toast } from "sonner";
 import { z } from "zod";
 import { ErrorAlert } from "@/components/form";
+import { FaqLink, Page, PageHeader } from "@/components/page";
 import { RoleBadges } from "@/components/role-badges";
-import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -18,6 +19,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
+import { NativeSelect, NativeSelectOption } from "@/components/ui/native-select";
 import {
   Table,
   TableBody,
@@ -101,20 +103,19 @@ function Users() {
   });
   const [dialog, setDialog] = useState<Dialog | null>(null);
   const [query, setQuery] = useState(search.q ?? "");
-  const [notice, setNotice] = useState<string | null>(null);
   const close = () => setDialog(null);
   const done = (message: string) => {
     setDialog(null);
-    setNotice(message);
+    toast.success(message);
   };
 
   const unban = useUserMutation(
     (user: UserWithRole) => unwrap(authClient.admin.unbanUser({ userId: user.id })),
-    (user) => setNotice(`Unbanned ${user.name}.`),
+    (user) => toast.success(`Unbanned ${user.name}.`),
   );
   const revokeSessions = useUserMutation(
     (user: UserWithRole) => unwrap(authClient.admin.revokeUserSessions({ userId: user.id })),
-    (user) => setNotice(`Signed ${user.name} out everywhere.`),
+    (user) => toast.success(`Signed ${user.name} out everywhere.`),
   );
   const sessionChanged = useSessionChange();
   const impersonate = useMutation({
@@ -127,11 +128,20 @@ function Users() {
   const pages = Math.max(1, Math.ceil(total / PAGE_SIZE));
 
   return (
-    <main className="mx-auto max-w-6xl space-y-4 p-4 py-8">
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        <h1 className="text-2xl font-semibold">Users</h1>
-        <Button onClick={() => setDialog({ kind: "create" })}>Create user</Button>
-      </div>
+    <Page>
+      <PageHeader
+        title="Users"
+        description="People who can sign in, their roles and how they sign in. New registrations wait here without a role until you give them one."
+        actions={
+          <>
+            <FaqLink feature="Users and roles" />
+            <Button onClick={() => setDialog({ kind: "create" })}>
+              <PlusIcon />
+              Create user
+            </Button>
+          </>
+        }
+      />
 
       <form
         className="flex flex-wrap gap-2"
@@ -147,9 +157,8 @@ function Users() {
           value={query}
           onChange={(e) => setQuery(e.target.value)}
         />
-        <select
+        <NativeSelect
           aria-label="Search by"
-          className="h-8 rounded-lg border border-input bg-transparent px-2 text-sm"
           value={search.field}
           onChange={(e) =>
             navigate({
@@ -157,20 +166,15 @@ function Users() {
             })
           }
         >
-          <option value="email">Email</option>
-          <option value="name">Name</option>
-        </select>
+          <NativeSelectOption value="email">Email</NativeSelectOption>
+          <NativeSelectOption value="name">Name</NativeSelectOption>
+        </NativeSelect>
         <Button type="submit" variant="outline">
           Search
         </Button>
       </form>
 
       <ErrorAlert error={users.error ?? rowError} />
-      {notice && (
-        <Alert role="status">
-          <AlertDescription>{notice}</AlertDescription>
-        </Alert>
-      )}
 
       <Table>
         <TableHeader>
@@ -323,7 +327,7 @@ function Users() {
       {dialog?.kind === "delete" && (
         <DeleteUserDialog user={dialog.user} onClose={close} onDone={done} />
       )}
-    </main>
+    </Page>
   );
 }
 

@@ -12,3 +12,6 @@ export function formatBytes(bytes: number) {
   }
   return `${value.toFixed(value < 10 ? 1 : 0)} ${units[unit]}`;
 }
+
+/** "1 page", "3 pages"; pass `many` for irregular plurals ("1 box", "2 boxes"). */
+export const plural = (n: number, one: string, many = `${one}s`) => `${n} ${n === 1 ? one : many}`;

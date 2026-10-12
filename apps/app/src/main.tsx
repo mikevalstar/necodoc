@@ -2,6 +2,7 @@ import { MutationCache, QueryClient, QueryClientProvider } from "@tanstack/react
 import { createRouter, RouterProvider } from "@tanstack/react-router";
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
+import { NotFound, RouteError, RoutePending } from "./components/route-states";
 import { routeTree } from "./routeTree.gen";
 import "./index.css";
 import "./lib/theme"; // keeps the theme in sync with the system setting
@@ -12,7 +13,13 @@ const queryClient: QueryClient = new QueryClient({
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["audit"] }),
   }),
 });
-const router = createRouter({ routeTree, context: { queryClient } });
+const router = createRouter({
+  routeTree,
+  context: { queryClient },
+  defaultNotFoundComponent: NotFound,
+  defaultErrorComponent: RouteError,
+  defaultPendingComponent: RoutePending,
+});
 
 declare module "@tanstack/react-router" {
   interface Register {

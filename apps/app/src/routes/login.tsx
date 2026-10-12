@@ -2,8 +2,8 @@ import { signInSchema } from "@necodoc/shared";
 import { useMutation, useSuspenseQuery } from "@tanstack/react-query";
 import { createFileRoute, Link, redirect } from "@tanstack/react-router";
 import { z } from "zod";
+import { AuthFrame } from "@/components/auth-frame";
 import { ErrorAlert, useAppForm } from "@/components/form";
-import { Logo } from "@/components/logo";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -63,11 +63,10 @@ function Login() {
   });
 
   return (
-    <main className="mx-auto flex min-h-svh max-w-sm flex-col justify-center p-4">
-      <Logo className="mx-auto mb-6 size-12" />
+    <AuthFrame>
       <Card>
         <CardHeader>
-          <CardTitle>Sign in to necodoc</CardTitle>
+          <CardTitle>Sign in</CardTitle>
           <CardDescription>
             {options.password
               ? "Use the email and password you registered with."
@@ -144,6 +143,6 @@ function Login() {
           )}
         </CardContent>
       </Card>
-    </main>
+    </AuthFrame>
   );
 }

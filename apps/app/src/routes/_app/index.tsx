@@ -1,10 +1,11 @@
 import { submissionSourceSchema, submissionStatusSchema } from "@necodoc/shared";
 import { useQuery } from "@tanstack/react-query";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { MoreHorizontalIcon, PlusIcon } from "lucide-react";
+import { FileTextIcon, MoreHorizontalIcon, PlusIcon } from "lucide-react";
 import { useDeferredValue, useState } from "react";
 import { z } from "zod";
 import { ErrorAlert } from "@/components/form";
+import { EmptyState, FaqLink, ListSkeleton, Page, PageHeader } from "@/components/page";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -28,6 +29,7 @@ import {
 import { submissionPdfUrl } from "@/lib/api";
 import { dayjs } from "@/lib/date";
 import { submissionsQuery } from "@/lib/queries";
+import { GetStarted, setsUpNecodoc } from "./-get-started";
 import {
   DeleteDocumentDialog,
   DocumentStatusBadge,
@@ -49,6 +51,7 @@ export const Route = createFileRoute("/_app/")({
 });
 
 function Documents() {
+  const { me } = Route.useRouteContext();
   const search = Route.useSearch();
   const navigate = useNavigate({ from: Route.fullPath });
   const documents = useQuery(submissionsQuery({ source: search.source, status: search.status }));
@@ -60,171 +63,200 @@ function Documents() {
     const text = `${d.name} ${d.templateName}`.toLowerCase();
     return words.every((word) => text.includes(word));
   });
+  // Nothing at all yet (not just filtered away): show the next step instead of an empty table.
+  const empty =
+    documents.isSuccess && documents.data.length === 0 && !search.status && !search.source;
 
   return (
-    <main className="mx-auto max-w-6xl space-y-4 p-4 py-8">
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        <div className="space-y-1">
-          <h1 className="text-2xl font-semibold">My documents</h1>
-          <p className="text-sm text-muted-foreground">
-            Answer a template's questions and get the finished PDF. Drafts save as you type.
-          </p>
-        </div>
-        <Button nativeButton={false} render={<Link to="/documents/new" />}>
-          <PlusIcon />
-          New document
-        </Button>
-      </div>
+    <Page>
+      <PageHeader
+        title="My documents"
+        description="Answer a template's questions and get the finished PDF. Drafts save as you type."
+        actions={
+          <>
+            <FaqLink feature="Filling out a document" />
+            <Button nativeButton={false} render={<Link to="/documents/new" />}>
+              <PlusIcon />
+              New document
+            </Button>
+          </>
+        }
+      />
 
-      <div className="flex flex-wrap items-end gap-3">
-        <Field className="w-full sm:w-64">
-          <FieldLabel htmlFor="document-search">Search</FieldLabel>
-          <Input
-            id="document-search"
-            type="search"
-            placeholder="Name or template"
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            onBlur={() => navigate({ search: { ...search, q: query || undefined }, replace: true })}
-          />
-        </Field>
-        <Field className="w-auto">
-          <FieldLabel htmlFor="document-status">Status</FieldLabel>
-          <NativeSelect
-            id="document-status"
-            value={search.status ?? ""}
-            onChange={(e) =>
-              navigate({
-                search: {
-                  ...search,
-                  status: submissionStatusSchema.safeParse(e.target.value).data,
-                },
-              })
-            }
-          >
-            <NativeSelectOption value="">All</NativeSelectOption>
-            <NativeSelectOption value="draft">Drafts</NativeSelectOption>
-            <NativeSelectOption value="finished">Finished</NativeSelectOption>
-          </NativeSelect>
-        </Field>
-        <Field className="w-auto">
-          <FieldLabel htmlFor="document-source">From</FieldLabel>
-          <NativeSelect
-            id="document-source"
-            value={search.source ?? ""}
-            onChange={(e) =>
-              navigate({
-                search: {
-                  ...search,
-                  source: submissionSourceSchema.safeParse(e.target.value).data,
-                },
-              })
-            }
-          >
-            <NativeSelectOption value="">Anywhere</NativeSelectOption>
-            <NativeSelectOption value="app">Filled by me</NativeSelectOption>
-            <NativeSelectOption value="share_link">Share links</NativeSelectOption>
-          </NativeSelect>
-        </Field>
-      </div>
+      {setsUpNecodoc(me.user.roles) && <GetStarted me={me} />}
 
-      <ErrorAlert error={documents.error ?? start.error} />
+      {empty ? (
+        <EmptyState
+          icon={FileTextIcon}
+          title="No documents yet"
+          description="Pick a template to fill in. You answer its questions step by step and download the finished PDF."
+          action={
+            <Button nativeButton={false} render={<Link to="/documents/new" />}>
+              <PlusIcon />
+              Pick a template
+            </Button>
+          }
+        />
+      ) : (
+        <>
+          <div className="flex flex-wrap items-end gap-3">
+            <Field className="w-full sm:w-64">
+              <FieldLabel htmlFor="document-search">Search</FieldLabel>
+              <Input
+                id="document-search"
+                type="search"
+                placeholder="Name or template"
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                onBlur={() =>
+                  navigate({ search: { ...search, q: query || undefined }, replace: true })
+                }
+              />
+            </Field>
+            <Field className="w-auto">
+              <FieldLabel htmlFor="document-status">Status</FieldLabel>
+              <NativeSelect
+                id="document-status"
+                value={search.status ?? ""}
+                onChange={(e) =>
+                  navigate({
+                    search: {
+                      ...search,
+                      status: submissionStatusSchema.safeParse(e.target.value).data,
+                    },
+                  })
+                }
+              >
+                <NativeSelectOption value="">All</NativeSelectOption>
+                <NativeSelectOption value="draft">Drafts</NativeSelectOption>
+                <NativeSelectOption value="finished">Finished</NativeSelectOption>
+              </NativeSelect>
+            </Field>
+            <Field className="w-auto">
+              <FieldLabel htmlFor="document-source">From</FieldLabel>
+              <NativeSelect
+                id="document-source"
+                value={search.source ?? ""}
+                onChange={(e) =>
+                  navigate({
+                    search: {
+                      ...search,
+                      source: submissionSourceSchema.safeParse(e.target.value).data,
+                    },
+                  })
+                }
+              >
+                <NativeSelectOption value="">Anywhere</NativeSelectOption>
+                <NativeSelectOption value="app">Filled by me</NativeSelectOption>
+                <NativeSelectOption value="share_link">Share links</NativeSelectOption>
+              </NativeSelect>
+            </Field>
+          </div>
 
-      <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead>Document</TableHead>
-            <TableHead>Status</TableHead>
-            <TableHead className="hidden sm:table-cell">Last edited</TableHead>
-            <TableHead className="w-0">
-              <span className="sr-only">Actions</span>
-            </TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {rows.map((d) => (
-            <TableRow key={d.id}>
-              <TableCell className="max-w-md">
-                <Link
-                  to="/documents/$id"
-                  params={{ id: d.id }}
-                  className="block truncate font-medium hover:underline"
-                >
-                  {d.name}
-                </Link>
-                <p className="truncate text-xs text-muted-foreground">
-                  {d.templateName} · version {d.version}
-                </p>
-              </TableCell>
-              <TableCell>
-                <span className="flex flex-wrap gap-1">
-                  <DocumentStatusBadge status={d.status} generationStatus={d.generationStatus} />
-                  {d.source === "share_link" && <Badge variant="outline">Share link</Badge>}
-                </span>
-              </TableCell>
-              <TableCell className="hidden text-muted-foreground sm:table-cell">
-                {dayjs(d.updatedAt).fromNow()}
-              </TableCell>
-              <TableCell>
-                <DropdownMenu>
-                  <DropdownMenuTrigger
-                    render={
-                      <Button variant="ghost" size="icon-sm" aria-label={`Actions for ${d.name}`} />
-                    }
-                  >
-                    <MoreHorizontalIcon />
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end">
-                    <DropdownMenuItem render={<Link to="/documents/$id" params={{ id: d.id }} />}>
-                      {d.status === "draft" ? "Continue" : "Open"}
-                    </DropdownMenuItem>
-                    {d.generationStatus === "success" && (
-                      <DropdownMenuItem
-                        render={<a href={`${submissionPdfUrl(d.id)}?download=1`} />}
+          <ErrorAlert error={documents.error ?? start.error} />
+
+          {documents.isPending ? (
+            <ListSkeleton />
+          ) : (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Document</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead className="hidden sm:table-cell">Last edited</TableHead>
+                  <TableHead className="w-0">
+                    <span className="sr-only">Actions</span>
+                  </TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {rows.map((d) => (
+                  <TableRow key={d.id}>
+                    <TableCell className="max-w-md">
+                      <Link
+                        to="/documents/$id"
+                        params={{ id: d.id }}
+                        className="block truncate font-medium hover:underline"
                       >
-                        Download PDF
-                      </DropdownMenuItem>
-                    )}
-                    <DropdownMenuItem
-                      onClick={() =>
-                        start.mutate({ templateId: d.templateId, fromSubmissionId: d.id })
-                      }
-                    >
-                      Duplicate
-                    </DropdownMenuItem>
-                    <DropdownMenuItem render={<Link to="/documents/new" search={{ from: d.id }} />}>
-                      Reuse answers in another template
-                    </DropdownMenuItem>
-                    <DropdownMenuSeparator />
-                    <DropdownMenuItem variant="destructive" onClick={() => setDeleting(d)}>
-                      Delete
-                    </DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
-              </TableCell>
-            </TableRow>
-          ))}
-          {documents.isSuccess && rows.length === 0 && (
-            <TableRow>
-              <TableCell colSpan={4} className="py-8 text-center text-muted-foreground">
-                {documents.data.length === 0 ? (
-                  <>
-                    No documents yet.{" "}
-                    <Link to="/documents/new" className="underline underline-offset-4">
-                      Start one
-                    </Link>
-                    .
-                  </>
-                ) : (
-                  "No documents match."
+                        {d.name}
+                      </Link>
+                      <p className="truncate text-xs text-muted-foreground">
+                        {d.templateName} · version {d.version}
+                      </p>
+                    </TableCell>
+                    <TableCell>
+                      <span className="flex flex-wrap gap-1">
+                        <DocumentStatusBadge
+                          status={d.status}
+                          generationStatus={d.generationStatus}
+                        />
+                        {d.source === "share_link" && <Badge variant="outline">Share link</Badge>}
+                      </span>
+                    </TableCell>
+                    <TableCell className="hidden text-muted-foreground sm:table-cell">
+                      {dayjs(d.updatedAt).fromNow()}
+                    </TableCell>
+                    <TableCell>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger
+                          render={
+                            <Button
+                              variant="ghost"
+                              size="icon-sm"
+                              aria-label={`Actions for ${d.name}`}
+                            />
+                          }
+                        >
+                          <MoreHorizontalIcon />
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuItem
+                            render={<Link to="/documents/$id" params={{ id: d.id }} />}
+                          >
+                            {d.status === "draft" ? "Continue" : "Open"}
+                          </DropdownMenuItem>
+                          {d.generationStatus === "success" && (
+                            <DropdownMenuItem
+                              render={<a href={`${submissionPdfUrl(d.id)}?download=1`} />}
+                            >
+                              Download PDF
+                            </DropdownMenuItem>
+                          )}
+                          <DropdownMenuItem
+                            onClick={() =>
+                              start.mutate({ templateId: d.templateId, fromSubmissionId: d.id })
+                            }
+                          >
+                            Duplicate
+                          </DropdownMenuItem>
+                          <DropdownMenuItem
+                            render={<Link to="/documents/new" search={{ from: d.id }} />}
+                          >
+                            Reuse answers in another template
+                          </DropdownMenuItem>
+                          <DropdownMenuSeparator />
+                          <DropdownMenuItem variant="destructive" onClick={() => setDeleting(d)}>
+                            Delete
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </TableCell>
+                  </TableRow>
+                ))}
+                {documents.isSuccess && rows.length === 0 && (
+                  <TableRow>
+                    <TableCell colSpan={4} className="py-8 text-center text-muted-foreground">
+                      No documents match these filters.
+                    </TableCell>
+                  </TableRow>
                 )}
-              </TableCell>
-            </TableRow>
+              </TableBody>
+            </Table>
           )}
-        </TableBody>
-      </Table>
+        </>
+      )}
 
       {deleting && <DeleteDocumentDialog document={deleting} onClose={() => setDeleting(null)} />}
-    </main>
+    </Page>
   );
 }

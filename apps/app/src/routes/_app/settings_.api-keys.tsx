@@ -3,6 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { ApiKeyTable, apiKeysQuery, CreateKeyButton, ExpiryWarning } from "@/components/api-keys";
 import { ErrorAlert } from "@/components/form";
+import { FaqLink, Page, PageHeader } from "@/components/page";
 import { WebhookSection } from "@/components/webhooks";
 
 // Spec: docs/features/html-to-pdf-api.md (keys), docs/features/webhooks.md. Your own keys; a
@@ -16,11 +17,17 @@ function ApiKeys() {
   const keys = useQuery(apiKeysQuery({}));
   const isAdmin = me.user.roles.includes("admin");
   return (
-    <main className="mx-auto max-w-6xl space-y-6 p-4 py-8">
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        <div className="max-w-3xl space-y-1">
-          <h1 className="text-2xl font-semibold">API keys</h1>
-          <p className="text-sm text-muted-foreground">
+    <Page>
+      <PageHeader
+        title="API keys"
+        actions={
+          <>
+            <FaqLink feature="API keys and scopes" />
+            <CreateKeyButton ownerRoles={me.user.roles} />
+          </>
+        }
+        description={
+          <>
             Personal keys for <code>/api/v1</code>, acting as you with the scopes you pick. For a
             system that should keep working after you leave,{" "}
             {isAdmin ? (
@@ -35,10 +42,9 @@ function ApiKeys() {
               API reference
             </Link>
             .
-          </p>
-        </div>
-        <CreateKeyButton ownerRoles={me.user.roles} />
-      </div>
+          </>
+        }
+      />
       <ErrorAlert error={keys.error} />
       <ExpiryWarning keys={keys.data} />
       <ApiKeyTable keys={keys.data} canRotate={() => true} />
@@ -46,6 +52,6 @@ function ApiKeys() {
         keys={keys.data}
         canTemplateWebhooks={hasPermission(me.user.roles, { document: ["edit"] })}
       />
-    </main>
+    </Page>
   );
 }

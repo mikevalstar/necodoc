@@ -847,7 +847,6 @@
             "type": "object",
             "properties": {
               "pdfa": {
-                "default": null,
                 "description": "PDF/A-2 level (`2b` or `2u`), or null for none.",
                 "anyOf": [
                   {
@@ -860,17 +859,14 @@
                 ]
               },
               "pdfua": {
-                "default": false,
                 "description": "Tagged PDF/UA-1. HTML renders only: overlays and packets have no structure to tag.",
                 "type": "boolean"
               },
               "certify": {
-                "default": false,
                 "description": "Certify with the server's certificate (PAdES, DocMDP: form filling and signing stay allowed).",
                 "type": "boolean"
               },
               "lang": {
-                "default": "en",
                 "description": "The document language (BCP 47): date, number and currency formatting, translations, text direction, and the PDF language.",
                 "type": "string",
                 "pattern": "^[A-Za-z]{2,3}(-[A-Za-z0-9]{2,8})*$"
@@ -2719,10 +2715,14 @@
                     "type": "string",
                     "enum": ["docusign", "dropbox_sign", "adobe_sign"]
                   }
+                },
+                {
+                  "type": "string",
+                  "pattern": "^(docusign|dropbox_sign|adobe_sign)(,(docusign|dropbox_sign|adobe_sign))*$"
                 }
               ]
             },
-            "description": "Provider JSON to include (default `docusign`). Repeat for several."
+            "description": "Provider JSON to include (default `docusign`). Repeat it or comma-separate for several."
           },
           {
             "in": "query",

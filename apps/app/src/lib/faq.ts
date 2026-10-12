@@ -117,7 +117,7 @@ const templates: readonly FaqEntry[] = [
   {
     feature: "Fields and the guided form",
     group: "Templates",
-    what: "Fields are the data a template needs: short and long text, number, date, checkbox, choice (one or several), email, image upload, drawn signature and repeating groups. Each has a key, label, help text, required flag, default and type-specific rules (length, pattern, range, decimals, item counts). Sections group them into the steps of the guided form, and a field or section can show only when an earlier field matches a rule.",
+    what: "Fields are the data a template needs: short and long text, number, date, checkbox, choice (one or several), email, image upload, signature (drawn, or typed for keyboard users) and repeating groups. Each has a key, label, help text, required flag, default and type-specific rules (length, pattern, range, decimals, item counts). Sections group them into the steps of the guided form, and a field or section can show only when an earlier field matches a rule.",
     howTo:
       "Open Fields, add a section, then Add field. Click a field to edit it; the key follows the label until you change it. Arrows reorder, the Section menu moves a field to another section. Sample data shows the guided form for the template: 'Fill with examples' generates values, 'Edit as JSON' edits them directly.",
     limitations: [
@@ -200,7 +200,7 @@ const templates: readonly FaqEntry[] = [
     group: "Templates",
     what: "A snippet is a named block of content (a clause, a disclaimer, a signature block) written once and used in many templates. It's edited in the same editor as templates, or as HTML/Liquid, can use merge fields and include other snippets. Drafts always show the snippet as it is now; publishing a template freezes a copy, so a snippet edit never changes a published version. The snippet's page lists the templates using it and flags published versions that have an older copy.",
     howTo:
-      "Open Snippets › New snippet, write the content and list the field keys it expects. In a template, Insert › Snippet (or type /snippet) adds it as a block; code templates and API HTML write {% render 'key' %}. After editing a snippet, its 'Used by' list shows which templates to open and republish.",
+      "Open Snippets › New snippet, write the content and list the field keys it expects (the editor's Field button offers only those). Save with the Save button or ⌘/Ctrl+S. In a template, Insert › Snippet (or type /snippet) adds it as a block; code templates and API HTML write {% render 'key' %}. After editing a snippet, its 'Used by' list shows which templates to open and republish.",
     limitations: [
       "Snippets are global: no folders or per-snippet permissions.",
       "No bulk republish: open each out-of-date template and publish it.",
@@ -482,6 +482,23 @@ export const faq: readonly FaqEntry[] = [
     spec: "docs/features/admin-faq.md",
   },
   {
+    feature: "Navigation and getting started",
+    group: "Admin",
+    what: "The header groups the app into Documents, Templates, Developers and Admin, with the current section's pages underneath. Your initials open the account menu (Settings, My usage, Sign out). The home page shows a Get started checklist to people who set necodoc up, ticking off each step (design a template, upload a PDF, publish, fill a document, get an API key, invite the team) as it happens.",
+    howTo:
+      "Pick a section, then a page under it. Hide the checklist with its close button; it stays hidden in that browser. Help links next to page titles open the matching entry here.",
+    limitations: [
+      "Items a role can't use are hidden; the pages still refuse direct links.",
+      "The template editors need a tablet-sized screen or larger.",
+      "A hidden checklist can't be brought back except by clearing the browser's storage.",
+    ],
+    access: [
+      { action: "Use the app", needs: view },
+      { action: "See the Admin section and Help links", needs: "admin" },
+    ],
+    spec: "docs/features/app-shell-and-navigation.md",
+  },
+  {
     feature: "Render queue and async renders",
     group: "Generations",
     what: "Every logged render (Render page, template generation, re-runs, batch rows) is queued and run by a render worker. The caller normally waits and gets the PDF back as before; if it takes longer than the wait limit (30 s by default) the API answers 202 with the generation id, and the entry finishes in the background. Live previews skip the queue and render straight away.",
@@ -641,11 +658,10 @@ export const faq: readonly FaqEntry[] = [
     group: "Generations",
     what: "A link to one generated PDF that works without signing in until it expires, for emails, webhooks or handing a document to another system. Each link records who made it and how often it was used.",
     howTo:
-      'POST /api/generations/<id>/link with {"expiresInSeconds": 3600} (60 seconds to 7 days) returns {url, expiresAt}. With an API key, POST /api/v1/generations/<id>/link makes one valid for an hour. Add ?download=1 to the URL to save instead of open.',
+      'Open the entry in Generations and press Download link: pick 1 hour, 24 hours or 7 days, Create link, then Copy link. From code, POST /api/generations/<id>/link with {"expiresInSeconds": 3600} (60 seconds to 7 days) returns {url, expiresAt}. With an API key, POST /api/v1/generations/<id>/link makes one valid for an hour. Add ?download=1 to the URL to save instead of open.',
     limitations: [
       "A link can't be revoked before it expires, except by deleting the generation.",
       "Changing DOWNLOAD_SIGNING_SECRET (or BETTER_AUTH_SECRET, if that's unset) voids every live link.",
-      "There's no button in the app yet; it's an API call.",
     ],
     access: [{ action: "Make a link to an entry you can see", needs: view }],
     spec: "docs/features/generation-log.md",
@@ -709,7 +725,7 @@ export const faq: readonly FaqEntry[] = [
     group: "Templates",
     what: 'A chat panel in the editor of a designed template. Describe the document or ask for a change ("add a co-principal and show the second signature block only when there is one") and Claude (Sonnet) proposes changes: name and description, fields and sections, body content, header and footer, page and theme, CSS, sample data, or the HTML of a code-mode template. Each proposal shows what it changes; nothing happens until you apply it, and nothing is saved until you save. It can also explain the template or a Liquid expression. Only shown when AI is turned on.',
     howTo:
-      "Open a designed template and click Assistant (top right). Type a request and press Enter. On each proposal: Preview shows the PDF with the change, Apply puts it in the draft (undo in the editor takes body changes back), Reject tells the assistant no. Apply all takes every waiting proposal. To start from nothing, choose New template › Describe it to the AI assistant.",
+      "Open a designed template and click Assistant (top right). Type a request and press Enter. On each proposal: Preview shows the PDF with the change, Apply puts it in the draft (undo in the editor takes body changes back), Reject tells the assistant no. Apply all takes every waiting proposal, and the ones that follow for the same request as they arrive (the assistant often proposes in steps), so one click applies the whole change. To start from nothing, choose New template › Describe it to the AI assistant.",
     limitations: [
       "Suggestions can be wrong; review each one and the preview before saving.",
       "The draft and the conversation are sent to Anthropic with every message; don't use it on templates that mustn't leave your systems.",
@@ -769,7 +785,7 @@ export const faq: readonly FaqEntry[] = [
     group: "Documents",
     what: "Anyone with a role can fill in a published template and get the finished PDF. The questions come one section at a time, with progress, help text and errors as you type; questions that don't apply stay hidden, and repeating questions (like a list of contracts) can be added as many times as needed. Each document stays on the template version it was started on, even after a newer one is published.",
     howTo:
-      "On My documents (the home page), click New document, search for the template and click Start. Answer each step and click Next; Back goes to the previous one. My documents lists drafts and finished documents with the template, version and when they were last edited; open, continue, duplicate or delete each from its menu.",
+      "On My documents (the home page), click New document, search for the template and click Start. Answer each step and click Next; Back goes to the previous one. My documents lists drafts and finished documents with the template, version and when they were last edited; open, continue, duplicate or delete each from its menu. Admins and template authors also see a Get started checklist there (design or upload a template, publish it, fill one in, get an API key, invite the team) until every step is done or they hide it.",
     limitations: [
       "Documents are private to whoever filled them; admins see the PDFs in the generation log, not the documents.",
       "Templates have no categories; the picker searches names and descriptions.",
@@ -841,7 +857,7 @@ export const faq: readonly FaqEntry[] = [
     group: "API",
     what: "Other systems call necodoc over HTTP with an API key: render HTML to PDF, list published templates and read their JSON Schema, generate from a template, start batches and download their ZIP or packet, read generations and download PDFs, and combine PDFs into one packet. Every call that renders is in the generation log with source API (or Combine) and the key's name.",
     howTo:
-      'Create a key (Settings › API keys, or on a service account), then send it in the x-api-key header to /api/v1/… Render and generate return the PDF by default; send response: "json" for the generation id and a signed download link, or async: true to get 202 at once and poll the generation. Every response has an X-Request-Id for support.',
+      'Create a key (Developers › API keys, or on a service account), then send it in the x-api-key header to /api/v1/… Render and generate return the PDF by default; send response: "json" for the generation id and a signed download link, or async: true to get 202 at once and poll the generation. Every response has an X-Request-Id for support.',
     limitations: [
       "A render still running when the wait runs out answers 202 with the generation id; poll it or use a webhook.",
       "Keys see only their own account's generations and batches.",
@@ -857,7 +873,7 @@ export const faq: readonly FaqEntry[] = [
     group: "API",
     what: "A key acts as its owner (you, or a service account) but only for the scopes it was given: render:html, templates:read, templates:generate, batches:write, batches:read, generations:read, combine:write. It can also be limited to some templates. It never signs in to the app. A key can't be given scopes its owner's roles don't allow, and it loses them as soon as the owner loses the role; a banned owner's keys stop at once.",
     howTo:
-      "Settings › API keys › Create key: name it after what uses it, tick only the scopes it needs, pick an expiry (30, 90, 365 days or never) and optionally templates, an IP allowlist and a rate limit. Copy the key from the dialog: it's shown once. The list shows each key's first characters, expiry (with a warning 14 days before), last use and IP, and request count. Admin › API keys lists every key, filters by owner and status, revokes any, and links to the generation log for each key.",
+      "Developers › API keys › Create key: name it after what uses it, tick only the scopes it needs, pick an expiry (30, 90, 365 days or never) and optionally templates, an IP allowlist and a rate limit. Copy the key from the dialog: it's shown once. The list shows each key's first characters, expiry (with a warning 14 days before), last use and IP, and request count. Admin › API keys lists every key, filters by owner and status, revokes any, and links to the generation log for each key.",
     limitations: [
       "Scopes, templates, allowlist and rate limit can't be edited; rotate the key (same settings) or make a new one.",
       "A lost key can't be shown again.",
@@ -926,7 +942,7 @@ export const faq: readonly FaqEntry[] = [
     group: "API",
     what: "The API page in the app lists every /api/v1 endpoint with its request and response schemas, generated from the code so it can't drift, and can send test calls with a key. The same OpenAPI 3.1 document is at /api/v1/openapi.json for code generators, and the developer docs site renders it too. The SDKs are generated from it.",
     howTo:
-      "Click API in the nav. Paste a key under Authentication to try calls from the browser; they're real calls and are logged. Point Postman, Insomnia or an OpenAPI generator at /api/v1/openapi.json.",
+      "Open Developers › API reference. Paste a key under Authentication to try calls from the browser; they're real calls and are logged. Point Postman, Insomnia or an OpenAPI generator at /api/v1/openapi.json.",
     limitations: ["Try-it calls run against this deployment and its real data."],
     access: [{ action: "Read the reference", needs: view }],
     spec: "docs/features/html-to-pdf-api.md",
@@ -950,7 +966,7 @@ export const faq: readonly FaqEntry[] = [
     group: "API",
     what: "necodoc can POST to your system when a generation succeeds or fails, or a batch completes, so it doesn't have to poll. A webhook belongs to an account and fires for every API call it makes, for one of its keys, or for one template (any source). Each request is signed (Necodoc-Signature: an HMAC-SHA256 of the timestamp and body with the webhook's secret) and carries a 24-hour signed download link, never the PDF itself.",
     howTo:
-      "Settings › API keys › Add webhook (or on a service account's page): enter an HTTPS URL, tick events, optionally pick a key or template, and copy the signing secret (shown once). Send test fires a webhook.test event. Deliveries shows every attempt with its HTTP status and time; failures retry 5 times with backoff over several minutes. The developer docs show how to check the signature.",
+      "Developers › API keys › Add webhook (or on a service account's page): enter an HTTPS URL, tick events, optionally pick a key or template, and copy the signing secret (shown once). Send test fires a webhook.test event. Deliveries shows every attempt with its HTTP status and time; failures retry 5 times with backoff over several minutes. The developer docs show how to check the signature.",
     limitations: [
       "HTTPS only, and never to private, loopback or link-local addresses (checked again before every send). WEBHOOK_ALLOW_LOCALHOST lifts that for local development only.",
       "No manual redelivery; order isn't guaranteed and an event can arrive twice, so deduplicate on Necodoc-Delivery.",
@@ -1002,7 +1018,7 @@ export const faq: readonly FaqEntry[] = [
     group: "Settings",
     what: "Your own numbers: generations over time by status, errors, pages and output size, the templates you generated most, your documents (drafts and finished, including share-link responses), and, if you can create or edit templates, how often the templates you created were generated by anyone.",
     howTo:
-      "Your name (top right) › My usage. Pick a date range; click a column or a template to open those entries in My generations, or download any table as CSV.",
+      "Your account menu (initials, top right) › My usage. Pick a date range; click a column or a template to open those entries in My generations, or download any table as CSV.",
     limitations: [
       "Only generations made as you count; calls through your API keys count, renders by others of your templates only show under templates you created.",
       "Documents show those started in the range next to the all-time count.",

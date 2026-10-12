@@ -1,11 +1,11 @@
 import { hasPermission } from "@necodoc/shared";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute, Link, redirect } from "@tanstack/react-router";
-import { ChevronLeftIcon } from "lucide-react";
 import { useEffect, useState } from "react";
 import { HistoryPanel } from "@/components/audit";
 import { CopyButton } from "@/components/copy-button";
 import { ErrorAlert } from "@/components/form";
+import { BackLink, ListSkeleton, Page, PageHeader } from "@/components/page";
 import { Button } from "@/components/ui/button";
 import {
   Table,
@@ -56,49 +56,50 @@ function ShareLinkResponses() {
   const submissions = detail.data?.submissions ?? [];
 
   return (
-    <main className="mx-auto max-w-6xl space-y-4 p-4 py-8">
-      <Link
-        to="/share-links"
-        className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground"
-      >
-        <ChevronLeftIcon className="size-4" />
-        Share links
-      </Link>
+    <Page>
       <ErrorAlert error={detail.error ?? toggle.error} />
+      {detail.isPending && <ListSkeleton rows={3} />}
       {link && (
         <>
-          <div className="flex flex-wrap items-center gap-2">
-            <h1 className="text-2xl font-semibold break-words">{link.label}</h1>
+          <PageHeader
+            title={link.label}
+            back={<BackLink to="/share-links">Share links</BackLink>}
+            description={
+              <>
+                {link.templateName} ·{" "}
+                {link.version === null ? "latest version" : `version ${link.version}`} ·{" "}
+                {link.submissions}
+                {link.maxSubmissions !== null && ` of ${link.maxSubmissions}`}{" "}
+                {link.submissions === 1 && link.maxSubmissions === null ? "response" : "responses"}
+                {link.expiresAt && ` · expires ${dayjs(link.expiresAt).format("MMM D, YYYY")}`}
+                {link.requireEmail && " · asks for email"}
+                {link.allowDownload ? " · filler can download" : " · no download for the filler"}
+              </>
+            }
+            actions={
+              <>
+                <Button variant="outline" size="sm" onClick={() => setEditing(true)}>
+                  Edit
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  disabled={toggle.isPending}
+                  onClick={() =>
+                    toggle.mutate(
+                      { id: link.id, disabled: !link.disabledAt },
+                      { onSuccess: () => detail.refetch() },
+                    )
+                  }
+                >
+                  {link.disabledAt ? "Enable" : "Disable"}
+                </Button>
+                <CopyButton text={publicLinkUrl(link.token)} label="Copy link" />
+              </>
+            }
+          >
             <LinkStateBadge link={link} />
-            <div className="ml-auto flex flex-wrap gap-2">
-              <CopyButton text={publicLinkUrl(link.token)} label="Copy link" />
-              <Button variant="outline" size="sm" onClick={() => setEditing(true)}>
-                Edit
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                disabled={toggle.isPending}
-                onClick={() =>
-                  toggle.mutate(
-                    { id: link.id, disabled: !link.disabledAt },
-                    { onSuccess: () => detail.refetch() },
-                  )
-                }
-              >
-                {link.disabledAt ? "Enable" : "Disable"}
-              </Button>
-            </div>
-          </div>
-          <p className="text-sm text-muted-foreground">
-            {link.templateName} ·{" "}
-            {link.version === null ? "latest version" : `version ${link.version}`} ·{" "}
-            {link.submissions}
-            {link.maxSubmissions !== null && ` of ${link.maxSubmissions}`} responses
-            {link.expiresAt && ` · expires ${dayjs(link.expiresAt).format("MMM D, YYYY")}`}
-            {link.requireEmail && " · asks for email"}
-            {link.allowDownload ? " · filler can download" : " · no download for the filler"}
-          </p>
+          </PageHeader>
           <p className="truncate font-mono text-xs text-muted-foreground">
             {publicLinkUrl(link.token)}
           </p>
@@ -150,7 +151,8 @@ function ShareLinkResponses() {
               {submissions.length === 0 && (
                 <TableRow>
                   <TableCell colSpan={4} className="py-8 text-center text-muted-foreground">
-                    No responses yet. Copy the link and send it.
+                    No responses yet. Copy the link above and send it to the people who should fill
+                    it in.
                   </TableCell>
                 </TableRow>
               )}
@@ -168,6 +170,6 @@ function ShareLinkResponses() {
         </>
       )}
       <HistoryPanel targetType="share_link" targetId={id} />
-    </main>
+    </Page>
   );
 }

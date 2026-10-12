@@ -34,9 +34,9 @@ namespace Necodoc.Sdk.Model
         /// Initializes a new instance of the <see cref="GenerateRequestOutput" /> class.
         /// </summary>
         /// <param name="pdfa">pdfa</param>
-        /// <param name="pdfua">Tagged PDF/UA-1. HTML renders only: overlays and packets have no structure to tag. (default to false)</param>
-        /// <param name="certify">Certify with the server&#39;s certificate (PAdES, DocMDP: form filling and signing stay allowed). (default to false)</param>
-        /// <param name="lang">The document language (BCP 47): date, number and currency formatting, translations, text direction, and the PDF language. (default to &quot;en&quot;)</param>
+        /// <param name="pdfua">Tagged PDF/UA-1. HTML renders only: overlays and packets have no structure to tag.</param>
+        /// <param name="certify">Certify with the server&#39;s certificate (PAdES, DocMDP: form filling and signing stay allowed).</param>
+        /// <param name="lang">The document language (BCP 47): date, number and currency formatting, translations, text direction, and the PDF language.</param>
         [JsonConstructor]
         public GenerateRequestOutput(Option<OutputOptionsPdfa?> pdfa = default, Option<bool?> pdfua = default, Option<bool?> certify = default, Option<string?> lang = default)
         {

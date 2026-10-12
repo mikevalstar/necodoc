@@ -8,15 +8,16 @@ import {
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { createFileRoute, useLocation } from "@tanstack/react-router";
 import { CheckCircle2Icon, DownloadIcon } from "lucide-react";
-import { type ReactNode, useMemo, useState } from "react";
+import { type ReactNode, useMemo, useRef, useState } from "react";
 import { z } from "zod";
 import { ErrorAlert } from "@/components/form";
 import { GuidedForm } from "@/components/guided-form";
 import { LanguagePicker } from "@/components/language-picker";
 import { Logo } from "@/components/logo";
+import { ListSkeleton } from "@/components/page";
 import { buttonVariants } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Field, FieldError, FieldLabel } from "@/components/ui/field";
+import { Field, FieldDescription, FieldError, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { api, ok } from "@/lib/api";
 
@@ -91,7 +92,9 @@ function Shell({ children }: { children: ReactNode }) {
           necodoc
         </div>
       </header>
-      <main className="mx-auto max-w-3xl space-y-4 p-4 py-8">{children}</main>
+      <main id="main" className="mx-auto max-w-3xl space-y-4 p-4 py-8 sm:px-6">
+        {children}
+      </main>
     </div>
   );
 }
@@ -108,7 +111,9 @@ function SharedForm() {
   const [email, setEmail] = useState("");
   const [picked, setPicked] = useState<string | null>(null);
   const emailValid = z.email().safeParse(email).success;
+  /** Shows the email's error once it's been left, a step was taken, or submit was pressed. */
   const [emailError, setEmailError] = useState(false);
+  const emailInput = useRef<HTMLInputElement>(null);
   const submit = useMutation({
     mutationFn: async (data: Values) =>
       (
@@ -155,7 +160,13 @@ function SharedForm() {
       </Shell>
     );
   }
-  if (!data) return <Shell>{null}</Shell>;
+  if (!data) {
+    return (
+      <Shell>
+        <ListSkeleton rows={4} />
+      </Shell>
+    );
+  }
 
   if (submit.data) {
     const { status, downloadUrl } = submit.data;
@@ -193,7 +204,7 @@ function SharedForm() {
   return (
     <Shell>
       <div className="space-y-1">
-        <h1 className="text-2xl font-semibold">{data.name}</h1>
+        <h1 className="text-2xl font-semibold tracking-tight">{data.name}</h1>
         <p className="text-sm text-muted-foreground">{data.label}</p>
         {data.description && <p className="text-sm text-muted-foreground">{data.description}</p>}
         <LanguagePicker
@@ -216,10 +227,24 @@ function SharedForm() {
                 autoComplete="email"
                 value={email}
                 aria-invalid={emailError && !emailValid}
+                ref={emailInput}
+                aria-describedby="share-email-help"
                 onChange={(e) => setEmail(e.target.value)}
+                onBlur={() => setEmailError(true)}
               />
+              <FieldDescription id="share-email-help">
+                Required by whoever sent the link, so they know who answered.
+              </FieldDescription>
               {emailError && !emailValid && (
-                <FieldError errors={[{ message: "Enter your email address" }]} />
+                <FieldError
+                  errors={[
+                    {
+                      message: email.trim()
+                        ? "That doesn't look like an email address"
+                        : "Enter your email address",
+                    },
+                  ]}
+                />
               )}
             </Field>
           )}
@@ -238,8 +263,13 @@ function SharedForm() {
                   // Full storage (large images): progress just isn't kept.
                 }
               }}
+              onStepChange={() => setEmailError(true)}
               onSubmit={(values) => {
-                if (data.requireEmail && !emailValid) return setEmailError(true);
+                if (data.requireEmail && !emailValid) {
+                  setEmailError(true);
+                  emailInput.current?.focus();
+                  return;
+                }
                 submit.mutate(values);
               }}
             />

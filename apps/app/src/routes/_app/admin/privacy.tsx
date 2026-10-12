@@ -10,6 +10,7 @@ import { createFileRoute, Link, redirect } from "@tanstack/react-router";
 import { DownloadIcon } from "lucide-react";
 import { type FormEvent, useState } from "react";
 import { ErrorAlert } from "@/components/form";
+import { FaqLink, Page, PageHeader } from "@/components/page";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import {
   AlertDialog,
@@ -36,6 +37,7 @@ import {
 } from "@/components/ui/table";
 import { api, ok } from "@/lib/api";
 import { dayjs } from "@/lib/date";
+import { plural } from "@/lib/utils";
 
 // Spec: docs/features/personal-data-masking-and-erasure.md (Admin > Data subjects). Search, untick
 // false positives, erase, keep the report.
@@ -129,33 +131,33 @@ function DataSubjects() {
   const pickedCount = [...generations, ...submissions].filter((m) => picked.has(m.id)).length;
 
   return (
-    <main className="mx-auto max-w-7xl space-y-6 p-4 py-8">
-      <div className="space-y-1">
-        <h1 className="text-2xl font-semibold">Data subjects</h1>
-        <p className="text-sm text-muted-foreground">
-          Find everything stored about one person and erase it: generations (input and PDF), packets
-          built from them, documents and share-link responses. The audit log records the erasure
-          with counts only.
-        </p>
-      </div>
+    <Page>
+      <PageHeader
+        title="Data subjects"
+        description="Find everything stored about one person and erase it: generations (input and PDF), packets built from them, documents and share-link responses. The audit log records the erasure with counts only."
+        actions={<FaqLink feature="Data subjects (GDPR erasure)" />}
+      />
 
-      <form onSubmit={submit} className="flex flex-wrap items-end gap-2">
-        <Field className="max-w-md flex-1">
+      <form onSubmit={submit}>
+        <Field className="max-w-xl">
           <FieldLabel htmlFor="subject-q">Email, name or identifier</FieldLabel>
-          <Input
-            id="subject-q"
-            value={q}
-            autoComplete="off"
-            aria-invalid={invalid}
-            onChange={(e) => setQ(e.target.value)}
-          />
-          <FieldDescription>
-            Matches the subject key or a whole stored value, ignoring case.
+          <div className="flex gap-2">
+            <Input
+              id="subject-q"
+              value={q}
+              autoComplete="off"
+              aria-invalid={invalid}
+              aria-describedby="subject-q-help"
+              onChange={(e) => setQ(e.target.value)}
+            />
+            <Button type="submit" disabled={search.isPending || q.trim().length < 3}>
+              {search.isPending ? "Searching…" : "Search"}
+            </Button>
+          </div>
+          <FieldDescription id="subject-q-help">
+            Matches the subject key or a whole stored value, ignoring case. At least 3 characters.
           </FieldDescription>
         </Field>
-        <Button type="submit" disabled={search.isPending || q.trim().length < 3}>
-          {search.isPending ? "Searching…" : "Search"}
-        </Button>
       </form>
       <ErrorAlert error={search.error} />
 
@@ -164,15 +166,21 @@ function DataSubjects() {
           <AlertTitle>Erased</AlertTitle>
           <AlertDescription className="space-y-2">
             <p>
-              {report.generationIds.length} generations ({report.files} stored files),{" "}
-              {report.submissionIds.length} documents and responses, {report.webhookDeliveries}{" "}
-              webhook deliveries and {report.downloadLinks} signed-link records were deleted on{" "}
-              {day(report.erasedAt)}.
+              {plural(report.generationIds.length, "generation")} (
+              {plural(report.files, "stored file")}),{" "}
+              {plural(
+                report.submissionIds.length,
+                "document or response",
+                "documents and responses",
+              )}
+              , {plural(report.webhookDeliveries, "webhook delivery", "webhook deliveries")} and{" "}
+              {plural(report.downloadLinks, "signed-link record")} deleted on {day(report.erasedAt)}
+              .
             </p>
             {report.objectsLeftBehind > 0 && (
               <p className="text-destructive">
-                The storage driver failed to delete {report.objectsLeftBehind} objects. Their rows
-                are gone; check the API log for "storage: objects left behind".
+                The storage driver failed to delete {plural(report.objectsLeftBehind, "object")}.
+                Their rows are gone; check the API log for "storage: objects left behind".
               </p>
             )}
             <Button variant="outline" size="sm" onClick={() => downloadReport(report)}>
@@ -279,7 +287,7 @@ function DataSubjects() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-    </main>
+    </Page>
   );
 }
 
