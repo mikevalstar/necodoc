@@ -63,6 +63,9 @@ brought the request.
 - Page analytics: GoatCounter (cookieless, no consent banner needed), loaded
   in [Layout.astro](../../apps/web/src/layouts/Layout.astro). The site uses
   no other trackers.
+- Search engines get a sitemap built from every page
+  ([astro.config.mjs](../../apps/web/astro.config.mjs)) and a
+  [robots.txt](../../apps/web/public/robots.txt) that points at it.
 
 **Decisions taken** (Mike, 2026-10-12, on NECO-ffyuqsdh and NECO-lfuwmnui):
 
