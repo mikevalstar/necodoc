@@ -6,7 +6,7 @@ necodoc: from the obligee's PDF to a renewal run.
 
 2
 00:00:02.500 --> 00:00:05.667
-Start from the obligee's bond form, exactly as they publish it.
+Start from the bond form exactly as the obligee publishes it.
 
 3
 00:00:05.667 --> 00:00:09.333
@@ -14,31 +14,31 @@ AI proposes a box for every blank, with a name and a type.
 
 4
 00:00:09.333 --> 00:00:12.500
-A person confirms them in the overlay editor, with a live preview.
+An editor confirms each box in the overlay editor, with a live preview.
 
 5
 00:00:12.500 --> 00:00:16.167
-Designed templates carry their own rules: this part shows only when it applies.
+In a designed template, a section can show only when it applies.
 
 6
 00:00:16.167 --> 00:00:19.500
-Tick “Add a co-principal” and the bond names a second party and their signature block.
+Tick "Add a co-principal" and the bond gets a second principal and a second signature block.
 
 7
 00:00:19.500 --> 00:00:22.500
-Whoever fills it in gets a guided form, one step at a time.
+The person filling it in gets a guided form, one step at a time.
 
 8
 00:00:22.500 --> 00:00:25.500
-Finish, and the PDF is ready, from the same renderer as the preview.
+The same renderer makes the preview and the finished PDF.
 
 9
 00:00:25.500 --> 00:00:28.500
-Or call it from your policy system: HTML and data in, PDF out.
+Your policy system can also post HTML and data to the API and get the PDF back.
 
 10
 00:00:28.500 --> 00:00:31.500
-109 ms median for a 3-page invoice with header and footer, measured.
+Measured median: 109 ms for a 3-page invoice with a header and footer.
 
 11
 00:00:31.500 --> 00:00:35.167
@@ -46,28 +46,28 @@ Month-end renewals: one batch of 1,000 rows.
 
 12
 00:00:35.167 --> 00:00:39.500
-Add workers to go faster: 1,230 documents a minute on 8 workers, 944 on one. No licence fee per worker.
+More workers, more throughput: 1,230 documents a minute on 8 workers, 944 on one. No licence fee per worker.
 
 13
 00:00:39.500 --> 00:00:42.833
-E-signature ready: each PDF comes with its signers and where every signature goes.
+E-signature ready: each PDF comes with its signers and the position of every signature box.
 
 14
 00:00:42.833 --> 00:00:45.500
-Hand the package to DocuSign, Dropbox Sign or Adobe Acrobat Sign.
+Your DocuSign, Dropbox Sign or Adobe Acrobat Sign account runs the signing.
 
 15
 00:00:45.500 --> 00:00:48.167
-Every change and sign-in lands in an audit log that can't be edited.
+Every change and sign-in goes into an append-only audit log.
 
 16
 00:00:48.167 --> 00:00:50.333
-Every render is logged with its input, output and timing.
+The generation log keeps every PDF with its input, output and timing.
 
 17
 00:00:50.333 --> 00:00:52.500
-It runs in your cloud. Files stay in your S3-compatible storage or Azure Blob.
+necodoc runs in your cloud. PDFs stay in your S3-compatible bucket or Azure Blob container.
 
 18
 00:00:52.500 --> 00:00:56.500
-necodoc. Self-hosted, open source under MIT. github.com/mikevalstar/necodoc
+necodoc. Document generation for insurers, in your own cloud. Self-hosted, open source under MIT. github.com/mikevalstar/necodoc

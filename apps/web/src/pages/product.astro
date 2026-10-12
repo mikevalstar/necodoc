@@ -35,7 +35,7 @@ const output: Feature[] = [
   {
     q: "Archival and accessible output",
     title: "PDF/A-2, PDF/UA-1, PAdES certification",
-    body: "Per template or per request: PDF/A-2b or 2u for retention, tagged PDF/UA-1 for screen readers, and certification with your certificate (PAdES B-B or B-T). Each generation records what was applied.",
+    body: "Set per template or per request: PDF/A-2b or 2u for retention, tagged PDF/UA-1 for screen readers, and certification with your certificate (PAdES B-B or B-T). Each generation records the profiles it applied.",
     limit:
       "PDF/A on an overlay depends on the uploaded form embedding its fonts. There is no built-in validator; use veraPDF to prove conformance.",
     proof: {
@@ -46,7 +46,7 @@ const output: Feature[] = [
   {
     q: "Localization",
     title: "EN and fr-CA from one template",
-    body: "Translations live in the template and are versioned and reviewed with it. The request picks the language; dates, numbers and currency format for it. Right-to-left languages lay out right to left.",
+    body: "Translations live in the template, so they are versioned and reviewed with it. The request picks the language, and dates, numbers and currency follow it. Right-to-left languages lay out right to left.",
     limit:
       "No plural forms in translations yet. Overlay text isn't shaped for right-to-left scripts.",
     proof: { label: "Document localization", href: spec("features/document-localization") },
@@ -93,15 +93,15 @@ const connect: Feature[] = [
   {
     q: "Share links",
     title: "A form for someone without an account",
-    body: "A published template gets a public link. A broker or applicant fills the guided form; you get the submission and the PDF. Links can prefill and lock fields and expire.",
+    body: "A published template gets a public link. A broker or applicant fills the guided form, and you get the submission and the PDF. A link can prefill and lock fields, and can expire.",
     limit: "No identity check on the filler and no email: you send the link yourself.",
     proof: { label: "Share links", href: spec("features/share-links-and-data-requests") },
   },
   {
     q: "Webhooks",
     title: "Signed callbacks when work finishes",
-    body: "Set on an API key, an account or a template. HMAC-SHA256 over timestamp and body, delivered from the job queue with retries and a delivery log.",
-    limit: "Order isn't guaranteed and an event can arrive twice; deduplicate on the delivery id.",
+    body: "Set a webhook on an API key, an account or a template. Each delivery is signed with HMAC-SHA256 over the timestamp and body, sent from the job queue with retries, and logged.",
+    limit: "Order isn't guaranteed, and an event can arrive twice. Deduplicate on the delivery id.",
     proof: { label: "Webhooks", href: spec("features/webhooks") },
   },
   {
@@ -117,7 +117,7 @@ const admin: Feature[] = [
   {
     q: "Audit log",
     title: "Who changed what, with diffs",
-    body: "Configuration and access changes, sign-ins and failures, impersonation and API key use. Append-only, enforced by a database trigger. CSV export.",
+    body: "Configuration and access changes, sign-ins and failures, impersonation and API key use. A database trigger keeps it append-only. Exports to CSV.",
     limit: "Tamper-resistant, not tamper-evident: a DBA can disable the trigger.",
     proof: { label: "Audit log", href: spec("features/audit-log") },
   },
@@ -126,7 +126,7 @@ const admin: Feature[] = [
     title: "Every PDF, re-runnable",
     body: "Source, caller, template version, input, output and a timing breakdown for every render, with a render-time histogram and p50, p95 and p99.",
     limit:
-      "Inputs can hold personal data; set retention, and mark sensitive fields so they're masked.",
+      "Inputs can hold personal data. Set a retention period, and mark sensitive fields so necodoc masks them.",
     proof: { label: "Generation log", href: spec("features/generation-log") },
   },
   {
@@ -169,8 +169,9 @@ const admin: Feature[] = [
       { href: "#admin", label: "Admin" },
     ]}
   >
-    Two ways to make a document, filling a PDF you already have or designing one, sharing one set of fields, one
-    publishing model and one API. Each section links to the spec that defines it, limits included.
+    necodoc makes a document in two ways. It fills a PDF you already have, or it renders a document you design. Both
+    use the same fields, the same publishing steps and the same API. Each section links to its spec, which lists its
+    limits.
   </PageHero>
 
   <section>
@@ -191,7 +192,7 @@ const admin: Feature[] = [
       </Pillar>
 
       <Pillar id="designed" num="02" eyebrow="Designed templates" title="Design a document from scratch, with real headers and footers." flip>
-        <p>A rich-text editor for the forms team, code mode for developers, one renderer behind both. The live preview is the production renderer.</p>
+        <p>The forms team uses a rich-text editor, and developers can switch to code mode. The live preview uses the production renderer, so it matches the final PDF.</p>
         <Checks
           items={[
             "Header and footer bands with page numbers and a first-page variant for a letterhead",
@@ -278,7 +279,7 @@ const admin: Feature[] = [
             "Exact positions on overlays; within about a point on designed documents",
           ]}
         />
-        <Limit label="E-signature ready, not e-signature:">your provider runs the legally binding signing, signer identity and its audit trail.</Limit>
+        <Limit label="E-signature ready:">your provider runs the legally binding signing, checks signer identity and keeps the signing audit trail.</Limit>
         <Proof links={[{ label: "Signing packages", href: spec("features/signing-packages") }]} />
         <Screenshot slot="media" src={signing} alt="Signing tab: principal, surety and attorney-in-fact signers with routing order" crop={{ height: 440, zoom: 130, x: "-9%", y: "-120px" }} />
       </Pillar>
@@ -287,8 +288,8 @@ const admin: Feature[] = [
 
   <section id="output" class="alt">
     <div class="wrap">
-      <SectionHead eyebrow="Output" title="Files that hold up in an archive, a screen reader and Québec.">
-        The output settings live on the template and can be overridden per request.
+      <SectionHead eyebrow="Output" title="Archival, accessible and bilingual PDFs.">
+        You set the output on the template, and a request can override it.
       </SectionHead>
       <div class="feats">
         {
@@ -308,9 +309,9 @@ const admin: Feature[] = [
 
   <section id="control">
     <div class="wrap">
-      <SectionHead eyebrow="Change control" title="The business owns the wording. Nothing goes live unreviewed.">
-        Your systems code against a published version, so a wording change never changes what the API accepts without a
-        new version.
+      <SectionHead eyebrow="Change control" title="The business owns the wording. Your systems own the fields.">
+        Your systems call a published version. A wording change can't change what the API accepts until someone publishes
+        a new version.
       </SectionHead>
       <div class="feats">
         {
@@ -353,8 +354,8 @@ const admin: Feature[] = [
           <Icon name="warning-circle" weight="fill" />
           <div>
             <b>What AI sends, and to whom.</b> With <code>ANTHROPIC_KEY</code> set, the assistant sends the draft template
-            (fields, content, sample data) and the conversation, and field detection sends page images of the uploaded form,
-            to Anthropic's API. Generation data isn't sent. Each AI request is in the audit log. Without the key, none of this
+            (fields, content, sample data) and the conversation to Anthropic's API. Field detection sends page images of the
+            uploaded form. Generation data isn't sent. The audit log records each AI request. Without the key, none of this
             runs. <a class="tlink" href="/security/#data">Data flows</a>
           </div>
         </div>
@@ -383,9 +384,9 @@ const admin: Feature[] = [
 
   <section id="admin" class="alt">
     <div class="wrap">
-      <SectionHead eyebrow="Admin" title="Run it, and answer for it.">
-        Users and roles, service accounts, keys, the queue and system settings sit in one admin area, with ⌘K or Ctrl+K to
-        jump anywhere.
+      <SectionHead eyebrow="Admin" title="Users, keys, logs and the queue in one place.">
+        Users and roles, service accounts, keys, the queue and system settings are in one admin area. Press ⌘K or Ctrl+K
+        to jump to any page.
       </SectionHead>
       <div class="pair">
         <Screenshot src={generations} alt="Generation log with a render-time histogram and p50, p95 and p99" crop={{ height: 280, zoom: 150, x: "-26%", y: "-40px" }} />
@@ -418,8 +419,8 @@ const admin: Feature[] = [
     <div class="wrap band">
       <div>
         <p class="eyebrow">Try it</p>
-        <h2>Every feature on this page is in the one MIT-licensed build.</h2>
-        <p class="lede">There is no paid tier holding some of it back.</p>
+        <h2>Every feature on this page is in the MIT-licensed build.</h2>
+        <p class="lede">There is no paid tier.</p>
       </div>
       <div class="cta-row"><a class="btn next" href={links.quickstart}>Run it in 10 minutes</a><a class="btn ghost" href="/compare/">Compare it</a></div>
     </div>

@@ -34,11 +34,11 @@ import { links, spec } from "../lib/links";
       { href: "#bilingual", label: "Bilingual EN/FR" },
     ]}
   >
-    Six jobs a carrier's document team handles, how necodoc does each one, and a worked example of it.
+    Six jobs a carrier's document team does. Each one shows how necodoc does it, where it stops, and an example.
     <div slot="after" class="who">
       <div><b>Surety and underwriting</b><p>Issue bonds and certificates without waiting on IT for a wording change.</p></div>
-      <div><b>Forms team</b><p>Owns templates, clauses and translations, reviewed before anything goes live.</p></div>
-      <div><b>Integration team</b><p>Codes against a versioned API and a JSON Schema that changes only when a version is published.</p></div>
+      <div><b>Forms team</b><p>Owns templates, clauses and translations. A reviewer approves each change before it goes live.</p></div>
+      <div><b>Integration team</b><p>Codes against a versioned API. Its JSON Schema changes only when someone publishes a new version.</p></div>
       <div><b>Platform team</b><p>Runs two process roles on infrastructure it already operates.</p></div>
     </div>
   </PageHero>
@@ -52,7 +52,7 @@ import { links, spec } from "../lib/links";
           <p class="lead">Municipalities, provinces and states publish their own bond forms and expect them back unchanged. necodoc fills the form they published.</p>
           <dl>
             <dt>How</dt><dd>Upload the obligee's PDF, place or import fields, publish. Each signer (principal, surety, attorney-in-fact) gets a box and a place in the routing order.</dd>
-            <dt>Signing</dt><dd>Every generation can carry a signing package for DocuSign, Dropbox Sign or Acrobat Sign. Your provider runs the signature.</dd>
+            <dt>Signing</dt><dd>Each generation can include a signing package for DocuSign, Dropbox Sign or Acrobat Sign. Your provider runs the signing.</dd>
             <dt>Limit</dt><dd>Pure XFA forms and forms that need a password to open aren't supported.</dd>
           </dl>
           <Proof links={[{ label: "PDF overlay templates", href: spec("features/pdf-overlay-templates") }, { label: "Signing packages", href: spec("features/signing-packages") }]} />
@@ -69,9 +69,9 @@ import { links, spec } from "../lib/links";
           <h2>Certificates from the broker portal or the policy system.</h2>
           <p class="lead">A designed template with typed fields. The same fields drive the guided form a person fills and the JSON your systems post.</p>
           <dl>
-            <dt>How</dt><dd>Fields with types, formats (CAD, dates) and conditions; a JSON Schema per published version; 422 with every field error when data is wrong.</dd>
+            <dt>How</dt><dd>Fields have types, formats (CAD, dates) and conditions. Each published version has a JSON Schema. Bad data gets a 422 that lists every field error.</dd>
             <dt>Who</dt><dd>Brokers fill it through an expiring share link; systems call <code>/api/v1</code> with a scoped key.</dd>
-            <dt>Output</dt><dd>PDF/A-2 for your archive, PDF/UA-1 for accessible formats, PAdES certification so a recipient can tell an edited copy.</dd>
+            <dt>Output</dt><dd>PDF/A-2 for your archive and PDF/UA-1 for accessible formats. PAdES certification lets a recipient detect an edited copy.</dd>
           </dl>
           <Proof links={[{ label: "Fields and guided form", href: spec("features/template-fields-and-guided-form") }, { label: "Share links", href: spec("features/share-links-and-data-requests") }]} />
         </div>
@@ -84,7 +84,7 @@ import { links, spec } from "../lib/links";
           <h2>Declarations, wordings and endorsements as one PDF.</h2>
           <p class="lead">Generate each part from its own template, or pull in a static wording, and combine them in the order you set.</p>
           <dl>
-            <dt>How</dt><dd><code>POST /combine</code> with generations and uploaded PDFs, or a batch delivered as one packet.</dd>
+            <dt>How</dt><dd>Send generations and uploaded PDFs to <code>POST /combine</code>, or deliver a batch as one packet.</dd>
             <dt>Limit</dt><dd>No bookmarks, table of contents or page renumbering across the packet yet.</dd>
           </dl>
           <Proof links={[{ label: "Combining PDFs into packets", href: spec("features/combining-pdfs-into-packets") }]} />
@@ -98,8 +98,8 @@ import { links, spec } from "../lib/links";
           <h2>The month-end renewal run, behind the day's work.</h2>
           <p class="lead">A batch of up to 10,000 rows from JSON or CSV goes on the queue. Interactive renders jump ahead of it, so a broker issuing a certificate isn't kept waiting.</p>
           <dl>
-            <dt>How</dt><dd>Progress, cancel, invalid rows fail alone; download one ZIP or one combined packet.</dd>
-            <dt>Scale</dt><dd>Add workers for the run and remove them after. No licence per worker.</dd>
+            <dt>How</dt><dd>Watch progress or cancel the run. An invalid row fails alone. Download one ZIP or one combined packet.</dd>
+            <dt>Scale</dt><dd>Add workers for the run and remove them after. There is no licence fee per worker.</dd>
             <dt>Measured</dt><dd><BenchValue value={docsPerMinute(8)} /> documents per minute on 8 workers on <BenchValue value={env.cpu} />. <a class="tlink" href="/performance/">Method</a></dd>
           </dl>
           <Proof links={[{ label: "Render queue and batches", href: spec("features/render-queue-batch-jobs-and-scaling") }]} />
@@ -114,7 +114,7 @@ import { links, spec } from "../lib/links";
           <p class="lead">Conditional sections and shared clauses mean one reviewed template covers the cases, instead of a folder of near-copies.</p>
           <dl>
             <dt>How</dt><dd>"Show only if" conditions on sections, repeating rows, snippets for shared clauses, themes for house style.</dd>
-            <dt>Control</dt><dd>Clause changes go through review, with test cases and a visual diff before publish.</dd>
+            <dt>Control</dt><dd>A reviewer approves each clause change. Test cases and a visual diff run before publish.</dd>
             <dt>Limit</dt><dd>PDF only: no Word output, and no email or print channels.</dd>
           </dl>
           <Proof links={[{ label: "Snippet library", href: spec("features/snippet-library") }, { label: "Review and approval", href: spec("features/review-and-approval") }]} />
@@ -126,9 +126,9 @@ import { links, spec } from "../lib/links";
         <div>
           <p class="eyebrow"><span class="n">06</span>Bilingual output</p>
           <h2>French first in Québec, English elsewhere, from one template.</h2>
-          <p class="lead">Since 2023, contracts of adhesion in Québec must be offered in French first. Two templates means two copies that drift. necodoc keeps one.</p>
+          <p class="lead">Since 2023, contracts of adhesion in Québec must be offered in French first. With two templates, the French and English copies drift apart. necodoc uses one template with a translation per language.</p>
           <dl>
-            <dt>How</dt><dd>One template with translations per language, fr-CA included; the request picks the language. Dates, numbers and currency format per locale.</dd>
+            <dt>How</dt><dd>The template holds a translation for each language, fr-CA included, and the request picks one. Dates, numbers and currency follow the locale.</dd>
             <dt>Accessible</dt><dd>PDF/UA-1 output carries the document language for screen readers.</dd>
             <dt>Yours</dt><dd>Translation quality and legal review stay with your forms team.</dd>
           </dl>
@@ -158,7 +158,7 @@ import { links, spec } from "../lib/links";
               </tbody></table>
             </div>
           </div>
-          <p class="caption">Same fields, same data. Only the language parameter differs.</p>
+          <p class="caption">Both copies use the same fields and data. Only the language parameter changes.</p>
         </figure>
       </article>
     </div>

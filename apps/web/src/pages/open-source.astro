@@ -69,7 +69,7 @@ const extend = [
   {
     icon: "brackets-curly",
     title: "Liquid filters",
-    body: "Filters are registered in one file. Add your own (a policy-number format, a rating lookup) and rebuild.",
+    body: "One file registers every filter. Add your own, such as a policy-number format or a rating lookup, and rebuild.",
     href: source("apps/api/src/render/liquid.ts"),
     label: "liquid.ts",
   },
@@ -114,8 +114,8 @@ const extend = [
       { href: "#support", label: "Support" },
     ]}
   >
-    necodoc is one codebase you run on your own infrastructure. Every feature is in the same build. There is no paid
-    tier, no seat count and no meter.
+    necodoc is one codebase, and you run it on your own infrastructure. Every feature is in the same build. There is no
+    paid tier and no usage meter.
   </PageHero>
 
   <section class="tight">
@@ -134,7 +134,7 @@ const extend = [
       <aside>
         <p class="eyebrow">What you pay for</p>
         <h2>Your infrastructure, and your time.</h2>
-        <p>necodoc doesn't host anything, so there is nothing of ours to pay for. These are the costs of running it.</p>
+        <p>We don't host anything, so you pay us nothing. These are the costs of running it yourself.</p>
       </aside>
       <table class="spec">
         <thead><tr><th>Item</th><th>What it is</th><th>More</th></tr></thead>
@@ -170,7 +170,7 @@ const extend = [
           <div>
             <p class="q">It comes</p>
             <h3>As is, with no warranty</h3>
-            <p>That is what MIT says. Test it against your own forms and volumes before you depend on it; the benchmark and specs show how.</p>
+            <p>Test it against your own forms and volumes before you depend on it. The benchmark and the specs show how.</p>
           </div>
           <div>
             <p class="q">Vendor risk · OSFI B-10</p>
@@ -193,8 +193,8 @@ const extend = [
 
   <section id="extend" class="alt">
     <div class="wrap">
-      <SectionHead eyebrow="Extending it" title="Most changes are configuration. The rest is the source.">
-        Themes, snippets and webhooks are set up in the app. Filters and drivers are code you add to your fork.
+      <SectionHead eyebrow="Extending it" title="Extend it with settings, or with code.">
+        You set up themes, snippets and webhooks in the app. You add Liquid filters and storage drivers to your fork.
       </SectionHead>
       <div class="cards">
         {
@@ -214,13 +214,13 @@ const extend = [
   <section id="contribute">
     <div class="wrap">
       <SectionHead eyebrow="Contributing" title="Issues, pull requests and questions on GitHub.">
-        Behaviour is written down before it's built: each feature has a spec in <code>docs/</code>, and a pull request that
-        changes behaviour updates its spec too.
+        We write down each behaviour before we build it. Each feature has a spec in <code>docs/</code>, and a pull request
+        that changes behaviour must update its spec.
       </SectionHead>
       <Stops
         items={[
           { icon: "bug", title: "Report a bug or a form that won't open.", body: "Open an issue with the PDF if you can share it, or the error from the generation log if you can't." },
-          { icon: "git-pull-request", title: "Send a pull request.", body: "Read the spec for the area first, and update it with the change. <code>pnpm check</code>, <code>pnpm typecheck</code> and <code>pnpm test</code> should pass." },
+          { icon: "git-pull-request", title: "Send a pull request.", body: "Read the spec for the area first, and update it with the change. Make sure <code>pnpm check</code>, <code>pnpm typecheck</code> and <code>pnpm test</code> pass." },
           { icon: "chat-circle-text", title: "Ask a question.", body: "Use GitHub Discussions." },
           { icon: "files", title: "Read the decisions.", body: "Architecture decisions are numbered ADRs in <code>docs/adrs</code>, linked from each spec." },
         ]}

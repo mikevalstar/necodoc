@@ -25,21 +25,21 @@ const deploy = [
   {
     icon: "desktop-tower",
     title: "Docker Compose, one host",
-    body: "Postgres, migrations, API, a worker and the app from one <code>.env</code>. For evaluation and small installs.",
+    body: "Postgres, migrations, the API, a worker and the app, configured from one <code>.env</code>. Use it for evaluation and small installs.",
     code: "docker compose up \\\n  --scale worker=2",
     foot: "deploy/compose",
   },
   {
     icon: "cube",
     title: "Helm on Kubernetes",
-    body: "Separate API and worker deployments, migrations as a pre-install hook, disruption budgets, graceful drain on scale-down. Bring your own Postgres.",
+    body: "Separate API and worker deployments. Migrations run as a pre-install hook. Disruption budgets are set, and workers finish their jobs before scale-down. You supply the Postgres.",
     code: "helm install necodoc \\\n  deploy/helm/necodoc \\\n  --set secrets.existingSecret=necodoc",
     foot: "deploy/helm/necodoc",
   },
   {
     icon: "arrows-out-line-horizontal",
     title: "Autoscaled workers",
-    body: "KEDA scales the worker deployment on queue depth read from Postgres. Without KEDA, both deployments can use a CPU autoscaler.",
+    body: "KEDA reads the queue depth from Postgres and scales the worker deployment. Without KEDA, use a CPU autoscaler on both deployments.",
     code: "worker:\n  keda:\n    enabled: true\n    jobsPerReplica: 4",
     foot: "values.yaml · KEDA",
   },
@@ -50,7 +50,7 @@ const patterns = [
     tag: "A",
     eyebrow: "Synchronous",
     title: "Wait for the PDF",
-    body: "For a certificate issued while the broker waits. The response is the PDF, with <code>X-Generation-Id</code>.",
+    body: "Use it when a broker waits for a certificate. The response is the PDF, with an <code>X-Generation-Id</code> header.",
     out: "POST …/generate",
     back: [{ y: 90, label: "200 application/pdf", tone: "brand" }],
   },
@@ -58,7 +58,7 @@ const patterns = [
     tag: "B",
     eyebrow: "Asynchronous",
     title: "Get a signed webhook",
-    body: "For bind and issue events. <code>async: true</code> returns 202; a signed webhook brings a <code>downloadUrl</code>.",
+    body: "Use it for bind and issue events. With <code>async: true</code> the call returns 202. A signed webhook then delivers a <code>downloadUrl</code>.",
     out: "POST …/generate async",
     back: [
       { y: 62, label: "202 { id }", tone: "ink" },
@@ -69,7 +69,7 @@ const patterns = [
     tag: "C",
     eyebrow: "Batch",
     title: "Renewal runs",
-    body: "Up to 10,000 rows per batch. Progress, cancel, and one ZIP or one combined packet at the end.",
+    body: "Send up to 10,000 rows per batch. Poll for progress, or cancel. At the end, download one ZIP or one combined packet.",
     out: "POST …/batch [rows]",
     poll: "GET /batches/:id",
     back: [{ y: 102, label: "…/zip · …/packet", tone: "brand" }],
@@ -98,8 +98,8 @@ const tone = { brand: "#2f6bff", ink: "#3f4668", warn: "#b07a12" } as const;
       { href: "#limits", label: "Known limits" },
     ]}
   >
-    necodoc is one container image that runs as a stateless API or as render workers. Durable state lives in a Postgres
-    and a bucket you already operate. This page is the reference for your architecture review.
+    necodoc is one container image. It runs as a stateless API or as a render worker. All durable state is in a
+    Postgres database and a bucket that you operate.
   </PageHero>
 
   <section id="reference" class="tight">
@@ -117,17 +117,17 @@ const tone = { brand: "#2f6bff", ink: "#3f4668", warn: "#b07a12" } as const;
       <aside>
         <p class="eyebrow">Components</p>
         <h2>What runs, and what holds state.</h2>
-        <p>Only Postgres and object storage hold state. Everything necodoc runs can be killed and replaced.</p>
+        <p>Only Postgres and object storage hold state. You can stop and replace any necodoc process.</p>
       </aside>
       <table class="spec">
         <thead><tr><th>Component</th><th>Does</th><th>Scales by</th><th>State</th></tr></thead>
         <tbody>
           <tr><td>API<br /><span class="k">ROLE=api</span></td><td>Serves <code>/api/v1</code> and the web app; authenticates keys and sessions; validates data against the template's fields; enqueues renders; issues signed download links.</td><td>Replicas behind your load balancer</td><td>None</td></tr>
-          <tr><td>Render worker<br /><span class="k">ROLE=worker</span></td><td>Claims render jobs, runs headless Chromium for designed and HTML documents, stamps overlays with pdf-lib, applies PDF/A, PDF/UA and certification, writes the PDF.</td><td>Replicas; <span class="k">RENDER_CONCURRENCY</span> slots each; KEDA on queue depth</td><td>None. A job on a lost worker retries.</td></tr>
+          <tr><td>Render worker<br /><span class="k">ROLE=worker</span></td><td>Claims render jobs, runs headless Chromium for designed and HTML documents, stamps overlays with pdf-lib, applies PDF/A, PDF/UA and certification, writes the PDF.</td><td>Replicas; <span class="k">RENDER_CONCURRENCY</span> slots each; KEDA on queue depth</td><td>None. If a worker stops, another worker retries its job.</td></tr>
           <tr><td>Postgres</td><td>Templates and immutable versions, users and keys, generation log, append-only audit log, and the job queue (pg-boss).</td><td>Your database tier. This is the throughput ceiling.</td><td>All durable records</td></tr>
           <tr><td>Object storage</td><td>Generated PDFs. Templates, themes and uploaded assets stay in Postgres. Any S3-compatible bucket (AWS S3, MinIO, Wasabi, Cloudflare R2), Azure Blob, or a shared disk.</td><td>Your storage service</td><td>PDF bytes</td></tr>
           <tr><td>Identity provider</td><td>Sign-in for people over OIDC, SAML 2.0 or a trusted header; IdP groups map to necodoc roles.</td><td>Yours</td><td>Yours</td></tr>
-          <tr><td>Single process<br /><span class="k">ROLE=all</span></td><td>API and worker in one process, for evaluation and small installs on Compose.</td><td>Not meant to</td><td>None</td></tr>
+          <tr><td>Single process<br /><span class="k">ROLE=all</span></td><td>API and worker in one process, for evaluation and small installs on Compose.</td><td>Does not scale</td><td>None</td></tr>
         </tbody>
       </table>
     </div>
@@ -136,7 +136,8 @@ const tone = { brand: "#2f6bff", ink: "#3f4668", warn: "#b07a12" } as const;
   <section id="deploy">
     <div class="wrap">
       <SectionHead eyebrow="Deployment" title="Start on one host. Split the roles when you need to.">
-        The same image and environment variables in every option. Nothing calls home, so it runs without outbound internet.
+        Every option uses the same image and the same environment variables. necodoc doesn't call home, so it runs without
+        outbound internet access.
       </SectionHead>
       <div class="cards">
         {
@@ -151,9 +152,9 @@ const tone = { brand: "#2f6bff", ink: "#3f4668", warn: "#b07a12" } as const;
           ))
         }
       </div>
-      <Limit label="Today:">
-        the chart passes <code>helm lint</code>, <code>helm template</code> and kubeconform but hasn't been verified on a
-        live cluster, and there's no published image registry yet, so you build the images.
+      <Limit>
+        The chart passes <code>helm lint</code>, <code>helm template</code> and kubeconform. Nobody has run it on a live
+        cluster yet. There is no published image registry, so you build the images.
       </Limit>
     </div>
   </section>
@@ -161,8 +162,8 @@ const tone = { brand: "#2f6bff", ink: "#3f4668", warn: "#b07a12" } as const;
   <section id="integrate" class="alt">
     <div class="wrap">
       <SectionHead eyebrow="Integration patterns" title="Your core system posts data and gets a PDF or a webhook.">
-        No packaged connector. A versioned REST API described by OpenAPI 3.1, a JSON Schema per template version, and
-        generated SDKs for TypeScript, Python, .NET and Java.
+        There is no packaged connector. Your systems call a versioned REST API, described by OpenAPI 3.1. Each template
+        version has a JSON Schema. Generated SDKs are available for TypeScript, Python, .NET and Java.
       </SectionHead>
       <div class="cards">
         {
@@ -198,14 +199,14 @@ const tone = { brand: "#2f6bff", ink: "#3f4668", warn: "#b07a12" } as const;
 
       <div class="worked">
         <div>
-          <p class="eyebrow">Worked pattern <span class="example" style="margin:0">example, not a connector</span></p>
+          <p class="eyebrow">Worked pattern <span class="example" style="margin:0">example</span></p>
           <h2>A policy admin system issuing a bond.</h2>
           <ol class="flow">
             <li><span>Your PAS emits an issue event for the bond</span><code>your code</code></li>
             <li><span>Your integration layer maps policy data to the template's JSON Schema</span><code>GET …/schema</code></li>
-            <li><span>It posts the data with the policy number as <code>subject</code></span><code>POST …/generate</code></li>
-            <li><span>necodoc validates, renders and logs it; 422 lists every bad field</span><code>necodoc</code></li>
-            <li><span>The PDF, or a webhook with a signed link, comes back to your DMS</span><code>your code</code></li>
+            <li><span>The integration layer posts the data, with the policy number as <code>subject</code></span><code>POST …/generate</code></li>
+            <li><span>necodoc validates the data, renders the PDF and logs it. A 422 lists every bad field</span><code>necodoc</code></li>
+            <li><span>Your code stores the PDF, or the signed link from the webhook, in your DMS</span><code>your code</code></li>
           </ol>
         </div>
         <div>
@@ -241,7 +242,7 @@ curl https://necodoc.internal.example/api/v1/templates/$TEMPLATE/versions/3/gene
       <aside>
         <p class="eyebrow">Data flows</p>
         <h2>What goes where.</h2>
-        <p>Everything stays in your account except what you send out on purpose. AI is the only third party, and it's off by default.</p>
+        <p>Data stays in your account unless you configure it to go out. The only third party is Anthropic, for the AI features, and AI is off by default.</p>
       </aside>
       <table class="spec">
         <thead><tr><th>Data</th><th>Stored in</th><th>Leaves your boundary</th></tr></thead>
@@ -249,7 +250,7 @@ curl https://necodoc.internal.example/api/v1/templates/$TEMPLATE/versions/3/gene
           <tr><td>Templates, versions, snippets, themes</td><td>Your Postgres</td><td>No</td></tr>
           <tr><td>Input data for each PDF</td><td>Your Postgres (generation log), with a retention period you set</td><td>No</td></tr>
           <tr><td>Generated PDFs, assets</td><td>Your bucket, blob container or disk, in your region</td><td>Only through signed, expiring links you issue</td></tr>
-          <tr><td>Logs, metrics, traces</td><td>Your log shipper, Prometheus, OTLP collector. Field values are never logged.</td><td>No</td></tr>
+          <tr><td>Logs, metrics, traces</td><td>Your log shipper, Prometheus and OTLP collector. necodoc never logs field values.</td><td>No</td></tr>
           <tr><td>Webhook payloads</td><td>Sent to endpoints you configure</td><td>Yes, to your URLs, HMAC-SHA256 signed</td></tr>
           <tr><td>Signing packages</td><td>Your Postgres; fetched by your e-sign integration</td><td>Only if your code sends them on</td></tr>
           <tr><td>Draft templates, form page images</td><td>Sent to Anthropic's API for the AI assistant and field detection</td><td><span class="pill warn">Only if ANTHROPIC_KEY is set</span></td></tr>
@@ -260,9 +261,9 @@ curl https://necodoc.internal.example/api/v1/templates/$TEMPLATE/versions/3/gene
 
   <section id="scaling" class="alt">
     <div class="wrap">
-      <SectionHead eyebrow="Scaling and availability" title="Month-end is a replica count.">
-        Measured on one machine by the <a class="tlink" href="/performance/">benchmark</a>. Your numbers depend on your
-        Postgres and your nodes; rerun it on them.
+      <SectionHead eyebrow="Scaling and availability" title="Throughput by worker count.">
+        The <a class="tlink" href="/performance/">benchmark</a> measured these on one machine. Your results depend on your
+        Postgres and your nodes, so rerun the benchmark on them.
       </SectionHead>
       <Stats>
         {
@@ -278,9 +279,9 @@ curl https://necodoc.internal.example/api/v1/templates/$TEMPLATE/versions/3/gene
         <Stops
           items={[
             { icon: "arrows-split", title: "Interactive before batch.", body: "Renders from people and sync API calls take priority over batch rows, so a renewal run doesn't slow a form fill." },
-            { icon: "arrow-counter-clockwise", title: "Lost jobs retry.", body: "A job on a killed worker is picked up by another. Invalid batch rows fail alone; the rest continue." },
-            { icon: "hard-drives", title: "Postgres is the ceiling.", body: "It carries the queue as well as the data. Size it for both; we don't claim unlimited workers." },
-            { icon: "heartbeat", title: "Health you can probe.", body: "Health and readiness endpoints on every process; Admin › System lists each API and worker heartbeat." },
+            { icon: "arrow-counter-clockwise", title: "Lost jobs retry.", body: "If a worker stops, another worker picks up its job. An invalid batch row fails alone, and the other rows continue." },
+            { icon: "hard-drives", title: "Postgres is the ceiling.", body: "Postgres holds the job queue as well as the data. Size it for both." },
+            { icon: "heartbeat", title: "Health endpoints.", body: "Every process has health and readiness endpoints. Admin › System shows the heartbeat of each API and worker process." },
           ]}
         />
       </div>
@@ -289,12 +290,12 @@ curl https://necodoc.internal.example/api/v1/templates/$TEMPLATE/versions/3/gene
 
   <section id="observe">
     <div class="wrap">
-      <Pillar eyebrow="Observability" title="Plugs into the monitoring you run.">
+      <Pillar eyebrow="Observability" title="Works with the monitoring you already run.">
         <Checks
           items={[
-            "Structured JSON logs on stdout; field values never logged",
+            "Structured JSON logs on stdout, with no field values",
             "Prometheus <code>/metrics</code> on <code>METRICS_PORT</code>: HTTP, render, queue depth and age, worker slots",
-            "OpenTelemetry traces with the standard <code>OTEL_*</code> variables; not loaded unless set",
+            "OpenTelemetry traces, configured with the standard <code>OTEL_*</code> variables and off unless you set them",
             "One request id from the API call to the worker to the log entry",
           ]}
         />
@@ -311,13 +312,13 @@ curl https://necodoc.internal.example/api/v1/templates/$TEMPLATE/versions/3/gene
 
   <section id="limits" class="alt tight">
     <div class="wrap">
-      <SectionHead eyebrow="Known limits" title="Stated here so your review doesn't have to find them." />
+      <SectionHead eyebrow="Known limits" title="What it doesn't do yet." />
       <Stops
         items={[
           { icon: "plugs", title: "No packaged core-system connectors.", body: "Your policy admin and core systems integrate over the REST API." },
-          { icon: "globe", title: "One Postgres per install.", body: "So one region per install; run one per region if residency requires it." },
+          { icon: "globe", title: "One Postgres per install.", body: "Each install is in one region. If residency requires it, run one install per region." },
           { icon: "package", title: "No published images yet.", body: "Operators build them from source. SDKs aren't on package registries yet either." },
-          { icon: "cube", title: "Helm not yet verified on a live cluster.", body: "OpenShift isn't tested." },
+          { icon: "cube", title: "Helm chart not yet run on a live cluster.", body: "OpenShift isn't tested." },
         ]}
       />
     </div>
@@ -335,6 +336,7 @@ curl https://necodoc.internal.example/api/v1/templates/$TEMPLATE/versions/3/gene
 </Layout>
 
 <style>
+  #deploy .card { min-width: 0; }
   pre.mini { margin-top: 18px; font-size: 12.5px; padding: 16px 18px; }
   .seq { margin-top: 18px; width: 100%; height: auto; }
   .worked { display: grid; grid-template-columns: 420px 1fr; gap: 56px; margin-top: 72px; }

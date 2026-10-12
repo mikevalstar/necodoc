@@ -16,8 +16,8 @@ one stops.
   the same sources as the public site, and this PDF was rendered by necodoc's own renderer.
 - **Every section links to its specification** at the commit on the cover. The specs record
   intent and known limitations in more detail than fits here.
-- **No attestations.** necodoc is software you run, not a hosted service, so there is no SOC 2
-  report or ISO certificate to attach. It runs inside your boundary and inherits your controls.
+- **No attestations.** necodoc is software you run. There is no hosted service, so there is no
+  SOC 2 report or ISO certificate to attach. It runs inside your boundary and inherits your controls.
 
 # Product summary
 
@@ -27,8 +27,8 @@ fill a guided form and get the same PDF. It produces documents three ways:
 - **Designed templates and HTML**, rendered by headless Chromium, with headers, footers, page
   numbers, conditional sections and repeating groups.
 - **Overlays on existing PDFs**, such as an obligee's bond form or a regulator's form: fields are
-  placed on the original pages, so the output looks exactly like it. AI can propose field
-  positions when enabled; an editor accepts them.
+  placed on the original pages, so the output looks exactly like it. When AI is enabled, it
+  proposes field positions and an editor accepts each one.
 - **Packets** that combine generated and uploaded PDFs into one file.
 
 Templates have typed fields that drive the form, API validation and a JSON Schema per published
@@ -52,8 +52,8 @@ optional and outbound only.
 
 - **Callers:** core and policy systems over `/api/v1` with API keys; staff in the browser app
   through your identity provider; recipients of public share links.
-- **API and render workers** are stateless and scale by replica count. Workers run headless
-  Chromium in-process with JavaScript off and no network access.
+- **API and render workers** are stateless and scale by replica count. Each worker runs headless
+  Chromium with JavaScript off and no network access.
 - **State** lives in your Postgres and your object storage only.
 - **Outbound, optional:** webhooks to endpoints you configure, your own e-signature integration
   fed by signing packages, and Anthropic's API only if an admin enables AI.
@@ -83,9 +83,9 @@ Back up Postgres, then storage, plus three secrets: `BETTER_AUTH_SECRET`,
 
 # Deployment options
 
-One image set and one set of environment variables in every option. Configuration is validated
-at start; a bad value stops the process and names the variable. Nothing calls home, so it runs
-without outbound internet.
+Every option uses the same images and the same environment variables. Each process validates its
+configuration at start. A bad value stops the process with an error that names the variable.
+necodoc doesn't call home, so it runs without outbound internet access.
 
 | Option | For | What you get |
 | --- | --- | --- |
@@ -94,8 +94,9 @@ without outbound internet.
 | Helm on Kubernetes | Production | Separate API and worker Deployments behind one Ingress, migrations as a pre-install hook, disruption budgets, graceful drain on scale-down, Prometheus annotations or a `PodMonitor`; bring your own Postgres |
 | KEDA autoscaling | Peaks such as renewal runs | Worker replicas follow queue depth read from Postgres; without KEDA, a CPU autoscaler works |
 
-Health and readiness endpoints on every process; readiness fails without the database, queue or
-storage. Upgrades are explicit: new image tag, run migrations, roll the pods.
+Every process has health and readiness endpoints. Readiness fails if the database, queue or
+storage is unavailable. To upgrade, deploy the new image tag, run the migrations, then roll the
+pods.
 
 <p class="limit"><b>Limit</b> The Helm chart passes <code>helm lint</code>, <code>helm template</code> and kubeconform but has not yet been run on a live cluster, and OpenShift isn't tested. There is no published image registry: you build the images from source.</p>
 
@@ -114,7 +115,7 @@ for TypeScript, Python, .NET and Java.
 | Asynchronous | Bind and issue events | `async: true` returns 202 with an id; an HMAC-signed webhook brings the result |
 | Batch | Renewal runs | Up to 10,000 rows of JSON or CSV per batch; progress, cancel, then one ZIP or one combined packet |
 
-Interactive renders and synchronous calls go ahead of batch rows. Errors are JSON with a code and
+Interactive renders and synchronous calls go ahead of batch rows. Errors are JSON, with a code and
 per-field errors: 401 bad key, 403 scope or IP, 422 invalid data, 429 rate limit with
 `Retry-After`. Every response carries `X-Request-Id`.
 
@@ -134,7 +135,7 @@ per-field errors: 401 bad key, 403 scope or IP, 422 invalid data, 429 rate limit
 | Signing packages | Your Postgres; fetched by your e-signature integration | Only if your code sends them on |
 | Draft templates, form page images | Sent to Anthropic's API for the template assistant and AI field detection | Only if `ANTHROPIC_KEY` is set |
 
-<p class="callout"><b>AI is the one thing that can leave your environment, and it's off by default.</b> If an admin sets <code>ANTHROPIC_KEY</code>, the template assistant sends the draft template (fields, content, sample data) and AI field detection sends page images of an uploaded form to Anthropic's API. Generation data, the policyholder data that fills real documents, is not sent. Each AI request is recorded in the audit log; prompts and replies aren't stored. Without the key, AI controls are absent and the AI routes return 404.</p>
+<p class="callout"><b>AI is the one thing that can leave your environment, and it's off by default.</b> If an admin sets <code>ANTHROPIC_KEY</code>, the template assistant sends the draft template (fields, content, sample data) and AI field detection sends page images of an uploaded form to Anthropic's API. Generation data, the policyholder data that fills real documents, is not sent. The audit log records each AI request, but necodoc doesn't store prompts or replies. Without the key, the app shows no AI controls and the AI routes return 404.</p>
 
 [AI template assistant](spec:features/ai-template-assistant) ·
 [PDF overlay templates](spec:features/pdf-overlay-templates)
@@ -145,9 +146,9 @@ per-field errors: 401 bad key, 403 scope or IP, 422 invalid data, 429 rate limit
 
 - OIDC and SAML 2.0 providers such as Entra ID, Auth0 or SiteMinder, plus a trusted-header mode
   for SiteMinder-style web agents that accepts the header only from proxy addresses you list.
-- Accounts are created at first sign-in. IdP groups map to roles (admin, publisher, reviewer,
-  editor, viewer) and are re-synced at every sign-in. A user in no mapped group gets no access
-  until an admin grants it.
+- necodoc creates the account at first sign-in. IdP groups map to roles (admin, publisher,
+  reviewer, editor, viewer), and necodoc syncs them again at every sign-in. A user in no mapped
+  group gets no access until an admin grants it.
 - An IdP can't take over an existing account with the same email unless the operator allows
   linking. Password sign-in can be turned off.
 - Admins ban users, revoke sessions and reset passwords. Impersonation is admin-only and audited.
@@ -156,8 +157,8 @@ per-field errors: 401 bad key, 403 scope or IP, 422 invalid data, 429 rate limit
 
 - A key belongs to a person or to a service account. Service accounts can never sign in.
 - Each key has scopes no wider than its owner's roles, an optional template allowlist, an
-  optional IP allowlist, an expiry date and a rate limit, and shows its usage. Keys are revoked
-  or rotated, not edited.
+  optional IP allowlist, an expiry date and a rate limit, and shows its usage. To change a key,
+  revoke or rotate it. Keys can't be edited.
 
 <p class="limit"><b>Limit</b> No SAML single logout, no IdP-initiated sign-in, no signed AuthnRequests or encrypted assertions. Providers are configured by environment variables and a restart. The IP allowlist sees the reverse proxy's address unless <code>TRUST_PROXY</code> is set.</p>
 
@@ -178,8 +179,8 @@ known limits.
 # Audit and observability
 
 **Audit log.** Every configuration and access change, sign-ins including failures, impersonation
-and API key use, with before and after diffs, the actor, IP address and request id. Rows are
-append-only, enforced by a database trigger, and export as CSV.
+and API key use, with before and after diffs, the actor, IP address and request id. A database
+trigger keeps the rows append-only. The log exports to CSV.
 
 **Generation log.** Every PDF with its source, caller, template version, input, output, output
 profile, worker, attempts and a timing breakdown (queue wait, Liquid, Chromium, bands, stamping,
@@ -187,10 +188,10 @@ finishing). Any entry can be re-run against the exact version it used.
 
 **Operations.** JSON logs on stdout with one request id from the API call through the queue to
 the worker. Prometheus metrics on a separate port: HTTP, render durations by phase, queue depth
-and age, worker slots. OpenTelemetry traces with the standard `OTEL_*` variables, not loaded
+and age, worker slots. OpenTelemetry traces with the standard `OTEL_*` variables, off
 unless configured. Secrets are redacted from logs, and logs and traces never carry field values.
 
-<p class="limit"><b>Limit</b> The audit log is tamper-resistant, not tamper-evident: there is no hash chain, and a database administrator can disable the trigger. Ship it to your SIEM if you need proof against your own administrators. Audit entries are kept forever. File downloads aren't audited, only minting a signed link. The metrics port has no authentication and must not be exposed.</p>
+<p class="limit"><b>Limit</b> The audit log is tamper-resistant, not tamper-evident: there is no hash chain, and a database administrator can disable the trigger. Ship it to your SIEM if you need proof against your own administrators. Audit entries are kept forever. File downloads aren't audited. Only the creation of a signed link is. The metrics port has no authentication and must not be exposed.</p>
 
 [Audit log](spec:features/audit-log) · [Generation log](spec:features/generation-log) ·
 [Observability](spec:features/observability) ·
@@ -255,7 +256,7 @@ each requirement, and what remains the carrier's work.
 
 # Known limits
 
-Collected from the specifications, so your review doesn't have to find them.
+This table collects the known limits from the specifications.
 
 | Area | Limit |
 | --- | --- |

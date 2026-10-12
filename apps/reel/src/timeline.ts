@@ -47,9 +47,9 @@ export const scenes: Scene[] = [
     chapter: "Upload the bond form; AI proposes boxes, you confirm",
     burnIn: true,
     captions: [
-      { at: 0, text: "Start from the obligee's bond form, exactly as they publish it." },
+      { at: 0, text: "Start from the bond form exactly as the obligee publishes it." },
       { at: 95, text: "AI proposes a box for every blank, with a name and a type." },
-      { at: 205, text: "A person confirms them in the overlay editor, with a live preview." },
+      { at: 205, text: "An editor confirms each box in the overlay editor, with a live preview." },
     ],
   },
   {
@@ -60,11 +60,11 @@ export const scenes: Scene[] = [
     captions: [
       {
         at: 0,
-        text: "Designed templates carry their own rules: this part shows only when it applies.",
+        text: "In a designed template, a section can show only when it applies.",
       },
       {
         at: 110,
-        text: "Tick “Add a co-principal” and the bond names a second party and their signature block.",
+        text: 'Tick "Add a co-principal" and the bond gets a second principal and a second signature block.',
       },
     ],
   },
@@ -74,8 +74,8 @@ export const scenes: Scene[] = [
     chapter: "Guided form to finished PDF",
     burnIn: true,
     captions: [
-      { at: 0, text: "Whoever fills it in gets a guided form, one step at a time." },
-      { at: 90, text: "Finish, and the PDF is ready, from the same renderer as the preview." },
+      { at: 0, text: "The person filling it in gets a guided form, one step at a time." },
+      { at: 90, text: "The same renderer makes the preview and the finished PDF." },
     ],
   },
   {
@@ -84,10 +84,13 @@ export const scenes: Scene[] = [
     chapter: "HTML to PDF from your policy system",
     burnIn: true,
     captions: [
-      { at: 0, text: "Or call it from your policy system: HTML and data in, PDF out." },
+      {
+        at: 0,
+        text: "Your policy system can also post HTML and data to the API and get the PDF back.",
+      },
       {
         at: 90,
-        text: `${ms(invoice.roundTrip.p50)} median for a ${invoice.pages}-page invoice with header and footer, measured.`,
+        text: `Measured median: ${ms(invoice.roundTrip.p50)} for a ${invoice.pages}-page invoice with a header and footer.`,
       },
     ],
   },
@@ -98,7 +101,7 @@ export const scenes: Scene[] = [
     burnIn: true,
     captions: [
       { at: 0, text: `Month-end renewals: one batch of ${count(fastest.rows)} rows.` },
-      { at: 110, text: `Add workers to go faster: ${scaling}` },
+      { at: 110, text: `More workers, more throughput: ${scaling}` },
     ],
   },
   {
@@ -109,22 +112,25 @@ export const scenes: Scene[] = [
     captions: [
       {
         at: 0,
-        text: "E-signature ready: each PDF comes with its signers and where every signature goes.",
+        text: "E-signature ready: each PDF comes with its signers and the position of every signature box.",
       },
-      { at: 100, text: "Hand the package to DocuSign, Dropbox Sign or Adobe Acrobat Sign." },
+      {
+        at: 100,
+        text: "Your DocuSign, Dropbox Sign or Adobe Acrobat Sign account runs the signing.",
+      },
     ],
   },
   {
     id: "governance",
     frames: 210,
-    chapter: "Audit trail, generation log, your cloud",
+    chapter: "Audit log, generation log, your cloud",
     burnIn: true,
     captions: [
-      { at: 0, text: "Every change and sign-in lands in an audit log that can't be edited." },
-      { at: 80, text: "Every render is logged with its input, output and timing." },
+      { at: 0, text: "Every change and sign-in goes into an append-only audit log." },
+      { at: 80, text: "The generation log keeps every PDF with its input, output and timing." },
       {
         at: 145,
-        text: "It runs in your cloud. Files stay in your S3-compatible storage or Azure Blob.",
+        text: "necodoc runs in your cloud. PDFs stay in your S3-compatible bucket or Azure Blob container.",
       },
     ],
   },
@@ -135,7 +141,7 @@ export const scenes: Scene[] = [
     captions: [
       {
         at: 0,
-        text: "necodoc. Self-hosted, open source under MIT. github.com/mikevalstar/necodoc",
+        text: "necodoc. Document generation for insurers, in your own cloud. Self-hosted, open source under MIT. github.com/mikevalstar/necodoc",
       },
     ],
   },

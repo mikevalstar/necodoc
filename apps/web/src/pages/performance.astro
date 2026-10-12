@@ -59,7 +59,7 @@ const environment: [string, string][] = e
     ]}
   >
     Every performance figure on this site comes from <code>pnpm bench</code>, which starts a throwaway necodoc stack and
-    measures it through the public API. The machine, date and commit sit beside the numbers.
+    measures it through the public API. The machine, date and commit are shown next to the numbers.
     <Fragment slot="after"><Provenance method={false} /></Fragment>
   </PageHero>
 
@@ -108,8 +108,8 @@ const environment: [string, string][] = e
   <section id="throughput" class="alt">
     <div class="wrap">
       <SectionHead eyebrow="Throughput" title="Batch documents per minute, by worker count.">
-        A JSON batch measured from creation to its last row, so it includes the queue. All workers share one machine; past
-        its core count, more workers stop helping.
+        Each run is one JSON batch, timed from creation to its last row, so the time includes the queue. All workers run
+        on one machine. Above its core count, more workers don't add throughput.
       </SectionHead>
       {
         throughput.length > 0 ? (
@@ -163,8 +163,8 @@ const environment: [string, string][] = e
     <div class="wrap">
       <Pillar eyebrow="In production" title="Your own numbers, on every render.">
         <p>
-          The benchmark tells you what to expect. The generation log tells you what happened: every PDF records its queue
-          wait, run time and a breakdown by step, and Admin › System shows p50, p95 and p99 for any window.
+          In production, the generation log records the queue wait, run time and a per-step breakdown for every PDF. Admin ›
+          System shows p50, p95 and p99 for any time window.
         </p>
         <Proof links={[{ label: "Generation log", href: spec("features/generation-log") }]} />
         <Screenshot slot="media" src={generations} alt="Generation log with a render-time histogram and p50, p95 and p99" />
@@ -182,11 +182,11 @@ const environment: [string, string][] = e
       <div>
         <Stops
           items={[
-            { icon: "laptop", title: "The numbers belong to this machine.", body: "A laptop shares its CPU and throttles under sustained load; a server will differ in both directions." },
+            { icon: "laptop", title: "The numbers are for this machine.", body: "A laptop shares its CPU and throttles under sustained load. A server can be faster or slower." },
             { icon: "plug", title: "Everything is local.", body: "Postgres on the same machine with default settings, local disk storage, calls over loopback. No network, S3 or Azure round trips, TLS or proxy." },
-            { icon: "files", title: "Our documents, not yours.", body: "Render time grows with pages, images, fonts and table size. These are representative insurance documents, not a worst case." },
-            { icon: "queue", title: "Throughput includes the queue.", body: "Each worker slot waits up to 0.5 s between jobs, so per-worker throughput is set more by that gap and RENDER_CONCURRENCY than by render time." },
-            { icon: "snowflake", title: "Cold start is a process, not a machine.", body: "A fresh worker launching Chromium on its first job; not a container or node cold start." },
+            { icon: "files", title: "The test documents are ours.", body: "Render time grows with pages, images, fonts and table size. The test set is typical insurance documents. It isn't a worst case." },
+            { icon: "queue", title: "Throughput includes the queue.", body: "Each worker slot waits up to 0.5 s between jobs. That gap and <code>RENDER_CONCURRENCY</code> limit per-worker throughput more than render time does." },
+            { icon: "snowflake", title: "Cold start means a new process.", body: "It measures a new worker launching Chromium for its first job. It doesn't measure a container or node cold start." },
             { icon: "arrow-right", title: "Latency is sequential.", body: "One request at a time. It says nothing about latency under concurrent load." },
           ]}
         />
@@ -210,7 +210,7 @@ const environment: [string, string][] = e
       <div>
         <p class="eyebrow">Rerun it</p>
         <h2>On your hardware, against your Postgres.</h2>
-        <p class="lede">It creates its own database, starts its own processes and removes both when it ends, even on failure. It never touches another necodoc install.</p>
+        <p class="lede">The benchmark creates its own database and starts its own processes. It removes both when it ends, even after a failure, and never touches another necodoc install.</p>
       </div>
       <pre class="code"><span class="c"># once: the Chromium build the API pins</span>
 pnpm --filter @necodoc/api chromium:install

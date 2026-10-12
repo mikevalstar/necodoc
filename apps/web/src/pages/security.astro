@@ -23,12 +23,12 @@ const controls: { group: string; rows: Control[] }[] = [
     rows: [
       {
         control: "Single sign-on",
-        how: "Entra ID, Auth0, SiteMinder or any OIDC or SAML 2.0 IdP, or a trusted SiteMinder-style header. Accounts are created on first sign-in.",
+        how: "Entra ID, Auth0, SiteMinder or any OIDC or SAML 2.0 IdP, or a trusted SiteMinder-style header. necodoc creates the account at first sign-in.",
         proof: { label: "Single sign-on", href: spec("features/single-sign-on") },
       },
       {
         control: "Role mapping",
-        how: "IdP groups map to roles: admin, publisher, reviewer, editor, viewer. Roles add up; each grants one job.",
+        how: "IdP groups map to roles: admin, publisher, reviewer, editor, viewer. A user can hold several roles, and each role grants one kind of work.",
         proof: { label: "Users and roles", href: spec("features/user-management-and-roles") },
       },
       {
@@ -48,12 +48,12 @@ const controls: { group: string; rows: Control[] }[] = [
       },
       {
         control: "Scoped keys",
-        how: "Scopes no wider than the owner's roles, an optional template allowlist, an IP allowlist, an expiry date, per-key rate limits, revocation and usage.",
+        how: "Each key has scopes no wider than its owner's roles, an optional template allowlist and IP allowlist, an expiry date and a rate limit. Admins can revoke a key and see its usage.",
         proof: { label: "HTML to PDF API", href: spec("features/html-to-pdf-api") },
       },
       {
         control: "Signed callbacks",
-        how: "Webhooks carry an HMAC-SHA256 signature over timestamp and body; each delivery attempt is logged.",
+        how: "Webhooks carry an HMAC-SHA256 signature over the timestamp and body. necodoc logs each delivery attempt.",
         proof: { label: "Webhooks", href: spec("features/webhooks") },
       },
     ],
@@ -68,7 +68,7 @@ const controls: { group: string; rows: Control[] }[] = [
       },
       {
         control: "Downloads",
-        how: "Streamed through signed, expiring links. Minting a link is audited.",
+        how: "Files download through signed links that expire. The audit log records each link that is issued.",
         proof: { label: "Generation log", href: spec("features/generation-log") },
       },
       {
@@ -83,7 +83,7 @@ const controls: { group: string; rows: Control[] }[] = [
     rows: [
       {
         control: "Audit log",
-        how: "Every configuration and access change, sign-ins including failures, impersonation and API key use, with before and after diffs. Append-only, enforced by a database trigger. CSV export.",
+        how: "Every configuration and access change, sign-ins including failures, impersonation and API key use, with before and after diffs. A database trigger keeps it append-only. Exports to CSV.",
         proof: { label: "Audit log", href: spec("features/audit-log") },
       },
       {
@@ -93,7 +93,7 @@ const controls: { group: string; rows: Control[] }[] = [
       },
       {
         control: "Operational logs",
-        how: "JSON logs, Prometheus metrics, OpenTelemetry traces, one request id end to end. Logs and traces never carry field values.",
+        how: "JSON logs, Prometheus metrics and OpenTelemetry traces, with one request id end to end. Logs and traces never carry field values.",
         proof: { label: "Observability", href: spec("features/observability") },
       },
     ],
@@ -103,7 +103,7 @@ const controls: { group: string; rows: Control[] }[] = [
     rows: [
       {
         control: "Versioning",
-        how: "One working draft; published versions are numbered and immutable. Publishing is its own permission.",
+        how: "Each template has one working draft. Published versions are numbered and can't change. Publishing needs its own permission.",
         proof: { label: "Publishing", href: spec("features/publishing-and-versions") },
       },
       {
@@ -113,12 +113,12 @@ const controls: { group: string; rows: Control[] }[] = [
       },
       {
         control: "Regression tests",
-        how: "Named test cases with assertions; page-by-page visual and text diff against the published version.",
+        how: "Named test cases with assertions, and a page-by-page visual and text diff against the published version.",
         proof: { label: "Test cases", href: spec("features/template-test-cases-and-visual-diff") },
       },
       {
         control: "Output integrity",
-        how: "PDF/A-2b or 2u, PDF/UA-1, PAdES B-B or B-T certification with your certificate. Each generation records what was applied.",
+        how: "PDF/A-2b or 2u, PDF/UA-1, and PAdES B-B or B-T certification with your certificate. Each generation records the profiles it applied.",
         proof: {
           label: "Archival output",
           href: spec("features/archival-accessible-and-certified-output"),
@@ -136,7 +136,7 @@ const controls: { group: string; rows: Control[] }[] = [
       },
       {
         control: "Erasure",
-        how: "Find everything stored about a data subject and erase it, with an erasure report.",
+        how: "An admin finds everything stored about a data subject and erases it. necodoc writes an erasure report.",
         proof: { label: "Personal data", href: spec("features/personal-data-masking-and-erasure") },
       },
       {
@@ -180,8 +180,8 @@ const csvHref = `data:text/csv;charset=utf-8,${encodeURIComponent(csv)}`;
       { href: "#not", label: "What we don't claim" },
     ]}
   >
-    necodoc runs in your account, signs people in through your IdP, and writes its records to your Postgres. This page
-    lists the controls it provides, how each works, and where each one stops.
+    necodoc runs in your account. People sign in through your IdP, and necodoc writes its records to your Postgres.
+    Each control below says how it works and where it stops.
   </PageHero>
 
   <section class="tight" id="data" style="padding-bottom:0">
@@ -192,8 +192,8 @@ const csvHref = `data:text/csv;charset=utf-8,${encodeURIComponent(csv)}`;
           <b>The one thing that can leave your environment is AI, and it's off by default.</b> If an admin sets
           <code>ANTHROPIC_KEY</code>, the template assistant sends the draft template (fields, content, sample data) and AI
           field detection sends page images of the uploaded form to Anthropic's API. Generation data, the policyholder data
-          that fills real documents, isn't sent. Each AI request is in the audit log. Without the key, nothing leaves your
-          boundary except webhooks you configure.
+          that fills real documents, isn't sent. The audit log records each AI request. Without the key, nothing leaves your
+          boundary except the webhooks you configure.
           <a class="tlink" href={spec("features/ai-template-assistant")}>AI template assistant spec</a>
         </div>
       </div>
@@ -202,8 +202,8 @@ const csvHref = `data:text/csv;charset=utf-8,${encodeURIComponent(csv)}`;
 
   <section id="controls">
     <div class="wrap">
-      <SectionHead eyebrow="Controls list" title="The table your security reviewer copies into the questionnaire.">
-        Every row links to the spec that defines the control and its known limits.
+      <SectionHead eyebrow="Controls list" title="Every control, and the spec that defines it.">
+        Each spec lists the control's known limits. Download the table as CSV for a vendor questionnaire.
         <span class="cta-row" style="margin-top:20px;display:flex">
           <a class="btn ghost sm" href={csvHref} download="necodoc-controls.csv"><Icon name="download-simple" />Download as CSV</a>
         </span>
@@ -233,8 +233,8 @@ const csvHref = `data:text/csv;charset=utf-8,${encodeURIComponent(csv)}`;
   <section id="audit" class="alt">
     <div class="wrap">
       <SectionHead eyebrow="Audit and logging" title="Who changed the bond wording, who approved it, and when.">
-        The audit log records the change and its diff. The generation log records every PDF that came out of it. Together
-        they answer the auditor's question without a spreadsheet.
+        The audit log records each change, its diff and who approved it. The generation log records every PDF made from
+        each version.
       </SectionHead>
       <div class="pair">
         <Screenshot src={audit} alt="Audit log filtered to template events: review submitted, changes requested, approved, updated" crop={{ height: 470, zoom: 140, x: "-24%", y: "-30px" }} />
@@ -243,7 +243,7 @@ const csvHref = `data:text/csv;charset=utf-8,${encodeURIComponent(csv)}`;
       <div style="margin-top:44px">
         <Stops
           items={[
-            { icon: "database", title: "Append-only in the database.", body: "A trigger rejects updates and deletes on audit rows, so the app, an API key or a bug can't rewrite history." },
+            { icon: "database", title: "Append-only in the database.", body: "A trigger rejects updates and deletes on audit rows. The app, an API key or a bug can't change a past entry." },
             { icon: "warning", title: "Tamper-resistant, not tamper-evident.", body: "There is no hash chain, and a DBA can disable the trigger. Ship the log to your SIEM if you need proof against your own administrators." },
           ]}
         />
@@ -255,15 +255,15 @@ const csvHref = `data:text/csv;charset=utf-8,${encodeURIComponent(csv)}`;
     <div class="wrap">
       <Pillar eyebrow="Change control" title="Forms staff change the wording. Your systems code against the fields." flip>
         <p>
-          Editors change content. Fields are the contract your systems code against, published as a JSON Schema per version.
-          Review and publish are separate permissions.
+          Fields are the contract between a template and your systems. Each published version has its own JSON Schema.
+          Review and publishing are separate permissions.
         </p>
         <Checks
           items={[
-            "Immutable published versions; the API calls a version, not whatever's current",
+            "Published versions can't change, and the API always fills a published version",
             "A reviewer sees structure, page and test changes, then approves or asks for changes",
             "Test cases and a visual diff run on the draft before it's published",
-            "Shared clauses live in snippets, so a wording change is made once",
+            "Shared clauses live in snippets, so you change a clause in one place",
           ]}
         />
         <Limit>One review step. Multi-step approval chains aren't supported.</Limit>
@@ -275,8 +275,8 @@ const csvHref = `data:text/csv;charset=utf-8,${encodeURIComponent(csv)}`;
   <section id="output" class="alt tight">
     <div class="wrap">
       <div class="qa">
-        <div><p class="q">Output integrity</p><h3>Archive, accessible, certified</h3><p>PDF/A-2b or 2u for retention, tagged PDF/UA-1 for screen readers, and PAdES certification a recipient can check against an edited copy. Never applied to a file that can't honestly carry it.</p><a class="tlink" href={spec("features/archival-accessible-and-certified-output")}>Archival output →</a></div>
-        <div><p class="q">Privacy</p><h3>Masking and erasure</h3><p>Sensitive fields are masked in diffs and other people's log entries. Admins find and erase a data subject's records, with a report for the request.</p><a class="tlink" href={spec("features/personal-data-masking-and-erasure")}>Personal data →</a></div>
+        <div><p class="q">Output integrity</p><h3>Archival, accessible and certified PDFs</h3><p>PDF/A-2b or 2u for retention, tagged PDF/UA-1 for screen readers, and PAdES certification that shows a recipient if a copy was edited. necodoc doesn't mark a file with a profile it can't meet.</p><a class="tlink" href={spec("features/archival-accessible-and-certified-output")}>Archival output →</a></div>
+        <div><p class="q">Privacy</p><h3>Masking and erasure</h3><p>necodoc masks sensitive fields in diffs and in other people's log entries. Admins find and erase a data subject's records, and get a report for the request.</p><a class="tlink" href={spec("features/personal-data-masking-and-erasure")}>Personal data →</a></div>
         <div><p class="q">Signatures</p><h3>E-signature ready</h3><p>Signing packages list signers, routing order and box positions as envelope JSON. Your provider runs the legally binding signing.</p><a class="tlink" href={spec("features/signing-packages")}>Signing packages →</a></div>
       </div>
     </div>
@@ -304,16 +304,16 @@ const csvHref = `data:text/csv;charset=utf-8,${encodeURIComponent(csv)}`;
 
   <section id="not" class="alt tight">
     <div class="wrap">
-      <SectionHead eyebrow="What we don't claim" title="No badges we haven't earned.">
+      <SectionHead eyebrow="What we don't claim" title="Attestations and claims we don't make.">
         There is no hosted service, so there is nothing for an auditor to attest. necodoc runs inside your SOC 2 and B-13
         boundary and inherits your controls.
       </SectionHead>
       <Stops
         items={[
           { icon: "seal", title: "No SOC 2, ISO 27001 or \"certified secure\".", body: "We describe controls, not attestations." },
-          { icon: "lock-key-open", title: "Not \"tamper-proof\".", body: "The audit log is tamper-resistant; see above." },
+          { icon: "lock-key-open", title: "Not \"tamper-proof\".", body: "The audit log is tamper-resistant, as described above." },
           { icon: "signature", title: "Not an e-signature service.", body: "No ESIGN, eIDAS or UECA claims. Your provider signs." },
-          { icon: "sparkle", title: "Not \"data never leaves\" without the AI caveat.", body: "It's true with AI off, the default, and stated at the top of this page." },
+          { icon: "sparkle", title: "Not \"data never leaves\" without the AI caveat.", body: "With AI off, the default, nothing leaves except your webhooks. The AI caveat is at the top of this page." },
         ]}
       />
     </div>

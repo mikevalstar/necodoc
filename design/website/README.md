@@ -97,3 +97,5 @@ and stay as they are.
 
 1. **Docs domain.** Docs links use `DOCS_URL` (default the local devdocs port).
 2. **Benchmark.** Rerun on a clean commit so the dirty-tree warning goes away.
+
+Copy pass (W6b): [copy-pass.md](copy-pass.md) logs the notable before/after changes.
