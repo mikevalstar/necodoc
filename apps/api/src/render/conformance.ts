@@ -166,6 +166,20 @@ function wrapListBodies(doc: PDFDocument) {
 }
 
 /**
+ * PDF/UA 7.1-5: Chromium tags `<strong>`/`<b>` and `<em>`/`<i>` as PDF 2.0's Strong and Em, which
+ * PDF 1.7 doesn't define, so the structure root's role map sends them to Span.
+ */
+function mapPdf2Types(doc: PDFDocument) {
+  const root = doc.catalog.lookupMaybe(PDFName.of("StructTreeRoot"), PDFDict);
+  if (!root) return;
+  const roleMap = root.lookupMaybe(PDFName.of("RoleMap"), PDFDict) ?? doc.context.obj({});
+  for (const type of ["Strong", "Em"]) {
+    if (!roleMap.has(PDFName.of(type))) roleMap.set(PDFName.of(type), PDFName.of("Span"));
+  }
+  root.set(PDFName.of("RoleMap"), roleMap);
+}
+
+/**
  * Makes a PDF identify as PDF/A-2 and/or PDF/UA-1. Returns what it could claim: PDF/A is dropped,
  * with a warning, when preflight finds something it can't fix.
  */
@@ -212,7 +226,10 @@ export async function applyConformance(pdf: Uint8Array, options: ConformanceOpti
     catalog.lookupMaybe(PDFName.of("AcroForm"), PDFDict)?.delete(PDFName.of("NeedAppearances"));
   }
 
-  if (pdfua) wrapListBodies(doc);
+  if (pdfua) {
+    wrapListBodies(doc);
+    mapPdf2Types(doc);
+  }
 
   for (const page of doc.getPages()) {
     const annots = page.node.lookupMaybe(PDFName.of("Annots"), PDFArray);

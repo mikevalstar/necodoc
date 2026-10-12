@@ -14,9 +14,13 @@ screenshots of the build are in [shots/](shots/).
 | Architecture | `/architecture/` | Reference architecture, components and state, deployment (Compose, Helm, KEDA), integration patterns with a worked PAS pattern, data flows, scaling and HA, observability, known limits |
 | Security and governance | `/security/` | AI caveat first, the controls list (downloadable as CSV), audit, change control, output integrity, privacy, Canadian requirements (what helps, what stays yours), what we don't claim |
 | Performance | `/performance/` | Every W2 number, read from `scripts/bench/results/latest.json`: latency, throughput by worker count, cold start and archival cost, environment, caveats, how to rerun |
+| Product | `/product/` | The full feature tour (W9): six pillars with screenshots, then grids for output, change control, AI (with the data caveat), integrations and admin. Every item has its limit and spec link |
+| Compare | `/compare/` | Dated rows vs GhostDraft, DocSpring, Anvil and enterprise CCM suites with sources, where the others are stronger, and a "which fits" table |
+| Open source and pricing | `/open-source/` | MIT, what you pay for (your infrastructure and time), the licence, extension points, contributing, support "coming soon" |
 
-Product, Compare and Open source and pricing pages are W9; nothing links to them yet. The
-site is English only; a French site is deferred.
+The header nav reads Product, Insurance, Architecture, Security, Performance, Compare,
+Pricing, Docs; "Security & governance" is shortened there to fit, and keeps its full name in
+the footer. The site is English only; a French site is deferred.
 
 ## Section outline
 
@@ -69,7 +73,10 @@ site is English only; a French site is deferred.
 Captured from the dev app with seed data, then staged in the browser before capture: test
 template names were renamed or hidden, a 29 s outlier row was removed from the generations
 log, and the Admin › System figures, hostnames and storage path were replaced with plausible
-production values. Workspace "Harbour Surety" and the people are fictional. **Before
+production values. Workspace "Harbour Surety" and the people are fictional. The W9 shots
+(template fields, guided form, command palette, API reference) were taken unedited; the
+command palette and API reference are cropped on the page so test template names and the
+dev API key don't show. **Before
 launch, retake them from a seeded demo instance** so nothing on the site is edited.
 
 ## Decisions (Mike, 2026-10-12)
@@ -82,7 +89,7 @@ launch, retake them from a seeded demo instance** so nothing on the site is edit
   `links.reviewPack` in [links.ts](../../apps/web/src/lib/links.ts)
   (`/review-pack/necodoc-architecture-review.pdf`), which 404s until W8 ships.
 - **"Run it in 10 minutes"** stays; it still needs the timed clean-machine run before launch.
-- **Missing pages.** Product, Compare and Open source and pricing are W9.
+- **Missing pages.** Product, Compare and Open source and pricing were W9; built.
 - **Benchmark.** Laptop numbers on Home are fine, labelled with the hardware.
 - **Named core systems.** Guidewire and Duck Creek aren't mentioned for now; copy says
   "your policy admin system" or "core systems".

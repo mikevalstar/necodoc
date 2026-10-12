@@ -57,7 +57,7 @@ brought the request.
 - The architecture review pack is generated on each release (W8,
   NECO-syjjmvla).
 - Product, Compare and Open source and pricing pages are a separate ticket
-  (W9); nothing links to them until they exist.
+  (W9, NECO-igeuyzto), now built and linked from the header and footer.
 
 ### What the architect needs to sign off
 
@@ -242,11 +242,15 @@ buys credibility.
 | Open source and pricing | MIT, no licence cost, what you pay for (your infra); support "coming soon" |
 | Docs | Links out to the developer docs site ([ADR 0026](../adrs/0026-astro-starlight-for-the-developer-docs-site.md)) |
 
-Product, Compare and Open source and pricing are W9 and not built. A French
-site is deferred.
+A French site is deferred.
 
-Built pages (W3): Home, Insurance, Architecture, Security and governance and
-Performance, in [apps/web/src/pages](../../apps/web/src/pages/index.astro).
+Built pages: Home, Insurance, Architecture, Security and governance and
+Performance (W3), and [Product](../../apps/web/src/pages/product.astro),
+[Compare](../../apps/web/src/pages/compare.astro) and
+[Open source and pricing](../../apps/web/src/pages/open-source.astro) (W9), in
+[apps/web/src/pages](../../apps/web/src/pages/index.astro). The Compare page
+dates its rows and links the vendor sources from [Research](#research), minus
+the ones that name core systems.
 Benchmark numbers are imported from the W2 JSON by
 [bench.ts](../../apps/web/src/lib/bench.ts) and show as placeholders when it's
 missing. Design decisions and open questions:

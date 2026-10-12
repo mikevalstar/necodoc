@@ -1,0 +1,258 @@
+---
+// Open source and pricing. Its job (docs/features/marketing-site.md, Pages and the TCO and
+// vendor-risk answers): MIT, no licence cost, what you pay for (your infrastructure), how to
+// extend and contribute; support "coming soon", nothing more.
+import Icon from "../components/Icon.astro";
+import PageHero from "../components/PageHero.astro";
+import SectionHead from "../components/SectionHead.astro";
+import Stat from "../components/Stat.astro";
+import Stats from "../components/Stats.astro";
+import Stops from "../components/Stops.astro";
+import Layout from "../layouts/Layout.astro";
+import { devdocs, links, spec } from "../lib/links";
+
+const source = (path: string) => `${links.github}/blob/main/${path}`;
+
+const costs = [
+  {
+    item: "API and render workers",
+    what: "Containers on your Kubernetes cluster or VMs. Workers are a replica count; add them for month-end and remove them after.",
+    proof: { label: "Roles and scaling ↗", href: devdocs("self-hosting/roles-and-scaling") },
+  },
+  {
+    item: "Postgres",
+    what: "One database, managed or your own. It holds templates, versions, logs, audit and the job queue.",
+    proof: { label: "Self-hosting", href: spec("features/self-hosting") },
+  },
+  {
+    item: "Object storage",
+    what: "An S3-compatible bucket, an Azure Blob container, or a shared disk for generated PDFs.",
+    proof: { label: "Storage ↗", href: devdocs("self-hosting/storage") },
+  },
+  {
+    item: "Monitoring",
+    what: "Your existing Prometheus, OpenTelemetry collector and log shipper.",
+    proof: { label: "Observability", href: spec("features/observability") },
+  },
+  {
+    item: "AI, if you turn it on",
+    what: "Your Anthropic API usage, billed to your key. Field detection measured about 1.5 cents a page.",
+    proof: { label: "PDF overlay templates", href: spec("features/pdf-overlay-templates") },
+  },
+  {
+    item: "E-signature, if you use it",
+    what: "Your own DocuSign, Dropbox Sign or Adobe Acrobat Sign account. necodoc builds the envelope.",
+    proof: { label: "Signing packages", href: spec("features/signing-packages") },
+  },
+  {
+    item: "Your team's time",
+    what: "Running, patching, backing up and upgrading it, like any service you host.",
+    proof: { label: "Upgrades ↗", href: devdocs("self-hosting/upgrades") },
+  },
+];
+
+const extend = [
+  {
+    icon: "palette",
+    title: "Themes",
+    body: "Named CSS themes with uploaded fonts set house style across templates and API renders.",
+    href: spec("features/document-themes"),
+    label: "Document themes",
+  },
+  {
+    icon: "puzzle-piece",
+    title: "Snippets",
+    body: "Shared clauses and blocks included by key, versioned with each template that uses them.",
+    href: spec("features/snippet-library"),
+    label: "Snippet library",
+  },
+  {
+    icon: "brackets-curly",
+    title: "Liquid filters",
+    body: "Filters are registered in one file. Add your own (a policy-number format, a rating lookup) and rebuild.",
+    href: source("apps/api/src/render/liquid.ts"),
+    label: "liquid.ts",
+  },
+  {
+    icon: "webhooks-logo",
+    title: "Webhooks",
+    body: "Signed callbacks when generations and batches finish, so your systems pick up the PDF without polling.",
+    href: spec("features/webhooks"),
+    label: "Webhooks",
+  },
+  {
+    icon: "code",
+    title: "SDKs and OpenAPI",
+    body: "TypeScript, Python, .NET and Java clients, all generated from the OpenAPI document your deployment serves. Generate one for any other language.",
+    href: devdocs("reference/sdks"),
+    label: "SDK reference ↗",
+  },
+  {
+    icon: "hard-drives",
+    title: "Storage drivers",
+    body: "S3, Azure Blob and disk drivers share one small interface. Add another the same way.",
+    href: source("apps/api/src/storage/index.ts"),
+    label: "storage/",
+  },
+];
+---
+
+<Layout
+  title="Open source and pricing · necodoc"
+  description="necodoc is MIT-licensed and self-hosted. There is no licence fee per worker, user or document; your cost is the infrastructure you run it on. How to extend it and contribute."
+  page="open-source"
+>
+  <PageHero
+    crumb="Open source and pricing"
+    eyebrow="Open source and pricing"
+    title="MIT-licensed. No licence fee for workers, users or documents."
+    toc={[
+      { href: "#pay", label: "What you pay for" },
+      { href: "#licence", label: "The licence" },
+      { href: "#extend", label: "Extending it" },
+      { href: "#contribute", label: "Contributing" },
+      { href: "#support", label: "Support" },
+    ]}
+  >
+    necodoc is one codebase you run on your own infrastructure. Every feature is in the same build. There is no paid
+    tier, no seat count and no meter.
+  </PageHero>
+
+  <section class="tight">
+    <div class="wrap">
+      <Stats>
+        <Stat value={{ text: "$0" }} label="Per worker" big>Workers are a replica count.</Stat>
+        <Stat value={{ text: "$0" }} label="Per user" big>Sign people in through your IdP; add as many as you need.</Stat>
+        <Stat value={{ text: "$0" }} label="Per document" big>A renewal run of ten thousand costs what the compute costs.</Stat>
+        <Stat value={{ text: "MIT" }} label="Licence" big>Use, change and redistribute it, commercially too.</Stat>
+      </Stats>
+    </div>
+  </section>
+
+  <section id="pay" class="alt">
+    <div class="wrap split">
+      <aside>
+        <p class="eyebrow">What you pay for</p>
+        <h2>Your infrastructure, and your time.</h2>
+        <p>necodoc doesn't host anything, so there is nothing of ours to pay for. These are the costs of running it.</p>
+      </aside>
+      <table class="spec">
+        <thead><tr><th>Item</th><th>What it is</th><th>More</th></tr></thead>
+        <tbody>
+          {
+            costs.map((c) => (
+              <tr>
+                <td>{c.item}</td>
+                <td>{c.what}</td>
+                <td><a href={c.proof.href}>{c.proof.label}</a></td>
+              </tr>
+            ))
+          }
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section id="licence">
+    <div class="wrap split">
+      <aside>
+        <p class="eyebrow">The licence</p>
+        <h2>MIT, the whole codebase.</h2>
+        <p>The API, workers, app, renderer and SDKs are all under the same licence.</p>
+      </aside>
+      <div>
+        <div class="qa two">
+          <div>
+            <p class="q">You can</p>
+            <h3>Use, change, fork and redistribute it</h3>
+            <p>In production, commercially, inside your own products. Keep the copyright and licence notice with copies of the code.</p>
+          </div>
+          <div>
+            <p class="q">It comes</p>
+            <h3>As is, with no warranty</h3>
+            <p>That is what MIT says. Test it against your own forms and volumes before you depend on it; the benchmark and specs show how.</p>
+          </div>
+          <div>
+            <p class="q">Vendor risk · OSFI B-10</p>
+            <h3>Your exit plan is your own copy</h3>
+            <p>Standard Postgres, PDFs in your storage, templates as data, and the source. Nothing phones home or needs a licence server.</p>
+          </div>
+          <div>
+            <p class="q">Proof</p>
+            <h3>Read it before you agree to it</h3>
+            <p>The licence is one short file at the root of the repository.</p>
+          </div>
+        </div>
+        <p class="cta-row" style="margin-top:28px">
+          <a class="tlink" href={source("LICENSE")}><Icon name="scales" />Read the LICENSE file</a>
+          <a class="tlink" href="/security/#canada">How self-hosting bears on B-10 and B-13 →</a>
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <section id="extend" class="alt">
+    <div class="wrap">
+      <SectionHead eyebrow="Extending it" title="Most changes are configuration. The rest is the source.">
+        Themes, snippets and webhooks are set up in the app. Filters and drivers are code you add to your fork.
+      </SectionHead>
+      <div class="cards">
+        {
+          extend.map((e) => (
+            <a class="card" href={e.href}>
+              <span class="ic"><Icon name={e.icon} weight="duotone" /></span>
+              <h3>{e.title}</h3>
+              <p>{e.body}</p>
+              <span class="foot">{e.label}</span>
+            </a>
+          ))
+        }
+      </div>
+    </div>
+  </section>
+
+  <section id="contribute">
+    <div class="wrap">
+      <SectionHead eyebrow="Contributing" title="Issues, pull requests and questions on GitHub.">
+        Behaviour is written down before it's built: each feature has a spec in <code>docs/</code>, and a pull request that
+        changes behaviour updates its spec too.
+      </SectionHead>
+      <Stops
+        items={[
+          { icon: "bug", title: "Report a bug or a form that won't open.", body: "Open an issue with the PDF if you can share it, or the error from the generation log if you can't." },
+          { icon: "git-pull-request", title: "Send a pull request.", body: "Read the spec for the area first, and update it with the change. <code>pnpm check</code>, <code>pnpm typecheck</code> and <code>pnpm test</code> should pass." },
+          { icon: "chat-circle-text", title: "Ask a question.", body: "Use GitHub Discussions." },
+          { icon: "files", title: "Read the decisions.", body: "Architecture decisions are numbered ADRs in <code>docs/adrs</code>, linked from each spec." },
+        ]}
+      />
+      <p class="cta-row">
+        <a class="btn ghost" href={links.github}><Icon name="github-logo" />Source on GitHub</a>
+        <a class="tlink" href={links.discussions}>GitHub Discussions ↗</a>
+      </p>
+    </div>
+  </section>
+
+  <section id="support" class="night grid-bg on-night tight">
+    <div class="wrap band">
+      <div>
+        <p class="eyebrow">Support</p>
+        <h2>Support is coming soon.</h2>
+      </div>
+      <div class="cta-row"><a class="btn next" href={links.quickstart}>Run it in 10 minutes</a><a class="btn ghost" href={links.docs}>Read the docs</a></div>
+    </div>
+  </section>
+</Layout>
+
+<style>
+  .qa.two { grid-template-columns: repeat(2, 1fr); }
+  .qa.two > div:nth-child(odd) { padding-left: 0; border-left: 0; }
+  .qa.two > div:nth-child(even) { padding-left: 30px; border-left: 1px solid var(--hair); }
+  .band { display: flex; align-items: center; gap: 40px; flex-wrap: wrap; }
+  .band > div:first-child { flex: 1; min-width: 300px; }
+  .band h2 { font-size: 34px; }
+  .band .cta-row { margin: 0; }
+  @media (max-width: 640px) {
+    .qa.two { grid-template-columns: 1fr; }
+    .qa.two > div:nth-child(even) { padding-left: 0; border-left: 0; }
+  }
+</style>

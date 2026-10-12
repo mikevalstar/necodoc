@@ -1,0 +1,463 @@
+---
+import queue from "../assets/screens/admin-queue.png";
+// Product. Its job (docs/features/marketing-site.md, Pages): every capability in full, for
+// the architect checking scope, each with its limit and a link to the spec that defines it.
+import apiReference from "../assets/screens/api-reference.png";
+import palette from "../assets/screens/command-palette.png";
+import generations from "../assets/screens/generations-log.png";
+import guidedForm from "../assets/screens/guided-form.png";
+import overlay from "../assets/screens/overlay-editor.png";
+import signing from "../assets/screens/signing-package.png";
+import editor from "../assets/screens/template-editor.png";
+import fields from "../assets/screens/template-fields.png";
+import BenchValue from "../components/BenchValue.astro";
+import Checks from "../components/Checks.astro";
+import Icon from "../components/Icon.astro";
+import Limit from "../components/Limit.astro";
+import PageHero from "../components/PageHero.astro";
+import Pillar from "../components/Pillar.astro";
+import Proof from "../components/Proof.astro";
+import Screenshot from "../components/Screenshot.astro";
+import SectionHead from "../components/SectionHead.astro";
+import Layout from "../layouts/Layout.astro";
+import { docsPerMinute, env } from "../lib/bench";
+import { devdocs, links, spec } from "../lib/links";
+
+type Feature = {
+  q: string;
+  title: string;
+  body: string;
+  limit: string;
+  proof: { label: string; href: string };
+};
+
+const output: Feature[] = [
+  {
+    q: "Archival and accessible output",
+    title: "PDF/A-2, PDF/UA-1, PAdES certification",
+    body: "Per template or per request: PDF/A-2b or 2u for retention, tagged PDF/UA-1 for screen readers, and certification with your certificate (PAdES B-B or B-T). Each generation records what was applied.",
+    limit:
+      "PDF/A on an overlay depends on the uploaded form embedding its fonts. There is no built-in validator; use veraPDF to prove conformance.",
+    proof: {
+      label: "Archival output",
+      href: spec("features/archival-accessible-and-certified-output"),
+    },
+  },
+  {
+    q: "Localization",
+    title: "EN and fr-CA from one template",
+    body: "Translations live in the template and are versioned and reviewed with it. The request picks the language; dates, numbers and currency format for it. Right-to-left languages lay out right to left.",
+    limit:
+      "No plural forms in translations yet. Overlay text isn't shaped for right-to-left scripts.",
+    proof: { label: "Document localization", href: spec("features/document-localization") },
+  },
+  {
+    q: "Packets",
+    title: "Combine PDFs into one",
+    body: "Merge generated documents and uploaded PDFs in the order you set, from the API or as a batch delivered as one packet.",
+    limit:
+      "No bookmarks, table of contents or page renumbering across the packet. Form fields are flattened.",
+    proof: { label: "Combining PDFs", href: spec("features/combining-pdfs-into-packets") },
+  },
+];
+
+const control: Feature[] = [
+  {
+    q: "Versions",
+    title: "One draft, immutable published versions",
+    body: "Editing and publishing are separate permissions. The API and the form always fill a published version, never the draft.",
+    limit: "One draft per template; two editors on it overwrite each other, with a warning.",
+    proof: { label: "Publishing and versions", href: spec("features/publishing-and-versions") },
+  },
+  {
+    q: "Review",
+    title: "A review gate before publish",
+    body: "A reviewer sees what changed (structure, pages, tests) and approves or asks for changes. With the gate on, only an approved, unchanged draft publishes.",
+    limit: "One review step and one open review per template. No multi-step or assigned approvals.",
+    proof: { label: "Review and approval", href: spec("features/review-and-approval") },
+  },
+  {
+    q: "Test cases and visual diff",
+    title: "Catch the change that breaks a document",
+    body: "Named data sets with checks (page count, text it must or mustn't contain) run on the draft. A page-by-page visual and text diff compares it with the published version.",
+    limit:
+      "The diff compares the latest published version only, page by page at the same index, up to 20 pages.",
+    proof: {
+      label: "Test cases and visual diff",
+      href: spec("features/template-test-cases-and-visual-diff"),
+    },
+  },
+];
+
+const connect: Feature[] = [
+  {
+    q: "Share links",
+    title: "A form for someone without an account",
+    body: "A published template gets a public link. A broker or applicant fills the guided form; you get the submission and the PDF. Links can prefill and lock fields and expire.",
+    limit: "No identity check on the filler and no email: you send the link yourself.",
+    proof: { label: "Share links", href: spec("features/share-links-and-data-requests") },
+  },
+  {
+    q: "Webhooks",
+    title: "Signed callbacks when work finishes",
+    body: "Set on an API key, an account or a template. HMAC-SHA256 over timestamp and body, delivered from the job queue with retries and a delivery log.",
+    limit: "Order isn't guaranteed and an event can arrive twice; deduplicate on the delivery id.",
+    proof: { label: "Webhooks", href: spec("features/webhooks") },
+  },
+  {
+    q: "SDKs",
+    title: "TypeScript, Python, .NET and Java",
+    body: "Generated from the same OpenAPI document as the API reference. Every deployment serves its own document at <code>/api/v1/openapi.json</code>.",
+    limit: "Not on npm, PyPI, NuGet or Maven Central yet; install from a checkout.",
+    proof: { label: "SDK reference ↗", href: devdocs("reference/sdks") },
+  },
+];
+
+const admin: Feature[] = [
+  {
+    q: "Audit log",
+    title: "Who changed what, with diffs",
+    body: "Configuration and access changes, sign-ins and failures, impersonation and API key use. Append-only, enforced by a database trigger. CSV export.",
+    limit: "Tamper-resistant, not tamper-evident: a DBA can disable the trigger.",
+    proof: { label: "Audit log", href: spec("features/audit-log") },
+  },
+  {
+    q: "Generation log",
+    title: "Every PDF, re-runnable",
+    body: "Source, caller, template version, input, output and a timing breakdown for every render, with a render-time histogram and p50, p95 and p99.",
+    limit:
+      "Inputs can hold personal data; set retention, and mark sensitive fields so they're masked.",
+    proof: { label: "Generation log", href: spec("features/generation-log") },
+  },
+  {
+    q: "Analytics",
+    title: "Volume, errors, sign-ins, key use",
+    body: "Dashboards for generation (volume, render times, errors, top templates, batches) and for access (sign-ins by provider, failures, active users, key use). Every chart has a table and CSV.",
+    limit: "Counted from the logs, so deleted log entries drop out of the figures.",
+    proof: { label: "Analytics", href: spec("features/analytics-dashboards") },
+  },
+  {
+    q: "Saved views",
+    title: "Filters, sort and columns under a name",
+    body: "Save a view of the generation log or the audit log and reopen it from the toolbar. Admins can share a view with everyone.",
+    limit: "Shared means everyone; there is no per-team sharing.",
+    proof: { label: "Saved views", href: spec("features/saved-views") },
+  },
+];
+---
+
+<Layout
+  title="Product · necodoc"
+  description="Every necodoc capability with its limit: overlays on existing PDFs, designed templates, fields and guided forms, the HTML to PDF API, batches, signing packages, archival output, localization, change control, AI assistance, webhooks, SDKs and admin."
+  page="product"
+>
+  <PageHero
+    crumb="Product"
+    eyebrow="Product"
+    title="Everything necodoc does, and where each part stops."
+    toc={[
+      { href: "#overlay", label: "Overlay" },
+      { href: "#designed", label: "Designed templates" },
+      { href: "#fields", label: "Fields and forms" },
+      { href: "#api", label: "API" },
+      { href: "#batches", label: "Batches" },
+      { href: "#signing", label: "Signing" },
+      { href: "#output", label: "Output" },
+      { href: "#control", label: "Change control" },
+      { href: "#ai", label: "AI" },
+      { href: "#connect", label: "Integrations" },
+      { href: "#admin", label: "Admin" },
+    ]}
+  >
+    Two ways to make a document, filling a PDF you already have or designing one, sharing one set of fields, one
+    publishing model and one API. Each section links to the spec that defines it, limits included.
+  </PageHero>
+
+  <section>
+    <div class="wrap">
+      <Pillar id="overlay" num="01" eyebrow="Overlay on existing PDFs" title="Put your data on the form the obligee published.">
+        <p>Upload a PDF, place typed boxes on its pages, and map each box to a field. The output is the original page with your data on it.</p>
+        <Checks
+          items={[
+            "Box types: text, multiline, number, date, checkbox, image, signature, QR code and barcode",
+            "Import the AcroForm fields a fillable PDF already has",
+            "AI proposes boxes on flat forms; an editor accepts each one. Off unless you add a key",
+            "Auto-shrink per box, uploaded TTF or OTF fonts, empty-password and hybrid XFA PDFs",
+          ]}
+        />
+        <Limit>No pure XFA forms or PDFs that need a password to open. AI detection checks the first 20 pages and is untested on scans.</Limit>
+        <Proof links={[{ label: "PDF overlay templates", href: spec("features/pdf-overlay-templates") }]} />
+        <Screenshot slot="media" src={overlay} example="Oregon CCB commercial surety bond" alt="Overlay editor: typed boxes drawn on the Oregon CCB commercial surety bond with a live preview" crop={{ height: 480, zoom: 150, x: "-12%", y: "-40px" }} />
+      </Pillar>
+
+      <Pillar id="designed" num="02" eyebrow="Designed templates" title="Design a document from scratch, with real headers and footers." flip>
+        <p>A rich-text editor for the forms team, code mode for developers, one renderer behind both. The live preview is the production renderer.</p>
+        <Checks
+          items={[
+            "Header and footer bands with page numbers and a first-page variant for a letterhead",
+            "Merge fields, show-if sections, repeating rows, tables, images and page breaks",
+            "Themes for house style; snippets for shared clauses, included by key",
+            "Liquid throughout, with <code>date</code>, <code>number</code>, <code>currency</code>, <code>qrcode</code>, <code>barcode</code> and <code>t</code> filters",
+            "Code mode: raw HTML and Liquid when the editor can't express it",
+          ]}
+        />
+        <Limit>Code mode doesn't convert back to the visual editor. No JavaScript in templates, footnotes or balanced columns.</Limit>
+        <Proof
+          links={[
+            { label: "Document templates", href: spec("features/document-templates") },
+            { label: "Themes", href: spec("features/document-themes") },
+            { label: "Snippets", href: spec("features/snippet-library") },
+          ]}
+        />
+        <Screenshot slot="media" src={editor} example="certificate of surety bond, Ontario" alt="Designed template editor with typed merge fields and a live PDF preview" />
+      </Pillar>
+
+      <Pillar id="fields" num="03" eyebrow="Fields, conditions, guided forms" title="One field list drives the form, the API and the schema.">
+        <p>Each template declares typed fields with validation, help text, sections and show-if conditions. The same definition becomes the guided form a person fills, the validation the API applies, and a JSON Schema per published version.</p>
+        <Checks
+          items={[
+            "Text, long text, number, date, boolean, choice, email, image, signature and repeating groups",
+            "Required, min and max, patterns, decimals; sensitive fields masked in logs",
+            "Step-by-step form with sections that appear only when they apply",
+            "The API answers <code>422</code> with every field error at once",
+          ]}
+        />
+        <Limit>A show-if compares one field with one value; no AND/OR groups, computed fields or cross-field checks yet.</Limit>
+        <Proof links={[{ label: "Fields and guided form", href: spec("features/template-fields-and-guided-form") }]} />
+        <div slot="media" class="stack">
+          <Screenshot src={fields} alt="Fields tab: principal fields with types, required and sensitive flags, beside a live preview of the bond" crop={{ height: 300, zoom: 130, x: "-9%", y: "-220px" }} />
+          <Screenshot src={guidedForm} alt="Guided form, step 2 of 6: the co-principal section shown because Add a co-principal is ticked" crop={{ height: 300, zoom: 130, x: "-22%", y: "-300px" }} />
+        </div>
+      </Pillar>
+
+      <Pillar id="api" num="04" eyebrow="HTML to PDF API" title="A versioned API your core systems can depend on." flip>
+        <p>Post HTML and get a PDF, or generate from a published template by id and version. Everything is under <code>/api/v1</code>, described by OpenAPI.</p>
+        <Checks
+          items={[
+            "Synchronous, asynchronous with a signed webhook, or batch",
+            "Keys for people or service accounts: scopes, template allowlist, IP allowlist, expiry, rate limit",
+            "Themes, snippets and assets work in API HTML too",
+            "An in-app reference and playground on every deployment",
+          ]}
+        />
+        <Limit>No JavaScript in submitted HTML and no URL-to-PDF. A synchronous call that runs past its timeout returns <code>202</code> with the generation id.</Limit>
+        <Proof
+          links={[
+            { label: "HTML to PDF API", href: spec("features/html-to-pdf-api") },
+            { label: "API reference ↗", href: links.apiReference },
+          ]}
+        />
+        <Screenshot slot="media" src={apiReference} alt="In-app API reference: render, templates, batches, generations and combine endpoints, OpenAPI 3.1" />
+      </Pillar>
+
+      <Pillar id="batches" num="05" eyebrow="Batches and the queue" title="Ten thousand renewals behind the day's interactive work.">
+        <p>Every render is a queued job on a worker process. Workers are a replica count, with no licence per worker.</p>
+        <Checks
+          items={[
+            "Batches of up to 10,000 rows from JSON or CSV, with progress and cancel",
+            "Invalid rows fail alone; download a ZIP or one combined packet",
+            "Interactive renders jump ahead of batch rows",
+            "A job on a killed worker retries on another",
+          ]}
+        />
+        <p class="measured">
+          <BenchValue value={docsPerMinute(8)} /> documents per minute on 8 workers on <BenchValue value={env.cpu} />.
+          <a class="tlink" href="/performance/">Method and caveats</a>
+        </p>
+        <Limit>Postgres carries the queue, so it bounds throughput. A batch input is capped at 20 MB.</Limit>
+        <Proof links={[{ label: "Render queue and batches", href: spec("features/render-queue-batch-jobs-and-scaling") }]} />
+        <Screenshot slot="media" src={queue} alt="Admin queue page: waiting, running and failed jobs, workers and queues" crop={{ height: 440, zoom: 125, x: "-22%", y: "-20px" }} />
+      </Pillar>
+
+      <Pillar id="signing" num="06" eyebrow="Signing packages" title="E-signature ready: the envelope, built for your provider." flip>
+        <p>Templates declare signers and sign boxes. Every generation can return the PDF with where each box landed, and envelope JSON for DocuSign, Dropbox Sign or Adobe Acrobat Sign.</p>
+        <Checks
+          items={[
+            "Signature, initials, date signed, full name and signer text boxes",
+            "Signers with a routing order: principal, surety, attorney-in-fact",
+            "Exact positions on overlays; within about a point on designed documents",
+          ]}
+        />
+        <Limit label="E-signature ready, not e-signature:">your provider runs the legally binding signing, signer identity and its audit trail.</Limit>
+        <Proof links={[{ label: "Signing packages", href: spec("features/signing-packages") }]} />
+        <Screenshot slot="media" src={signing} alt="Signing tab: principal, surety and attorney-in-fact signers with routing order" crop={{ height: 440, zoom: 130, x: "-9%", y: "-120px" }} />
+      </Pillar>
+    </div>
+  </section>
+
+  <section id="output" class="alt">
+    <div class="wrap">
+      <SectionHead eyebrow="Output" title="Files that hold up in an archive, a screen reader and Québec.">
+        The output settings live on the template and can be overridden per request.
+      </SectionHead>
+      <div class="feats">
+        {
+          output.map((f) => (
+            <div>
+              <p class="q">{f.q}</p>
+              <h3>{f.title}</h3>
+              <p set:html={f.body} />
+              <Limit>{f.limit}</Limit>
+              <a class="tlink" href={f.proof.href}>{f.proof.label} →</a>
+            </div>
+          ))
+        }
+      </div>
+    </div>
+  </section>
+
+  <section id="control">
+    <div class="wrap">
+      <SectionHead eyebrow="Change control" title="The business owns the wording. Nothing goes live unreviewed.">
+        Your systems code against a published version, so a wording change never changes what the API accepts without a
+        new version.
+      </SectionHead>
+      <div class="feats">
+        {
+          control.map((f) => (
+            <div>
+              <p class="q">{f.q}</p>
+              <h3>{f.title}</h3>
+              <p set:html={f.body} />
+              <Limit>{f.limit}</Limit>
+              <a class="tlink" href={f.proof.href}>{f.proof.label} →</a>
+            </div>
+          ))
+        }
+      </div>
+    </div>
+  </section>
+
+  <section id="ai" class="alt tight">
+    <div class="wrap split">
+      <aside>
+        <p class="eyebrow">AI assistance</p>
+        <h2>Drafting help, off until you turn it on.</h2>
+      </aside>
+      <div>
+        <div class="qa two">
+          <div>
+            <p class="q">Template assistant</p>
+            <h3>Describe the document; review each change</h3>
+            <p>A chat panel in the editor builds or edits fields, content, header and footer, page settings, theme and translations through tool calls the author accepts or rejects.</p>
+            <a class="tlink" href={spec("features/ai-template-assistant")}>AI template assistant →</a>
+          </div>
+          <div>
+            <p class="q">Field detection</p>
+            <h3>Boxes proposed on a flat form</h3>
+            <p>On an uploaded PDF, AI proposes where the blanks are and what they hold. Each proposal is a suggestion an editor accepts, moves or drops.</p>
+            <a class="tlink" href={spec("features/pdf-overlay-templates")}>PDF overlay templates →</a>
+          </div>
+        </div>
+        <div class="callout" style="margin-top:32px">
+          <Icon name="warning-circle" weight="fill" />
+          <div>
+            <b>What AI sends, and to whom.</b> With <code>ANTHROPIC_KEY</code> set, the assistant sends the draft template
+            (fields, content, sample data) and the conversation, and field detection sends page images of the uploaded form,
+            to Anthropic's API. Generation data isn't sent. Each AI request is in the audit log. Without the key, none of this
+            runs. <a class="tlink" href="/security/#data">Data flows</a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="connect">
+    <div class="wrap">
+      <SectionHead eyebrow="Share links, webhooks, SDKs" title="Ways in and out besides the API call." />
+      <div class="feats">
+        {
+          connect.map((f) => (
+            <div>
+              <p class="q">{f.q}</p>
+              <h3>{f.title}</h3>
+              <p set:html={f.body} />
+              <Limit>{f.limit}</Limit>
+              <a class="tlink" href={f.proof.href}>{f.proof.label} {f.proof.label.endsWith("↗") ? "" : "→"}</a>
+            </div>
+          ))
+        }
+      </div>
+    </div>
+  </section>
+
+  <section id="admin" class="alt">
+    <div class="wrap">
+      <SectionHead eyebrow="Admin" title="Run it, and answer for it.">
+        Users and roles, service accounts, keys, the queue and system settings sit in one admin area, with ⌘K or Ctrl+K to
+        jump anywhere.
+      </SectionHead>
+      <div class="pair">
+        <Screenshot src={generations} alt="Generation log with a render-time histogram and p50, p95 and p99" crop={{ height: 280, zoom: 150, x: "-26%", y: "-40px" }} />
+        <Screenshot src={palette} alt="Command palette: typing bond lists matching templates and documents" crop={{ height: 280, zoom: 170, x: "-35%", y: "-110px" }} />
+      </div>
+      <div class="feats four" style="margin-top:48px">
+        {
+          admin.map((f) => (
+            <div>
+              <p class="q">{f.q}</p>
+              <h3>{f.title}</h3>
+              <p set:html={f.body} />
+              <Limit>{f.limit}</Limit>
+              <a class="tlink" href={f.proof.href}>{f.proof.label} →</a>
+            </div>
+          ))
+        }
+      </div>
+      <Proof
+        links={[
+          { label: "Users and roles", href: spec("features/user-management-and-roles") },
+          { label: "Single sign-on", href: spec("features/single-sign-on") },
+          { label: "Command palette", href: spec("features/command-palette") },
+        ]}
+      />
+    </div>
+  </section>
+
+  <section class="night grid-bg on-night tight">
+    <div class="wrap band">
+      <div>
+        <p class="eyebrow">Try it</p>
+        <h2>Every feature on this page is in the one MIT-licensed build.</h2>
+        <p class="lede">There is no paid tier holding some of it back.</p>
+      </div>
+      <div class="cta-row"><a class="btn next" href={links.quickstart}>Run it in 10 minutes</a><a class="btn ghost" href="/compare/">Compare it</a></div>
+    </div>
+  </section>
+</Layout>
+
+<style>
+  .stack { display: grid; gap: 20px; }
+  .measured { font-size: 15px; color: var(--ink-2); margin-top: 20px; }
+  .measured .tlink { margin-left: 6px; }
+  .feats { display: grid; grid-template-columns: repeat(3, 1fr); border-top: 1px solid var(--hair); }
+  .feats.four { grid-template-columns: repeat(4, 1fr); }
+  .feats > div { padding: 30px 28px 32px 0; display: flex; flex-direction: column; }
+  .feats > div + div { padding-left: 28px; border-left: 1px solid var(--hair); }
+  .feats .q { font: 500 12.5px var(--mono); color: var(--ink-3); letter-spacing: .02em; }
+  .feats h3 { margin-top: 10px; font-size: 19px; }
+  .feats p:not(.q) { color: var(--ink-2); font-size: 15.5px; margin-top: 10px; line-height: 1.55; }
+  .feats :global(.limit) { margin-top: auto; }
+  .feats > div > p:not(.q) { margin-bottom: 18px; }
+  .feats .tlink { font-size: 14.5px; margin-top: 14px; }
+  .qa.two { grid-template-columns: repeat(2, 1fr); }
+  .qa.two > div:nth-child(2) { padding-left: 30px; border-left: 1px solid var(--hair); }
+  .pair { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; align-items: start; }
+  .band { display: flex; align-items: center; gap: 40px; flex-wrap: wrap; }
+  .band > div:first-child { flex: 1; min-width: 300px; }
+  .band h2 { font-size: 34px; }
+  .band .lede { font-size: 16.5px; }
+  .band .cta-row { margin: 0; }
+  @media (max-width: 1100px) {
+    .feats, .feats.four { grid-template-columns: 1fr 1fr; }
+    .feats > div:nth-child(odd) { padding-left: 0; border-left: 0; }
+    .feats > div:nth-child(n + 3) { border-top: 1px solid var(--hair); }
+    .pair { grid-template-columns: 1fr; }
+  }
+  @media (max-width: 640px) {
+    .feats, .feats.four, .qa.two { grid-template-columns: 1fr; }
+    .feats > div, .feats > div + div { padding: 24px 0; border-left: 0; }
+    .feats > div + div { border-top: 1px solid var(--hair); }
+    .qa.two > div:nth-child(2) { padding-left: 0; border-left: 0; }
+  }
+</style>

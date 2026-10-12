@@ -15,7 +15,7 @@ import { hasVerapdf, verapdf } from "./testing/verapdf";
 afterAll(closeBrowser);
 
 const html = `<h1>Invoice {{ n }}</h1>
-<p>Questions? <a href="https://example.com/help">Ask us</a>. Zoë Łukasz</p>
+<p>Questions? <a href="https://example.com/help">Ask us</a>. <strong>Zoë</strong> <em>Łukasz</em></p>
 <table><thead><tr><th>Item</th><th>Qty</th></tr></thead><tbody><tr><td>Bond</td><td>1</td></tr></tbody></table>
 <img alt="A dot" width="20" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==">
 <p style="opacity: .5">Half-transparent text</p>

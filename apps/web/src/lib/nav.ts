@@ -3,10 +3,13 @@ import { links } from "./links";
 export type NavItem = { id: string; label: string; href: string; external?: boolean };
 
 export const mainNav: NavItem[] = [
+  { id: "product", label: "Product", href: "/product/" },
   { id: "insurance", label: "Insurance", href: "/insurance/" },
   { id: "architecture", label: "Architecture", href: "/architecture/" },
-  { id: "security", label: "Security & governance", href: "/security/" },
+  { id: "security", label: "Security", href: "/security/" },
   { id: "performance", label: "Performance", href: "/performance/" },
+  { id: "compare", label: "Compare", href: "/compare/" },
+  { id: "open-source", label: "Pricing", href: "/open-source/" },
   { id: "docs", label: "Docs", href: links.docs, external: true },
 ];
 
@@ -23,15 +26,18 @@ export const footerNav: { title: string; items: NavItem[] }[] = [
   {
     title: "Evaluate",
     items: [
+      { id: "product", label: "Product", href: "/product/" },
       { id: "architecture", label: "Architecture", href: "/architecture/" },
       { id: "security", label: "Security & governance", href: "/security/" },
       { id: "performance", label: "Performance", href: "/performance/" },
+      { id: "compare", label: "Compare", href: "/compare/" },
       { id: "pack", label: "Architecture review pack", href: links.reviewPack },
     ],
   },
   {
     title: "Project",
     items: [
+      { id: "open-source", label: "Open source & pricing", href: "/open-source/" },
       { id: "docs", label: "Developer docs", href: links.docs, external: true },
       { id: "github", label: "Source on GitHub", href: links.github, external: true },
       {

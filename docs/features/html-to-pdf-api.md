@@ -175,8 +175,10 @@ GDPR erasure can find it
 
 - Synchronous calls wait up to a timeout, then return `202` with the
   generation id.
-- Only a TypeScript SDK; other languages use plain HTTP and the OpenAPI
-  document.
+- SDKs for TypeScript, Python, .NET and Java
+  ([ADR 0041](../adrs/0041-python-net-and-java-sdks-generated-with-openapi-generator.md)),
+  none published to a package registry yet; other languages use plain HTTP and
+  the OpenAPI document.
 - No JavaScript in submitted HTML, and no URL-to-PDF.
 - Scopes, allowlist and templates are set when a key is made; to change them,
   rotate or make a new key.

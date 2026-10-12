@@ -18,7 +18,9 @@
     "db:migrate": "pnpm --filter @necodoc/api db:migrate",
     "docs:check": "okq --bundle docs validate && okq --bundle docs deadlinks && okq --bundle docs lint",
     "sdk:generate": "node scripts/generate-sdks.ts",
-    "bench": "pnpm --filter @necodoc/bench bench"
+    "bench": "pnpm --filter @necodoc/bench bench",
+    "review-pack": "pnpm --filter @necodoc/review-pack build",
+    "release:assets": "pnpm --filter @necodoc/review-pack build --release"
   },
   "devDependencies": {
     "@biomejs/biome": "^2.5.14"
