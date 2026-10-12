@@ -106,13 +106,13 @@ There's no CI in the repo, so nothing runs this automatically yet.
 
 ## Acceptance criteria
 
-- [ ] `pnpm review-pack` writes the PDF with every section above, and the
+- [x] `pnpm review-pack` writes the PDF with every section above, and the
       contents page numbers match the pages.
-- [ ] veraPDF reports it compliant with PDF/A-2u and PDF/UA-1.
-- [ ] The controls section has the same rows as the site's controls table.
-- [ ] Every benchmark number comes from `latest.json`, with the hardware,
+- [x] veraPDF reports it compliant with PDF/A-2u and PDF/UA-1.
+- [x] The controls section has the same rows as the site's controls table.
+- [x] Every benchmark number comes from `latest.json`, with the hardware,
       date and commit beside it.
-- [ ] `pnpm release:assets` fails on a dirty tree or an unpublishable
+- [x] `pnpm release:assets` fails on a dirty tree or an unpublishable
       benchmark run.
 - [ ] No customer, no core-system vendor, and no claim from
       [We must not make](marketing-site.md#we-must-not-make) appears.

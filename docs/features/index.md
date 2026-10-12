@@ -15,6 +15,7 @@ Add one with `okq new feature "<title>"`.
 | AI template assistant | [ai-template-assistant.md](ai-template-assistant.md) |
 | Analytics dashboards | [analytics-dashboards.md](analytics-dashboards.md) |
 | App shell and navigation | [app-shell-and-navigation.md](app-shell-and-navigation.md) |
+| Architecture review pack | [architecture-review-pack.md](architecture-review-pack.md) |
 | Archival, accessible and certified output | [archival-accessible-and-certified-output.md](archival-accessible-and-certified-output.md) |
 | Assets | [assets.md](assets.md) |
 | Audit log | [audit-log.md](audit-log.md) |

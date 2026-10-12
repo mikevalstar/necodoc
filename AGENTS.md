@@ -72,6 +72,8 @@ Rules:
 - `pnpm typecheck`, `pnpm test` (Vitest), `pnpm build`
 - `pnpm docs:check`: validate the `docs/` bundle (needs `okq` on PATH)
 - `pnpm db:generate` / `pnpm db:migrate`: Drizzle migrations (committed in `apps/api/drizzle`)
+- `pnpm bench`: performance benchmark on its own stack (results in `scripts/bench/results`, read by the website)
+- `pnpm review-pack` / `pnpm release:assets`: architecture review PDF (release mode needs a clean tree and veraPDF)
 - `pnpm --filter @necodoc/api auth:generate`: regenerate Better Auth tables after changing plugins
 - shadcn components: `cd apps/app && pnpm dlx shadcn@latest add <name>`
 

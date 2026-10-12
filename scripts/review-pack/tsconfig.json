@@ -1,7 +1,9 @@
 {
   "extends": "../../tsconfig.base.json",
   "compilerOptions": {
-    "types": ["node"]
+    "types": ["node"],
+    // The API's renderer uses WebCrypto types; in the API's own program a dependency pulls them in.
+    "lib": ["ES2023", "DOM"]
   },
   "include": ["src"]
 }

@@ -295,7 +295,7 @@ architect can do alone, in the order they'd do them:
 3. **Get the architecture review pack:** one PDF (made with necodoc) with the
    reference architecture, data flows, controls list, the claims table above
    and the known limitations. This is the document the architect forwards to
-   their review board. Generated per release (W8, NECO-syjjmvla); every link
+   their review board. Generated per release ([Architecture review pack](architecture-review-pack.md)); every link
    uses one path in [links.ts](../../apps/web/src/lib/links.ts).
 4. **View the source on GitHub.**
 

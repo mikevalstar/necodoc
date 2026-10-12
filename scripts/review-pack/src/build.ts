@@ -26,7 +26,8 @@ const fail = (message: string): never => {
   console.error(`review-pack: ${message}`);
   process.exit(1);
 };
-const git = (...args: string[]) => execFileSync("git", args, { cwd: root, encoding: "utf8" }).trim();
+const git = (...args: string[]) =>
+  execFileSync("git", args, { cwd: root, encoding: "utf8" }).trim();
 const hasVerapdf = (() => {
   try {
     execFileSync("verapdf", ["--version"], { stdio: "ignore" });
@@ -37,17 +38,23 @@ const hasVerapdf = (() => {
 })();
 
 const esc = (s: string) =>
-  s.replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;").replaceAll('"', "&quot;");
+  s
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;");
 
 // ---- What the pack describes -------------------------------------------------------------
 
 const version =
-  readFileSync(at("deploy/helm/necodoc/Chart.yaml"), "utf8").match(/^appVersion:\s*"?([^"\n]+)"?/m)?.[1] ??
-  fail("no appVersion in deploy/helm/necodoc/Chart.yaml");
+  readFileSync(at("deploy/helm/necodoc/Chart.yaml"), "utf8").match(
+    /^appVersion:\s*"?([^"\n]+)"?/m,
+  )?.[1] ?? fail("no appVersion in deploy/helm/necodoc/Chart.yaml");
 const sha = git("rev-parse", "HEAD");
 const dirty = git("status", "--porcelain") !== "";
 const today = new Date().toISOString().slice(0, 10);
-const specUrl = (path: string) => `https://github.com/mikevalstar/necodoc/blob/${sha}/docs/${path}.md`;
+const specUrl = (path: string) =>
+  `https://github.com/mikevalstar/necodoc/blob/${sha}/docs/${path}.md`;
 
 const bench: Results = resultsSchema.parse(
   JSON.parse(readFileSync(at("scripts/bench/results/latest.json"), "utf8")),
@@ -73,7 +80,8 @@ function siteControls() {
   const start = page.indexOf("const controls");
   const open = page.indexOf("= [", start) + 2;
   const close = page.indexOf("\n];", open) + 2;
-  if (start < 0 || open < 2 || close < 2) fail("couldn't find `const controls = [...]` in security.astro");
+  if (start < 0 || open < 2 || close < 2)
+    fail("couldn't find `const controls = [...]` in security.astro");
   const spec = (path: string) => specUrl(path);
   const value: unknown = new Function("spec", `return ${page.slice(open, close)};`)(spec);
   return z
@@ -94,11 +102,15 @@ function siteControls() {
 
 // ---- Generated parts ---------------------------------------------------------------------
 
-const ms = (v: number | null) => (v == null ? "–" : v >= 1000 ? `${(v / 1000).toFixed(2)} s` : `${Math.round(v)} ms`);
+const ms = (v: number | null) =>
+  v == null ? "–" : v >= 1000 ? `${(v / 1000).toFixed(2)} s` : `${Math.round(v)} ms`;
 const int = (v: number) => Math.round(v).toLocaleString("en-CA");
 const table = (head: string[], rows: string[][], numeric = new Set<number>()) =>
   `<table class="keep"><thead><tr>${head.map((h, i) => `<th scope="col"${numeric.has(i) ? ' class="num"' : ""}>${h}</th>`).join("")}</tr></thead><tbody>${rows
-    .map((r) => `<tr>${r.map((c, i) => `<td${numeric.has(i) ? ' class="num"' : ""}>${c}</td>`).join("")}</tr>`)
+    .map(
+      (r) =>
+        `<tr>${r.map((c, i) => `<td${numeric.has(i) ? ' class="num"' : ""}>${c}</td>`).join("")}</tr>`,
+    )
     .join("")}</tbody></table>`;
 
 function controlsHtml() {
@@ -135,26 +147,35 @@ function benchHtml() {
   const html = bench.latency.find((l) => l.id === "html-simple");
   const overlay = bench.latency.find((l) => l.id.startsWith("overlay"));
   const coldRow = (label: string, st: Stats) => [label, String(st.n), ms(st.p50), ms(st.p95)];
-  const figure = (v: string, l: string) => `<div><span class="v">${v}</span><span class="l">${l}</span></div>`;
+  const figure = (v: string, l: string) =>
+    `<td><span class="v">${v}</span><span class="l">${l}</span></td>`;
   return [
     `<p>Measured by <code>pnpm bench</code> through the public API, from the run finished ${bench.finishedAt.slice(0, 10)} at commit <code>${env.gitSha.slice(0, 10)}</code>. Latency is the client's round trip, one request at a time. Rerun it on your own hardware with the same command.</p>`,
     benchCaveat ? `<p class="limit"><b>Caveat</b> ${benchCaveat}</p>` : "",
-    `<div class="figures">${[
+    `<table class="figures keep"><tbody><tr>${[
       html && figure(ms(html.roundTrip.p50), "p50, one-page HTML to PDF"),
       overlay && figure(ms(overlay.roundTrip.p50), "p50, overlay on an existing PDF form"),
       one && figure(int(one.docsPerMinute), "docs/min, 1 worker, batch"),
       figure(int(best.docsPerMinute), `docs/min, ${best.workers} workers on one machine`),
     ]
       .filter(Boolean)
-      .join("")}</div>`,
+      .join("")}</tr></tbody></table>`,
     "<h2>Latency</h2>",
-    table(["Scenario", "Pages", "p50", "p95", "Worker run p50"], bench.latency.map(latencyRow), new Set([1, 2, 3, 4])),
+    table(
+      ["Scenario", "Pages", "p50", "p95", "Worker run p50"],
+      bench.latency.map(latencyRow),
+      new Set([1, 2, 3, 4]),
+    ),
     bench.archival
       ? `<p>PDF/A-2b with PDF/UA on the invoice adds ${ms(bench.archival.overheadP50Ms)} at p50 (${ms(bench.archival.plain.roundTrip.p50)} to ${ms(bench.archival.archival.roundTrip.p50)}).</p>`
       : "",
     "<h2>Batch throughput</h2>",
     `<p>A JSON batch of ${int(s.batchRows)} designed surety bonds, timed from the batch's creation to its last row, so it includes the queue. All workers share one machine.</p>`,
-    table(["Workers", "Slots each", "Rows", "Failed", "Wall time", "Docs/min"], scale, new Set([0, 1, 2, 3, 4, 5])),
+    table(
+      ["Workers", "Slots each", "Rows", "Failed", "Wall time", "Docs/min"],
+      scale,
+      new Set([0, 1, 2, 3, 4, 5]),
+    ),
     "<h2>Cold start</h2>",
     table(
       ["Measure", "n", "p50", "p95"],
@@ -170,9 +191,17 @@ function benchHtml() {
       ["Item", "Detail"],
       [
         ["Machine", esc(`${env.cpu}, ${env.cores} cores, ${env.memoryGb} GB, ${env.os}`)],
-        ["Software", esc(`Node ${env.node}, Chromium ${env.chromium}, ${env.postgres.split(" on ")[0]}`)],
+        [
+          "Software",
+          esc(`Node ${env.node}, Chromium ${env.chromium}, ${env.postgres.split(" on ")[0]}`),
+        ],
         ["Storage", esc(env.storage)],
-        ["Settings", esc(`${s.samples} samples after ${s.warmup} warm-up requests; RENDER_CONCURRENCY=${s.concurrency}; latency on ${s.latencyWorkers} worker`)],
+        [
+          "Settings",
+          esc(
+            `${s.samples} samples after ${s.warmup} warm-up requests; RENDER_CONCURRENCY=${s.concurrency}; latency on ${s.latencyWorkers} worker`,
+          ),
+        ],
         ["Commit", esc(`${env.gitSha}${env.gitDirty ? " (uncommitted changes)" : ""}`)],
       ],
     ),
@@ -195,7 +224,11 @@ type Section = { n: string; title: string; id: string };
 
 function body(pageOf: Map<string, number> | null) {
   const sections: Section[] = [];
-  const prose = (marked.parse(readFileSync(new URL("../pack.md", import.meta.url), "utf8"), { async: false }) as string)
+  const prose = (
+    marked.parse(readFileSync(new URL("../pack.md", import.meta.url), "utf8"), {
+      async: false,
+    }) as string
+  )
     .replace(/<!--\s*@(\w+)\s*-->/g, (_m, name: string) => {
       const part: Record<string, () => string> = {
         newpage: () => '<div class="newpage"></div>',
@@ -207,11 +240,11 @@ function body(pageOf: Map<string, number> | null) {
     })
     .replace(/<!--[\s\S]*?-->/g, "")
     .replace(/href="spec:([^"]+)"/g, (_m, path: string) => `href="${specUrl(path)}"`)
-    .replace(/<p><a href="https:\/\/github\.com\/mikevalstar\/necodoc\/blob\//g, '<p class="sources"><span class="label">Specs</span> <a href="https://github.com/mikevalstar/necodoc/blob/')
-    // Short tables stay on one page; long ones split and repeat their header.
-    .replace(/<table>([\s\S]*?)<\/table>/g, (m, inner: string) =>
-      (inner.match(/<tr>/g)?.length ?? 0) <= 9 ? `<table class="keep">${inner}</table>` : m,
+    .replace(
+      /<p><a href="https:\/\/github\.com\/mikevalstar\/necodoc\/blob\//g,
+      '<p class="sources"><span class="label">Specs</span> <a href="https://github.com/mikevalstar/necodoc/blob/',
     )
+
     .replace(/<h1>(.*?)<\/h1>/g, (_m, title: string) => {
       const n = String(sections.length + 1).padStart(2, "0");
       const id = `s${n}`;
@@ -250,7 +283,11 @@ const fonts = new Map<string, string>();
 const require = createRequire(import.meta.url);
 const fontCss = (
   [
-    ["@fontsource-variable/bricolage-grotesque", "Bricolage Grotesque Variable", "Bricolage Grotesque"],
+    [
+      "@fontsource-variable/bricolage-grotesque",
+      "Bricolage Grotesque Variable",
+      "Bricolage Grotesque",
+    ],
     ["@fontsource-variable/figtree", "Figtree Variable", "Figtree"],
     ["@fontsource/fragment-mono", "Fragment Mono", "Fragment Mono"],
   ] as const
@@ -269,7 +306,10 @@ const fontCss = (
 const loadAsset: AssetLoader = async (path) => {
   const file = fonts.get(path);
   if (!file) return null;
-  return { bytes: readFileSync(file), mimeType: path.endsWith(".woff") ? "font/woff" : "font/woff2" };
+  return {
+    bytes: readFileSync(file),
+    mimeType: path.endsWith(".woff") ? "font/woff" : "font/woff2",
+  };
 };
 
 const output: OutputOptions = { pdfa: "2u", pdfua: true, certify: false, lang: "en-CA" };
@@ -281,9 +321,17 @@ const job = (html: string): RenderJob => ({
   html,
   css,
   data: {},
-  page: { size: "Letter", orientation: "portrait", margins: { top: 12, right: 20, bottom: 12, left: 20 } },
+  page: {
+    size: "Letter",
+    orientation: "portrait",
+    margins: { top: 12, right: 20, bottom: 12, left: 20 },
+  },
   header: {
-    html: band("top", "necodoc · Architecture review pack", `v${esc(version)} · ${sha.slice(0, 7)}`),
+    html: band(
+      "top",
+      "necodoc · Architecture review pack",
+      `v${esc(version)} · ${sha.slice(0, 7)}`,
+    ),
     firstPageHtml: "",
     height: 9,
   },
@@ -299,11 +347,18 @@ const job = (html: string): RenderJob => ({
 async function headingPages(pdf: Uint8Array, sections: Section[]) {
   const doc = await openPdfjs(pdf);
   const pages = new Map<string, number>();
-  const norm = (s: string) => s.replace(/<[^>]+>/g, "").replace(/&amp;/g, "&").replace(/\s+/g, " ").trim();
+  const norm = (s: string) =>
+    s
+      .replace(/<[^>]+>/g, "")
+      .replace(/&amp;/g, "&")
+      .replace(/\s+/g, " ")
+      .trim();
   try {
     for (const item of (await doc.getOutline()) ?? []) {
       const title = norm(item.title);
-      const section = sections.find((s) => title === norm(`${s.n}${s.title}`) || title === norm(`${s.n} ${s.title}`));
+      const section = sections.find(
+        (s) => title === norm(`${s.n}${s.title}`) || title === norm(`${s.n} ${s.title}`),
+      );
       if (!section) continue;
       const dest = typeof item.dest === "string" ? await doc.getDestination(item.dest) : item.dest;
       const ref = dest?.[0];
@@ -320,11 +375,21 @@ async function headingPages(pdf: Uint8Array, sections: Section[]) {
 function verapdf(file: string, flavour: string) {
   let report: string;
   try {
-    report = execFileSync("verapdf", ["-f", flavour, file], { encoding: "utf8", maxBuffer: 64 * 1024 * 1024 });
+    report = execFileSync("verapdf", ["-f", flavour, file], {
+      encoding: "utf8",
+      maxBuffer: 64 * 1024 * 1024,
+      stdio: ["ignore", "pipe", "ignore"],
+    });
   } catch (error) {
     report = String((error as { stdout?: string }).stdout ?? "");
   }
-  const failed = [...new Set([...report.matchAll(/clause="([^"]+)" testNumber="(\d+)" status="failed"/g)].map((m) => `${m[1]}-${m[2]}`))];
+  const failed = [
+    ...new Set(
+      [...report.matchAll(/clause="([^"]+)" testNumber="(\d+)" status="failed"/g)].map(
+        (m) => `${m[1]}-${m[2]}`,
+      ),
+    ),
+  ];
   return { compliant: report.includes('isCompliant="true"'), failed };
 }
 
@@ -337,7 +402,8 @@ try {
   const rendered = await renderPdf(job(final.html), loadAsset);
   if (rendered.pageCount !== draft.pageCount) fail("the contents page changed the page count");
   const check = await headingPages(rendered.pdf, final.sections);
-  for (const [id, page] of pageOf) if (check.get(id) !== page) fail(`section ${id} moved to page ${check.get(id)}`);
+  for (const [id, page] of pageOf)
+    if (check.get(id) !== page) fail(`section ${id} moved to page ${check.get(id)}`);
 
   const finished = await finishPdf(rendered.pdf, {
     output,
@@ -351,7 +417,9 @@ try {
   mkdirSync(dirname(OUT), { recursive: true });
   writeFileSync(OUT, finished.pdf);
   const size = `${(finished.pdf.byteLength / 1024).toFixed(0)} KB`;
-  console.log(`review-pack: ${relative(root, OUT)}: ${rendered.pageCount} pages, ${size}, v${version} at ${sha.slice(0, 7)}${dirty ? " (dirty tree)" : ""}`);
+  console.log(
+    `review-pack: ${relative(root, OUT)}: ${rendered.pageCount} pages, ${size}, v${version} at ${sha.slice(0, 7)}${dirty ? " (dirty tree)" : ""}`,
+  );
   if (benchCaveat) console.warn(`review-pack: warning: ${benchCaveat}`);
 
   if (hasVerapdf) {
@@ -361,7 +429,9 @@ try {
       writeFileSync(file, finished.pdf);
       for (const flavour of ["2u", "ua1"]) {
         const result = verapdf(file, flavour);
-        console.log(`review-pack: veraPDF ${flavour}: ${result.compliant ? "compliant" : `NOT compliant (${result.failed.join(", ")})`}`);
+        console.log(
+          `review-pack: veraPDF ${flavour}: ${result.compliant ? "compliant" : `NOT compliant (${result.failed.join(", ")})`}`,
+        );
         if (!result.compliant) process.exitCode = 1;
       }
     } finally {

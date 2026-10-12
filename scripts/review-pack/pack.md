@@ -221,8 +221,6 @@ unless configured. Secrets are redacted from logs, and logs and traces never car
 [ADR 0023](spec:adrs/0023-generated-outputs-in-object-storage) ·
 [ADR 0039](spec:adrs/0039-sensitive-fields-masked-outside-stored-inputs-erasure-by-data-subject)
 
-<!-- @newpage -->
-
 # Compliance: what helps and what stays yours
 
 necodoc doesn't make a carrier compliant with anything. These are the features that help with
@@ -250,8 +248,6 @@ each requirement, and what remains the carrier's work.
 [Archival, accessible and certified output](spec:features/archival-accessible-and-certified-output) ·
 [Document localization](spec:features/document-localization) ·
 [Signing packages](spec:features/signing-packages)
-
-<!-- @newpage -->
 
 # Performance
 
