@@ -18,6 +18,8 @@ const { title, description, page } = Astro.props;
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
     <link rel="manifest" href="/site.webmanifest" />
     <title>{title}</title>
+    <!-- GoatCounter: cookieless page counts. is:inline keeps Astro from bundling it. -->
+    <script is:inline data-goatcounter="https://necodocs.goatcounter.com/count" async src="https://gc.zgo.at/count.js"></script>
   </head>
   <body>
     <a class="skip" href="#main">Skip to content</a>

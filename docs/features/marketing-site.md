@@ -58,6 +58,9 @@ brought the request.
   NECO-syjjmvla).
 - Product, Compare and Open source and pricing pages are a separate ticket
   (W9, NECO-igeuyzto), now built and linked from the header and footer.
+- Page analytics: GoatCounter (cookieless, no consent banner needed), loaded
+  in [Layout.astro](../../apps/web/src/layouts/Layout.astro). The site uses
+  no other trackers.
 
 ### What the architect needs to sign off
 
