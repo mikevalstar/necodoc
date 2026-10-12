@@ -9,10 +9,7 @@ import Mark from "./Mark.astro";
     <div class="cols">
       <div class="about">
         <a class="logo" href="/"><Mark />necodoc</a>
-        <p>
-          Document generation for P&amp;C and surety carriers, on your own infrastructure, under the MIT licence. We don't
-          host it, so we never hold your data.
-        </p>
+        <p>MIT licensed</p>
         <p class="demo">
           <a href={links.demo} rel="noopener">Try the demo ↗</a><br />A shared public demo. It resets every night at
           midnight Eastern.
@@ -36,9 +33,6 @@ import Mark from "./Mark.astro";
         ))
       }
     </div>
-    <div class="base">
-      <span>MIT licence</span><span>Nothing phones home</span>
-    </div>
   </div>
 </footer>
 
@@ -53,13 +47,11 @@ import Mark from "./Mark.astro";
   .logo:hover { text-decoration: none; }
   .about p { margin-top: 16px; line-height: 1.6; max-width: 320px; }
   .about .demo a { font-weight: 600; }
-  .base { margin-top: 56px; padding-top: 22px; border-top: 1px solid var(--night-hair); display: flex; gap: 24px; font: 12.5px var(--mono); color: #8f9bd6; }
   @media (max-width: 1100px) {
     .cols { grid-template-columns: repeat(3, 1fr); }
     .about { grid-column: 1 / -1; }
   }
   @media (max-width: 640px) {
     .cols { grid-template-columns: 1fr 1fr; }
-    .base { flex-direction: column; gap: 6px; }
   }
 </style>
