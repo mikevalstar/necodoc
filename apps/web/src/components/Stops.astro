@@ -1,0 +1,21 @@
+---
+// Two-column list of limits or behaviours, each with an icon, a bold line and a note.
+import Icon from "./Icon.astro";
+
+type Props = { items: { icon: string; title: string; body: string }[] };
+const { items } = Astro.props;
+---
+
+<div class="stops">
+  {
+    items.map((item) => (
+      <div>
+        <Icon name={item.icon} />
+        <div>
+          <b>{item.title}</b>
+          <p set:html={item.body} />
+        </div>
+      </div>
+    ))
+  }
+</div>

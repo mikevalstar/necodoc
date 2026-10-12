@@ -1,21 +1,31 @@
 ---
 import "../styles/global.css";
+import Footer from "../components/Footer.astro";
+import Header from "../components/Header.astro";
 
-type Props = { title: string };
-const { title } = Astro.props;
+type Props = { title: string; description: string; page?: string };
+const { title, description, page } = Astro.props;
+const lang = Astro.currentLocale === "fr" ? "fr-CA" : "en-CA";
 ---
 
-<html lang="en">
+<html lang={lang}>
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="description" content={description} />
+    <meta name="theme-color" content="#0b1238" />
     <link rel="icon" href="/favicon.ico" sizes="32x32" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
     <link rel="manifest" href="/site.webmanifest" />
+    <link rel="alternate" hreflang="en-CA" href="/" />
+    <link rel="alternate" hreflang="fr-CA" href="/fr/" />
     <title>{title}</title>
   </head>
   <body>
-    <slot />
+    <a class="skip" href="#main">Skip to content</a>
+    <Header page={page} />
+    <main id="main"><slot /></main>
+    <Footer />
   </body>
 </html>

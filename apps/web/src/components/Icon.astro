@@ -1,0 +1,21 @@
+---
+// Phosphor icons (ADR 0042) inlined as SVG at build time, so nothing loads from a CDN.
+type Weight = "regular" | "bold" | "duotone" | "fill";
+type Props = { name: string; weight?: Weight; label?: string };
+
+const files = import.meta.glob<string>("/node_modules/@phosphor-icons/core/assets/{regular,bold,duotone,fill}/*.svg", {
+  query: "?raw",
+  import: "default",
+});
+
+const { name, weight = "regular", label } = Astro.props;
+const file = `${name}${weight === "regular" ? "" : `-${weight}`}.svg`;
+const load = files[`/node_modules/@phosphor-icons/core/assets/${weight}/${file}`];
+if (!load) throw new Error(`Unknown Phosphor icon: ${weight}/${name}`);
+const svg = (await load()).replace(
+  "<svg ",
+  `<svg class="icon" ${label ? `role="img" aria-label="${label}"` : 'aria-hidden="true"'} `,
+);
+---
+
+<Fragment set:html={svg} />

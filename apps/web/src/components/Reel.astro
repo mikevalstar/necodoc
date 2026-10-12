@@ -1,0 +1,102 @@
+---
+// The product tour slot (W5's Remotion reel). It never autoplays: the poster stays until
+// someone presses play, then the video loads with captions. With no video yet, the poster
+// says so instead of offering a dead button. Reduced motion needs nothing extra because
+// nothing moves until asked; the chapter list doubles as the text alternative.
+import type { ImageMetadata } from "astro";
+import { Image } from "astro:assets";
+
+type Props = {
+  poster: ImageMetadata;
+  title: string;
+  chapters: { label: string; at?: string }[];
+  video?: { src: string; captions: string; duration: string };
+};
+const { poster, title, chapters, video } = Astro.props;
+---
+
+<div class="reel">
+  <div class="frame" data-reel={video?.src} data-captions={video?.captions}>
+    <Image class="poster" src={poster} alt="" widths={[960, 1440, 1920]} sizes="(max-width: 1100px) 100vw, 820px" />
+    <div class="veil"></div>
+    <div class="title"><p class="eyebrow">Product tour</p><b>{title}</b></div>
+    {
+      video ? (
+        <button class="play" type="button" aria-label={`Play the product tour, ${video.duration}, with captions`}>
+          <span class="b" aria-hidden="true">▶</span>
+          <span>
+            Play the tour<small>{video.duration} · captions on</small>
+          </span>
+        </button>
+      ) : (
+        <p class="play soon">
+          <span>
+            Tour in production<small>chapters on the right</small>
+          </span>
+        </p>
+      )
+    }
+  </div>
+  <div>
+    <p class="eyebrow">What it shows</p>
+    <ol class="chapters">
+      {chapters.map((c) => <li><span>{c.label}</span>{c.at && <time>{c.at}</time>}</li>)}
+    </ol>
+    <p class="notes">Never autoplays. It plays muted with captions, so it works without sound.</p>
+  </div>
+</div>
+
+<script>
+  for (const frame of document.querySelectorAll<HTMLElement>("[data-reel]")) {
+    const src = frame.dataset.reel;
+    const button = frame.querySelector("button.play");
+    if (!src || !button) continue;
+    button.addEventListener("click", () => {
+      const video = document.createElement("video");
+      video.src = src;
+      video.controls = true;
+      video.playsInline = true;
+      video.muted = true;
+      const track = document.createElement("track");
+      track.kind = "captions";
+      track.srclang = "en";
+      track.src = frame.dataset.captions ?? "";
+      track.default = true;
+      video.append(track);
+      frame.replaceChildren(video);
+      void video.play();
+      video.focus();
+    });
+  }
+</script>
+
+<style>
+  .reel { display: grid; grid-template-columns: 1fr 340px; gap: 40px; align-items: stretch; }
+  .frame { position: relative; aspect-ratio: 16 / 9; border-radius: 16px; overflow: hidden; background: var(--night); box-shadow: var(--shadow-lg); }
+  .frame :global(video) { width: 100%; height: 100%; display: block; background: #000; }
+  .frame :global(.poster) { position: absolute; top: 9%; left: 34%; width: 92%; height: auto; border-radius: 10px; box-shadow: 0 30px 60px -20px rgba(0,0,0,.7); }
+  .veil { position: absolute; inset: 0; background: linear-gradient(90deg, var(--night) 0%, rgba(11,18,56,.92) 34%, rgba(11,18,56,.25) 70%, rgba(11,18,56,.1) 100%), linear-gradient(0deg, rgba(11,18,56,.85), transparent 45%); }
+  .title { position: absolute; left: 40px; top: 40px; width: 46%; color: #fff; }
+  .title .eyebrow { color: #9db8ff; margin-bottom: 14px; }
+  .title b { display: block; font: 700 34px/1.08 var(--display); letter-spacing: -.03em; }
+  .play { position: absolute; left: 40px; bottom: 36px; display: flex; align-items: center; gap: 14px; color: #fff; font: 600 15px var(--sans); background: none; border: 0; padding: 0; cursor: pointer; text-align: left; }
+  .play .b { width: 60px; height: 60px; border-radius: 50%; background: var(--paper); color: var(--ink); display: grid; place-items: center; font-size: 20px; padding-left: 4px; box-shadow: 0 10px 30px -10px rgba(0,0,0,.6); }
+  .play small { display: block; font: 12.5px var(--mono); color: var(--night-fg-2); margin-top: 3px; }
+  .play.soon { cursor: default; padding: 8px 14px; border-radius: 10px; background: rgba(255,255,255,.08); border: 1px dashed rgba(255,255,255,.25); }
+  .chapters { list-style: none; margin: 0; padding: 0; counter-reset: c; }
+  .chapters li { counter-increment: c; display: grid; grid-template-columns: 34px 1fr auto; gap: 10px; padding: 14px 0; border-top: 1px solid var(--hair); align-items: baseline; }
+  .chapters li:last-child { border-bottom: 1px solid var(--hair); }
+  .chapters li::before { content: counter(c, decimal-leading-zero); font: 13px var(--mono); color: var(--brand-ink); }
+  .chapters span { font-weight: 600; }
+  .chapters time { font: 12.5px var(--mono); color: var(--ink-3); }
+  .notes { font-size: 13.5px; color: var(--ink-3); margin-top: 16px; line-height: 1.5; }
+  @media (max-width: 1100px) { .reel { grid-template-columns: 1fr; } }
+  @media (max-width: 640px) {
+    .title { left: 20px; top: 20px; width: 70%; }
+    .title b { font-size: 21px; }
+    .title .eyebrow { display: none; }
+    .play { left: 20px; bottom: 18px; }
+    .play .b { width: 46px; height: 46px; font-size: 16px; }
+    .frame :global(.poster) { left: 40%; top: 30%; width: 110%; }
+  }
+</style>

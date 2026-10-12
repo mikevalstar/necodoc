@@ -1,0 +1,23 @@
+{
+  "name": "@necodoc/bench",
+  "license": "MIT",
+  "private": true,
+  "type": "module",
+  "exports": {
+    "./schema": "./src/schema.ts"
+  },
+  "scripts": {
+    "bench": "tsx src/run.ts",
+    "typecheck": "tsc"
+  },
+  "dependencies": {
+    "@necodoc/shared": "workspace:*",
+    "postgres": "^3.4.9",
+    "zod": "^4.6.5"
+  },
+  "devDependencies": {
+    "@types/node": "^24.13.6",
+    "tsx": "^4.23.15",
+    "typescript": "^7.0.2"
+  }
+}

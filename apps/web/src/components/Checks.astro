@@ -1,0 +1,18 @@
+---
+// A ticked list. Items are trusted site copy and may carry inline <code>.
+import Icon from "./Icon.astro";
+
+type Props = { items: string[] };
+const { items } = Astro.props;
+---
+
+<ul class="checks">
+  {
+    items.map((item) => (
+      <li>
+        <Icon name="check" weight="bold" />
+        <span set:html={item} />
+      </li>
+    ))
+  }
+</ul>

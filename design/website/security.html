@@ -1,0 +1,137 @@
+<!doctype html>
+<html lang="en-CA">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Security and governance · necodoc</title>
+<link rel="stylesheet" href="site.css">
+<script src="https://unpkg.com/@phosphor-icons/web@2.1.1"></script>
+</head>
+<body data-page="security">
+
+<div class="phero grid-bg light">
+  <div class="wrap">
+    <p class="crumb"><a href="index.html">necodoc</a> / Security and governance</p>
+    <p class="eyebrow">Security and governance</p>
+    <h1>Controls you can check, inside a boundary you already audit.</h1>
+    <p class="lede">necodoc runs in your account, signs people in through your IdP, and writes its records to your Postgres. This page lists the controls it provides, how each works, and where each one stops.</p>
+    <nav class="toc" aria-label="On this page"><a href="#controls">Controls list</a><a href="#identity">Identity and access</a><a href="#data">Data residency and AI</a><a href="#audit">Audit and logging</a><a href="#change">Change control</a><a href="#output">Output integrity</a><a href="#privacy">Privacy</a><a href="#canada">Canadian requirements</a><a href="#not">What we don't claim</a></nav>
+  </div>
+</div>
+
+<section class="tight" id="data" style="padding-bottom:0">
+  <div class="wrap">
+    <div class="callout"><i class="ph-fill ph-warning-circle"></i><div><b>The one thing that can leave your environment is AI, and it's off by default.</b> If an admin sets <code>ANTHROPIC_KEY</code>, the template assistant sends the draft template (fields, content, sample data) and AI field detection sends page images of the uploaded form to Anthropic's API. Generation data, the policyholder data that fills real documents, isn't sent. Each AI request is in the audit log. Without the key, no request leaves your boundary except webhooks you configure. <a class="tlink" href="#">AI template assistant spec</a></div></div>
+  </div>
+</section>
+
+<section id="controls">
+  <div class="wrap">
+    <div class="shead"><div><p class="eyebrow">Controls list</p><h2>The table your security reviewer copies into the questionnaire.</h2></div>
+      <div><p class="lede">Every row links to the spec that defines the control and its known limits.</p><div class="cta-row" style="margin-top:20px"><a class="btn ghost sm" href="#"><i class="ph ph-copy"></i>Copy as CSV</a><a class="btn ghost sm" href="#"><i class="ph ph-file-pdf"></i>In the review pack</a></div></div></div>
+    <table class="spec">
+      <thead><tr><th>Control</th><th>How necodoc does it</th><th>Proof</th></tr></thead>
+      <tbody>
+        <tr class="group"><td colspan="3">Identity and access</td></tr>
+        <tr><td>Single sign-on</td><td>Entra ID, Auth0, SiteMinder or any OIDC or SAML 2.0 IdP, or a trusted SiteMinder-style header. Accounts are created on first sign-in.</td><td><a href="#">Single sign-on</a></td></tr>
+        <tr><td>Role mapping</td><td>IdP groups map to roles: admin, publisher, reviewer, editor, viewer. Roles add up; each grants one job.</td><td><a href="#">Users and roles</a></td></tr>
+        <tr><td>Session control</td><td>Admins ban users, revoke sessions and reset passwords. Impersonation is admin-only and audited from start to stop.</td><td><a href="#">Users and roles</a></td></tr>
+        <tr class="group"><td colspan="3">System access</td></tr>
+        <tr><td>Service accounts</td><td>Keys belong to a person or a service account that can never sign in.</td><td><a href="#">ADR 0029</a></td></tr>
+        <tr><td>Scoped keys</td><td>Scopes no wider than the owner's roles, an optional template allowlist, an IP allowlist, an expiry date, per-key rate limits, revocation and usage.</td><td><a href="#">HTML to PDF API</a></td></tr>
+        <tr><td>Signed callbacks</td><td>Webhooks carry an HMAC-SHA256 signature over timestamp and body; retries are logged per delivery.</td><td><a href="#">Webhooks</a></td></tr>
+        <tr class="group"><td colspan="3">Data</td></tr>
+        <tr><td>Residency</td><td>Records in your Postgres; PDFs in your S3-compatible bucket, Azure Blob container or disk, in the region you choose.</td><td><a href="#">ADR 0023</a></td></tr>
+        <tr><td>Downloads</td><td>Streamed through signed, expiring links. Minting a link is audited.</td><td><a href="#">Generation log</a></td></tr>
+        <tr><td>Retention</td><td>A retention period for the generation log and its stored PDFs, set by an admin.</td><td><a href="#">Generation log</a></td></tr>
+        <tr class="group"><td colspan="3">Audit and logging</td></tr>
+        <tr><td>Audit log</td><td>Every configuration and access change, sign-ins including failures, impersonation and API key use, with before and after diffs. Append-only, enforced by a database trigger. CSV export.</td><td><a href="#">Audit log</a></td></tr>
+        <tr><td>Generation log</td><td>Every PDF with its input, output, template version, caller and a timing breakdown; re-runnable against the exact version.</td><td><a href="#">Generation log</a></td></tr>
+        <tr><td>Operational logs</td><td>JSON logs, Prometheus metrics, OpenTelemetry traces, one request id end to end. Logs and traces never carry field values.</td><td><a href="#">Observability</a></td></tr>
+        <tr class="group"><td colspan="3">Change control and output</td></tr>
+        <tr><td>Versioning</td><td>One working draft; published versions are numbered and immutable. Publishing is its own permission.</td><td><a href="#">Publishing</a></td></tr>
+        <tr><td>Review gate</td><td>When required, only an approved, unchanged draft can be published.</td><td><a href="#">Review</a></td></tr>
+        <tr><td>Regression tests</td><td>Named test cases with assertions; page-by-page visual and text diff against the published version.</td><td><a href="#">Test cases</a></td></tr>
+        <tr><td>Output integrity</td><td>PDF/A-2b or 2u, PDF/UA-1, PAdES B-B or B-T certification with your certificate. Each generation records what was applied.</td><td><a href="#">Archival output</a></td></tr>
+        <tr class="group"><td colspan="3">Privacy and vendor risk</td></tr>
+        <tr><td>Sensitive fields</td><td>Fields marked sensitive are masked in audit diffs and in other people's log entries.</td><td><a href="#">Personal data</a></td></tr>
+        <tr><td>Erasure</td><td>Find everything stored about a data subject and erase it, with an erasure report.</td><td><a href="#">Personal data</a></td></tr>
+        <tr><td>Exit</td><td>MIT source, standard Postgres, PDFs in your storage, templates as data. No vendor holds your data.</td><td><a href="#">Open source</a></td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<section id="audit" class="alt">
+  <div class="wrap">
+    <div class="shead"><div><p class="eyebrow">Audit and logging</p><h2>Who changed the bond wording, who approved it, and when.</h2></div><p class="lede">The audit log records the change and its diff. The generation log records every PDF that came out of it. Together they answer the auditor's question without a spreadsheet.</p></div>
+    <div style="display:grid;grid-template-columns:1.25fr 1fr;gap:24px;align-items:start">
+      <div class="frame crop" style="height:470px"><img src="assets/audit-log.png" alt="Audit log filtered to template events: review submitted, changes requested, approved, updated" style="width:140%;max-width:none;margin:-30px 0 0 -24%"></div>
+      <div class="frame crop" style="height:470px"><img src="assets/audit-detail.png" alt="Audit entry detail: actor, target id, IP, user agent, request id, and a before and after diff" style="width:190%;max-width:none;margin:0 0 0 -98%"></div>
+    </div>
+    <div class="stops" style="margin-top:44px">
+      <div><i class="ph ph-database"></i><div><b>Append-only in the database.</b><p>A trigger rejects updates and deletes on audit rows, so the app, an API key or a bug can't rewrite history.</p></div></div>
+      <div><i class="ph ph-warning"></i><div><b>Tamper-resistant, not tamper-evident.</b><p>There is no hash chain, and a DBA can disable the trigger. Ship the log to your SIEM if you need proof against your own administrators.</p></div></div>
+    </div>
+  </div>
+</section>
+
+<section id="change">
+  <div class="wrap pillar flip" style="padding:0;border:0">
+    <div class="copy">
+      <p class="eyebrow">Change control</p>
+      <h3>The business owns the wording. IT owns the data contract.</h3>
+      <p>Editors change content. Fields are the contract your systems code against, published as a JSON Schema per version. Review and publish are separate permissions.</p>
+      <ul class="checks">
+        <li><i class="ph-bold ph-check"></i>Immutable published versions; the API calls a version, not "whatever's current"</li>
+        <li><i class="ph-bold ph-check"></i>A reviewer sees structure, page and test changes, then approves or asks for changes</li>
+        <li><i class="ph-bold ph-check"></i>Test cases and a visual diff run on the draft before it's published</li>
+        <li><i class="ph-bold ph-check"></i>Shared clauses live in snippets, so a wording change is made once</li>
+      </ul>
+      <div class="limit"><i class="ph ph-info"></i><span><b>Limit:</b> one review step. Multi-step approval chains aren't supported.</span></div>
+    </div>
+    <div class="frame"><img src="assets/templates-gallery.png" alt="Templates gallery with published versions, drafts and unpublished changes"></div>
+  </div>
+</section>
+
+<section id="identity" class="alt tight">
+  <div class="wrap">
+    <div class="qa">
+      <div id="output"><p class="q">Output integrity</p><h3>Archive, accessible, certified</h3><p>PDF/A-2b or 2u for retention, tagged PDF/UA-1 for screen readers, and PAdES certification a recipient can check against an edited copy. Never applied to a file that can't honestly carry it.</p><a class="tlink" href="#">Archival output →</a></div>
+      <div id="privacy"><p class="q">Privacy</p><h3>Masking and erasure</h3><p>Sensitive fields are masked in diffs and other people's log entries. Admins find and erase a data subject's records, with a report for the request.</p><a class="tlink" href="#">Personal data →</a></div>
+      <div><p class="q">Signatures</p><h3>E-signature ready</h3><p>Signing packages list signers, routing order and box positions as envelope JSON. Your provider runs the legally binding signing.</p><a class="tlink" href="#">Signing packages →</a></div>
+    </div>
+  </div>
+</section>
+
+<section id="canada">
+  <div class="wrap split">
+    <aside><p class="eyebrow">Canadian requirements</p><h2>What helps, and what stays your job.</h2><p>necodoc doesn't make a carrier compliant with anything. These are the features that help you meet each requirement.</p></aside>
+    <table class="spec">
+      <thead><tr><th>Requirement</th><th>How necodoc helps</th><th>Still yours</th></tr></thead>
+      <tbody>
+        <tr><td>OSFI B-10<br><span class="muted small">third-party risk</span></td><td>Self-hosted MIT software: audit and access rights are yours, the exit plan is your own Postgres and bucket.</td><td>Your third-party assessment and exit testing</td></tr>
+        <tr><td>OSFI B-13<br><span class="muted small">technology and cyber</span></td><td>Runs inside your controls: your IdP, network, keys, logging and patch cycle.</td><td>Operating and patching it</td></tr>
+        <tr><td>Bill 96<br><span class="muted small">Québec, French first</span></td><td>English and fr-CA from one template, so the French copy can't drift from the English.</td><td>Translation quality and legal review</td></tr>
+        <tr><td>Law 25 · PIPEDA<br><span class="muted small">privacy</span></td><td>You choose the region; sensitive-field masking; erasure per data subject with a report.</td><td>Privacy assessments, retention policy</td></tr>
+        <tr><td>AODA<br><span class="muted small">accessible formats</span></td><td>Tagged PDF/UA-1 output from designed and HTML documents.</td><td>Accessible content and alt text in templates</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<section id="not" class="alt tight">
+  <div class="wrap">
+    <div class="shead"><div><p class="eyebrow">What we don't claim</p><h2>No badges we haven't earned.</h2></div><p class="lede">There is no hosted service, so there is nothing for an auditor to attest. necodoc runs inside your SOC 2 and B-13 boundary and inherits your controls.</p></div>
+    <div class="stops">
+      <div><i class="ph ph-seal"></i><div><b>No SOC 2, ISO 27001 or "certified secure".</b><p>We describe controls, not attestations.</p></div></div>
+      <div><i class="ph ph-lock-key-open"></i><div><b>Not "tamper-proof".</b><p>The audit log is tamper-resistant; see above.</p></div></div>
+      <div><i class="ph ph-signature"></i><div><b>Not an e-signature service.</b><p>No ESIGN, eIDAS or UECA claims. Your provider signs.</p></div></div>
+      <div><i class="ph ph-sparkle"></i><div><b>Not "data never leaves" without the AI caveat.</b><p>It's true with AI off, the default, and stated at the top of this page.</p></div></div>
+    </div>
+  </div>
+</section>
+
+<script src="chrome.js"></script>
+</body>
+</html>

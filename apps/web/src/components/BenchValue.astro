@@ -1,0 +1,8 @@
+---
+import type { BenchValue } from "../lib/bench";
+
+type Props = { value: BenchValue };
+const { value } = Astro.props;
+---
+
+{"text" in value ? <span class="v">{value.text}</span> : <span class="bind" title="Filled from scripts/bench/results/latest.json">{value.placeholder}</span>}

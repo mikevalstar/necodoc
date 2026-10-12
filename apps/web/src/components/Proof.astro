@@ -1,0 +1,9 @@
+---
+type Props = { links: { label: string; href: string }[] };
+const { links } = Astro.props;
+---
+
+<div class="proof">
+  <span class="lab">Proof</span>
+  {links.map((l) => <a class="tlink" href={l.href}>{l.label}</a>)}
+</div>

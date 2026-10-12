@@ -1,0 +1,9 @@
+---
+// A limit stated beside the claim it limits (marketing-site spec, Tone).
+import Icon from "./Icon.astro";
+
+type Props = { label?: string };
+const { label = "Limit:" } = Astro.props;
+---
+
+<div class="limit"><Icon name="info" /><span><b>{label}</b> <slot /></span></div>

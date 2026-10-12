@@ -1,0 +1,341 @@
+<!doctype html>
+<html lang="en-CA">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Architecture · necodoc</title>
+<link rel="stylesheet" href="site.css">
+<script src="https://unpkg.com/@phosphor-icons/web@2.1.1"></script>
+</head>
+<body data-page="architecture">
+
+<div class="phero grid-bg light">
+  <div class="wrap">
+    <p class="crumb"><a href="index.html">necodoc</a> / Architecture</p>
+    <p class="eyebrow">Architecture</p>
+    <h1>Two process roles, your Postgres, your storage.</h1>
+    <p class="lede">necodoc is one container image that runs as a stateless API or as render workers. Durable state lives in a Postgres and a bucket you already operate. This page is the reference for your architecture review; the same content is in the <a class="tlink" href="#">review pack PDF</a>.</p>
+    <nav class="toc" aria-label="On this page"><a href="#reference">Reference architecture</a><a href="#components">Components</a><a href="#deploy">Deployment</a><a href="#integrate">Integration patterns</a><a href="#data">What goes where</a><a href="#scaling">Scaling and HA</a><a href="#observe">Observability</a><a href="#limits">Known limits</a></nav>
+  </div>
+</div>
+
+<section id="reference" class="tight">
+  <div class="wrap">
+    <div class="diagram"><!--ARCH--><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1140 640" role="img" aria-labelledby="ra-t ra-d" class="ra">
+  <title id="ra-t">necodoc reference architecture</title>
+  <desc id="ra-d">Core systems, staff and share-link users reach a stateless necodoc API through your load balancer. The API stores templates, logs, the audit log and the job queue in your Postgres, and issues signed links to PDFs in your object storage. Render workers claim jobs from Postgres, render with headless Chromium and write PDFs to storage. Sign-in goes through your identity provider; metrics, traces and logs go to your observability stack. Outside the trust boundary, and optional: webhooks to your endpoints, your e-sign provider integration, and the Anthropic API only when AI is enabled.</desc>
+  <style>
+    .ra text { font-family: Figtree, system-ui, sans-serif; fill: #0c1233; }
+    .ra .t { font-family: "Bricolage Grotesque", Figtree, sans-serif; font-weight: 700; font-size: 17px; letter-spacing: -.01em; }
+    .ra .m { font-family: "Fragment Mono", ui-monospace, monospace; font-size: 11.5px; fill: #1f50e0; }
+    .ra .s { font-size: 13px; fill: #3f4668; }
+    .ra .lbl { font-family: "Fragment Mono", ui-monospace, monospace; font-size: 11px; fill: #5b6285; }
+    .ra .cap { font-family: "Fragment Mono", ui-monospace, monospace; font-size: 11.5px; letter-spacing: .08em; fill: #1f50e0; }
+    .ra .capw { font-family: "Fragment Mono", ui-monospace, monospace; font-size: 11.5px; letter-spacing: .08em; fill: #8a5600; }
+    .ra .tag { font-family: "Fragment Mono", ui-monospace, monospace; font-size: 10px; letter-spacing: .06em; fill: #5b6285; }
+    .ra .ours { fill: #e7eeff; stroke: #2f6bff; stroke-width: 1.5; }
+    .ra .ours-b { fill: #f3f6ff; stroke: #9db8ff; stroke-width: 1.2; }
+    .ra .yours { fill: #fff; stroke: #c9cee6; stroke-width: 1.5; }
+    .ra .caller { fill: #f5f6fb; stroke: #d3d7ea; stroke-width: 1.2; }
+    .ra .opt { fill: #fffaf0; stroke: #d9a640; stroke-width: 1.3; stroke-dasharray: 5 4; }
+    .ra .ln { fill: none; stroke: #3f4668; stroke-width: 1.5; }
+    .ra .ln-o { fill: none; stroke: #b07a12; stroke-width: 1.5; stroke-dasharray: 5 4; }
+    .ra .tb { fill: none; stroke: #2f6bff; stroke-width: 1.5; stroke-dasharray: 7 5; }
+  </style>
+  <defs>
+    <marker id="ra-a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="#3f4668"/></marker>
+    <marker id="ra-ao" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="#b07a12"/></marker>
+  </defs>
+
+  <!-- trust boundary -->
+  <rect class="tb" x="246" y="14" width="890" height="478" rx="18" fill="#fbfcff"/>
+  <text class="cap" x="268" y="42">YOUR CLOUD ACCOUNT OR DATA CENTRE · TRUST BOUNDARY</text>
+
+  <!-- callers -->
+  <text class="tag" x="0" y="70">CALLERS</text>
+  <rect class="caller" x="0" y="86" width="206" height="104" rx="12"/>
+  <text class="t" x="16" y="114">Core &amp; policy systems</text>
+  <text class="s" x="16" y="136">Guidewire, Duck Creek,</text>
+  <text class="s" x="16" y="154">your policy admin system</text>
+  <text class="m" x="16" y="176">/api/v1 · scoped API key</text>
+  <rect class="caller" x="0" y="214" width="206" height="96" rx="12"/>
+  <text class="t" x="16" y="242">People in the app</text>
+  <text class="s" x="16" y="264">Editors, reviewers, admins</text>
+  <text class="m" x="16" y="290">SSO session</text>
+  <rect class="caller" x="0" y="334" width="206" height="96" rx="12"/>
+  <text class="t" x="16" y="362">Share links</text>
+  <text class="s" x="16" y="384">Brokers, principals filling a form</text>
+  <text class="m" x="16" y="410">expiring signed token</text>
+
+  <!-- load balancer -->
+  <rect class="yours" x="274" y="86" width="40" height="344" rx="10"/>
+  <text class="lbl" transform="translate(299 258) rotate(-90)" text-anchor="middle">YOUR LOAD BALANCER / INGRESS</text>
+  <path class="ln" d="M206 138H272" marker-end="url(#ra-a)"/>
+  <path class="ln" d="M206 262H272" marker-end="url(#ra-a)"/>
+  <path class="ln" d="M206 382H272" marker-end="url(#ra-a)"/>
+  <text class="lbl" x="240" y="130" text-anchor="end">HTTPS</text>
+
+  <!-- API (stacked = N replicas) -->
+  <rect class="ours-b" x="372" y="70" width="236" height="148" rx="14"/>
+  <rect class="ours-b" x="366" y="76" width="236" height="148" rx="14"/>
+  <rect class="ours" x="360" y="82" width="236" height="148" rx="14"/>
+  <text class="t" x="378" y="110">necodoc API</text>
+  <text class="m" x="378" y="130">ROLE=api · stateless · × N</text>
+  <text class="s" x="378" y="156">REST /api/v1 and the web app</text>
+  <text class="s" x="378" y="176">Auth, validation, signed links</text>
+  <text class="s" x="378" y="196">Enqueues render jobs</text>
+  <text class="s" x="378" y="216">Health and readiness endpoints</text>
+  <path class="ln" d="M314 156H358" marker-end="url(#ra-a)"/>
+
+  <!-- workers (stacked) -->
+  <rect class="ours-b" x="372" y="290" width="236" height="148" rx="14"/>
+  <rect class="ours-b" x="366" y="296" width="236" height="148" rx="14"/>
+  <rect class="ours" x="360" y="302" width="236" height="148" rx="14"/>
+  <text class="t" x="378" y="330">Render workers</text>
+  <text class="m" x="378" y="350">ROLE=worker · × N · KEDA</text>
+  <text class="s" x="378" y="376">Headless Chromium, pdf-lib</text>
+  <text class="s" x="378" y="396">N render slots each</text>
+  <text class="s" x="378" y="416">Interactive jobs jump the batch</text>
+  <text class="s" x="378" y="436">A crashed job retries elsewhere</text>
+
+  <!-- postgres -->
+  <rect class="yours" x="662" y="82" width="232" height="148" rx="14"/>
+  <text class="t" x="680" y="110">Postgres</text>
+  <text class="m" x="680" y="130">managed or self-run</text>
+  <text class="s" x="680" y="156">Templates and versions</text>
+  <text class="s" x="680" y="176">Generation log, audit log</text>
+  <text class="s" x="680" y="196">Job queue (pg-boss)</text>
+  <text class="s" x="680" y="216">Users, keys, settings</text>
+
+  <!-- storage -->
+  <rect class="yours" x="662" y="302" width="232" height="148" rx="14"/>
+  <text class="t" x="680" y="330">Object storage</text>
+  <text class="m" x="680" y="350">S3 · Azure Blob · disk</text>
+  <text class="s" x="680" y="376">Generated PDFs and assets</text>
+  <text class="s" x="680" y="396">In the region you choose</text>
+  <text class="s" x="680" y="416">Downloads via signed links</text>
+
+  <!-- idp -->
+  <rect class="yours" x="934" y="82" width="186" height="118" rx="14"/>
+  <text class="t" x="952" y="110">Identity provider</text>
+  <text class="s" x="952" y="134">Entra ID, Auth0,</text>
+  <text class="s" x="952" y="152">SiteMinder, any IdP</text>
+  <text class="m" x="952" y="178">OIDC · SAML 2.0</text>
+
+  <!-- observability -->
+  <rect class="yours" x="934" y="226" width="186" height="118" rx="14"/>
+  <text class="t" x="952" y="254">Observability</text>
+  <text class="s" x="952" y="278">Prometheus, OTLP</text>
+  <text class="s" x="952" y="296">collector, log shipper</text>
+  <text class="m" x="952" y="322">request id end to end</text>
+
+  <!-- api <-> postgres -->
+  <path class="ln" d="M610 120H660" marker-start="url(#ra-a)" marker-end="url(#ra-a)"/>
+  <text class="lbl" x="616" y="112">SQL</text>
+  <!-- api -> storage (signed links) -->
+  <path class="ln" d="M610 206H644V318H660" marker-end="url(#ra-a)"/>
+  <!-- postgres -> workers (claim jobs) -->
+  <path class="ln" d="M660 186H626V340H610" marker-end="url(#ra-a)"/>
+  <text class="lbl" transform="translate(638.5 262) rotate(-90)" text-anchor="middle" style="font-size:10px">claim jobs</text>
+  <!-- workers -> storage -->
+  <path class="ln" d="M610 412H660" marker-end="url(#ra-a)"/>
+  <text class="lbl" x="618" y="404">PDF</text>
+  <!-- api -> idp -->
+  <path class="ln" d="M500 82V58H1000V80" marker-end="url(#ra-a)"/>
+  <text class="lbl" x="760" y="52">OIDC / SAML sign-in</text>
+  <!-- telemetry bus -->
+  <path class="ln" d="M540 452V472H912V300H932" marker-end="url(#ra-a)"/>
+  <text class="lbl" x="556" y="466">metrics · traces · JSON logs from every process</text>
+
+  <!-- outbound, optional -->
+  <text class="capw" x="0" y="566">OPTIONAL · OUTBOUND</text>
+  <text class="lbl" x="0" y="586">off until you configure it</text>
+  <rect class="opt" x="360" y="540" width="236" height="92" rx="12"/>
+  <text class="t" x="376" y="568">Webhooks</text>
+  <text class="s" x="376" y="590">To your endpoints, HMAC-SHA256</text>
+  <text class="s" x="376" y="608">signed, 5 retries with backoff</text>
+  <rect class="opt" x="662" y="540" width="232" height="92" rx="12"/>
+  <text class="t" x="678" y="568">E-sign provider</text>
+  <text class="s" x="678" y="590">Your DocuSign, Dropbox Sign or</text>
+  <text class="s" x="678" y="608">Acrobat Sign integration</text>
+  <rect class="opt" x="934" y="540" width="186" height="92" rx="12"/>
+  <text class="t" x="950" y="568">Anthropic API</text>
+  <text class="s" x="950" y="590">Only if ANTHROPIC_KEY</text>
+  <text class="s" x="950" y="608">is set. Off by default.</text>
+  <path class="ln-o" d="M420 452V538" marker-end="url(#ra-ao)"/>
+  <path class="ln-o" d="M778 494V538" marker-end="url(#ra-ao)"/>
+  <circle cx="778" cy="492" r="3" fill="#b07a12"/>
+  <text class="lbl" x="770" y="516" text-anchor="end">signing package, via your code</text>
+  <path class="ln-o" d="M1027 494V538" marker-end="url(#ra-ao)"/>
+  <circle cx="1027" cy="492" r="3" fill="#b07a12"/>
+  <text class="lbl" x="1019" y="516" text-anchor="end">AI assist, field detection</text>
+</svg><!--/ARCH-->
+      <div class="legend"><span><span class="sw tb"></span>Trust boundary: your account</span><span><span class="sw tb" style="border-style:solid;background:var(--brand-wash)"></span>necodoc processes</span><span><span class="sw tb" style="border:1.5px solid #c9cee6"></span>Your infrastructure</span><span><span class="sw"></span>Request or data flow</span><span><span class="sw dash"></span>Optional, outbound</span><span style="margin-left:auto"><a class="tlink" href="assets/reference-architecture.svg">Download SVG</a></span></div>
+    </div>
+    <p class="shot-caption" style="margin-top:14px">Matches <span class="k">docs/features/self-hosting.md</span> and the devdocs page <span class="k">self-hosting/roles-and-scaling</span>. Reviewed with each release.</p>
+  </div>
+</section>
+
+<section id="components" class="alt">
+  <div class="wrap split">
+    <aside><p class="eyebrow">Components</p><h2>What runs, and what holds state.</h2><p>Only Postgres and object storage hold state. Everything necodoc runs can be killed and replaced.</p></aside>
+    <table class="spec">
+      <thead><tr><th>Component</th><th>Does</th><th>Scales by</th><th>State</th></tr></thead>
+      <tbody>
+        <tr><td>API<br><span class="k">ROLE=api</span></td><td>Serves <code>/api/v1</code> and the web app; authenticates keys and sessions; validates data against the template's fields; enqueues renders; issues signed download links.</td><td>Replicas behind your load balancer</td><td>None</td></tr>
+        <tr><td>Render worker<br><span class="k">ROLE=worker</span></td><td>Claims render jobs, runs headless Chromium for designed and HTML documents, stamps overlays with pdf-lib, applies PDF/A, PDF/UA and certification, writes the PDF.</td><td>Replicas; <span class="k">RENDER_CONCURRENCY</span> slots each; KEDA on queue depth</td><td>None. A job on a lost worker retries.</td></tr>
+        <tr><td>Postgres</td><td>Templates and immutable versions, users and keys, generation log, append-only audit log, and the job queue (pg-boss).</td><td>Your database tier. This is the throughput ceiling.</td><td>All durable records</td></tr>
+        <tr><td>Object storage</td><td>Generated PDFs and uploaded assets. Any S3-compatible bucket (AWS S3, MinIO, Wasabi, Cloudflare R2), Azure Blob, or a shared disk.</td><td>Your storage service</td><td>PDF bytes</td></tr>
+        <tr><td>Identity provider</td><td>Sign-in for people over OIDC, SAML 2.0 or a trusted header; IdP groups map to necodoc roles.</td><td>Yours</td><td>Yours</td></tr>
+        <tr><td>Single process<br><span class="k">ROLE=all</span></td><td>API and worker in one process, for evaluation and small installs on Compose.</td><td>Not meant to</td><td>None</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<section id="deploy">
+  <div class="wrap">
+    <div class="shead"><div><p class="eyebrow">Deployment</p><h2>Start on one host. Split the roles when you need to.</h2></div><p class="lede">The same image and environment variables in every option. Nothing calls home, so it runs without outbound internet.</p></div>
+    <div class="cards">
+      <div class="card"><span class="ic"><i class="ph-duotone ph-desktop-tower"></i></span><h3>Docker Compose, one host</h3><p>Postgres, migrations, API, a worker and the app from one <code>.env</code>. For evaluation and small installs.</p><pre class="code" style="margin-top:18px;box-shadow:none;font-size:12.5px">docker compose up \
+  --scale worker=2</pre><span class="foot">deploy/compose</span></div>
+      <div class="card"><span class="ic"><i class="ph-duotone ph-cube"></i></span><h3>Helm on Kubernetes</h3><p>Separate API and worker deployments, migrations as a pre-install hook, pod disruption budgets, graceful drain on scale-down. Bring your own Postgres.</p><pre class="code" style="margin-top:18px;box-shadow:none;font-size:12.5px">helm install necodoc \
+  deploy/helm/necodoc \
+  --set secrets.existingSecret=necodoc</pre><span class="foot">deploy/helm/necodoc</span></div>
+      <div class="card"><span class="ic"><i class="ph-duotone ph-arrows-out-line-horizontal"></i></span><h3>Autoscaled workers</h3><p>KEDA scales the worker deployment on queue depth read from Postgres. Without KEDA, both deployments can use a CPU autoscaler.</p><pre class="code" style="margin-top:18px;box-shadow:none;font-size:12.5px">worker:
+  keda:
+    enabled: true
+    jobsPerReplica: 4</pre><span class="foot">values.yaml · KEDA</span></div>
+    </div>
+    <div class="limit" style="margin-top:24px"><i class="ph ph-info"></i><span><b>Today:</b> the chart passes <code>helm lint</code>, <code>helm template</code> and kubeconform but hasn't been verified on a live cluster, and there's no published image registry yet, so you build the images. <span class="bind">{registry.status}</span></span></div>
+  </div>
+</section>
+
+<section id="integrate" class="alt">
+  <div class="wrap">
+    <div class="shead"><div><p class="eyebrow">Integration patterns</p><h2>Your core system posts data and gets a PDF or a webhook.</h2></div><p class="lede">No packaged connector. A versioned REST API described by OpenAPI 3.1, a JSON Schema per template version, and generated SDKs for TypeScript, Python, .NET and Java.</p></div>
+
+    <div class="cards">
+      <div class="card"><p class="eyebrow" style="margin-bottom:12px"><span class="n">A</span> Synchronous</p><h3>Wait for the PDF</h3><p>For a certificate issued while the broker waits. The response is the PDF, with <code>X-Generation-Id</code>.</p>
+        <svg viewBox="0 0 300 120" style="margin-top:18px" aria-label="Sequence: system posts generate, API returns PDF"><g font-family="Fragment Mono" font-size="10" fill="#5b6285"><text x="10" y="12">your system</text><text x="200" y="12">necodoc</text></g><path d="M40 20V115M230 20V115" stroke="#d3d7ea" stroke-width="1.5"/><path d="M40 45H226" stroke="#3f4668" stroke-width="1.5" marker-end="url(#sa)"/><path d="M230 90H44" stroke="#2f6bff" stroke-width="1.5" marker-end="url(#sb)"/><g font-family="Fragment Mono" font-size="10" fill="#0c1233"><text x="50" y="38">POST …/generate</text><text x="100" y="83" fill="#1f50e0">200 application/pdf</text></g><defs><marker id="sa" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0 0L10 5L0 10z" fill="#3f4668"/></marker><marker id="sb" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0 0L10 5L0 10z" fill="#2f6bff"/></marker></defs></svg>
+      </div>
+      <div class="card"><p class="eyebrow" style="margin-bottom:12px"><span class="n">B</span> Asynchronous</p><h3>Get a signed webhook</h3><p>For bind and issue events. <code>async: true</code> returns 202; a signed webhook brings a <code>downloadUrl</code>.</p>
+        <svg viewBox="0 0 300 120" style="margin-top:18px" aria-label="Sequence: post async, 202, later webhook"><g font-family="Fragment Mono" font-size="10" fill="#5b6285"><text x="10" y="12">your system</text><text x="200" y="12">necodoc</text></g><path d="M40 20V115M230 20V115" stroke="#d3d7ea" stroke-width="1.5"/><path d="M40 38H226" stroke="#3f4668" stroke-width="1.5" marker-end="url(#sa)"/><path d="M230 62H44" stroke="#3f4668" stroke-width="1.5" marker-end="url(#sa)"/><path d="M230 102H44" stroke="#b07a12" stroke-width="1.5" stroke-dasharray="5 4" marker-end="url(#sa)"/><g font-family="Fragment Mono" font-size="10" fill="#0c1233"><text x="50" y="32">POST …/generate async</text><text x="150" y="56">202 { id }</text><text x="70" y="96" fill="#8a5600">webhook · Necodoc-Signature</text></g></svg>
+      </div>
+      <div class="card"><p class="eyebrow" style="margin-bottom:12px"><span class="n">C</span> Batch</p><h3>Renewal runs</h3><p>Up to 10,000 rows per batch. Progress, cancel, and one ZIP or one combined packet at the end.</p>
+        <svg viewBox="0 0 300 120" style="margin-top:18px" aria-label="Sequence: post batch, poll, download zip"><g font-family="Fragment Mono" font-size="10" fill="#5b6285"><text x="10" y="12">your system</text><text x="200" y="12">necodoc</text></g><path d="M40 20V115M230 20V115" stroke="#d3d7ea" stroke-width="1.5"/><path d="M40 38H226" stroke="#3f4668" stroke-width="1.5" marker-end="url(#sa)"/><path d="M40 70H226" stroke="#3f4668" stroke-width="1.5" stroke-dasharray="2 3" marker-end="url(#sa)"/><path d="M230 102H44" stroke="#2f6bff" stroke-width="1.5" marker-end="url(#sb)"/><g font-family="Fragment Mono" font-size="10" fill="#0c1233"><text x="50" y="32">POST …/batch [rows]</text><text x="50" y="64">GET /batches/:id</text><text x="110" y="96" fill="#1f50e0">…/zip · …/packet</text></g></svg>
+      </div>
+    </div>
+
+    <div class="split" style="margin-top:72px;grid-template-columns:420px 1fr">
+      <aside>
+        <p class="eyebrow">Worked pattern <span class="example">example, not a connector</span></p>
+        <h2 style="font-size:28px">A policy admin system issuing a bond.</h2>
+        <ol class="chapters" style="margin-top:22px">
+          <li><span>Your PAS emits an issue event for the bond</span><time>your code</time></li>
+          <li><span>Your integration layer maps policy data to the template's JSON Schema</span><time>GET …/schema</time></li>
+          <li><span>It posts the data with the policy number as <code>subject</code></span><time>POST …/generate</time></li>
+          <li><span>necodoc validates, renders and logs it; 422 lists every bad field</span><time>necodoc</time></li>
+          <li><span>The PDF, or a webhook with a signed link, comes back to your DMS</span><time>your code</time></li>
+        </ol>
+      </aside>
+      <div>
+        <div class="code-tabs"><span class="on">curl</span><span>TypeScript</span><span>Python</span><span>.NET</span><span>Java</span></div>
+<pre class="code"><span class="c"># Issue a bond from a published template version</span>
+curl https://necodoc.internal.example/api/v1/templates/$TEMPLATE/versions/3/generate \
+  -H <span class="s">"x-api-key: $NECODOC_KEY"</span> \
+  -H <span class="s">"content-type: application/json"</span> \
+  -d <span class="s">'{
+    "subject": "BND-2026-004518",
+    "response": "json",
+    "data": {
+      "principal": "Northwind Construction Ltd.",
+      "obligee": "City of Hamilton, Public Works",
+      "bond_amount": 2450000,
+      "effective_date": "2026-11-02"
+    }
+  }'</span>
+
+<span class="c"># 200</span>
+{ <span class="k2">"id"</span>: <span class="s">"9f1c…"</span>, <span class="k2">"pageCount"</span>: 3, <span class="k2">"downloadUrl"</span>: <span class="s">"https://…?sig=…&amp;exp=…"</span> }</pre>
+        <p class="shot-caption">Every response carries <span class="k">X-Request-Id</span>. Errors are JSON with <span class="k">code</span> and <span class="k">fieldErrors</span>. 401 bad key · 403 scope or IP · 422 invalid data · 429 rate limit with Retry-After.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="data">
+  <div class="wrap split">
+    <aside><p class="eyebrow">Data flows</p><h2>What goes where.</h2><p>Everything stays in your account except what you send out on purpose. The AI rows are the only third party, and they're off by default.</p></aside>
+    <table class="spec">
+      <thead><tr><th>Data</th><th>Stored in</th><th>Leaves your boundary</th></tr></thead>
+      <tbody>
+        <tr><td>Templates, versions, snippets, themes</td><td>Your Postgres</td><td>No</td></tr>
+        <tr><td>Input data for each PDF</td><td>Your Postgres (generation log), with a retention period you set</td><td>No</td></tr>
+        <tr><td>Generated PDFs, assets</td><td>Your bucket, blob container or disk, in your region</td><td>Only through signed, expiring links you issue</td></tr>
+        <tr><td>Logs, metrics, traces</td><td>Your log shipper, Prometheus, OTLP collector. PII masked in logs.</td><td>No</td></tr>
+        <tr><td>Webhook payloads</td><td>Sent to endpoints you configure</td><td>Yes, to your URLs, HMAC-SHA256 signed</td></tr>
+        <tr><td>Signing packages</td><td>Your Postgres; fetched by your e-sign integration</td><td>Only if your code sends them on</td></tr>
+        <tr><td>Template content, page images</td><td>Sent to Anthropic's API, not stored by necodoc elsewhere</td><td><span class="pill warn">Only if ANTHROPIC_KEY is set</span> for the AI assistant and field detection</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<section id="scaling" class="alt">
+  <div class="wrap">
+    <div class="shead"><div><p class="eyebrow">Scaling and availability</p><h2>Month-end is a replica count.</h2></div><p class="lede">Measured on one machine by the <a class="tlink" href="performance.html">benchmark</a>. Your numbers depend on your Postgres and your nodes; rerun it on them.</p></div>
+    <div class="numbers">
+      <div><div class="v"><span class="bind">{bench.scale.1}</span></div><div class="l">docs/min, 1 worker</div><div class="d">JSON batch, <span class="bind">{bench.settings.batchRows}</span> rows</div></div>
+      <div><div class="v"><span class="bind">{bench.scale.2}</span></div><div class="l">docs/min, 2 workers</div><div class="d"><span class="k">RENDER_CONCURRENCY</span> = <span class="bind">{bench.settings.concurrency}</span></div></div>
+      <div><div class="v"><span class="bind">{bench.scale.4}</span></div><div class="l">docs/min, 4 workers</div><div class="d">Same host, same Postgres</div></div>
+      <div><div class="v"><span class="bind">{bench.scale.8}</span></div><div class="l">docs/min, 8 workers</div><div class="d">Where one machine flattens out</div></div>
+    </div>
+    <div class="stops" style="margin-top:48px">
+      <div><i class="ph ph-arrows-split"></i><div><b>Interactive before batch.</b><p>Renders from people and sync API calls take priority over batch rows, so a renewal run doesn't slow a form fill.</p></div></div>
+      <div><i class="ph ph-arrow-counter-clockwise"></i><div><b>Lost jobs retry.</b><p>A job on a killed worker is picked up by another. Invalid batch rows fail alone; the rest continue.</p></div></div>
+      <div><i class="ph ph-hard-drives"></i><div><b>Postgres is the ceiling.</b><p>It carries the queue as well as the data. Size it for both; we don't claim unlimited workers.</p></div></div>
+      <div><i class="ph ph-heartbeat"></i><div><b>Health you can probe.</b><p>Health and readiness endpoints on every process; Admin › System lists each API and worker heartbeat.</p></div></div>
+    </div>
+  </div>
+</section>
+
+<section id="observe">
+  <div class="wrap pillar" style="padding:0;border:0">
+    <div class="copy">
+      <p class="eyebrow">Observability</p>
+      <h3>Plugs into the monitoring you run.</h3>
+      <ul class="checks">
+        <li><i class="ph-bold ph-check"></i><span>Structured JSON logs on stdout, PII masked</span></li>
+        <li><i class="ph-bold ph-check"></i><span>Prometheus <code>/metrics</code> on <span class="k">METRICS_PORT</span>: HTTP, render, queue depth and age, worker slots</span></li>
+        <li><i class="ph-bold ph-check"></i><span>OpenTelemetry traces with the standard <span class="k">OTEL_*</span> variables; not loaded unless set</span></li>
+        <li><i class="ph-bold ph-check"></i><span>One request id from the API call to the worker to the log entry</span></li>
+      </ul>
+      <div class="proof"><span class="lab">Proof</span><a class="tlink" href="#">Observability spec</a><a class="tlink" href="#">Metrics reference ↗</a></div>
+    </div>
+    <div class="frame"><img src="assets/admin-system.png" alt="Admin System page: workers online, queue, error rate and p50 render time, processes with heartbeats"></div>
+  </div>
+</section>
+
+<section id="limits" class="alt tight">
+  <div class="wrap">
+    <div class="shead"><div><p class="eyebrow">Known limits</p><h2>Stated here so your review doesn't have to find them.</h2></div><p class="lede">Each links to the known-limitations section of its spec. <a class="tlink" href="#">All known limitations</a></p></div>
+    <div class="stops">
+      <div><i class="ph ph-plugs"></i><div><b>No packaged core-system connectors.</b><p>Guidewire, Duck Creek and Majesco integrate over the REST API.</p></div></div>
+      <div><i class="ph ph-globe"></i><div><b>One Postgres per install.</b><p>So one region per install; run one per region if residency requires it.</p></div></div>
+      <div><i class="ph ph-package"></i><div><b>No published images yet.</b><p>Operators build them from source. SDKs aren't on package registries yet either.</p></div></div>
+      <div><i class="ph ph-cube"></i><div><b>Helm not yet verified on a live cluster.</b><p>OpenShift isn't tested.</p></div></div>
+    </div>
+  </div>
+</section>
+
+<section class="night grid-bg on-night tight">
+  <div class="wrap" style="display:flex;align-items:center;gap:40px;flex-wrap:wrap">
+    <div style="flex:1;min-width:320px"><p class="eyebrow">Take it to your review board</p><h2 style="font-size:34px">The architecture review pack: one PDF, made with necodoc.</h2><p class="lede" style="font-size:17px">This page, the data flows, the controls list and the known limits, versioned with each release.</p></div>
+    <div class="cta-row" style="margin:0"><a class="btn next" href="#">Download the review pack</a><a class="btn ghost" href="#">Run it in 10 minutes</a></div>
+  </div>
+</section>
+
+<script src="chrome.js"></script>
+</body>
+</html>

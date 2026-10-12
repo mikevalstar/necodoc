@@ -1,0 +1,41 @@
+---
+// The reference architecture from docs/features/marketing-site.md, drawn once as SVG and
+// inlined so it uses the site's fonts. Keep it in step with docs/features/self-hosting.md.
+import svg from "../assets/reference-architecture.svg?raw";
+import url from "../assets/reference-architecture.svg?url";
+
+type Props = { download?: boolean };
+const { download = false } = Astro.props;
+---
+
+<figure class="diagram">
+  <div class="scroll"><Fragment set:html={svg} /></div>
+  <figcaption class="legend">
+    <span><span class="sw tb"></span>Trust boundary: your account</span>
+    <span><span class="sw box ours"></span>necodoc processes</span>
+    <span><span class="sw box"></span>Your infrastructure</span>
+    <span><span class="sw line"></span>Request or data flow</span>
+    <span><span class="sw line dash"></span>Optional, outbound</span>
+    {download && <a class="tlink dl" href={url} download="necodoc-reference-architecture.svg">Download SVG</a>}
+  </figcaption>
+</figure>
+
+<style>
+  .diagram { margin: 0; background: var(--paper); border-radius: 16px; box-shadow: var(--shadow); padding: 28px; }
+  .scroll :global(svg) { width: 100%; height: auto; display: block; }
+  .legend { display: flex; gap: 10px 24px; flex-wrap: wrap; font: 12.5px var(--mono); color: var(--ink-3); margin-top: 18px; padding-top: 16px; border-top: 1px solid var(--hair); }
+  .legend > span { display: inline-flex; align-items: center; gap: 8px; }
+  .sw { display: inline-block; }
+  .sw.line { width: 22px; border-top: 2px solid var(--ink-2); }
+  .sw.dash { border-top: 2px dashed var(--warn); }
+  .sw.tb { width: 18px; height: 12px; border: 1.5px dashed var(--brand); border-radius: 3px; }
+  .sw.box { width: 18px; height: 12px; border: 1.5px solid #c9cee6; border-radius: 3px; }
+  .sw.ours { border-color: var(--brand); background: var(--brand-wash); }
+  .dl { margin-left: auto; }
+  /* On narrow screens the drawing keeps its proportions and scrolls sideways. */
+  @media (max-width: 820px) {
+    .diagram { padding: 14px; }
+    .scroll { overflow-x: auto; }
+    .scroll :global(svg) { width: 900px; max-width: none; }
+  }
+</style>

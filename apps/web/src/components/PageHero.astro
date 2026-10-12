@@ -1,0 +1,33 @@
+---
+type Props = { crumb: string; eyebrow: string; title: string; toc?: { href: string; label: string }[] };
+const { crumb, eyebrow, title, toc = [] } = Astro.props;
+---
+
+<div class="phero grid-bg light">
+  <div class="wrap">
+    <p class="crumb"><a href="/">necodoc</a> / {crumb}</p>
+    <p class="eyebrow">{eyebrow}</p>
+    <h1>{title}</h1>
+    <p class="lede"><slot /></p>
+    {
+      toc.length > 0 && (
+        <nav class="toc" aria-label="On this page">
+          {toc.map((t) => <a href={t.href}>{t.label}</a>)}
+        </nav>
+      )
+    }
+    <slot name="after" />
+  </div>
+</div>
+
+<style>
+  .phero { padding: 80px 0 72px; border-bottom: 1px solid var(--hair); background-color: var(--canvas); }
+  h1 { font-size: 54px; max-width: 900px; }
+  .crumb { font: 13px var(--mono); color: var(--ink-3); margin-bottom: 22px; }
+  .crumb a { text-decoration: none; color: var(--brand-ink); }
+  .toc { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 36px; }
+  .toc a { text-decoration: none; font: 500 14px var(--sans); color: var(--ink-2); background: var(--paper); box-shadow: inset 0 0 0 1px var(--hair-2); padding: 7px 14px; border-radius: 99px; }
+  .toc a:hover { color: var(--brand-ink); box-shadow: inset 0 0 0 1px var(--brand); }
+  @media (max-width: 1100px) { h1 { font-size: 44px; } }
+  @media (max-width: 640px) { .phero { padding: 52px 0 48px; } h1 { font-size: 34px; } }
+</style>

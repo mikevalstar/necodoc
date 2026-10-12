@@ -1,0 +1,22 @@
+---
+// One figure: the value, what it is, and how it was measured (default slot).
+import type { BenchValue as Value } from "../lib/bench";
+import BenchValue from "./BenchValue.astro";
+
+type Props = { value: Value; label: string; big?: boolean };
+const { value, label, big = false } = Astro.props;
+---
+
+<div>
+  <div class:list={["v", { big }]}><BenchValue value={value} /></div>
+  <div class="l">{label}</div>
+  <div class="d"><slot /></div>
+</div>
+
+<style>
+  .v { font: 600 34px/1.1 var(--display); letter-spacing: -.02em; min-height: 44px; display: flex; align-items: center; }
+  .v.big { font-size: 44px; }
+  .v :global(.bind) { font-size: 20px; padding: 3px 8px; }
+  .l { font-weight: 600; margin-top: 10px; font-size: 15.5px; }
+  .d { color: var(--ink-3); font-size: 14px; margin-top: 4px; line-height: 1.45; }
+</style>

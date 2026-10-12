@@ -1,13 +1,300 @@
 ---
+// Home. Its job (docs/features/marketing-site.md, Pages): what necodoc is, the three lead
+// pillars, the reference architecture, and the CTAs, for the enterprise architect at a
+// P&C or surety carrier.
+import generations from "../assets/screens/generations-log.png";
+import overlay from "../assets/screens/overlay-editor.png";
+import editor from "../assets/screens/template-editor.png";
+import BenchValue from "../components/BenchValue.astro";
+import Checks from "../components/Checks.astro";
+import Icon from "../components/Icon.astro";
+import Limit from "../components/Limit.astro";
+import Pillar from "../components/Pillar.astro";
+import Proof from "../components/Proof.astro";
+import Provenance from "../components/Provenance.astro";
+import ReferenceArchitecture from "../components/ReferenceArchitecture.astro";
+import Reel from "../components/Reel.astro";
+import Screenshot from "../components/Screenshot.astro";
+import SectionHead from "../components/SectionHead.astro";
+import Stat from "../components/Stat.astro";
+import Stats from "../components/Stats.astro";
+import Stops from "../components/Stops.astro";
 import Layout from "../layouts/Layout.astro";
+import { docsPerMinute, roundTrip } from "../lib/bench";
+import { links, spec } from "../lib/links";
+
+const jobs = [
+  { id: "surety", icon: "seal-check", title: "Surety bonds on obligee forms", body: "Municipal, provincial and state forms filled on the obligee's own PDF, with signer boxes for principal, surety and attorney-in-fact.", foot: "overlay · signing package" },
+  { id: "coi", icon: "certificate", title: "Certificates of insurance", body: "Issued from the broker portal or your policy system, from a template the business owns.", foot: "designed template · API" },
+  { id: "packets", icon: "stack", title: "Policy packets", body: "Declarations, wordings and endorsements combined into one PDF, in the order you set.", foot: "combine · PDF/A-2" },
+  { id: "renewals", icon: "arrows-clockwise", title: "Bulk renewals", body: "Ten thousand renewal notices from one JSON or CSV batch, queued behind interactive work.", foot: "batch · workers" },
+  { id: "claims", icon: "envelope-simple-open", title: "Claims letters", body: "Conditional sections and shared clauses, so the wording an adjuster sends is the wording legal approved.", foot: "fields · snippets · review" },
+  { id: "bilingual", icon: "translate", title: "French-first, bilingual output", body: "English and fr-CA from one template, for Québec contracts of adhesion and bilingual national programmes.", foot: "localization · Bill 96" },
+];
+
+const questions = [
+  { q: "Deployment fit", title: "Does it run where we run things?", body: "Containers: a Helm chart for Kubernetes, or Docker Compose on one VM. One Postgres, managed or not, in your account.", link: { label: "Self-hosting", href: spec("features/self-hosting") } },
+  { q: "Identity", title: "Does it use our IdP?", body: "Entra ID, Auth0 or SiteMinder over OIDC, SAML 2.0 or a trusted header, with IdP groups mapped to roles. Systems use scoped, expiring, IP-restricted keys.", link: { label: "Single sign-on", href: spec("features/single-sign-on") } },
+  { q: "Data residency", title: "Where does policyholder data go?", body: "Your Postgres and your bucket, blob container or disk, in your region. With AI off, which is the default, nothing leaves.", link: { label: "Data flows", href: "/architecture/#data" } },
+  { q: "Change control", title: "Who changed the bond wording?", body: "Published versions are immutable. Review is its own permission. The audit log is append-only and keeps before and after diffs.", link: { label: "Audit and review", href: "/security/#audit" } },
+  { q: "Scale and availability", title: "What happens at month-end?", body: "Stateless API and workers scale out. Jobs are queued with priorities; a job on a killed worker retries on another.", link: { label: "Scaling and HA", href: "/architecture/#scaling" } },
+  { q: "Vendor risk · OSFI B-10", title: "What's our exit plan?", body: "MIT source you can fork, standard Postgres, PDFs in your storage. No third party holds your data, because there isn't one.", link: { label: "Source on GitHub", href: links.github } },
+];
 ---
 
-<Layout title="necodoc">
-  <main class="mx-auto max-w-2xl p-8">
-    <h1 class="flex items-center gap-3 text-3xl font-semibold">
-      <img src="/favicon.svg" alt="" width="40" height="40" />
-      necodoc
-    </h1>
-    <p class="mt-2">Fill out documents without the pain.</p>
-  </main>
+<Layout
+  title="necodoc · Document generation for P&C and surety carriers, self-hosted"
+  description="Fill the obligee and regulator forms you already have and render designed documents from policy data, through a versioned API on workers you scale yourself, inside your own cloud."
+  page="home"
+>
+  <div class="hero on-night grid-bg">
+    <div class="wrap">
+      <div class="copy">
+        <p class="eyebrow">Document generation for P&amp;C and surety carriers</p>
+        <h1>Bonds, certificates and policy documents, generated <em>inside your own cloud.</em></h1>
+        <p class="lede">
+          necodoc fills the obligee and regulator forms you already have, renders designed documents from your policy
+          data, and does both through a versioned API on workers you scale yourself. Every change and every PDF is logged.
+        </p>
+        <div class="cta-row">
+          <a class="btn next" href={links.quickstart}><Icon name="terminal-window" weight="bold" />Run it in 10 minutes</a>
+          <a class="btn ghost" href="/architecture/">See the architecture</a>
+          <a class="tlink" href={links.reviewPack}><Icon name="file-pdf" />Architecture review pack (PDF)</a>
+        </div>
+        <ul class="facts">
+          <li>Docker Compose or Helm</li><li>One Postgres</li><li>Entra ID · Auth0 · SiteMinder</li><li>EN and fr-CA from one template</li><li>MIT licence</li>
+        </ul>
+      </div>
+      <div class="tray-wrap">
+        <Screenshot
+          src={overlay}
+          alt="The overlay editor: the Oregon Construction Contractors Board commercial surety bond with fields drawn on the page and a live preview of the filled PDF."
+          tray={{ title: "Overlay editor", note: "example template, not a customer" }}
+          crop={{ height: 500 }}
+          loading="eager"
+        />
+      </div>
+    </div>
+  </div>
+
+  <section class="tight">
+    <div class="wrap">
+      <Reel
+        poster={editor}
+        title="From the obligee's PDF to a renewal run."
+        chapters={[
+          { label: "Upload the obligee's bond form" },
+          { label: "Place fields; AI proposes, you confirm" },
+          { label: "Publish after review" },
+          { label: "Call it from your policy system" },
+          { label: "Add workers for month-end" },
+          { label: "Read the audit trail" },
+        ]}
+      />
+    </div>
+  </section>
+
+  <section class="tight" style="padding-top:0">
+    <div class="wrap">
+      <Stats>
+        <Stat value={roundTrip("overlay-flat", "p50")} label="Overlay render, p50">
+          Flat surety bond form, fields stamped. p95 <BenchValue value={roundTrip("overlay-flat", "p95")} />
+        </Stat>
+        <Stat value={roundTrip("html-invoice", "p50")} label="HTML to PDF, p50">
+          Three-page invoice with header and footer bands, over <code>/api/v1/render</code>
+        </Stat>
+        <Stat value={docsPerMinute(8)} label="Documents per minute">
+          JSON batch on 8 workers; <BenchValue value={docsPerMinute(1)} /> on one
+        </Stat>
+        <Stat value={{ text: "$0" }} label="Licence fee per worker" big>
+          Workers are a replica count. Your cost is your infrastructure.
+        </Stat>
+      </Stats>
+      <Provenance />
+    </div>
+  </section>
+
+  <section class="alt">
+    <div class="wrap">
+      <SectionHead eyebrow="What it does" title="Three things insurance document teams rarely get in one product.">
+        Each claim links to the spec that defines it. Where a feature stops, it says so beside the claim.
+      </SectionHead>
+
+      <Pillar num="01" eyebrow="Overlay" title="Fill the forms you already have.">
+        <p>
+          Upload the obligee's bond form or the regulator's PDF and place fields on it. The output is the original page,
+          with your data on it.
+        </p>
+        <Checks
+          items={[
+            "Flat PDFs with no fields, or import the AcroForm fields that are there",
+            "AI proposes the boxes; a person accepts each one. Off unless you add a key",
+            "Government PDFs with an empty password and hybrid XFA forms open as-is",
+          ]}
+        />
+        <Limit>Pure XFA forms and PDFs that need a password to open aren't supported.</Limit>
+        <Proof links={[{ label: "PDF overlay templates", href: spec("features/pdf-overlay-templates") }]} />
+        <Screenshot slot="media" src={overlay} alt="Overlay editor: fields drawn on the board's PDF" crop={{ height: 520, zoom: 165, x: "-14%", y: "-60px" }} />
+      </Pillar>
+
+      <Pillar num="02" eyebrow="Speed and scale-out" title="Fast, and you add workers, not licences." flip>
+        <p>
+          Renders run as queued jobs on worker processes. Month-end is a replica count, and every render records where its
+          time went.
+        </p>
+        <Checks
+          items={[
+            "Interactive renders jump ahead of batch rows",
+            "Batches of up to 10,000 rows from JSON or CSV, with progress, cancel, a ZIP or one packet",
+            "Every PDF logged with input, version and a timing breakdown, and re-runnable",
+          ]}
+        />
+        <Limit>Throughput is bounded by Postgres, which also carries the queue. We don't claim unlimited workers.</Limit>
+        <Proof
+          links={[
+            { label: "Render queue and scaling", href: spec("features/render-queue-batch-jobs-and-scaling") },
+            { label: "Benchmark", href: "/performance/" },
+          ]}
+        />
+        <Screenshot slot="media" src={generations} alt="Generation log with a render-time histogram and p50, p95 and p99" crop={{ height: 520, zoom: 150, x: "-26%", y: "-40px" }} />
+      </Pillar>
+
+      <Pillar num="03" eyebrow="Insurance fit" title="Built around bonds, certificates and policy packets.">
+        <p>The vocabulary is yours: principal, surety, obligee, attorney-in-fact, declarations page, renewal run.</p>
+        <Checks
+          items={[
+            "Signing packages with principal, surety and attorney-in-fact signers",
+            "Certificates and policy documents combined into one packet",
+            "English and fr-CA from one template, so the two copies can't drift",
+            "PDF/A-2 for archives, PDF/UA-1 for accessible formats, PAdES certification",
+          ]}
+        />
+        <Limit label="E-signature ready, not e-signature:">
+          necodoc prepares the package; your DocuSign, Dropbox Sign or Acrobat Sign account runs the binding signature.
+        </Limit>
+        <Proof
+          links={[
+            { label: "Insurance use cases", href: "/insurance/" },
+            { label: "Signing packages", href: spec("features/signing-packages") },
+          ]}
+        />
+        <Screenshot slot="media" src={editor} alt="Designed template editor: a certificate of surety bond for Ontario with typed fields and a live preview in CAD" crop={{ height: 520, zoom: 150, x: "-9%", y: "-70px" }} />
+      </Pillar>
+    </div>
+  </section>
+
+  <section>
+    <div class="wrap">
+      <SectionHead eyebrow="Reference architecture" title="One drawing your review board can check line by line.">
+        Two process roles from one image, your Postgres and your storage. Anything that leaves the boundary is optional and
+        off until you configure it.
+      </SectionHead>
+      <ReferenceArchitecture />
+      <p class="cta-row" style="margin-top:28px"><a class="tlink" href="/architecture/">Deployment options, integration patterns and data flows →</a></p>
+    </div>
+  </section>
+
+  <section class="alt">
+    <div class="wrap">
+      <SectionHead eyebrow="Before the architecture review" title="The questions your review board will ask, answered here.">
+        The full controls list is on <a class="tlink" href="/security/">Security and governance</a>, in a form you can
+        paste into a vendor questionnaire.
+      </SectionHead>
+      <div class="qa">
+        {
+          questions.map((item) => (
+            <div>
+              <p class="q">{item.q}</p>
+              <h3>{item.title}</h3>
+              <p>{item.body}</p>
+              <a class="tlink" href={item.link.href}>{item.link.label} →</a>
+            </div>
+          ))
+        }
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="wrap">
+      <SectionHead eyebrow="For carriers" title="The documents you issue every day.">
+        Each one has a worked example on the Insurance page, labelled as an example. We don't show customer logos or quotes
+        we don't have.
+      </SectionHead>
+      <div class="cards">
+        {
+          jobs.map((job) => (
+            <a class="card" href={`/insurance/#${job.id}`}>
+              <span class="ic"><Icon name={job.icon} weight="duotone" /></span>
+              <h3>{job.title}</h3>
+              <p>{job.body}</p>
+              <span class="foot">{job.foot}</span>
+            </a>
+          ))
+        }
+      </div>
+    </div>
+  </section>
+
+  <section class="alt tight">
+    <div class="wrap">
+      <SectionHead eyebrow="Where necodoc stops" title="What it doesn't do, so you don't find out in month three.">
+        If you need print, email and SMS channels or Word-native authoring, an enterprise CCM suite is the better fit.
+      </SectionHead>
+      <Stops
+        items={[
+          { icon: "plugs", title: "No packaged Guidewire or Duck Creek connector.", body: "Your core system calls a versioned REST API with OpenAPI and a JSON Schema per template. The Architecture page shows the pattern." },
+          { icon: "seal", title: "No vendor SOC 2 or ISO 27001 report.", body: "There is no hosted service to attest. necodoc runs inside your SOC 2 and B-13 boundary and inherits your controls." },
+          { icon: "file-doc", title: "PDF only.", body: "No Word or DOCX output, and no print, email or SMS channels." },
+          { icon: "books", title: "No ISO or AAIS bureau form library.", body: "You upload or design your own forms." },
+          { icon: "signature", title: "Not an e-signature service.", body: "It prepares signing packages; your provider runs the legally binding signing." },
+          { icon: "lifebuoy", title: "Support is docs, source and GitHub issues today.", body: "Ask in GitHub Discussions; there is no paid support plan yet." },
+        ]}
+      />
+    </div>
+  </section>
+
+  <section class="night grid-bg on-night">
+    <div class="wrap">
+      <SectionHead eyebrow="Evaluate it yourself" title="No sales call. Four things an architect can do alone." stack />
+      <div class="steps">
+        <a class="first" href={links.quickstart}><b>Run it</b><p>Docker Compose on a laptop or one VM: Postgres, API, a worker and the app.</p><span class="go">Quick start →</span></a>
+        <a href={links.docs}><b>Read the docs</b><p>Self-hosting, roles and scaling, and the OpenAPI reference.</p><span class="go">Developer docs ↗</span></a>
+        <a href={links.reviewPack}><b>Take the review pack</b><p>One PDF with the architecture, data flows, controls and known limits.</p><span class="go">Review pack →</span></a>
+        <a href={links.github}><b>Read the source</b><p>MIT-licensed. Fork it, audit it, add a storage driver.</p><span class="go">GitHub ↗</span></a>
+      </div>
+    </div>
+  </section>
 </Layout>
+
+<style>
+  .hero { padding: 72px 0 0; overflow: hidden; }
+  .copy { max-width: 820px; }
+  h1 em { font-style: normal; color: #9db8ff; }
+  .cta-row .tlink { margin-left: 8px; }
+  .facts { list-style: none; padding: 22px 0 0; margin: 40px 0 0; display: flex; flex-wrap: wrap; gap: 8px 28px; border-top: 1px solid var(--night-hair); font: 13.5px var(--mono); color: var(--night-fg-2); }
+  .facts li::before { content: "— "; color: #5b7be0; }
+  .tray-wrap { margin-top: 64px; }
+  .steps { display: grid; grid-template-columns: repeat(4, 1fr); counter-reset: s; border-top: 1px solid var(--night-hair); }
+  .steps a { counter-increment: s; text-decoration: none; padding: 28px 28px 30px 0; display: flex; flex-direction: column; gap: 10px; }
+  .steps a + a { padding-left: 28px; border-left: 1px solid var(--night-hair); }
+  .steps a::before { content: counter(s, decimal-leading-zero); font: 13px var(--mono); color: #9db8ff; }
+  .steps b { font: 700 21px var(--display); letter-spacing: -.02em; }
+  .steps p { color: var(--night-fg-2); font-size: 15px; line-height: 1.5; }
+  .go { margin-top: auto; padding-top: 8px; font: 600 14.5px var(--sans); color: #b9cbff; }
+  .first .go { color: var(--sun); }
+  @media (max-width: 1100px) {
+    .steps { grid-template-columns: repeat(2, 1fr); }
+    .steps a:nth-child(3) { padding-left: 0; border-left: 0; }
+    .steps a:nth-child(n + 3) { border-top: 1px solid var(--night-hair); }
+  }
+  @media (max-width: 640px) {
+    .hero { padding-top: 52px; }
+    .cta-row .tlink { margin: 6px 0 0; }
+    .facts { gap: 6px 18px; font-size: 12.5px; }
+    .tray-wrap { margin-top: 48px; }
+    .steps { grid-template-columns: 1fr; }
+    .steps a, .steps a + a { padding: 22px 0; border-left: 0; }
+    .steps a + a { border-top: 1px solid var(--night-hair); }
+  }
+</style>

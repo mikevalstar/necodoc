@@ -1,0 +1,195 @@
+<!doctype html>
+<html lang="en-CA">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>For P&amp;C and surety carriers · necodoc</title>
+<link rel="stylesheet" href="site.css">
+<script src="https://unpkg.com/@phosphor-icons/web@2.1.1"></script>
+<style>
+  .job { display: grid; grid-template-columns: 5fr 7fr; gap: 72px; padding: 88px 0; border-top: 1px solid var(--hair); align-items: start; }
+  .job:first-child { border-top: 0; padding-top: 0; }
+  .job h2 { font-size: 34px; }
+  .job .lead { color: var(--ink-2); margin-top: 16px; }
+  .job dl { margin: 26px 0 0; display: grid; grid-template-columns: 120px 1fr; gap: 12px 18px; font-size: 15.5px; }
+  .job dt { font: 500 12px var(--mono); text-transform: uppercase; letter-spacing: .06em; color: var(--ink-3); padding-top: 3px; }
+  .job dd { margin: 0; color: var(--ink-2); line-height: 1.55; }
+  .paper { background: #fff; border-radius: 6px; box-shadow: var(--shadow-lg); padding: 30px 32px; font: 12.5px/1.55 Georgia, "Times New Roman", serif; color: #1a1a1a; outline: 1px solid rgba(12,18,51,.06); }
+  .paper h4 { font: 700 15px Georgia, serif; text-align: center; margin: 0 0 4px; letter-spacing: .02em; }
+  .paper .sub { text-align: center; font-size: 11px; color: #555; margin-bottom: 16px; }
+  .paper table { width: 100%; border-collapse: collapse; font-size: 11.5px; margin-top: 10px; }
+  .paper td { border: 1px solid #c8c8c8; padding: 5px 7px; vertical-align: top; }
+  .paper td:first-child { width: 42%; color: #444; }
+  .paper .f { background: #eef3ff; border-radius: 3px; padding: 0 3px; color: #12318f; }
+  .pair { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; position: relative; }
+  .pair .lang-tag { position: absolute; top: -12px; font: 600 11px var(--mono); background: var(--night); color: #fff; padding: 3px 8px; border-radius: 6px; }
+  .stackfig { background: var(--paper); border-radius: 16px; box-shadow: var(--shadow); padding: 28px; }
+  .stackfig svg { width: 100%; height: auto; display: block; }
+  .who { display: grid; grid-template-columns: repeat(4, 1fr); border-top: 1px solid var(--hair); margin-top: 48px; }
+  .who > div { padding: 22px 24px 0 0; }
+  .who > div + div { padding-left: 24px; border-left: 1px solid var(--hair); }
+  .who b { display: block; font: 700 17px var(--display); letter-spacing: -.01em; }
+  .who p { color: var(--ink-2); font-size: 14.5px; margin-top: 6px; line-height: 1.5; }
+</style>
+</head>
+<body data-page="insurance">
+
+<div class="phero grid-bg light">
+  <div class="wrap">
+    <p class="crumb"><a href="index.html">necodoc</a> / For carriers</p>
+    <p class="eyebrow">For P&amp;C and surety carriers</p>
+    <h1>The documents a carrier issues every day, on forms and in the languages it already uses.</h1>
+    <p class="lede">Six jobs, each with how necodoc does it and a worked example. Examples use fictional companies and are labelled as examples.</p>
+    <nav class="toc" aria-label="Jobs"><a href="#surety">Surety bonds</a><a href="#coi">Certificates of insurance</a><a href="#packets">Policy packets</a><a href="#renewals">Bulk renewals</a><a href="#claims">Claims letters</a><a href="#bilingual">Bilingual EN/FR</a></nav>
+    <div class="who">
+      <div><b>Surety and underwriting</b><p>Issue bonds and certificates without waiting on IT for a wording change.</p></div>
+      <div><b>Forms team</b><p>Owns templates, clauses and translations, under review before anything goes live.</p></div>
+      <div><b>Integration team</b><p>Codes against a versioned API and a JSON Schema that only changes when a version is published.</p></div>
+      <div><b>Platform team</b><p>Runs two process roles on infrastructure it already operates.</p></div>
+    </div>
+  </div>
+</div>
+
+<section>
+  <div class="wrap">
+
+    <article class="job" id="surety">
+      <div>
+        <p class="eyebrow"><span class="n">01</span> Surety bonds</p>
+        <h2>Bonds on the obligee's own form.</h2>
+        <p class="lead">Municipalities, provinces and states publish their own bond forms and expect them back unchanged. necodoc fills the form they published.</p>
+        <dl>
+          <dt>How</dt><dd>Upload the obligee's PDF, place or import fields, publish. Each signer (principal, surety, attorney-in-fact) gets a box and a place in the routing order.</dd>
+          <dt>Signing</dt><dd>Every generation carries a signing package for DocuSign, Dropbox Sign or Acrobat Sign. Your provider runs the signature.</dd>
+          <dt>Limit</dt><dd>Pure XFA forms and forms that need a password to open aren't supported.</dd>
+        </dl>
+        <div class="proof"><span class="lab">Proof</span><a class="tlink" href="#">PDF overlay templates</a><a class="tlink" href="#">Signing packages</a></div>
+      </div>
+      <div>
+        <p class="example" style="margin-bottom:14px"><i class="ph ph-flask"></i>Example: Oregon CCB commercial surety bond, fictional principal</p>
+        <div class="frame crop" style="height:330px"><img src="assets/overlay-editor.png" alt="Overlay editor on the Oregon CCB commercial surety bond" style="width:150%;max-width:none;margin:-150px 0 0 -12%"></div>
+        <div class="frame crop" style="height:300px;margin-top:20px"><img src="assets/signing-package.png" alt="Signing tab: principal, surety and attorney-in-fact signers with routing order" style="width:130%;max-width:none;margin:-120px 0 0 -9%"></div>
+      </div>
+    </article>
+
+    <article class="job" id="coi">
+      <div>
+        <p class="eyebrow"><span class="n">02</span> Certificates of insurance</p>
+        <h2>Certificates from the broker portal or the policy system.</h2>
+        <p class="lead">A designed template with typed fields. The same fields drive the guided form a person fills and the JSON your systems post.</p>
+        <dl>
+          <dt>How</dt><dd>Fields with types, formats (CAD, dates) and conditions; a JSON Schema per published version; 422 with every field error when data is wrong.</dd>
+          <dt>Who</dt><dd>Brokers fill it through an expiring share link; systems call <code>/api/v1</code> with a scoped key.</dd>
+          <dt>Output</dt><dd>PDF/A-2 for your archive, PDF/UA-1 for accessible formats, PAdES certification so a recipient can tell an edited copy.</dd>
+        </dl>
+        <div class="proof"><span class="lab">Proof</span><a class="tlink" href="#">Fields and guided form</a><a class="tlink" href="#">Share links</a></div>
+      </div>
+      <div>
+        <p class="example" style="margin-bottom:14px"><i class="ph ph-flask"></i>Example: certificate of surety bond, Ontario, fictional surety</p>
+        <div class="frame"><img src="assets/template-editor.png" alt="Designed template editor with typed merge fields and a live PDF preview in CAD"></div>
+      </div>
+    </article>
+
+    <article class="job" id="packets">
+      <div>
+        <p class="eyebrow"><span class="n">03</span> Policy packets</p>
+        <h2>Declarations, wordings and endorsements as one PDF.</h2>
+        <p class="lead">Generate each part from its own template, or pull in a static wording, and combine them in the order you set.</p>
+        <dl>
+          <dt>How</dt><dd><code>POST /combine</code> with generations and uploaded PDFs, or a batch delivered as one packet.</dd>
+          <dt>Limit</dt><dd>No bookmarks, table of contents or page renumbering across the packet yet.</dd>
+        </dl>
+        <div class="proof"><span class="lab">Proof</span><a class="tlink" href="#">Combining PDFs into packets</a></div>
+      </div>
+      <div class="stackfig">
+        <p class="example" style="margin-bottom:18px"><i class="ph ph-flask"></i>Example: commercial property packet</p>
+        <svg viewBox="0 0 620 230" role="img" aria-label="Four documents combine into one policy packet PDF">
+          <g font-family="Figtree" font-size="13" fill="#0c1233">
+            <g><rect x="0" y="10" width="120" height="150" rx="6" fill="#fff" stroke="#d3d7ea" stroke-width="1.5"/><rect x="14" y="26" width="70" height="7" rx="2" fill="#0c1233"/><rect x="14" y="44" width="92" height="4" rx="2" fill="#d3d7ea"/><rect x="14" y="54" width="80" height="4" rx="2" fill="#d3d7ea"/><rect x="14" y="70" width="92" height="40" rx="3" fill="#e7eeff"/><text x="0" y="184" font-weight="600">Declarations</text><text x="0" y="202" font-family="Fragment Mono" font-size="11" fill="#5b6285">designed template</text></g>
+            <g transform="translate(150 0)"><rect x="0" y="10" width="120" height="150" rx="6" fill="#fff" stroke="#d3d7ea" stroke-width="1.5"/><rect x="14" y="26" width="60" height="7" rx="2" fill="#0c1233"/><g fill="#d3d7ea"><rect x="14" y="44" width="92" height="4" rx="2"/><rect x="14" y="54" width="92" height="4" rx="2"/><rect x="14" y="64" width="86" height="4" rx="2"/><rect x="14" y="74" width="92" height="4" rx="2"/><rect x="14" y="84" width="70" height="4" rx="2"/></g><text x="0" y="184" font-weight="600">Policy wording</text><text x="0" y="202" font-family="Fragment Mono" font-size="11" fill="#5b6285">static PDF asset</text></g>
+            <g transform="translate(300 0)"><rect x="0" y="10" width="120" height="150" rx="6" fill="#fff" stroke="#d3d7ea" stroke-width="1.5"/><rect x="14" y="26" width="76" height="7" rx="2" fill="#0c1233"/><g fill="#d3d7ea"><rect x="14" y="44" width="92" height="4" rx="2"/><rect x="14" y="54" width="60" height="4" rx="2"/></g><rect x="14" y="66" width="92" height="22" rx="3" fill="#fff3d1"/><text x="0" y="184" font-weight="600">Endorsements</text><text x="0" y="202" font-family="Fragment Mono" font-size="11" fill="#5b6285">conditional sections</text></g>
+            <path d="M436 85H478" stroke="#3f4668" stroke-width="1.5" marker-end="url(#pk)"/>
+            <defs><marker id="pk" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z" fill="#3f4668"/></marker></defs>
+            <g transform="translate(492 0)"><rect x="12" y="0" width="116" height="150" rx="6" fill="#e7eeff" stroke="#9db8ff"/><rect x="6" y="5" width="116" height="150" rx="6" fill="#f3f6ff" stroke="#9db8ff"/><rect x="0" y="10" width="116" height="150" rx="6" fill="#fff" stroke="#2f6bff" stroke-width="1.5"/><text x="20" y="80" font-family="Bricolage Grotesque" font-weight="700" font-size="16">packet.pdf</text><text x="20" y="100" font-family="Fragment Mono" font-size="11" fill="#1f50e0">PDF/A-2b</text><text x="0" y="184" font-weight="600">One PDF</text><text x="0" y="202" font-family="Fragment Mono" font-size="11" fill="#5b6285">POST /combine</text></g>
+          </g>
+        </svg>
+      </div>
+    </article>
+
+    <article class="job" id="renewals">
+      <div>
+        <p class="eyebrow"><span class="n">04</span> Bulk renewals</p>
+        <h2>The month-end renewal run, behind the day's work.</h2>
+        <p class="lead">A batch of up to 10,000 rows from JSON or CSV goes on the queue. Interactive renders jump ahead of it, so a broker issuing a certificate isn't kept waiting.</p>
+        <dl>
+          <dt>How</dt><dd>Progress, cancel, invalid rows fail alone; download one ZIP or one combined packet.</dd>
+          <dt>Scale</dt><dd>Add workers for the run and remove them after. No licence per worker.</dd>
+          <dt>Measured</dt><dd><span class="bind">{bench.scale.8}</span> documents per minute on 8 workers on <span class="bind">{bench.env.cpu}</span>. <a class="tlink" href="performance.html">Method</a></dd>
+        </dl>
+        <div class="proof"><span class="lab">Proof</span><a class="tlink" href="#">Render queue and batches</a></div>
+      </div>
+      <div class="frame crop" style="height:440px"><img src="assets/admin-queue.png" alt="Admin queue page: waiting, running, oldest waiting, failed; workers; renders, webhooks, field detection and retention queues" style="width:125%;max-width:none;margin:-20px 0 0 -22%"></div>
+    </article>
+
+    <article class="job" id="claims">
+      <div>
+        <p class="eyebrow"><span class="n">05</span> Claims letters</p>
+        <h2>The wording an adjuster sends is the wording legal approved.</h2>
+        <p class="lead">Conditional sections and shared clauses mean one reviewed template covers the cases, instead of a folder of near-copies.</p>
+        <dl>
+          <dt>How</dt><dd>"Show only if" conditions on sections, repeating rows, snippets for shared clauses, themes for house style.</dd>
+          <dt>Control</dt><dd>Clause changes go through review, with test cases and a visual diff before publish.</dd>
+          <dt>Limit</dt><dd>PDF only: no Word output, and no email or print channels.</dd>
+        </dl>
+        <div class="proof"><span class="lab">Proof</span><a class="tlink" href="#">Snippet library</a><a class="tlink" href="#">Review and approval</a></div>
+      </div>
+      <div>
+        <p class="example" style="margin-bottom:14px"><i class="ph ph-flask"></i>Example: a rider section shown only when ticked</p>
+        <div class="frame crop" style="height:360px"><img src="assets/template-editor.png" alt="Template editor showing a conditional rider section: show only if Include rider is ticked" style="width:180%;max-width:none;margin:-490px 0 0 -12%"></div>
+      </div>
+    </article>
+
+    <article class="job" id="bilingual">
+      <div>
+        <p class="eyebrow"><span class="n">06</span> Bilingual output</p>
+        <h2>French first in Québec, English elsewhere, from one template.</h2>
+        <p class="lead">Since 2023, contracts of adhesion in Québec must be offered in French first. Keeping two templates means two copies that drift. necodoc keeps one.</p>
+        <dl>
+          <dt>How</dt><dd>One template with translations per language, fr-CA included; the request picks the language. Dates, numbers and currency format per locale.</dd>
+          <dt>Accessible</dt><dd>PDF/UA-1 output carries the document language for screen readers.</dd>
+          <dt>Yours</dt><dd>Translation quality and legal review stay with your forms team.</dd>
+        </dl>
+        <div class="proof"><span class="lab">Proof</span><a class="tlink" href="#">Document localization</a></div>
+      </div>
+      <div>
+        <p class="example" style="margin-bottom:22px"><i class="ph ph-flask"></i>Example: one certificate template, two languages · FR copy pending review by a fluent speaker</p>
+        <div class="pair">
+          <span class="lang-tag" style="left:14px">fr-CA</span><span class="lang-tag" style="left:calc(50% + 23px)">en-CA</span>
+          <div class="paper"><h4>CERTIFICAT D'ASSURANCE</h4><p class="sub">N° de police <span class="f">CP-2026-118204</span></p>
+            <table><tr><td>Assuré désigné</td><td><span class="f">Boulangerie Saint-Roch inc.</span></td></tr><tr><td>Période d'assurance</td><td><span class="f">1<sup>er</sup> déc. 2026</span> au <span class="f">1<sup>er</sup> déc. 2027</span></td></tr><tr><td>Responsabilité civile générale</td><td><span class="f">2 000 000,00 $</span> par sinistre</td></tr><tr><td>Titulaire du certificat</td><td><span class="f">Ville de Québec</span></td></tr></table></div>
+          <div class="paper"><h4>CERTIFICATE OF INSURANCE</h4><p class="sub">Policy no. <span class="f">CP-2026-118204</span></p>
+            <table><tr><td>Named insured</td><td><span class="f">Boulangerie Saint-Roch inc.</span></td></tr><tr><td>Policy period</td><td><span class="f">Dec 1, 2026</span> to <span class="f">Dec 1, 2027</span></td></tr><tr><td>Commercial general liability</td><td><span class="f">$2,000,000.00</span> per occurrence</td></tr><tr><td>Certificate holder</td><td><span class="f">Ville de Québec</span></td></tr></table></div>
+        </div>
+        <p class="shot-caption">Same fields, same data. Only the language parameter differs.</p>
+      </div>
+    </article>
+
+  </div>
+</section>
+
+<section class="alt tight">
+  <div class="wrap">
+    <div class="shead"><div><p class="eyebrow">Where it fits, and where it doesn't</p><h2>Honest about the gaps.</h2></div><p class="lede">If you need ISO or AAIS bureau forms, a packaged Guidewire integration or print and email channels, a carrier-focused CCM vendor is the better fit today. <a class="tlink" href="#">Compare, dated</a></p></div>
+  </div>
+</section>
+
+<section class="night grid-bg on-night tight">
+  <div class="wrap" style="display:flex;align-items:center;gap:40px;flex-wrap:wrap">
+    <div style="flex:1;min-width:320px"><p class="eyebrow">Try it on your own form</p><h2 style="font-size:34px">Upload one obligee form and fill it in an afternoon.</h2></div>
+    <div class="cta-row" style="margin:0"><a class="btn next" href="#">Run it in 10 minutes</a><a class="btn ghost" href="architecture.html">See the architecture</a></div>
+  </div>
+</section>
+
+<script src="chrome.js"></script>
+</body>
+</html>

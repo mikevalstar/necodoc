@@ -13,3 +13,6 @@ dist
 
 # Generated outputs on the disk storage driver (ADR 0023)
 apps/api/data
+
+# Process logs from `pnpm bench --keep-logs`
+scripts/bench/results/logs

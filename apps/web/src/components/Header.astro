@@ -1,0 +1,80 @@
+---
+import { links } from "../lib/links";
+import { mainNav } from "../lib/nav";
+import Icon from "./Icon.astro";
+import Mark from "./Mark.astro";
+
+type Props = { page?: string };
+const { page } = Astro.props;
+const isFr = Astro.currentLocale === "fr";
+---
+
+<header class="top">
+  <div class="wrap bar">
+    <a class="logo" href="/" aria-label="necodoc home"><Mark />necodoc</a>
+    <nav class="nav" aria-label="Main">
+      {
+        mainNav.map((item) => (
+          <a
+            href={item.href}
+            class:list={{ on: item.id === page }}
+            aria-current={item.id === page ? "page" : undefined}
+            rel={item.external ? "noopener" : undefined}
+          >
+            {item.label}
+            {item.external && <span class="ext"> ↗</span>}
+          </a>
+        ))
+      }
+    </nav>
+    <div class="right">
+      <a class="gh" href={links.github} aria-label="Source on GitHub"><Icon name="github-logo" /></a>
+      <span class="lang" role="group" aria-label="Language">
+        <a href="/" lang="en-CA" hreflang="en-CA" class:list={{ on: !isFr }} aria-current={!isFr ? "true" : undefined}>EN</a>
+        <a href="/fr/" lang="fr-CA" hreflang="fr-CA" class:list={{ on: isFr }} aria-current={isFr ? "true" : undefined}>FR</a>
+      </span>
+      <a class="btn next sm run" href={links.quickstart}>Run it in 10 minutes</a>
+      <details class="menu">
+        <summary aria-label="Menu"><Icon name="list" /></summary>
+        <nav aria-label="Main, compact">
+          {mainNav.map((item) => <a href={item.href}>{item.label}</a>)}
+          <a class="btn next sm" href={links.quickstart}>Run it in 10 minutes</a>
+        </nav>
+      </details>
+    </div>
+  </div>
+</header>
+
+<style>
+  .top { background: var(--night); color: var(--night-fg); position: relative; z-index: 3; }
+  .bar { display: flex; align-items: center; height: 72px; gap: 36px; }
+  .logo { display: flex; align-items: center; gap: 10px; text-decoration: none; font: 700 22px/1 var(--display); letter-spacing: -.02em; }
+  .nav { display: flex; gap: 4px; }
+  .nav a { text-decoration: none; color: var(--night-fg-2); font: 500 15px var(--sans); padding: 8px 12px; }
+  .nav a:hover, .nav a.on { color: #fff; }
+  .nav a.on { box-shadow: inset 0 -2px 0 var(--sun); }
+  .ext { font-size: 11px; opacity: .7; }
+  .right { margin-left: auto; display: flex; align-items: center; gap: 14px; }
+  .gh { display: grid; color: var(--night-fg-2); }
+  .gh :global(svg) { width: 20px; height: 20px; }
+  .gh:hover { color: #fff; }
+  .lang { display: inline-flex; border: 1px solid var(--night-hair); border-radius: 8px; overflow: hidden; font: 600 12px var(--mono); }
+  .lang a { text-decoration: none; padding: 5px 9px; color: var(--night-fg-2); }
+  .lang a.on { background: rgba(255,255,255,.12); color: #fff; }
+  .menu { display: none; position: relative; }
+  .menu summary { list-style: none; cursor: pointer; display: grid; place-items: center; width: 40px; height: 40px; border-radius: 10px; background: rgba(255,255,255,.08); }
+  .menu summary::-webkit-details-marker { display: none; }
+  .menu summary :global(svg) { width: 22px; height: 22px; }
+  .menu nav { position: absolute; right: 0; top: 50px; width: 260px; background: var(--night); border: 1px solid var(--night-hair); border-radius: 14px; padding: 10px; display: flex; flex-direction: column; box-shadow: var(--shadow-lg); }
+  .menu nav a:not(.btn) { padding: 10px 12px; text-decoration: none; color: var(--night-fg); border-radius: 8px; }
+  .menu nav a:not(.btn):hover { background: rgba(255,255,255,.06); }
+  .menu nav .btn { margin-top: 8px; justify-content: center; }
+  @media (max-width: 1100px) {
+    .nav { display: none; }
+    .menu { display: block; }
+  }
+  @media (max-width: 640px) {
+    .bar { height: 64px; }
+    .run, .gh { display: none; }
+  }
+</style>

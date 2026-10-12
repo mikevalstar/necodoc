@@ -1,0 +1,26 @@
+---
+// Where the numbers beside it came from: hardware, date, commit, method, and any reason the
+// run shouldn't be quoted yet.
+import { caveat, env } from "../lib/bench";
+import BenchValue from "./BenchValue.astro";
+import Icon from "./Icon.astro";
+
+type Props = { method?: boolean };
+const { method = true } = Astro.props;
+---
+
+<div class="prov">
+  <span><Icon name="cpu" /> <BenchValue value={env.cpu} />, <BenchValue value={env.cores} /> cores, <BenchValue value={env.memory} /></span>
+  <span>measured <BenchValue value={env.date} /> · commit <BenchValue value={env.sha} /></span>
+  <span>local stack, sequential latency, <BenchValue value={env.samples} /> samples</span>
+  {method && <a class="tlink" href="/performance/">Method, caveats and how to rerun it →</a>}
+  {caveat && <span class="caveat"><Icon name="warning" /> {caveat}</span>}
+</div>
+
+<style>
+  .prov { display: flex; gap: 10px 22px; align-items: center; flex-wrap: wrap; margin-top: 18px; font: 13px var(--mono); color: var(--ink-3); }
+  .prov :global(svg) { width: 15px; height: 15px; vertical-align: -2px; }
+  .prov :global(.bind) { font-size: 12.5px; }
+  .prov :global(.v) { color: var(--ink); }
+  .caveat { color: var(--warn); background: var(--warn-wash); padding: 3px 8px; border-radius: 6px; }
+</style>

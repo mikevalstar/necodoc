@@ -1,0 +1,13 @@
+---
+// Eyebrow + title on the left, the lede (default slot) on the right; `stack` puts them in one column.
+type Props = { eyebrow: string; title: string; stack?: boolean };
+const { eyebrow, title, stack = false } = Astro.props;
+---
+
+<div class:list={["shead", { stack }]}>
+  <div>
+    <p class="eyebrow">{eyebrow}</p>
+    <h2>{title}</h2>
+  </div>
+  {Astro.slots.has("default") && <div class="lede"><slot /></div>}
+</div>

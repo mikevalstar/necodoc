@@ -1,0 +1,66 @@
+---
+// A product screenshot, framed. `crop` shows a window onto a larger shot: `height` is the
+// window, `zoom` the image width as a share of the frame, `x`/`y` shift it (CSS lengths).
+// `tray` puts it in the cobalt PDF tray with the mark's ears, as the app does; the site
+// uses the ears only there (ADR 0042).
+import type { ImageMetadata } from "astro";
+import { Image } from "astro:assets";
+
+type Props = {
+  src: ImageMetadata;
+  alt: string;
+  crop?: { height: number; zoom?: number; x?: string; y?: string };
+  tray?: { title: string; note?: string };
+  example?: string;
+  loading?: "eager" | "lazy";
+};
+const { src, alt, crop, tray, example, loading = "lazy" } = Astro.props;
+const imgStyle = crop
+  ? `width:${crop.zoom ?? 100}%;max-width:none;margin:${crop.y ?? "0"} 0 0 ${crop.x ?? "0"}`
+  : undefined;
+---
+
+<figure class:list={["shot", { tray: !!tray }]}>
+  {example && <figcaption class="example">Example: {example}</figcaption>}
+  {
+    tray && (
+      <div class="bar">
+        <span class="dot" />
+        <b>{tray.title}</b>
+        {tray.note && <span class="note">{tray.note}</span>}
+      </div>
+    )
+  }
+  <div class:list={["frame", { crop: !!crop }]} style={crop ? `height:${crop.height}px` : undefined}>
+    <Image
+      src={src}
+      alt={alt}
+      widths={[720, 1440, 2160, 2880]}
+      sizes={crop ? `${Math.round(((crop.zoom ?? 100) / 100) * 700)}px` : "(max-width: 1100px) 100vw, 1200px"}
+      loading={loading}
+      style={imgStyle}
+    />
+  </div>
+</figure>
+
+<style>
+  .shot { margin: 0; }
+  .frame { border-radius: 14px; overflow: hidden; box-shadow: var(--shadow-lg); background: var(--paper); outline: 1px solid rgba(12,18,51,.06); }
+  .frame :global(img) { display: block; width: 100%; height: auto; }
+  .tray { position: relative; background: var(--brand); border-radius: 18px 18px 0 0; padding: 14px 14px 0; box-shadow: 0 -30px 80px -40px rgba(47,107,255,.7); }
+  .tray::before, .tray::after { content: ""; position: absolute; top: -21px; width: 84px; height: 22px; background: var(--brand); }
+  .tray::before { left: 0; clip-path: polygon(0 100%, 0 0, 100% 100%); }
+  .tray::after { right: 0; clip-path: polygon(0 100%, 100% 0, 100% 100%); }
+  .tray .frame { border-radius: 8px 8px 0 0; box-shadow: none; outline: 0; }
+  .bar { display: flex; align-items: center; gap: 10px; padding: 2px 6px 12px; color: #dbe5ff; font: 500 13px var(--sans); }
+  .bar b { color: #fff; font-weight: 600; }
+  .dot { width: 8px; height: 8px; border-radius: 50%; background: #9fffd0; box-shadow: 0 0 0 3px rgba(159,255,208,.2); }
+  .note { margin-left: auto; font: 12px var(--mono); color: #c9d6ff; }
+  @media (max-width: 640px) {
+    .tray { padding: 8px 8px 0; }
+    .tray::before, .tray::after { width: 32px; height: 12px; top: -11px; }
+    .note { display: none; }
+    .frame.crop { height: auto !important; }
+    .frame.crop :global(img) { width: 100% !important; margin: 0 !important; }
+  }
+</style>

@@ -1,6 +1,7 @@
 packages:
   - apps/*
   - packages/*
+  - scripts/bench
 allowBuilds:
   esbuild: true
   protobufjs: false

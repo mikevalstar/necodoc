@@ -1,0 +1,30 @@
+---
+// Copy beside a screenshot. Default slot: the copy after the title; slot "media": the image.
+type Props = { num?: string; eyebrow: string; title: string; flip?: boolean; id?: string };
+const { num, eyebrow, title, flip = false, id } = Astro.props;
+---
+
+<article class:list={["pillar", { flip }]} id={id}>
+  <div class="copy">
+    <p class="eyebrow">{num && <span class="n">{num}</span>}{eyebrow}</p>
+    <h3>{title}</h3>
+    <slot />
+  </div>
+  <div class="media"><slot name="media" /></div>
+</article>
+
+<style>
+  .pillar { display: grid; grid-template-columns: 5fr 7fr; gap: 72px; align-items: center; padding: 64px 0; border-top: 1px solid var(--hair); }
+  .pillar:first-child { border-top: 0; padding-top: 0; }
+  .pillar:last-child { padding-bottom: 0; }
+  .pillar.flip { grid-template-columns: 7fr 5fr; }
+  .flip .copy { order: 2; }
+  .media { min-width: 0; }
+  h3 { font-size: 32px; letter-spacing: -.025em; line-height: 1.12; }
+  .copy > :global(p:not(.eyebrow)) { color: var(--ink-2); margin-top: 16px; }
+  @media (max-width: 1100px) {
+    .pillar, .pillar.flip { grid-template-columns: 1fr; gap: 36px; }
+    .flip .copy { order: 0; }
+  }
+  @media (max-width: 640px) { h3 { font-size: 26px; } }
+</style>
