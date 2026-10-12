@@ -14,10 +14,9 @@ screenshots of the build are in [shots/](shots/).
 | Architecture | `/architecture/` | Reference architecture, components and state, deployment (Compose, Helm, KEDA), integration patterns with a worked PAS pattern, data flows, scaling and HA, observability, known limits |
 | Security and governance | `/security/` | AI caveat first, the controls list (downloadable as CSV), audit, change control, output integrity, privacy, Canadian requirements (what helps, what stays yours), what we don't claim |
 | Performance | `/performance/` | Every W2 number, read from `scripts/bench/results/latest.json`: latency, throughput by worker count, cold start and archival cost, environment, caveats, how to rerun |
-| Français | `/fr/` | Placeholder until the fr-CA site is written and reviewed |
 
-Product, Compare and Open source and pricing pages from the spec aren't built yet; nothing
-links to them, so there are no dead links.
+Product, Compare and Open source and pricing pages are W9; nothing links to them yet. The
+site is English only; a French site is deferred.
 
 ## Section outline
 
@@ -73,21 +72,22 @@ log, and the Admin › System figures, hostnames and storage path were replaced 
 production values. Workspace "Harbour Surety" and the people are fictional. **Before
 launch, retake them from a seeded demo instance** so nothing on the site is edited.
 
-## Open questions for Mike
+## Decisions (Mike, 2026-10-12)
 
-1. **Support line.** The site says "docs, source and GitHub issues; no paid support plan
-   yet". Is that the answer, or is there an offer to name?
-2. **Docs domain and FR URL scheme.** Docs links use `DOCS_URL` (default the local devdocs
-   port). FR lives under `/fr/` with EN at the root; OK, or a `fr.` subdomain?
-3. **Review pack.** Linked from every page but not built. Who writes it, and does it ship
-   per release? Until then the links point at `#review-pack`.
-4. **"Run it in 10 minutes".** Needs a timed clean-machine run before launch (spec
-   acceptance criterion). Keep the wording or say "Run it on a laptop"?
-5. **French.** The bilingual certificate example and `/fr/` page need review by a fluent
-   Québec speaker.
-6. **Missing pages.** Product, Compare (dated competitor rows) and Open source and pricing:
-   build next, or fold Compare into Home's "where it stops"?
-7. **Benchmark.** Rerun on a clean commit so the dirty-tree warning goes away, and decide
-   whether to show laptop numbers on Home or only on Performance.
-8. **Guidewire.** A worked PolicyCenter example (or sample plugin) would make the
-   Architecture page's worked pattern concrete. Worth a spec?
+- **Support.** The site says "coming soon" and nothing more.
+- **French.** No French site for now; the header switch and `/fr/` are gone. The bilingual
+  certificate example stays (it shows a product feature) and still needs review by a fluent
+  Québec speaker.
+- **Review pack.** Generated on each release (W8, NECO-syjjmvla). Every link uses
+  `links.reviewPack` in [links.ts](../../apps/web/src/lib/links.ts)
+  (`/review-pack/necodoc-architecture-review.pdf`), which 404s until W8 ships.
+- **"Run it in 10 minutes"** stays; it still needs the timed clean-machine run before launch.
+- **Missing pages.** Product, Compare and Open source and pricing are W9.
+- **Benchmark.** Laptop numbers on Home are fine, labelled with the hardware.
+- **Named core systems.** Guidewire and Duck Creek aren't mentioned for now; copy says
+  "your policy admin system" or "core systems".
+
+## Open questions
+
+1. **Docs domain.** Docs links use `DOCS_URL` (default the local devdocs port).
+2. **Benchmark.** Rerun on a clean commit so the dirty-tree warning goes away.

@@ -33,7 +33,6 @@ import Mark from "./Mark.astro";
     </div>
     <div class="base">
       <span>MIT licence</span><span>Nothing phones home</span>
-      <span class="r">EN · <a href="/fr/" lang="fr-CA" hreflang="fr-CA">Français</a></span>
     </div>
   </div>
 </footer>
@@ -49,7 +48,6 @@ import Mark from "./Mark.astro";
   .logo:hover { text-decoration: none; }
   .about p { margin-top: 16px; line-height: 1.6; max-width: 320px; }
   .base { margin-top: 56px; padding-top: 22px; border-top: 1px solid var(--night-hair); display: flex; gap: 24px; font: 12.5px var(--mono); color: #8f9bd6; }
-  .r { margin-left: auto; }
   @media (max-width: 1100px) {
     .cols { grid-template-columns: repeat(3, 1fr); }
     .about { grid-column: 1 / -1; }
@@ -57,6 +55,5 @@ import Mark from "./Mark.astro";
   @media (max-width: 640px) {
     .cols { grid-template-columns: 1fr 1fr; }
     .base { flex-direction: column; gap: 6px; }
-    .r { margin-left: 0; }
   }
 </style>

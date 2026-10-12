@@ -32,8 +32,8 @@
   <text class="tag" x="0" y="70">CALLERS</text>
   <rect class="caller" x="0" y="86" width="206" height="104" rx="12"/>
   <text class="t" x="16" y="114">Core &amp; policy systems</text>
-  <text class="s" x="16" y="136">Guidewire, Duck Creek,</text>
-  <text class="s" x="16" y="154">your policy admin system</text>
+  <text class="s" x="16" y="136">Your policy admin</text>
+  <text class="s" x="16" y="154">and core systems</text>
   <text class="m" x="16" y="176">/api/v1 · scoped API key</text>
   <rect class="caller" x="0" y="214" width="206" height="96" rx="12"/>
   <text class="t" x="16" y="242">People in the app</text>

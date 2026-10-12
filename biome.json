@@ -6,7 +6,14 @@
     "useIgnoreFile": true
   },
   "files": {
-    "includes": ["**", "!**/routeTree.gen.ts", "!**/drizzle/meta", "!apps/web/public", "!design", "!scripts/bench/results"]
+    "includes": [
+      "**",
+      "!**/routeTree.gen.ts",
+      "!**/drizzle/meta",
+      "!apps/web/public",
+      "!design",
+      "!scripts/bench/results"
+    ]
   },
   "formatter": {
     "enabled": true,

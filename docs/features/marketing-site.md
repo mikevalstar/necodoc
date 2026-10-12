@@ -47,6 +47,18 @@ brought the request.
   bilingual EN/FR, Entra ID sign-in, accessibility, self-hosted.
 - E-signature is "e-signature ready", never "e-signature".
 
+**Decisions taken** (Mike, 2026-10-12, on NECO-dimhbgii):
+
+- No French site for now. The site is English only; the product's EN/fr-CA
+  document output stays a feature on it.
+- Named core systems (Guidewire, Duck Creek, PolicyCenter) aren't discussed
+  for now. Say "your policy admin system" or "core systems".
+- Support is "coming soon", with no further detail.
+- The architecture review pack is generated on each release (W8,
+  NECO-syjjmvla).
+- Product, Compare and Open source and pricing pages are a separate ticket
+  (W9); nothing links to them until they exist.
+
 ### What the architect needs to sign off
 
 Each concern needs an answer on the site, with a link to the spec or doc that
@@ -55,7 +67,7 @@ proves it.
 | Concern | Their question | Our answer |
 |---|---|---|
 | Architecture and deployment fit | Does it run where we run things? | Containers, Compose or Helm, one Postgres, any Kubernetes or VM, in their own cloud or data centre ([Self-hosting](self-hosting.md)) |
-| Integration patterns | How does PolicyCenter / Duck Creek / our policy admin system call it? | No packaged connector. A versioned REST API with OpenAPI and a JSON Schema per template; sync, async + signed webhook, batch; SDKs for TypeScript, Python, .NET, Java. The Architecture page shows the pattern: core system posts data, gets a PDF or a webhook ([HTML to PDF API](html-to-pdf-api.md), [Webhooks](webhooks.md)) |
+| Integration patterns | How does our policy admin system call it? | No packaged connector. A versioned REST API with OpenAPI and a JSON Schema per template; sync, async + signed webhook, batch; SDKs for TypeScript, Python, .NET, Java. The Architecture page shows the pattern: core system posts data, gets a PDF or a webhook ([HTML to PDF API](html-to-pdf-api.md), [Webhooks](webhooks.md)) |
 | Separation of duties | Can the business own wording while IT owns data and integration? | Editors change content; fields are the data contract; publishing and review are separate permissions ([User management and roles](user-management-and-roles.md)) |
 | Security and identity | Does it use our IdP? How are systems authenticated? | Entra ID, Auth0, SiteMinder over OIDC or SAML, group-to-role mapping; service accounts with scoped, expiring, IP-restricted keys ([Single sign-on](single-sign-on.md), [ADR 0029](../adrs/0029-service-accounts-and-scoped-api-keys.md)) |
 | Data residency | Where does policyholder data go? | Nowhere they didn't put it: their Postgres, their bucket or blob container or disk, in their region; downloads through signed links. AI is off unless they add a key ([ADR 0023](../adrs/0023-generated-outputs-in-object-storage.md)) |
@@ -65,7 +77,7 @@ proves it.
 | Compliance and accessibility | French-first policies (Bill 96), accessible formats (AODA), archives, privacy requests (PIPEDA, Law 25)? | EN/FR (fr-CA) from one template, PDF/UA-1, PDF/A-2, PAdES certification, PII masking and data-subject erasure ([Localization](document-localization.md), [Archival output](archival-accessible-and-certified-output.md), [Personal data](personal-data-masking-and-erasure.md)) |
 | Vendor risk and lock-in | What if the vendor disappears? What's our exit plan (OSFI B-10)? | MIT source they can fork, standard Postgres, PDFs in their storage, templates as data; nothing phones home. It runs inside their own controls, so there is no third party holding their data |
 | TCO and licensing | What do 20 workers cost? | No per-worker, per-document or per-seat licence; cost is their infrastructure |
-| Support | Who do we call at 2 a.m.? | Honest answer today: docs, source and GitHub issues. See [Open questions](#open-questions) |
+| Support | Who do we call at 2 a.m.? | "Coming soon", nothing more for now |
 
 ## Message pillars
 
@@ -173,8 +185,7 @@ Each needs a link to its spec or doc on the page where it appears.
   self-hosting), not that the product makes them compliant.
 - **"Tamper-proof" audit log.** It's tamper-resistant, not tamper-evident (no
   hash chain; a DBA can disable the trigger) ([Audit log](audit-log.md#known-limitations)).
-- **Native connectors** for Guidewire, Duck Creek, Majesco or any core
-  system, or marketplace listings. We integrate over the REST API; say that.
+- **Native connectors** for any core system, or marketplace listings. We integrate over the REST API; say that.
 - **"The only" / "first" / "100%"** anything; analyst placements we don't
   have.
 - **Word/DOCX output, prebuilt ISO/AAIS form libraries, multi-step
@@ -200,7 +211,7 @@ recheck before publishing.
 | | necodoc | GhostDraft | DocSpring / Anvil | Enterprise CCM (Smart Communications, Quadient Inspire, OpenText Exstream, Messagepoint) |
 |---|---|---|---|---|
 | Deployment | Self-hosted only, in your cloud or data centre | SaaS on Azure | SaaS (DocSpring: on-prem on request) | SaaS; Quadient Inspire Flex also on-prem or containers |
-| Core-system integration | REST API, webhooks, SDKs; no packaged connectors | Guidewire and Duck Creek integrations, Guidewire Marketplace | REST API | Guidewire and Duck Creek accelerators |
+| Core-system integration | REST API, webhooks, SDKs; no packaged connectors | Packaged core-system integrations | REST API | Core-system accelerators |
 | Authoring | In-app editor, HTML, or fields on an existing PDF | Microsoft Word | HTML or fields on a PDF | Vendor designer tools |
 | Fill existing PDFs | Yes, with AI field proposals | Not a stated focus | Yes | Varies |
 | Bureau forms (ISO/AAIS) | No | Yes | No | Varies |
@@ -228,12 +239,14 @@ buys credibility.
 | Security and governance | Identity, keys, data residency, audit, privacy, change control, output integrity; the controls list a security reviewer copies into a questionnaire; the AI data caveat |
 | Performance | W2 numbers with method, hardware and the script to reproduce them |
 | Compare | The competitor rows above, dated |
-| Open source and pricing | MIT, no licence cost, what you pay for (your infra), what support exists today |
+| Open source and pricing | MIT, no licence cost, what you pay for (your infra); support "coming soon" |
 | Docs | Links out to the developer docs site ([ADR 0026](../adrs/0026-astro-starlight-for-the-developer-docs-site.md)) |
-| Français | The site in fr-CA, at least Home and Insurance; a bilingual product with an English-only site undercuts pillar 4 |
 
-Built pages (W3): Home, Insurance, Architecture, Security and governance,
-Performance and a `/fr/` placeholder, in [apps/web/src/pages](../../apps/web/src/pages/index.astro).
+Product, Compare and Open source and pricing are W9 and not built. A French
+site is deferred.
+
+Built pages (W3): Home, Insurance, Architecture, Security and governance and
+Performance, in [apps/web/src/pages](../../apps/web/src/pages/index.astro).
 Benchmark numbers are imported from the W2 JSON by
 [bench.ts](../../apps/web/src/lib/bench.ts) and show as placeholders when it's
 missing. Design decisions and open questions:
@@ -278,7 +291,8 @@ architect can do alone, in the order they'd do them:
 3. **Get the architecture review pack:** one PDF (made with necodoc) with the
    reference architecture, data flows, controls list, the claims table above
    and the known limitations. This is the document the architect forwards to
-   their review board.
+   their review board. Generated per release (W8, NECO-syjjmvla); every link
+   uses one path in [links.ts](../../apps/web/src/lib/links.ts).
 4. **View the source on GitHub.**
 
 A contact route (email or GitHub Discussions) for questions, stated as what
@@ -294,8 +308,8 @@ it is.
 - Insurance vocabulary used correctly: obligee, principal, attorney-in-fact,
   certificate of insurance, renewal run, declarations page. No generic
   "documents at scale".
-- Canadian spelling, and French that a Québec reader accepts (reviewed by a
-  fluent speaker, not machine output).
+- Canadian spelling. Any French on the site (the bilingual examples) is
+  reviewed by a fluent Québec speaker, not machine output.
 - No hype words: revolutionary, seamless, effortless, enterprise-grade,
   AI-powered as a headline.
 - Never disparage competitors.
@@ -305,10 +319,10 @@ it is.
 Web research, 2026-10-12. Vendor claims are their own marketing.
 
 **Why architects trust GhostDraft.** It is insurance-only and fits the core
-system they already run: Guidewire Marketplace and "Built by Guidewire"
-integrations for PolicyCenter, BillingCenter and ClaimCenter
-([Guidewire, 2024](https://www.guidewire.com/about/press-center/press-releases/20241030/modernize-customer-communication-experiences-with-the-new-ghostdraft)),
-a Duck Creek partnership, and ISO/AAIS bureau content. Its modules follow
+system they already run: packaged integrations with the major policy admin
+platforms
+([2024 announcement](https://www.guidewire.com/about/press-center/press-releases/20241030/modernize-customer-communication-experiences-with-the-new-ghostdraft)),
+and ISO/AAIS bureau content. Its modules follow
 the design, develop, review and test, deploy stages IT already uses; the
 business owns the wording in Word and IT owns the data mapping once
 ([GhostDraft 360 overview](https://www.duckcreek.com/wp-content/uploads/2022/02/GhostDraft-360-Overview.pdf)).
@@ -360,10 +374,10 @@ avoid for this reader.
 
 **What this means for us.** The gaps we can fill honestly: residency,
 exit and audit (B-10), French-first bilingual output, and no licence per
-worker. The gaps we can't paper over: no packaged Guidewire or Duck Creek
+worker. The gaps we can't paper over: no packaged core-system
 connector, no vendor attestation, no named customers, no analyst coverage.
 The site answers those directly (integration over the API with a worked
-PolicyCenter-style pattern; "runs inside your SOC 2 and B-13 boundary";
+policy-admin pattern; "runs inside your SOC 2 and B-13 boundary";
 worked examples instead of logos) rather than leaving the architect to find
 them.
 
@@ -383,15 +397,10 @@ them.
 
 ## Open questions
 
-- **Support.** What can be offered (paid support, partner, none)? The
-  architect will ask; the site needs an answer even if it's "community
-  only".
+- **Support.** The site says "coming soon". What gets offered (paid
+  support, partner, none) is still open.
 - **E-sign provider.** Mike mentioned "Accusign"; confirm whether that's a
   fourth provider or one of DocuSign, Dropbox Sign, Adobe Acrobat Sign.
 - **Image registry.** Publishing signed images (GHCR) before launch would
   remove "build it yourself" from the quick start.
-- **Security overview.** Who writes and maintains the review pack, and does
-  it ship with each release?
-- **Domain and French URL scheme** (W3).
-- **Guidewire.** A worked PolicyCenter integration example (or a sample
-  plugin) would answer the first question in most meetings. Worth a spec?
+- **Domain** (W3). A French site and its URL scheme are deferred.

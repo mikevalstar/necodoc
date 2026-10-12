@@ -6,7 +6,6 @@ import Mark from "./Mark.astro";
 
 type Props = { page?: string };
 const { page } = Astro.props;
-const isFr = Astro.currentLocale === "fr";
 ---
 
 <header class="top">
@@ -29,10 +28,6 @@ const isFr = Astro.currentLocale === "fr";
     </nav>
     <div class="right">
       <a class="gh" href={links.github} aria-label="Source on GitHub"><Icon name="github-logo" /></a>
-      <span class="lang" role="group" aria-label="Language">
-        <a href="/" lang="en-CA" hreflang="en-CA" class:list={{ on: !isFr }} aria-current={!isFr ? "true" : undefined}>EN</a>
-        <a href="/fr/" lang="fr-CA" hreflang="fr-CA" class:list={{ on: isFr }} aria-current={isFr ? "true" : undefined}>FR</a>
-      </span>
       <a class="btn next sm run" href={links.quickstart}>Run it in 10 minutes</a>
       <details class="menu">
         <summary aria-label="Menu"><Icon name="list" /></summary>
@@ -58,9 +53,6 @@ const isFr = Astro.currentLocale === "fr";
   .gh { display: grid; color: var(--night-fg-2); }
   .gh :global(svg) { width: 20px; height: 20px; }
   .gh:hover { color: #fff; }
-  .lang { display: inline-flex; border: 1px solid var(--night-hair); border-radius: 8px; overflow: hidden; font: 600 12px var(--mono); }
-  .lang a { text-decoration: none; padding: 5px 9px; color: var(--night-fg-2); }
-  .lang a.on { background: rgba(255,255,255,.12); color: #fff; }
   .menu { display: none; position: relative; }
   .menu summary { list-style: none; cursor: pointer; display: grid; place-items: center; width: 40px; height: 40px; border-radius: 10px; background: rgba(255,255,255,.08); }
   .menu summary::-webkit-details-marker { display: none; }

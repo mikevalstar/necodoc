@@ -12,8 +12,8 @@ export const links = {
   docs: docsUrl,
   quickstart: `${docsUrl}/getting-started/quickstart/`,
   apiReference: `${docsUrl}/reference/api/`,
-  /** The architecture review pack PDF (made with necodoc); not built yet. */
-  reviewPack: "#review-pack",
+  /** The architecture review pack PDF, made with necodoc and generated per release (W8). */
+  reviewPack: "/review-pack/necodoc-architecture-review.pdf",
 } as const;
 
 /** A feature spec or ADR in the repo, by file name under docs/. */

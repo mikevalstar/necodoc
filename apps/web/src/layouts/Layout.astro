@@ -5,10 +5,9 @@ import Header from "../components/Header.astro";
 
 type Props = { title: string; description: string; page?: string };
 const { title, description, page } = Astro.props;
-const lang = Astro.currentLocale === "fr" ? "fr-CA" : "en-CA";
 ---
 
-<html lang={lang}>
+<html lang="en-CA">
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -18,8 +17,6 @@ const lang = Astro.currentLocale === "fr" ? "fr-CA" : "en-CA";
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
     <link rel="manifest" href="/site.webmanifest" />
-    <link rel="alternate" hreflang="en-CA" href="/" />
-    <link rel="alternate" hreflang="fr-CA" href="/fr/" />
     <title>{title}</title>
   </head>
   <body>
