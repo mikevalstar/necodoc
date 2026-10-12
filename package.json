@@ -21,8 +21,8 @@
     "bench": "pnpm --filter @necodoc/bench bench",
     "demo:seed": "pnpm --filter @necodoc/demo seed",
     "demo:screens": "pnpm --filter @necodoc/demo screens",
-    "review-pack": "pnpm --filter @necodoc/review-pack build",
-    "release:assets": "pnpm --filter @necodoc/review-pack build --release"
+    "review-pack": "pnpm --filter @necodoc/review-pack generate",
+    "release:assets": "pnpm --filter @necodoc/review-pack generate --release"
   },
   "devDependencies": {
     "@biomejs/biome": "^2.5.14"
