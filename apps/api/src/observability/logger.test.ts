@@ -36,6 +36,15 @@ describe("createLogger", () => {
     });
   });
 
+  it("never writes field values: data, input and fields are redacted", () => {
+    const { lines, log } = capture();
+    log.info({ data: { sin: "1" }, job: { input: { html: "x" }, fields: ["a"] } }, "x");
+    expect(lines[0]).toMatchObject({
+      data: "[Redacted]",
+      job: { input: "[Redacted]", fields: "[Redacted]" },
+    });
+  });
+
   it("adds the bindings of the surrounding log context", () => {
     const { lines, log } = capture();
     logContext.run({ requestId: "req-1" }, () => log.warn("inside"));

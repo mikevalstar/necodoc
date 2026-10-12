@@ -43,7 +43,12 @@ const {
 } = renderRequestSchema.shape;
 
 export const v1RenderSchema = z
-  .object({ ...renderFields, ...responseOptions, ...signingOption, subject: subjectSchema.optional() })
+  .object({
+    ...renderFields,
+    ...responseOptions,
+    ...signingOption,
+    subject: subjectSchema.optional(),
+  })
   .meta({ id: "RenderRequest", description: "HTML (Liquid allowed) to render as a PDF." });
 
 export const v1GenerateSchema = generateFromTemplateSchema

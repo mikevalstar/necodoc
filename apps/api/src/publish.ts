@@ -7,7 +7,7 @@ import {
   designedContentSchema,
   fieldErrors,
   type OverlayContent,
-  outputEnabled,
+  outputWorthKeeping,
   overlayContentSchema,
   type RenderInput,
   stableStringify,
@@ -51,12 +51,14 @@ function compileOverlay(content: OverlayContent) {
       return { error: `A box on page ${box.page}: ${error.message}` };
     }
   }
-  // Like designed templates, all-off output settings stay out, keeping existing fingerprints.
-  const { output, ...rest } = content;
+  // Like designed templates, unset output settings and translations stay out, keeping existing
+  // fingerprints.
+  const { output, translations, ...rest } = content;
   const compiled: CompiledOverlay = {
     kind: "overlay",
     ...rest,
-    ...(outputEnabled(output) ? { output } : {}),
+    ...(outputWorthKeeping(output) ? { output } : {}),
+    ...(Object.keys(translations).length ? { translations } : {}),
   };
   return { compiled };
 }

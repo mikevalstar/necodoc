@@ -131,6 +131,11 @@ function GenerationDetail() {
             "None"
           )}
         </Meta>
+        {generation.subject && (
+          <Meta label="Subject">
+            <span className="break-all">{generation.subject}</span>
+          </Meta>
+        )}
         {generation.rerunOfId && (
           <Meta label="Re-run of">
             <Link

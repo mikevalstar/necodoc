@@ -7,6 +7,7 @@ export * from "./batch";
 export * from "./compile";
 export * from "./fields";
 export * from "./generation";
+export * from "./locale";
 export * from "./output";
 export * from "./overlay";
 export * from "./overlay-import";

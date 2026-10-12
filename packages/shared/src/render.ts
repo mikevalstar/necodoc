@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { translationsSchema } from "./locale";
 import { outputOptionsSchema } from "./output";
 import { signersSchema, signingRenderOptionsSchema } from "./signing";
 import { themeInputSchema } from "./theme";
@@ -62,6 +63,8 @@ export const renderRequestSchema = z
     signing: signingRenderOptionsSchema.optional(),
     /** PDF/A, PDF/UA and certification (docs/features/archival-accessible-and-certified-output.md). */
     output: outputOptionsSchema.optional(),
+    /** Text for the `t` filter, per language; `output.lang` picks one (docs/features/document-localization.md). */
+    translations: translationsSchema.optional(),
   })
   .refine((r) => !(r.themeId && r.themeDraft), {
     message: "Send themeId or themeDraft, not both",

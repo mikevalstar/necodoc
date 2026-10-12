@@ -50,4 +50,5 @@ Add one with `okq new adr "<title>"`.
 | PDF/A-2 and PDF/UA-1 by post-processing Chromium output in pdf-lib | [0037-pdf-a-2-and-pdf-ua-1-by-post-processing-chromium-output-in-pdf-lib.md](0037-pdf-a-2-and-pdf-ua-1-by-post-processing-chromium-output-in-pdf-lib.md) |
 | PAdES certification signatures built with PKI.js | [0038-pades-certification-signatures-built-with-pki-js.md](0038-pades-certification-signatures-built-with-pki-js.md) |
 | Sensitive fields masked outside stored inputs, erasure by data subject | [0039-sensitive-fields-masked-outside-stored-inputs-erasure-by-data-subject.md](0039-sensitive-fields-masked-outside-stored-inputs-erasure-by-data-subject.md) |
+| One document language and source-text translation tables | [0040-one-document-language-and-source-text-translation-tables.md](0040-one-document-language-and-source-text-translation-tables.md) |
 <!-- okq:index:end -->

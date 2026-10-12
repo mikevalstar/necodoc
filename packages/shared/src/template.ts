@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { fieldSectionsSchema } from "./fields";
+import { translationsSchema } from "./locale";
 import { outputOptionsSchema, outputOverridesSchema } from "./output";
 import { overlayContentSchema } from "./overlay";
 import { subjectSchema } from "./privacy";
@@ -28,6 +29,8 @@ const templateCss = z.string().max(200_000).default("");
 const signers = signersSchema.default([]);
 /** PDF/A, PDF/UA and certification (docs/features/archival-accessible-and-certified-output.md). */
 const output = outputOptionsSchema.default(outputOptionsSchema.parse({}));
+/** Per-language text (docs/features/document-localization.md); in content so versions freeze it. */
+const translations = translationsSchema.default({});
 
 /**
  * Visual templates store TipTap JSON (compiled on render); code mode stores the compiled
@@ -42,6 +45,7 @@ export const designedContentSchema = z.discriminatedUnion("mode", [
     css: templateCss,
     signers,
     output,
+    translations,
   }),
   z.object({
     mode: z.literal("code"),
@@ -51,6 +55,7 @@ export const designedContentSchema = z.discriminatedUnion("mode", [
     css: templateCss,
     signers,
     output,
+    translations,
   }),
 ]);
 export type DesignedContent = z.infer<typeof designedContentSchema>;
@@ -63,6 +68,7 @@ export const emptyDesignedContent: DesignedContent = {
   css: "",
   signers: [],
   output: outputOptionsSchema.parse({}),
+  translations: {},
 };
 
 const templateName = z.string().trim().min(1, "Enter a name").max(200);

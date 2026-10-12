@@ -30,7 +30,10 @@ function maskByKey(value: unknown): unknown {
   );
 }
 
-function maskFields(data: Record<string, unknown>, fields: readonly Field[]) {
+function maskFields(
+  data: Record<string, unknown>,
+  fields: readonly Field[],
+): Record<string, unknown> {
   const byKey = new Map(fields.map((field) => [field.key, field]));
   return Object.fromEntries(
     Object.entries(data).map(([key, value]) => {

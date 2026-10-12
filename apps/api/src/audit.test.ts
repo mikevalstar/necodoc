@@ -1,5 +1,6 @@
+import { MASKED } from "@necodoc/shared";
 import { describe, expect, it } from "vitest";
-import { changedFields } from "./audit-diff";
+import { changedFields, maskValues, sectionsOf } from "./audit-diff";
 
 describe("changedFields", () => {
   it("keeps only changed fields, each whole", () => {
@@ -35,5 +36,47 @@ describe("changedFields", () => {
 
   it("records nothing when only a secret changed", () => {
     expect(changedFields({ secret: "a" }, { secret: "b" })).toEqual({ before: null, after: null });
+  });
+});
+
+describe("maskValues", () => {
+  const sections = [
+    {
+      title: "S",
+      fields: [
+        { type: "text" as const, key: "name", label: "Name", required: false },
+        {
+          type: "text" as const,
+          key: "secret_code",
+          label: "Code",
+          required: false,
+          sensitive: true,
+        },
+      ],
+    },
+  ];
+
+  it("masks sensitive values in sample data, prefills and test data, nothing else", () => {
+    expect(
+      maskValues(
+        {
+          sampleData: { name: "Ada", secret_code: "42" },
+          prefill: { secret_code: "7" },
+          data: { name: "Bob", sin: "1" },
+          label: "secret_code",
+        },
+        sections,
+      ),
+    ).toEqual({
+      sampleData: { name: "Ada", secret_code: MASKED },
+      prefill: { secret_code: MASKED },
+      data: { name: "Bob", sin: MASKED },
+      label: "secret_code",
+    });
+  });
+
+  it("uses a template row's own sections", () => {
+    expect(sectionsOf({ sections })).toBe(sections);
+    expect(sectionsOf({ sections: "no" })).toBeNull();
   });
 });

@@ -1,6 +1,7 @@
 import { z } from "zod";
 import type { FieldProblem } from "./compile";
 import { type FieldSection, fieldKeySchema, RESERVED_FIELD_KEYS } from "./fields";
+import { translationsSchema } from "./locale";
 import { outputOptionsSchema } from "./output";
 import { signersSchema, signingKindSchema, signingRenderOptionsSchema } from "./signing";
 import { themeFontSchema } from "./theme";
@@ -131,6 +132,8 @@ export const overlayContentSchema = z.object({
   signers: signersSchema.default([]),
   /** PDF/A and certification; in content so versions freeze them. */
   output: outputOptionsSchema.default(outputOptionsSchema.parse({})),
+  /** Per-language text for `| t` and field labels (docs/features/document-localization.md). */
+  translations: translationsSchema.default({}),
 });
 export type OverlayContent = z.infer<typeof overlayContentSchema>;
 
@@ -202,6 +205,7 @@ export const overlayRenderRequestSchema = z.object({
   signers: signersSchema.optional(),
   signing: signingRenderOptionsSchema.optional(),
   output: outputOptionsSchema.optional(),
+  translations: translationsSchema.optional(),
   data: z.record(z.string(), z.unknown()).default({}),
   filename: z.string().trim().min(1).max(200).optional(),
   preview: z.boolean().default(false),
@@ -211,7 +215,7 @@ export type OverlayRenderRequest = z.infer<typeof overlayRenderRequestSchema>;
 /** A published overlay version's render input, minus the data. */
 export type CompiledOverlay = Pick<
   OverlayRenderRequest,
-  "kind" | "sourceId" | "boxes" | "flatten" | "signers" | "output"
+  "kind" | "sourceId" | "boxes" | "flatten" | "signers" | "output" | "translations"
 >;
 
 // ---------------------------------------------------------------------------------------------

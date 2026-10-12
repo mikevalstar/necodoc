@@ -121,6 +121,7 @@ export const shareLinkRoutes = new Hono<AppEnv>()
           action: "share_link.created",
           target: { id: created.id, name: created.label },
           after: created,
+          sections: found.version.sections,
         },
         tx,
       );
@@ -168,6 +169,8 @@ export const shareLinkRoutes = new Hono<AppEnv>()
           target: { id, name: updated.label },
           before: existing,
           after: updated,
+          sections: (filled ?? (await linkVersion(tx, existing.templateId, templateVersionId)))
+            ?.sections,
         },
         tx,
       );
@@ -183,8 +186,14 @@ export const shareLinkRoutes = new Hono<AppEnv>()
         .where(own(c.get("user").id, c.req.valid("param").id))
         .returning();
       if (row) {
+        const version = await linkVersion(tx, row.templateId, row.templateVersionId);
         await recordAudit(
-          { action: "share_link.deleted", target: { id: row.id, name: row.label }, before: row },
+          {
+            action: "share_link.deleted",
+            target: { id: row.id, name: row.label },
+            before: row,
+            sections: version?.sections,
+          },
           tx,
         );
       }

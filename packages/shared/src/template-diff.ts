@@ -77,6 +77,8 @@ export const templateDiffSchema = z.object({
   snippets: z.array(z.string()),
   /** The overlay's PDF was replaced. */
   source: z.boolean(),
+  /** Languages whose translations were added, removed or changed (ADR 0040). */
+  translations: z.array(z.string()).default([]),
   sampleData: z.boolean(),
 });
 export type TemplateDiff = z.infer<typeof templateDiffSchema>;
@@ -429,6 +431,9 @@ export function templateDiff(before: DiffableTemplate, after: DiffableTemplate):
       ? overlay.a.sourceId !== overlay.b.sourceId || overlay.a.flatten !== overlay.b.flatten
       : false,
     sampleData: !same(before.sampleData, after.sampleData),
+    translations: [...new Set([...Object.keys(a.translations), ...Object.keys(b.translations)])]
+      .filter((lang) => !same(a.translations[lang], b.translations[lang]))
+      .sort(),
   };
 }
 
@@ -473,6 +478,7 @@ export function summarizeTemplateDiff(diff: TemplateDiff): string[] {
   if (boxes.added.length) lines.push(`${plural(boxes.added.length, "box", "boxes")} added`);
   if (boxes.removed.length) lines.push(`${plural(boxes.removed.length, "box", "boxes")} removed`);
   if (boxes.changed.length) lines.push(`${plural(boxes.changed.length, "box", "boxes")} changed`);
+  if (diff.translations.length) lines.push(`Translations changed: ${diff.translations.join(", ")}`);
   if (diff.description) lines.push("Description changed");
   if (diff.sampleData) lines.push("Sample data changed");
   return lines;

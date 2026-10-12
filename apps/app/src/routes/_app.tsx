@@ -137,6 +137,7 @@ function AdminMenu() {
         </DropdownMenuItem>
         <DropdownMenuItem render={<Link to="/admin/api-keys" />}>API keys</DropdownMenuItem>
         <DropdownMenuItem render={<Link to="/admin/audit" />}>Audit log</DropdownMenuItem>
+        <DropdownMenuItem render={<Link to="/admin/privacy" />}>Data subjects</DropdownMenuItem>
         <DropdownMenuItem render={<Link to="/admin/analytics" />}>Analytics</DropdownMenuItem>
         <DropdownMenuItem render={<Link to="/admin/faq" />}>FAQ</DropdownMenuItem>
       </DropdownMenuContent>

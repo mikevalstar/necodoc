@@ -8,8 +8,11 @@ import { eraseSubject, findSubject } from "../privacy";
 // in the body, never the URL, so it stays out of request logs and proxies.
 
 export const privacyRoutes = new Hono<AppEnv>()
-  .post("/subjects/search", requireRole("admin"), zValidator("json", subjectSearchSchema), async (c) =>
-    c.json(await findSubject(c.req.valid("json").q), 200),
+  .post(
+    "/subjects/search",
+    requireRole("admin"),
+    zValidator("json", subjectSearchSchema),
+    async (c) => c.json(await findSubject(c.req.valid("json").q), 200),
   )
   .post("/erasures", requireRole("admin"), zValidator("json", erasureRequestSchema), async (c) =>
     c.json(await eraseSubject(c.req.valid("json")), 201),

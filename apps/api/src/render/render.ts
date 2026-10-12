@@ -1,6 +1,11 @@
 import { readFile } from "node:fs/promises";
 import { PDFDocument } from "@cantoo/pdf-lib";
-import type { RenderRequest, RenderTimings, SigningPackage } from "@necodoc/shared";
+import {
+  type RenderRequest,
+  type RenderTimings,
+  type SigningPackage,
+  stringsFor,
+} from "@necodoc/shared";
 import { withSpan } from "../observability/tracing";
 import { bandBody, bandCss, stampBand } from "./bands";
 import { type AssetLoader, printPdf } from "./browser";
@@ -21,6 +26,7 @@ export type RenderJob = Pick<
   | "signers"
   | "signing"
   | "output"
+  | "translations"
 > & {
   /** The theme, already resolved from an id or a draft. */
   theme?: NonNullable<RenderRequest["themeDraft"]>;
@@ -60,13 +66,17 @@ export async function renderPdf(job: RenderJob, loadStoredAsset: AssetLoader) {
   const css = [job.theme ? themeCss(job.theme.settings, job.theme.css) : "", job.css ?? ""];
 
   // Snippets come from memory; `globals` lets them see the data, since {% render %} doesn't.
-  const liquid = createLiquid(partialsFs(job.partials));
+  // The document language picks formatting and translations (ADR 0040).
+  const lang = job.output?.lang ?? "en";
+  const liquid = createLiquid(partialsFs(job.partials), {
+    lang,
+    strings: stringsFor(job.translations, lang),
+  });
   const body = await timed(timings, "liquidMs", () =>
     liquid.parseAndRender(job.html, data, { globals: data }),
   );
   const sign = markSignBoxes(body);
   const tagged = job.output?.pdfua ?? false;
-  const lang = job.output?.lang;
   const printBody = (html: string) =>
     timed(timings, "chromiumMs", () =>
       printPdf(
@@ -107,6 +117,7 @@ export async function renderPdf(job: RenderJob, loadStoredAsset: AssetLoader) {
           htmlDocument({
             body: await bandBody(liquid, band, pages, data),
             css: [...css, bandCss(band)],
+            lang,
           }),
           {
             width: layout.width,

@@ -477,6 +477,8 @@ export interface components {
        */
       async?: boolean;
       signing?: components["schemas"]["SigningOptions"];
+      /** @description Who the document is about (an email, a customer number), for erasure. */
+      subject?: string;
     };
     /** @description PDF/A, PDF/UA and certification. */
     OutputOptions: {
@@ -606,6 +608,8 @@ export interface components {
          */
         lang?: string;
       };
+      /** @description Who the document is about (an email, a customer number), for erasure. */
+      subject?: string;
       /**
        * @description `pdf` returns the bytes; `json` returns the generation and a link.
        * @default pdf

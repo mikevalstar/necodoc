@@ -79,7 +79,7 @@ async function recordCase(
   after: TestCaseRow | null,
 ) {
   const [owner] = await tx
-    .select({ name: template.name })
+    .select({ name: template.name, sections: template.sections })
     .from(template)
     .where(eq(template.id, templateId));
   const testCase = after ?? before;
@@ -90,6 +90,7 @@ async function recordCase(
       before,
       after,
       details: { testCaseId: testCase?.id ?? null, testCaseName: testCase?.name ?? null },
+      sections: owner?.sections,
     },
     tx,
   );

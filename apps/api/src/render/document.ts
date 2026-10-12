@@ -7,6 +7,7 @@ import {
   bundledFonts,
   type ThemeFont,
   type ThemeSettings,
+  textDirection,
   themeFontAssetIds,
 } from "@necodoc/shared";
 
@@ -24,12 +25,22 @@ const fontPackages: Record<BundledFont, { pkg: string; faces: string[] }> = {
   "jetbrains-mono": { pkg: "@fontsource/jetbrains-mono", faces: ["400", "700"] },
 };
 
+/**
+ * Scripts the theme fonts lack (ADR 0040), listed after every font so Chromium only uses them for
+ * those glyphs. CJK isn't bundled: it falls back to the server's fonts.
+ */
+const scriptFallbacks = {
+  "noto-sans-arabic": { pkg: "@fontsource/noto-sans-arabic", faces: ["arabic-400", "arabic-700"] },
+  "noto-sans-hebrew": { pkg: "@fontsource/noto-sans-hebrew", faces: ["hebrew-400", "hebrew-700"] },
+};
+const FALLBACK_FAMILIES = '"Noto Sans Arabic", "Noto Sans Hebrew"';
+
 /** Asset-origin path (`fonts/<id>/<file>`) to the bundled font file on disk. */
 export const bundledFontFiles = new Map<string, string>();
 
 // Fontsource's own @font-face rules (with unicode-range subsets), pointed at the asset origin.
 // Chromium only fetches the subsets a document actually uses.
-const bundledFontCss = Object.entries(fontPackages)
+const bundledFontCss = [...Object.entries(fontPackages), ...Object.entries(scriptFallbacks)]
   .flatMap(([id, { pkg, faces }]) => {
     const dir = dirname(require.resolve(pkg));
     return faces.map((face) =>
@@ -46,8 +57,8 @@ const bundledFontCss = Object.entries(fontPackages)
 
 const fontFamily = (font: ThemeFont) =>
   typeof font === "string"
-    ? `"${bundledFonts[font].family}", ${bundledFonts[font].generic}`
-    : `"asset-${font.assetId}", "Noto Sans", sans-serif`;
+    ? `"${bundledFonts[font].family}", ${FALLBACK_FAMILIES}, ${bundledFonts[font].generic}`
+    : `"asset-${font.assetId}", "Noto Sans", ${FALLBACK_FAMILIES}, sans-serif`;
 
 export function themeCss(settings: ThemeSettings, css: string) {
   const s = settings;
@@ -63,12 +74,15 @@ h3 { font-size: ${s.h3Size}pt; }
 a { color: ${s.linkColor}; }
 hr { border: 0; border-top: 1px solid ${s.accentColor}; }
 table { border-collapse: collapse; width: 100%; }
-th, td { border: 1px solid ${s.tableBorderColor}; padding: ${s.tableCellPadding}mm; text-align: left; vertical-align: top; }
+th, td { border: 1px solid ${s.tableBorderColor}; padding: ${s.tableCellPadding}mm; text-align: start; vertical-align: top; }
 th { background: ${s.tableHeaderBackground}; }
 ${css}`;
 }
 
-/** A full HTML document: bundled fonts, then base styles, theme, user CSS, then the body. */
+/**
+ * A full HTML document: bundled fonts, then base styles, theme, user CSS, then the body. The
+ * language sets `lang` and, for right-to-left languages, `dir` (ADR 0040).
+ */
 export function htmlDocument({
   body,
   css,
@@ -80,9 +94,9 @@ export function htmlDocument({
 }) {
   const styles = [
     bundledFontCss,
-    `html, body { margin: 0; padding: 0; } body { font-family: "Noto Sans", sans-serif; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    `html, body { margin: 0; padding: 0; } body { font-family: "Noto Sans", ${FALLBACK_FAMILIES}, sans-serif; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
 thead { display: table-header-group; } tr, img { break-inside: avoid; }`,
     ...css,
   ];
-  return `<!doctype html><html lang="${lang}"><head><meta charset="utf-8">${styles.map((s) => `<style>${s}</style>`).join("")}</head><body>${body}</body></html>`;
+  return `<!doctype html><html lang="${lang}" dir="${textDirection(lang)}"><head><meta charset="utf-8">${styles.map((s) => `<style>${s}</style>`).join("")}</head><body>${body}</body></html>`;
 }

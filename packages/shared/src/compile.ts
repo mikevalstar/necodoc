@@ -1,5 +1,6 @@
 import type { Condition, Field, FieldSection } from "./fields";
-import { type OutputOptions, outputEnabled } from "./output";
+import type { Translations } from "./locale";
+import { type OutputOptions, outputWorthKeeping } from "./output";
 import type { Band } from "./render";
 import type { Signer } from "./signing";
 import type { DesignedContent } from "./template";
@@ -19,6 +20,8 @@ type Scope = {
   lists: ReadonlySet<string>;
   /** The group the enclosing repeating section iterates, if any. */
   repeat: string | null;
+  /** Text runs go through the `t` filter (the template has translations, ADR 0040). */
+  translate: boolean;
 };
 
 const ENTITIES: Record<string, string> = {
@@ -126,10 +129,19 @@ const withMarks = (html: string, marks: readonly Mark[] = []) =>
 /** HTML collapses runs of spaces; TipTap shows them, so keep all but the last as &nbsp;. */
 const keepSpaces = (html: string) => html.replace(/ (?= )/g, "&nbsp;");
 
+/** A text run; translated runs look up their trimmed text, keeping the spaces around it. */
+function textHtml(text: string, scope: Scope) {
+  const core = text.trim();
+  if (!scope.translate || !core) return keepSpaces(escapeHtml(text));
+  const start = text.indexOf(core);
+  const space = (part: string) => keepSpaces(escapeHtml(part));
+  return `${space(text.slice(0, start))}{{ ${liquidString(core)} | t }}${space(text.slice(start + core.length))}`;
+}
+
 function inlineHtml(node: InlineNode, scope: Scope): string {
   switch (node.type) {
     case "text":
-      return withMarks(keepSpaces(escapeHtml(node.text)), node.marks);
+      return withMarks(textHtml(node.text, scope), node.marks);
     case "hardBreak":
       return "<br>";
     case "signBox": {
@@ -263,8 +275,13 @@ function listPaths(sections: readonly FieldSection[]) {
  * One TipTap doc to HTML + Liquid. Throws TemplateCompileError on misplaced group fields.
  * `separator` goes between top-level blocks: code mode uses a newline so the HTML is readable.
  */
-export function compileDoc(doc: Doc, sections: readonly FieldSection[] = [], separator = "") {
-  const scope = { lists: listPaths(sections), repeat: null };
+export function compileDoc(
+  doc: Doc,
+  sections: readonly FieldSection[] = [],
+  separator = "",
+  translate = false,
+) {
+  const scope = { lists: listPaths(sections), repeat: null, translate };
   return doc.content.map((n) => blockHtml(n, scope)).join(separator);
 }
 
@@ -280,6 +297,7 @@ export type CompiledTemplate = {
   partials?: Record<string, string>;
   signers?: Signer[];
   output?: OutputOptions;
+  translations?: Translations;
 };
 
 /** Every HTML/Liquid source a compiled template renders: body, then each band's variants. */
@@ -315,8 +333,10 @@ export function compileDesignedContent(
 ): CompiledTemplate {
   const css = content.css ? { css: content.css } : {};
   const signers = content.signers.length ? { signers: content.signers } : {};
-  // Only when something is on, so templates that never set it keep their publish fingerprint.
-  const output = outputEnabled(content.output) ? { output: content.output } : {};
+  // Only when something is set, so templates that never set it keep their publish fingerprint.
+  const output = outputWorthKeeping(content.output) ? { output: content.output } : {};
+  const translate = Object.keys(content.translations).length > 0;
+  const translations = translate ? { translations: content.translations } : {};
   if (content.mode === "code") {
     return {
       html: content.body,
@@ -325,25 +345,28 @@ export function compileDesignedContent(
       ...css,
       ...signers,
       ...output,
+      ...translations,
     };
   }
+  const compile = (doc: Doc) => compileDoc(doc, sections, "", translate);
   const band = (visual: typeof content.header): Band | undefined =>
     visual
       ? {
           height: visual.height,
-          html: compileDoc(visual.doc, sections),
-          ...(visual.firstPage ? { firstPageHtml: compileDoc(visual.firstPage, sections) } : {}),
+          html: compile(visual.doc),
+          ...(visual.firstPage ? { firstPageHtml: compile(visual.firstPage) } : {}),
         }
       : undefined;
   const header = band(content.header);
   const footer = band(content.footer);
   return {
-    html: compileDoc(content.body, sections),
+    html: compile(content.body),
     ...(header ? { header } : {}),
     ...(footer ? { footer } : {}),
     ...css,
     ...signers,
     ...output,
+    ...translations,
   };
 }
 
@@ -353,7 +376,8 @@ export function toCodeMode(
   sections: readonly FieldSection[],
 ): DesignedContent {
   if (content.mode === "code") return content;
-  const html = (doc: Doc) => compileDoc(doc, sections, "\n");
+  const translate = Object.keys(content.translations).length > 0;
+  const html = (doc: Doc) => compileDoc(doc, sections, "\n", translate);
   const band = (visual: typeof content.header): Band | null =>
     visual
       ? {
@@ -370,6 +394,7 @@ export function toCodeMode(
     css: content.css,
     signers: content.signers,
     output: content.output,
+    translations: content.translations,
   };
 }
 

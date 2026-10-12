@@ -70,7 +70,10 @@ const generationColumns = (matchedBy: SQL<"subject" | "value" | "packet">) => ({
   matchedBy,
 });
 
-const selectGenerations = (matchedBy: SQL<"subject" | "value" | "packet">, where: SQL | undefined) =>
+const selectGenerations = (
+  matchedBy: SQL<"subject" | "value" | "packet">,
+  where: SQL | undefined,
+) =>
   db
     .select(generationColumns(matchedBy))
     .from(generation)
@@ -119,7 +122,9 @@ export async function findSubject(q: string): Promise<SubjectMatches> {
       ownerName: user.name,
       respondentEmail: submission.respondentEmail,
       createdAt: submission.createdAt,
-      matchedBy: sql<"respondent_email" | "value">`case when ${emailIs} then 'respondent_email' else 'value' end`,
+      matchedBy: sql<
+        "respondent_email" | "value"
+      >`case when ${emailIs} then 'respondent_email' else 'value' end`,
     })
     .from(submission)
     .leftJoin(user, eq(user.id, submission.ownerId))
@@ -156,8 +161,12 @@ export async function eraseSubject(request: {
   const found = await findSubject(request.q);
   const pickedGenerations = new Set(request.generationIds);
   const pickedSubmissions = new Set(request.submissionIds);
-  const generationIds = found.generations.map((g) => g.id).filter((id) => pickedGenerations.has(id));
-  const submissionIds = found.submissions.map((s) => s.id).filter((id) => pickedSubmissions.has(id));
+  const generationIds = found.generations
+    .map((g) => g.id)
+    .filter((id) => pickedGenerations.has(id));
+  const submissionIds = found.submissions
+    .map((s) => s.id)
+    .filter((id) => pickedSubmissions.has(id));
 
   const erased = await db.transaction(async (tx) => {
     const deliveries = generationIds.length
@@ -172,7 +181,8 @@ export async function eraseSubject(request: {
           .where(inArray(downloadLink.generationId, generationIds))
           .returning({ id: downloadLink.id })
       : [];
-    if (submissionIds.length) await tx.delete(submission).where(inArray(submission.id, submissionIds));
+    if (submissionIds.length)
+      await tx.delete(submission).where(inArray(submission.id, submissionIds));
     const rows = generationIds.length
       ? await tx
           .delete(generation)

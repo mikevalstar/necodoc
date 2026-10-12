@@ -412,8 +412,15 @@ const keyed = new Hono<AppEnv>()
     async (c) => {
       const key = c.get("apiKey");
       const { id, version } = c.req.valid("param");
-      const { data, filename, async, response, signing: asked, output, subject } =
-        c.req.valid("json");
+      const {
+        data,
+        filename,
+        async,
+        response,
+        signing: asked,
+        output,
+        subject,
+      } = c.req.valid("json");
       const signing = asked ? signingOptionsOf(asked) : undefined;
       if (!templateAllowed(key, id)) {
         return v1Error(c, 403, "template_not_allowed", "This key can't use that template");

@@ -23,6 +23,7 @@ import { Route as STokenRouteImport } from './routes/s.$token'
 import { Route as AppAdminApiKeysRouteImport } from './routes/_app/admin/api-keys'
 import { Route as AppAdminAuditRouteImport } from './routes/_app/admin/audit'
 import { Route as AppAdminFaqRouteImport } from './routes/_app/admin/faq'
+import { Route as AppAdminPrivacyRouteImport } from './routes/_app/admin/privacy'
 import { Route as AppAdminQueueRouteImport } from './routes/_app/admin/queue'
 import { Route as AppAdminSystemRouteImport } from './routes/_app/admin/system'
 import { Route as AppAdminUsersRouteImport } from './routes/_app/admin/users'
@@ -116,6 +117,11 @@ const AppAdminAuditRoute = AppAdminAuditRouteImport.update({
 const AppAdminFaqRoute = AppAdminFaqRouteImport.update({
   id: '/admin/faq',
   path: '/admin/faq',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppAdminPrivacyRoute = AppAdminPrivacyRouteImport.update({
+  id: '/admin/privacy',
+  path: '/admin/privacy',
   getParentRoute: () => AppRoute,
 } as any)
 const AppAdminQueueRoute = AppAdminQueueRouteImport.update({
@@ -262,6 +268,7 @@ export interface FileRoutesByFullPath {
   '/admin/api-keys': typeof AppAdminApiKeysRoute
   '/admin/audit': typeof AppAdminAuditRoute
   '/admin/faq': typeof AppAdminFaqRoute
+  '/admin/privacy': typeof AppAdminPrivacyRoute
   '/admin/queue': typeof AppAdminQueueRoute
   '/admin/system': typeof AppAdminSystemRoute
   '/admin/users': typeof AppAdminUsersRoute
@@ -302,6 +309,7 @@ export interface FileRoutesByTo {
   '/admin/api-keys': typeof AppAdminApiKeysRoute
   '/admin/audit': typeof AppAdminAuditRoute
   '/admin/faq': typeof AppAdminFaqRoute
+  '/admin/privacy': typeof AppAdminPrivacyRoute
   '/admin/queue': typeof AppAdminQueueRoute
   '/admin/system': typeof AppAdminSystemRoute
   '/admin/users': typeof AppAdminUsersRoute
@@ -344,6 +352,7 @@ export interface FileRoutesById {
   '/_app/admin/api-keys': typeof AppAdminApiKeysRoute
   '/_app/admin/audit': typeof AppAdminAuditRoute
   '/_app/admin/faq': typeof AppAdminFaqRoute
+  '/_app/admin/privacy': typeof AppAdminPrivacyRoute
   '/_app/admin/queue': typeof AppAdminQueueRoute
   '/_app/admin/system': typeof AppAdminSystemRoute
   '/_app/admin/users': typeof AppAdminUsersRoute
@@ -386,6 +395,7 @@ export interface FileRouteTypes {
     | '/admin/api-keys'
     | '/admin/audit'
     | '/admin/faq'
+    | '/admin/privacy'
     | '/admin/queue'
     | '/admin/system'
     | '/admin/users'
@@ -426,6 +436,7 @@ export interface FileRouteTypes {
     | '/admin/api-keys'
     | '/admin/audit'
     | '/admin/faq'
+    | '/admin/privacy'
     | '/admin/queue'
     | '/admin/system'
     | '/admin/users'
@@ -467,6 +478,7 @@ export interface FileRouteTypes {
     | '/_app/admin/api-keys'
     | '/_app/admin/audit'
     | '/_app/admin/faq'
+    | '/_app/admin/privacy'
     | '/_app/admin/queue'
     | '/_app/admin/system'
     | '/_app/admin/users'
@@ -600,6 +612,13 @@ declare module '@tanstack/react-router' {
       path: '/admin/faq'
       fullPath: '/admin/faq'
       preLoaderRoute: typeof AppAdminFaqRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/admin/privacy': {
+      id: '/_app/admin/privacy'
+      path: '/admin/privacy'
+      fullPath: '/admin/privacy'
+      preLoaderRoute: typeof AppAdminPrivacyRouteImport
       parentRoute: typeof AppRoute
     }
     '/_app/admin/queue': {
@@ -790,6 +809,7 @@ interface AppRouteChildren {
   AppAdminApiKeysRoute: typeof AppAdminApiKeysRoute
   AppAdminAuditRoute: typeof AppAdminAuditRoute
   AppAdminFaqRoute: typeof AppAdminFaqRoute
+  AppAdminPrivacyRoute: typeof AppAdminPrivacyRoute
   AppAdminQueueRoute: typeof AppAdminQueueRoute
   AppAdminSystemRoute: typeof AppAdminSystemRoute
   AppAdminUsersRoute: typeof AppAdminUsersRoute
@@ -827,6 +847,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppAdminApiKeysRoute: AppAdminApiKeysRoute,
   AppAdminAuditRoute: AppAdminAuditRoute,
   AppAdminFaqRoute: AppAdminFaqRoute,
+  AppAdminPrivacyRoute: AppAdminPrivacyRoute,
   AppAdminQueueRoute: AppAdminQueueRoute,
   AppAdminSystemRoute: AppAdminSystemRoute,
   AppAdminUsersRoute: AppAdminUsersRoute,

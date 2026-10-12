@@ -44,6 +44,8 @@
     "@fontsource/inter": "^5.3.0",
     "@fontsource/jetbrains-mono": "^5.3.0",
     "@fontsource/noto-sans": "^5.3.0",
+    "@fontsource/noto-sans-arabic": "^5.3.0",
+    "@fontsource/noto-sans-hebrew": "^5.3.0",
     "@fontsource/noto-serif": "^5.3.0",
     "@hono/node-server": "^2.1.1",
     "@hono/standard-validator": "^0.4.0",

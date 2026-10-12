@@ -1,3 +1,5 @@
+import { type FieldSection, maskData } from "@necodoc/shared";
+
 // Spec: docs/features/audit-log.md, ADR 0032. What an audit entry keeps of a change; pure, so
 // it's tested without a database (audit.ts writes the entry).
 
@@ -49,3 +51,27 @@ export function changedFields(before: Fields | null | undefined, after: Fields |
 /** Fields as plain JSON (dates as ISO strings). */
 export const plainFields = (fields: Fields): Fields =>
   Object.fromEntries(Object.entries(fields).map(([key, value]) => [key, stable(value)]));
+
+/** Keys that hold field values: template sample data, share-link prefills, test case data. */
+const DATA_KEYS = ["sampleData", "prefill", "data"];
+
+const isRecord = (value: unknown): value is Fields =>
+  typeof value === "object" && value !== null && !Array.isArray(value);
+
+/**
+ * Sensitive field values masked (ADR 0039): the log is append-only, so what goes in stays. Done
+ * after the diff, so a change to a sensitive value still shows as a change.
+ */
+export function maskValues(fields: Fields | null, sections: readonly FieldSection[] | null) {
+  if (!fields) return null;
+  const masked = { ...fields };
+  for (const key of DATA_KEYS) {
+    const value = masked[key];
+    if (isRecord(value)) masked[key] = maskData(value, sections);
+  }
+  return masked;
+}
+
+/** A template row's own field definitions. */
+export const sectionsOf = (fields: Fields | null | undefined) =>
+  fields && Array.isArray(fields.sections) ? (fields.sections as FieldSection[]) : null;

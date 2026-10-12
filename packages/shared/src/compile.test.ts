@@ -361,6 +361,25 @@ describe("compileDesignedContent", () => {
     });
   });
 
+  it("translates text runs only when the template has translations (ADR 0040)", () => {
+    const body = doc(p(text("  Dear "), merge("name"), text(", thanks", [{ type: "bold" }])));
+    const plain = designedContentSchema.parse({ mode: "visual", body });
+    expect(compileDesignedContent(plain, sections).html).toBe(
+      "<p>&nbsp; Dear {{ name }}<strong>, thanks</strong></p>",
+    );
+    const translations = { fr: { Dear: "Cher" } };
+    const translated = designedContentSchema.parse({ mode: "visual", body, translations });
+    expect(compileDesignedContent(translated, sections)).toEqual({
+      html: `<p>&nbsp; {{ ${liquidString("Dear")} | t }} {{ name }}<strong>{{ ${liquidString(", thanks")} | t }}</strong></p>`,
+      translations,
+    });
+  });
+
+  it("keeps a non-default language in the compiled output", () => {
+    const fr = designedContentSchema.parse({ mode: "visual", body: doc(), output: { lang: "fr" } });
+    expect(compileDesignedContent(fr, sections).output?.lang).toBe("fr");
+  });
+
   it("omits missing bands", () => {
     const bare = designedContentSchema.parse({ mode: "visual", body: doc() });
     expect(compileDesignedContent(bare, sections)).toEqual({ html: "" });

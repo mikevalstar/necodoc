@@ -31,8 +31,8 @@ import { apikey, file, generation, template, user } from "../db/schema";
 import { mintLink, serveFile } from "../download";
 import { deleteFiles, deleteObjects } from "../files";
 import { generate } from "../generate";
-import { maskedInput } from "../privacy";
 import { type AppEnv, requirePermission, requireRole, type SignedInEnv } from "../middleware";
+import { maskedInput } from "../privacy";
 import { signingQueryOptions, signingResponse } from "../signing-package";
 
 // Spec: docs/features/generation-log.md. Admins see every entry; everyone else only their own.

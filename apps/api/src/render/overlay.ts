@@ -23,11 +23,12 @@ import {
   type OverlayRect,
   type OverlayRenderRequest,
   type RenderTimings,
+  stringsFor,
   type TextStyle,
 } from "@necodoc/shared";
 import bwipjs from "bwip-js/node";
 import type { AssetLoader } from "./browser";
-import { plainLiquid } from "./liquid";
+import { createLiquid, partialsFs } from "./liquid";
 import { loadSourcePdf } from "./pdf-source";
 import { overlaySignBoxes, signingPackage } from "./signing";
 
@@ -465,10 +466,17 @@ export async function renderOverlay(
   const doc = await loadSourcePdf(bytes);
   lap("stampMs");
 
-  // Values first, so a Liquid error fails the render before any drawing.
+  // Values first, so a Liquid error fails the render before any drawing. Same filters as HTML,
+  // for the document language (ADR 0040); no escaping, since values are drawn as text.
+  const lang = request.output?.lang ?? "en";
+  const liquid = createLiquid(partialsFs(), {
+    escapeHtml: false,
+    lang,
+    strings: stringsFor(request.translations, lang),
+  });
   const values: string[] = [];
   for (const box of request.boxes) {
-    values.push((await plainLiquid.parseAndRender(box.value, request.data)).trim());
+    values.push((await liquid.parseAndRender(box.value, request.data)).trim());
   }
   lap("liquidMs");
 

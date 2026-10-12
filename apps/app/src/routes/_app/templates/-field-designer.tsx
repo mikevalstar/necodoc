@@ -4,6 +4,7 @@ import {
   type FieldSection,
   type FieldType,
   fieldSectionsSchema,
+  isSensitiveField,
   RESERVED_FIELD_KEYS,
   type ScalarField,
 } from "@necodoc/shared";
@@ -73,8 +74,8 @@ const uniqueKey = (base: string, taken: ReadonlySet<string>) => {
 
 /** Converts a field to another type, keeping what every field has. */
 function scalarOfType(field: Field, type: ScalarField["type"]): ScalarField {
-  const { key, label, help, required, showIf } = field;
-  const base = { key, label, help, required, showIf };
+  const { key, label, help, required, showIf, sensitive } = field;
+  const base = { key, label, help, required, showIf, sensitive };
   if (type === "choice") {
     return {
       ...base,
@@ -91,13 +92,14 @@ function scalarOfType(field: Field, type: ScalarField["type"]): ScalarField {
 
 function ofType(field: Field, type: FieldType): Field {
   if (type !== "group") return scalarOfType(field, type);
-  const { key, label, help, required, showIf } = field;
+  const { key, label, help, required, showIf, sensitive } = field;
   return {
     key,
     label,
     help,
     required,
     showIf,
+    sensitive,
     type,
     fields: [{ type: "text", key: "description", label: "Description", required: false }],
   };
@@ -487,6 +489,7 @@ function FieldRow({
           </Badge>
           {field.required && <Badge variant="outline">Required</Badge>}
           {field.showIf && <Badge variant="outline">Show if</Badge>}
+          {isSensitiveField(field) && <Badge variant="outline">Sensitive</Badge>}
           {bad && <span className="text-xs text-destructive">Needs attention</span>}
         </button>
         {!disabled && reorder}
@@ -628,6 +631,27 @@ function FieldForm({
               ? "Needs at least one item"
               : "Required"}
         </FieldLabel>
+      </FieldBox>
+      <FieldBox>
+        <FieldLabel htmlFor={`${id}-sensitive`}>Sensitive</FieldLabel>
+        <NativeSelect
+          id={`${id}-sensitive`}
+          className="w-full"
+          value={field.sensitive === undefined ? "auto" : field.sensitive ? "yes" : "no"}
+          onChange={(e) => {
+            const value = e.target.value;
+            onChange({ ...field, sensitive: value === "auto" ? undefined : value === "yes" });
+          }}
+        >
+          <NativeSelectOption value="auto">
+            Automatic ({isSensitiveField({ ...field, sensitive: undefined }) ? "yes" : "no"})
+          </NativeSelectOption>
+          <NativeSelectOption value="yes">Yes</NativeSelectOption>
+          <NativeSelectOption value="no">No</NativeSelectOption>
+        </NativeSelect>
+        <FieldDescription>
+          Masked in the audit log and in other people's log entries. PDFs keep the value.
+        </FieldDescription>
       </FieldBox>
       <TypeSettings
         field={field}

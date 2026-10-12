@@ -946,7 +946,7 @@ export const faq: readonly FaqEntry[] = [
       "Append-only: nobody can edit or delete entries through the app or the API, and the database refuses updates and deletes. Someone with direct database owner access can still turn that off, so it's tamper-resistant, not tamper-proof.",
       "Entries are kept forever; there is no retention setting for the audit log.",
       "A changed field is stored whole, so editing a long template or theme stores the full content before and after.",
-      "Names, emails and IP addresses are stored as they are; nothing is masked yet.",
+      "Values of fields marked sensitive (or automatically sensitive, like signatures and SIN or tax id fields) are masked in sample data, share-link prefills and test cases. Names, emails and IP addresses of people using necodoc are stored as they are, and nothing is ever erased from the log.",
       "Downloads and uses of signed links aren't recorded, only creating a link.",
       "Sign-ins and Admin › Users actions are recorded just after they happen, not in the same database transaction.",
     ],
@@ -1020,5 +1020,39 @@ export const faq: readonly FaqEntry[] = [
       { action: "Install the certificate", needs: "admin" },
     ],
     spec: "docs/features/archival-accessible-and-certified-output.md",
+  },
+  {
+    feature: "Sensitive fields and masking",
+    group: "Templates",
+    what: "A template field can be marked sensitive. Its values are then masked as [masked] in the audit log and when an admin opens someone else's generation. Signatures and fields whose key looks like a SIN/SSN, tax id, passport, birth date, bank account, IBAN or card number are sensitive automatically. The PDF, the stored input (used for re-runs), your own documents and downloads keep the real value. Server logs and traces never contain field values at all.",
+    howTo:
+      "Template › Fields: open a field and set Sensitive to Automatic, Yes or No. Automatic shows what it resolves to. Fields that are sensitive show a Sensitive badge.",
+    limitations: [
+      "Only flagged or automatically matched fields are masked. A plain name or email field shows to admins unless you mark it.",
+      "Audit entries written before a field was marked keep the values they recorded.",
+      "HTML API renders have no field definitions, so only the key names decide what's masked.",
+    ],
+    access: [
+      { action: "Mark fields sensitive", needs: edit },
+      { action: "See other people's inputs (masked)", needs: "admin" },
+    ],
+    spec: "docs/features/personal-data-masking-and-erasure.md",
+  },
+  {
+    feature: "Data subjects (GDPR erasure)",
+    group: "Admin",
+    what: "Finds everything necodoc stores about one person and deletes it on request: generations (their input and PDF, including the file in storage), packets built from them, webhook delivery logs, signed-link records, documents and share-link responses. Generations can carry a subject key (an email or customer number) given when they're generated; share-link responses use the respondent's email. You get an erasure report, and the audit log records the erasure with counts only.",
+    howTo:
+      "Admin › Data subjects: search an email, name or identifier, untick anything that isn't this person, then Erase selected and confirm. Download the report as JSON for your records. API callers should send `subject` on render and generate calls so their documents can be found.",
+    limitations: [
+      "Matches are exact whole values, ignoring case: misspellings and values inside longer text (such as an HTML API body) aren't found.",
+      "The audit log and shipped server logs can't be erased; masking sensitive fields is what keeps personal data out of them.",
+      "Share-link prefills, template sample data and test cases aren't searched or erased.",
+      "Erasing is permanent, and analytics counts and batch progress drop accordingly.",
+      "People with a necodoc account are removed through Admin › Users.",
+      "Up to 500 matches of each kind per search; erase them and search again for more.",
+    ],
+    access: [{ action: "Search and erase data subjects", needs: "admin" }],
+    spec: "docs/features/personal-data-masking-and-erasure.md",
   },
 ];
