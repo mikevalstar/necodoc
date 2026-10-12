@@ -61,44 +61,55 @@ async function overlay(name: string) {
   return pdf;
 }
 
+// Each veraPDF check starts a JVM; under a full parallel run that alone can pass 5 s.
+const verapdfTimeout = 60_000;
+
 describe("applyConformance", () => {
-  it("makes a tagged Chromium render (lists, sign boxes, bands) PDF/A-2u and PDF/UA-1", async () => {
-    const rendered = await renderTagged();
-    // Chromium alone isn't PDF/A (no output intent, metadata or file id).
-    if (hasVerapdf) expect(verapdf(rendered, "2u").compliant).toBe(false);
-    const result = await applyConformance(rendered, {
-      pdfa: "2u",
-      pdfua: true,
-      lang: "en-CA",
-      title: "Invoice 42",
-    });
-    expect(result).toMatchObject({ pdfa: "2u", pdfua: true, warnings: [] });
+  it(
+    "makes a tagged Chromium render (lists, sign boxes, bands) PDF/A-2u and PDF/UA-1",
+    async () => {
+      const rendered = await renderTagged();
+      // Chromium alone isn't PDF/A (no output intent, metadata or file id).
+      if (hasVerapdf) expect(verapdf(rendered, "2u").compliant).toBe(false);
+      const result = await applyConformance(rendered, {
+        pdfa: "2u",
+        pdfua: true,
+        lang: "en-CA",
+        title: "Invoice 42",
+      });
+      expect(result).toMatchObject({ pdfa: "2u", pdfua: true, warnings: [] });
 
-    const doc = await PDFDocument.load(result.pdf);
-    expect(doc.getTitle()).toBe("Invoice 42");
-    expect(doc.catalog.get(PDFName.of("Lang"))?.toString()).toBe("(en-CA)");
-    expect(doc.catalog.has(PDFName.of("StructTreeRoot"))).toBe(true);
-    expect(doc.catalog.lookup(PDFName.of("OutputIntents"), PDFArray).size()).toBe(1);
-    expect(doc.context.trailerInfo.ID).toBeDefined();
-    const link = doc.getPage(0).node.lookup(PDFName.of("Annots"), PDFArray).lookup(0, PDFDict);
-    expect(link.get(PDFName.of("Contents"))).toBeDefined();
+      const doc = await PDFDocument.load(result.pdf);
+      expect(doc.getTitle()).toBe("Invoice 42");
+      expect(doc.catalog.get(PDFName.of("Lang"))?.toString()).toBe("(en-CA)");
+      expect(doc.catalog.has(PDFName.of("StructTreeRoot"))).toBe(true);
+      expect(doc.catalog.lookup(PDFName.of("OutputIntents"), PDFArray).size()).toBe(1);
+      expect(doc.context.trailerInfo.ID).toBeDefined();
+      const link = doc.getPage(0).node.lookup(PDFName.of("Annots"), PDFArray).lookup(0, PDFDict);
+      expect(link.get(PDFName.of("Contents"))).toBeDefined();
 
-    if (hasVerapdf) {
-      expect(verapdf(result.pdf, "2u")).toEqual({ compliant: true, failed: [] });
-      expect(verapdf(result.pdf, "ua1")).toEqual({ compliant: true, failed: [] });
-    }
-  });
+      if (hasVerapdf) {
+        expect(verapdf(result.pdf, "2u")).toEqual({ compliant: true, failed: [] });
+        expect(verapdf(result.pdf, "ua1")).toEqual({ compliant: true, failed: [] });
+      }
+    },
+    verapdfTimeout,
+  );
 
-  it("claims PDF/A for an overlay whose source embeds its fonts", async () => {
-    const result = await applyConformance(await overlay("moraine-oh-row-bond"), {
-      pdfa: "2b",
-      pdfua: false,
-      lang: "en",
-      title: "Bond",
-    });
-    expect(result).toMatchObject({ pdfa: "2b", warnings: [] });
-    if (hasVerapdf) expect(verapdf(result.pdf, "2b")).toEqual({ compliant: true, failed: [] });
-  });
+  it(
+    "claims PDF/A for an overlay whose source embeds its fonts",
+    async () => {
+      const result = await applyConformance(await overlay("moraine-oh-row-bond"), {
+        pdfa: "2b",
+        pdfua: false,
+        lang: "en",
+        title: "Bond",
+      });
+      expect(result).toMatchObject({ pdfa: "2b", warnings: [] });
+      if (hasVerapdf) expect(verapdf(result.pdf, "2b")).toEqual({ compliant: true, failed: [] });
+    },
+    verapdfTimeout,
+  );
 
   it.each([
     ["phoenix-az-permit-bond", "fonts it doesn't embed (Helvetica, ZapfDingbats)"],

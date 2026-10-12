@@ -87,7 +87,8 @@ describe("certifyPdf", () => {
     expect(signature.toString()).toMatch(/\/P 2\b/);
     expect(signedData.certificates).toHaveLength(2);
     if (hasVerapdf) expect(verapdf(pdf, "2b")).toEqual({ compliant: true, failed: [] });
-  });
+    // veraPDF starts a JVM; under a full parallel run that alone can pass 5 s.
+  }, 60_000);
 
   it("certifies with a PEM EC key", async () => {
     const certifier = await certifierFromPem(
