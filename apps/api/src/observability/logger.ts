@@ -6,11 +6,16 @@ import pino, { type DestinationStream, type LevelWithSilent } from "pino";
 // ADR 0036: one JSON object per line. Kept free of env and the database so tests can build one.
 
 /**
- * Replaced with "[Redacted]" wherever they appear (top level or one object down). The PII-masking
- * phase adds field-value paths here; anything logging field values must put them under `fields`
- * so one path (`fields.*`) can cover them.
+ * Replaced with "[Redacted]" wherever they appear (top level or one object down). Field values are
+ * never logged (ADR 0039); `data`, `input` and `fields` are a backstop for anything that tries.
  */
 export const redactPaths = [
+  "data",
+  "*.data",
+  "input",
+  "*.input",
+  "fields",
+  "*.fields",
   "password",
   "*.password",
   "token",
@@ -27,13 +32,17 @@ export const redactPaths = [
 /** Drizzle's "params: …" (rendered input, field values) up to the stack trace or the end. */
 const queryParams = /\nparams: [\s\S]*?(?=\n {4}at |$)/g;
 
+/** An error message or stack without the query parameters a failed database call carries. */
+export const withoutQueryParams = (text: string) =>
+  text.replace(queryParams, "\nparams: [Redacted]");
+
 /** pino's error serializer, without the query parameters a failed database call carries. */
 export function serializeError(error: Error) {
   const { params: _params, ...serialized } = pino.stdSerializers.err(error);
   return {
     ...serialized,
-    message: serialized.message.replace(queryParams, "\nparams: [Redacted]"),
-    stack: serialized.stack.replace(queryParams, "\nparams: [Redacted]"),
+    message: withoutQueryParams(serialized.message),
+    stack: withoutQueryParams(serialized.stack),
   };
 }
 

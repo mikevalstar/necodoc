@@ -180,14 +180,16 @@ export async function deleteFiles(tx: Executor, where: SQL): Promise<ObjectRef[]
 
 /**
  * Deletes driver objects. Best effort: the rows are already gone, so a failure is logged (an
- * orphaned object, ADR 0023) rather than thrown.
+ * orphaned object, ADR 0023) rather than thrown. Returns how many were left behind.
  */
 export async function deleteObjects(objects: ObjectRef[]) {
   const stored = objects.filter((object) => object.storage !== "db");
-  if (!stored.length) return;
+  if (!stored.length) return 0;
   try {
     await storage.delete(stored.map(activeKey));
+    return 0;
   } catch (error) {
     log.error({ err: error, objects: stored.length }, "storage: objects left behind");
+    return stored.length;
   }
 }

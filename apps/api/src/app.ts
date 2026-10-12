@@ -18,6 +18,7 @@ import { generationRoutes } from "./routes/generations";
 import { healthRoutes } from "./routes/health";
 import { notificationRoutes } from "./routes/notifications";
 import { pdfSourceRoutes } from "./routes/pdf-sources";
+import { privacyRoutes } from "./routes/privacy";
 import { renderRoutes } from "./routes/render";
 import { reviewRoutes } from "./routes/reviews";
 import { serviceAccountRoutes } from "./routes/service-accounts";
@@ -94,6 +95,7 @@ const routes = app
   .route("/service-accounts", serviceAccountRoutes)
   .route("/webhooks", webhookRoutes)
   .route("/audit", auditRoutes)
+  .route("/privacy", privacyRoutes)
   .route("/analytics", analyticsRoutes)
   // Public, API keys only (docs/features/html-to-pdf-api.md).
   .route("/v1", v1Routes)

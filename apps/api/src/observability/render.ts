@@ -1,4 +1,4 @@
-import type { RenderInput, RenderTimings } from "@necodoc/shared";
+import { type RenderInput, type RenderTimings, scrubValues } from "@necodoc/shared";
 import { log } from "../log";
 import { queueWait, renderDuration, renderPhaseDuration } from "./metrics";
 import { withSpan } from "./tracing";
@@ -6,6 +6,10 @@ import { withSpan } from "./tracing";
 // ADR 0036: what generate.ts reports about each render, kept out of its control flow.
 
 const modeOf = (request: RenderInput) => ("kind" in request ? request.kind : "html");
+
+/** Text with the request's field values and signers masked: logs and spans never carry them. */
+export const scrubRequest = (text: string, request: RenderInput | null) =>
+  request && "data" in request ? scrubValues(text, [request.data, request.signers]) : text;
 
 /** Runs one render in a span and times it into `necodoc_render_duration_seconds`. */
 export async function observeRender<T extends { timings: RenderTimings; pageCount: number }>(
@@ -30,6 +34,7 @@ export async function observeRender<T extends { timings: RenderTimings; pageCoun
         });
         return rendered;
       },
+      (message) => scrubRequest(message, request),
     );
     status = "success";
     if (kind === "generation") {
@@ -64,7 +69,10 @@ export function logGeneration(entry: {
   queueWait.observe(entry.queueWaitMs / 1000);
   const line = { ...rest, mode: request ? modeOf(request) : undefined };
   if ("error" in outcome) {
-    log.warn({ ...line, status: "error", error: outcome.error }, "render failed");
+    log.warn(
+      { ...line, status: "error", error: scrubRequest(outcome.error, request) },
+      "render failed",
+    );
     return;
   }
   log.info(

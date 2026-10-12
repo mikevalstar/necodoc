@@ -10,7 +10,7 @@ import { createMiddleware } from "hono/factory";
 import { routePath } from "hono/route";
 import { log } from "../log";
 import { type AppEnv, clientIp } from "../middleware";
-import { logContext } from "./logger";
+import { logContext, withoutQueryParams } from "./logger";
 import { httpDuration } from "./metrics";
 import { failSpan, tracer, tracingEnabled } from "./tracing";
 
@@ -56,7 +56,7 @@ export const observeRequests = createMiddleware<KeyEnv>(async (c, next) => {
     span.setAttributes({ "http.route": route, "http.response.status_code": status });
     if (userId) span.setAttribute("necodoc.user_id", userId);
     if (apiKeyId) span.setAttribute("necodoc.api_key_id", apiKeyId);
-    if (c.error) failSpan(span, c.error);
+    if (c.error) failSpan(span, c.error, withoutQueryParams);
     else if (status >= 500) span.setStatus({ code: SpanStatusCode.ERROR });
     span.end();
   }

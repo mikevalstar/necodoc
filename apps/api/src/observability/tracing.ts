@@ -49,19 +49,21 @@ export const stopTracing = async () => stop?.();
 
 /**
  * Runs `fn` in a child span of the active one; marks it failed if `fn` throws. `fn` gets the span
- * to add attributes to (or undefined when tracing is off).
+ * to add attributes to (or undefined when tracing is off). `scrub` cleans a failure's message
+ * before it goes on the span (render errors can quote field values, ADR 0039).
  */
 export function withSpan<T>(
   name: string,
   attributes: Attributes,
   fn: (span: Span | undefined) => Promise<T>,
+  scrub?: (message: string) => string,
 ): Promise<T> {
   if (!tracingEnabled) return fn(undefined);
   return tracer.startActiveSpan(name, { attributes }, async (span) => {
     try {
       return await fn(span);
     } catch (error) {
-      failSpan(span, error);
+      failSpan(span, error, scrub);
       throw error;
     } finally {
       span.end();
@@ -69,10 +71,10 @@ export function withSpan<T>(
   });
 }
 
-export function failSpan(span: Span, error: unknown) {
-  if (error instanceof Error) span.recordException(error);
-  span.setStatus({
-    code: SpanStatusCode.ERROR,
-    message: error instanceof Error ? error.message : String(error),
-  });
+export function failSpan(span: Span, error: unknown, scrub = (message: string) => message) {
+  const message = scrub(error instanceof Error ? error.message : String(error));
+  if (error instanceof Error) {
+    span.recordException({ name: error.name, message, stack: error.stack && scrub(error.stack) });
+  }
+  span.setStatus({ code: SpanStatusCode.ERROR, message });
 }

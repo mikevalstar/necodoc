@@ -3,7 +3,9 @@ import {
   type AuditAction,
   type AuditActorKind,
   auditActions,
+  type FieldSection,
   type GenerationFilter,
+  maskData,
   type SignInMethod,
 } from "@necodoc/shared";
 import { createMiddleware } from "hono/factory";
@@ -88,6 +90,30 @@ type RequiredDetails = {
 
 type Fields = Record<string, unknown>;
 
+/** Keys that hold field values: template sample data, share-link prefills, test case data. */
+const DATA_KEYS = ["sampleData", "prefill", "data"];
+
+const isRecord = (value: unknown): value is Fields =>
+  typeof value === "object" && value !== null && !Array.isArray(value);
+
+/**
+ * Sensitive field values masked (ADR 0039): the log is append-only, so what goes in stays. Done
+ * after the diff, so a change to a sensitive value still shows as a change.
+ */
+function maskValues(fields: Fields | null, sections: readonly FieldSection[] | null) {
+  if (!fields) return null;
+  const masked = { ...fields };
+  for (const key of DATA_KEYS) {
+    const value = masked[key];
+    if (isRecord(value)) masked[key] = maskData(value, sections);
+  }
+  return masked;
+}
+
+/** A template row's own field definitions. */
+const sectionsOf = (fields: Fields | null | undefined) =>
+  Array.isArray(fields?.sections) ? (fields.sections as FieldSection[]) : null;
+
 export type AuditEvent = {
   [A in AuditAction]: {
     action: A;
@@ -97,6 +123,11 @@ export type AuditEvent = {
     after?: Fields | null;
     /** Who acted, when it isn't the request's actor (a sign-in, SSO provisioning). */
     actor?: Partial<Actor>;
+    /**
+     * The fields that field values in the entry (`sampleData`, `prefill`, `data`) belong to, for
+     * masking; without them a row's own `sections` are used, else only keys decide.
+     */
+    sections?: readonly FieldSection[] | null;
   } & (A extends keyof RequiredDetails ? { details: RequiredDetails[A] } : { details?: Fields });
 }[AuditAction];
 
@@ -104,7 +135,10 @@ export type AuditEvent = {
 export async function recordAudit(event: AuditEvent, tx: Pick<typeof db, "insert"> = db) {
   const scope = scopes.getStore();
   const actor: Actor = { ...(scope?.actor ?? { kind: "system", ...nobody }), ...event.actor };
-  const { before, after } = changedFields(event.before, event.after);
+  const changed = changedFields(event.before, event.after);
+  const sections = event.sections ?? sectionsOf(event.after) ?? sectionsOf(event.before);
+  const before = maskValues(changed.before, sections);
+  const after = maskValues(changed.after, sections);
   await tx.insert(auditEvent).values({
     actorKind: actor.kind,
     actorId: actor.id,
@@ -117,7 +151,7 @@ export async function recordAudit(event: AuditEvent, tx: Pick<typeof db, "insert
     targetName: event.target.name ?? null,
     before,
     after,
-    details: event.details ? plainFields(event.details) : null,
+    details: event.details ? maskValues(plainFields(event.details), sections) : null,
     ip: scope?.ip ?? null,
     userAgent: scope?.userAgent ?? null,
     requestId: scope?.requestId ?? null,
