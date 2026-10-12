@@ -62,6 +62,19 @@ brought the request.
   in [Layout.astro](../../apps/web/src/layouts/Layout.astro). The site uses
   no other trackers.
 
+**Decisions taken** (Mike, 2026-10-12, on NECO-ffyuqsdh and NECO-lfuwmnui):
+
+- The home hero eyebrow no longer names one customer type. It reads
+  "Document generation for …" and rotates through eight audiences, P&C and
+  surety carriers first. The page below it stays insurance-led. Without JS,
+  with reduced motion, and for screen readers it's the first item only
+  ([index.astro](../../apps/web/src/pages/index.astro)).
+- A "Try the demo" link to the [shared public demo](public-demo.md) sits in
+  the header (after the primary CTA in weight), the home evaluate section and
+  the footer, with the line "A shared public demo. It resets every night at
+  midnight Eastern." The URL is `links.demo` in
+  [links.ts](../../apps/web/src/lib/links.ts).
+
 ### What the architect needs to sign off
 
 Each concern needs an answer on the site, with a link to the spec or doc that
@@ -303,6 +316,9 @@ architect can do alone, in the order they'd do them:
    their review board. Generated per release ([Architecture review pack](architecture-review-pack.md)); every link
    uses one path in [links.ts](../../apps/web/src/lib/links.ts).
 4. **View the source on GitHub.**
+
+Beside them, **Try the demo** opens the shared public demo for anyone who
+wants to click around before installing anything ([Public demo](public-demo.md)).
 
 A contact route (email or GitHub Discussions) for questions, stated as what
 it is.

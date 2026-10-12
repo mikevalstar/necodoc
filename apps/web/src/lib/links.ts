@@ -14,6 +14,8 @@ export const links = {
   apiReference: `${docsUrl}/reference/api/`,
   /** The architecture review pack PDF, made with necodoc and generated per release (W8). */
   reviewPack: "/review-pack/necodoc-architecture-review.pdf",
+  /** The shared public demo (docs/features/public-demo.md). It resets nightly. */
+  demo: "https://demo.necodoc.com",
 } as const;
 
 /** A feature spec or ADR in the repo, by file name under docs/. */

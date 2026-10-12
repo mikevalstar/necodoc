@@ -1,4 +1,5 @@
 ---
+import { links } from "../lib/links";
 import { footerNav } from "../lib/nav";
 import Mark from "./Mark.astro";
 ---
@@ -11,6 +12,10 @@ import Mark from "./Mark.astro";
         <p>
           Document generation for P&amp;C and surety carriers, run on your own infrastructure. MIT-licensed. We don't host
           it, so we never hold your data.
+        </p>
+        <p class="demo">
+          <a href={links.demo} rel="noopener">Try the demo ↗</a><br />A shared public demo. It resets every night at
+          midnight Eastern.
         </p>
       </div>
       {
@@ -47,6 +52,7 @@ import Mark from "./Mark.astro";
   .logo { display: flex; align-items: center; gap: 10px; font: 700 22px/1 var(--display); letter-spacing: -.02em; color: #fff; }
   .logo:hover { text-decoration: none; }
   .about p { margin-top: 16px; line-height: 1.6; max-width: 320px; }
+  .about .demo a { font-weight: 600; }
   .base { margin-top: 56px; padding-top: 22px; border-top: 1px solid var(--night-hair); display: flex; gap: 24px; font: 12.5px var(--mono); color: #8f9bd6; }
   @media (max-width: 1100px) {
     .cols { grid-template-columns: repeat(3, 1fr); }
