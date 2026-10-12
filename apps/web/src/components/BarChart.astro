@@ -41,7 +41,7 @@ const height = rows.length * rowH + 28;
       })
     }
     <text x={labelW} y={height - 4} class="axis">0</text>
-    <text x={labelW + plotW} y={height - 4} text-anchor="end" class="axis">{Math.round(max)} {unit}</text>
+    <text x={labelW + plotW} y={height - 4} text-anchor="end" class="axis">{Math.round(max).toLocaleString("en-CA")} {unit}</text>
   </svg>
   <figcaption class="caption">{caption}</figcaption>
 </figure>

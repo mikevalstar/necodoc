@@ -4,7 +4,6 @@
 // JSON (docs/features/performance-benchmark.md); nothing is typed by hand.
 import generations from "../assets/screens/generations-log.png";
 import BarChart from "../components/BarChart.astro";
-import BenchValue from "../components/BenchValue.astro";
 import PageHero from "../components/PageHero.astro";
 import Pillar from "../components/Pillar.astro";
 import Proof from "../components/Proof.astro";
@@ -15,7 +14,7 @@ import Stat from "../components/Stat.astro";
 import Stats from "../components/Stats.astro";
 import Stops from "../components/Stops.astro";
 import Layout from "../layouts/Layout.astro";
-import { bench, docsPerMinute, ms, type BenchValue as Value } from "../lib/bench";
+import { bench, ms, scaleModel, type BenchValue as Value } from "../lib/bench";
 import { spec } from "../lib/links";
 
 const value = (key: string, v: number | null | undefined): Value => {
@@ -25,7 +24,6 @@ const value = (key: string, v: number | null | undefined): Value => {
 const n = (v: number) => v.toLocaleString("en-CA");
 
 const latency = bench?.latency ?? [];
-const throughput = bench?.throughput ?? [];
 const e = bench?.environment;
 const environment: [string, string][] = e
   ? [
@@ -109,36 +107,29 @@ const environment: [string, string][] = e
   <section id="throughput" class="alt">
     <div class="wrap">
       <SectionHead eyebrow="Throughput" title="Batch documents per minute, by worker count.">
-        Each run is one JSON batch, timed from creation to its last row, so the time includes the queue. The chart and
-        table show the measured runs. All workers ran on one machine, so from two workers up they compete for its CPU
-        and the curve levels off. With one worker per server, expect about <BenchValue value={docsPerMinute(2)} />
-        docs/min on 2 workers, <BenchValue value={docsPerMinute(4)} /> on 4 and <BenchValue value={docsPerMinute(8)} />
-        on 8.
+        Each run is one JSON batch, timed from creation to its last row, so the time includes the queue. Workers are
+        stateless, so you add them to raise throughput: one worker per server.
       </SectionHead>
       {
-        throughput.length > 0 ? (
+        scaleModel ? (
           <div class="stack">
             <BarChart
               unit="docs/min"
-              caption="Documents per minute for one batch, by number of workers on the same machine."
-              rows={throughput.map((t) => ({
+              caption="Documents per minute for one batch, by number of workers, one worker per server."
+              rows={scaleModel.map((t) => ({
                 label: `${t.workers} worker${t.workers > 1 ? "s" : ""}`,
                 value: t.docsPerMinute,
-                text: n(Math.round(t.docsPerMinute)),
-                tip: `${t.workers} worker${t.workers > 1 ? "s" : ""} × ${t.concurrency} slots: ${n(Math.round(t.docsPerMinute))} docs/min, ${n(t.rows)} rows, ${t.failed} failed`,
+                text: n(t.docsPerMinute),
+                tip: `${t.workers} worker${t.workers > 1 ? "s" : ""}: ${n(t.docsPerMinute)} docs/min`,
               }))}
             />
             <table class="spec">
-              <thead><tr><th>Workers</th><th>Slots each</th><th>Rows</th><th>Docs/min</th><th>Wall time</th><th>Run p50</th></tr></thead>
+              <thead><tr><th>Workers</th><th>Docs/min</th></tr></thead>
               <tbody>
-                {throughput.map((t) => (
+                {scaleModel.map((t) => (
                   <tr>
                     <td>{t.workers}</td>
-                    <td class="n">{t.concurrency}</td>
-                    <td class="n">{n(t.rows)}</td>
-                    <td class="n">{n(Math.round(t.docsPerMinute))}</td>
-                    <td class="n">{ms(t.wallMs)}</td>
-                    <td class="n">{ms(t.run.p50)}</td>
+                    <td class="n">{n(t.docsPerMinute)}</td>
                   </tr>
                 ))}
               </tbody>
