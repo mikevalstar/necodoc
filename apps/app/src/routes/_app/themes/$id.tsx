@@ -8,6 +8,7 @@ import {
   type ThemeFont,
   themeInputSchema,
 } from "@necodoc/shared";
+import { CopyIcon, InfoIcon } from "@phosphor-icons/react";
 import { useStore } from "@tanstack/react-form";
 import {
   queryOptions,
@@ -17,16 +18,26 @@ import {
   useSuspenseQuery,
 } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
-import { useMemo, useState } from "react";
+import { type ReactNode, useMemo, useState } from "react";
 import type { z } from "zod";
 import { HistoryPanel } from "@/components/audit";
+import { CodeEditor } from "@/components/code-editor";
 import { ErrorAlert, FieldShell, useAppForm, useFieldContext } from "@/components/form";
-import { BackLink, FaqLink, Page } from "@/components/page";
-import { PdfFrame, usePdfPreview } from "@/components/pdf-frame";
+import { BackLink, FaqLink, Page, PageHeader } from "@/components/page";
+import { PdfFrame, PdfTray, usePdfPreview } from "@/components/pdf-frame";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { FieldGroup, FieldLegend, FieldSet } from "@/components/ui/field";
+import { Card, CardContent } from "@/components/ui/card";
+import {
+  Field,
+  FieldDescription,
+  FieldError,
+  FieldGroup,
+  FieldLabel,
+  FieldLegend,
+  FieldSet,
+} from "@/components/ui/field";
 import {
   NativeSelect,
   NativeSelectOptGroup,
@@ -35,6 +46,7 @@ import {
 import { api, ok, previewPdf } from "@/lib/api";
 import { assetsQuery, themesQuery } from "@/lib/queries";
 import { useSaveShortcut } from "@/lib/save-shortcut";
+import { cn } from "@/lib/utils";
 import { DeleteThemeDialog, useDuplicateTheme } from "./-theme-actions";
 
 // Spec: docs/features/document-themes.md
@@ -108,185 +120,260 @@ function ThemeEditor({ theme }: { theme: Theme }) {
     defaultValues,
     validators: { onChange: createThemeSchema },
     listeners: { onChange: () => save.reset() },
-    onSubmit: ({ value }) => save.mutate(value),
+    onSubmit: ({ value }) =>
+      save.mutate(value, {
+        // The saved values become the new baseline, unless they were edited during the save.
+        onSuccess: () => form.state.values === value && form.reset(value),
+      }),
   });
 
   useSaveShortcut(canEdit && !save.isPending, form.handleSubmit);
   const values = useStore(form.store, (state) => state.values);
+  const unsaved = useStore(form.store, (state) => !state.isDefaultValue);
   const request = useMemo(() => {
     const draft = themeInputSchema.safeParse(values);
     return draft.success ? { ...sample, themeDraft: draft.data } : null;
   }, [values]);
   const preview = usePdfPreview(request, previewPdf);
 
+  const previewHeight = "h-[60svh] xl:h-[calc(100svh-9rem)] xl:min-h-[32rem]";
+  const previewToolbar = (
+    <>
+      <span className="inline-flex items-center gap-2 font-bold">
+        <span
+          aria-hidden
+          className={cn(
+            "size-2 rounded-full bg-white ring-3 ring-white/25",
+            preview.isFetching && "animate-pulse",
+          )}
+        />
+        Sample document
+      </span>
+      <span role="status" className="ml-auto text-white/80">
+        {!request
+          ? "Fix the highlighted settings to update"
+          : preview.isFetching
+            ? "Rendering…"
+            : "Up to date"}
+      </span>
+    </>
+  );
+
   return (
-    <Page width="wide" className="space-y-4">
-      <div className="flex items-center justify-between gap-2">
-        <BackLink to="/themes">Themes</BackLink>
-        <FaqLink feature="Document themes" />
-      </div>
-      <div className="flex flex-wrap items-center gap-2">
-        <h1 className="text-2xl font-semibold tracking-tight">{theme.name}</h1>
-        {theme.builtIn && <Badge variant="secondary">Built-in</Badge>}
-        <div className="ml-auto flex gap-2">
-          {canCreate && (
-            <Button
-              variant="outline"
-              disabled={duplicate.isPending}
-              onClick={() => duplicate.mutate(form.state.values)}
-            >
-              Duplicate
-            </Button>
-          )}
-          {canEdit && (
-            <Button variant="ghost" className="text-destructive" onClick={() => setDeleting(true)}>
-              Delete…
-            </Button>
-          )}
-        </div>
-      </div>
+    <Page width="wide">
+      <PageHeader
+        back={<BackLink to="/themes">Themes</BackLink>}
+        title={theme.name}
+        actions={
+          <>
+            <FaqLink feature="Document themes" />
+            {canEdit && (
+              <Button variant="destructive" onClick={() => setDeleting(true)}>
+                Delete…
+              </Button>
+            )}
+            {canCreate && (
+              <Button
+                variant={canEdit ? "outline" : "default"}
+                disabled={duplicate.isPending}
+                onClick={() => duplicate.mutate(form.state.values)}
+              >
+                <CopyIcon />
+                Duplicate
+              </Button>
+            )}
+            {canEdit && (
+              <form.Subscribe selector={(state) => state.canSubmit}>
+                {(canSubmit) => (
+                  <Button
+                    type="submit"
+                    form="theme-form"
+                    title="Save (⌘S)"
+                    disabled={!canSubmit || !unsaved || save.isPending}
+                  >
+                    {save.isPending ? "Saving…" : "Save theme"}
+                  </Button>
+                )}
+              </form.Subscribe>
+            )}
+          </>
+        }
+      >
+        {theme.builtIn && <Badge variant="secondary">Built-in starter</Badge>}
+        {canEdit && (
+          <span role="status">
+            {unsaved ? (
+              <Badge variant="warn" dot>
+                Unsaved changes
+              </Badge>
+            ) : (
+              save.isSuccess && (
+                <Badge variant="ok" dot>
+                  Saved
+                </Badge>
+              )
+            )}
+          </span>
+        )}
+      </PageHeader>
+
       {!canEdit && (
         <Alert>
+          <InfoIcon />
           <AlertDescription>
             {theme.builtIn
-              ? "Built-in starters can't be edited. Duplicate this one to make your own."
+              ? canCreate
+                ? "Built-in starters can't be edited. Duplicate this one to make your own."
+                : "Built-in starters can't be edited."
               : "You can view this theme but not edit it."}
           </AlertDescription>
         </Alert>
       )}
-      <ErrorAlert error={duplicate.error} />
+      <ErrorAlert error={duplicate.error ?? save.error} />
 
-      <div className="grid gap-6 lg:grid-cols-[minmax(0,26rem)_minmax(0,1fr)]">
+      <div className="grid gap-6 xl:grid-cols-[minmax(0,28rem)_minmax(0,1fr)]">
+        <section
+          aria-label="Theme preview"
+          className="min-w-0 space-y-3 xl:sticky xl:top-4 xl:order-2 xl:self-start"
+        >
+          <ErrorAlert error={preview.error} />
+          {preview.data ? (
+            <PdfFrame
+              pdf={preview.data.pdf}
+              title="Sample document with this theme"
+              toolbar={previewToolbar}
+              className={previewHeight}
+            />
+          ) : (
+            <PdfTray toolbar={previewToolbar}>
+              <div className={cn("grid place-items-center text-sm text-white/80", previewHeight)}>
+                {preview.error ? "The preview couldn't render." : "Rendering preview…"}
+              </div>
+            </PdfTray>
+          )}
+        </section>
+
         <form
+          id="theme-form"
+          className="xl:order-1"
           onSubmit={(e) => {
             e.preventDefault();
             form.handleSubmit();
           }}
         >
           {/* A disabled fieldset makes every control inside read-only in one place. */}
-          <fieldset disabled={!canEdit} className="space-y-6">
-            <form.AppField name="name">{(field) => <field.TextField label="Name" />}</form.AppField>
+          <fieldset disabled={!canEdit} className="min-w-0 space-y-4">
+            <Card size="sm">
+              <CardContent>
+                <form.AppField name="name">
+                  {(field) => <field.TextField label="Name" />}
+                </form.AppField>
+              </CardContent>
+            </Card>
 
-            <FieldSet>
-              <FieldLegend>Body text</FieldLegend>
-              <FieldGroup className="grid grid-cols-2 gap-4">
-                <div className="col-span-2">
-                  <form.AppField name="settings.font">
-                    {() => <FontField label="Body font" />}
-                  </form.AppField>
-                </div>
-                <form.AppField name="settings.fontSize">
-                  {(field) => <field.NumberField label="Size (pt)" />}
+            <SettingsCard legend="Body text">
+              <div className="col-span-2">
+                <form.AppField name="settings.font">
+                  {() => <FontField label="Body font" />}
                 </form.AppField>
-                <form.AppField name="settings.lineHeight">
-                  {(field) => <field.NumberField label="Line height" step={0.05} />}
-                </form.AppField>
-                <form.AppField name="settings.textColor">
-                  {(field) => <field.ColorField label="Text" />}
-                </form.AppField>
-                <form.AppField name="settings.linkColor">
-                  {(field) => <field.ColorField label="Links" />}
-                </form.AppField>
-                <form.AppField name="settings.accentColor">
-                  {(field) => <field.ColorField label="Accent (rules)" />}
-                </form.AppField>
-              </FieldGroup>
-            </FieldSet>
-
-            <FieldSet>
-              <FieldLegend>Headings</FieldLegend>
-              <FieldGroup className="grid grid-cols-2 gap-4">
-                <div className="col-span-2">
-                  <form.AppField name="settings.headingFont">
-                    {() => <FontField label="Heading font" />}
-                  </form.AppField>
-                </div>
-                <form.AppField name="settings.headingColor">
-                  {(field) => <field.ColorField label="Colour" />}
-                </form.AppField>
-                <form.AppField name="settings.h1Size">
-                  {(field) => <field.NumberField label="H1 size (pt)" />}
-                </form.AppField>
-                <form.AppField name="settings.h2Size">
-                  {(field) => <field.NumberField label="H2 size (pt)" />}
-                </form.AppField>
-                <form.AppField name="settings.h3Size">
-                  {(field) => <field.NumberField label="H3 size (pt)" />}
-                </form.AppField>
-              </FieldGroup>
-            </FieldSet>
-
-            <FieldSet>
-              <FieldLegend>Tables</FieldLegend>
-              <FieldGroup className="grid grid-cols-2 gap-4">
-                <form.AppField name="settings.tableBorderColor">
-                  {(field) => <field.ColorField label="Borders" />}
-                </form.AppField>
-                <form.AppField name="settings.tableHeaderBackground">
-                  {(field) => <field.ColorField label="Header shading" />}
-                </form.AppField>
-                <form.AppField name="settings.tableCellPadding">
-                  {(field) => <field.NumberField label="Cell padding (mm)" />}
-                </form.AppField>
-              </FieldGroup>
-            </FieldSet>
-
-            <form.AppField name="css">
-              {(field) => (
-                <field.TextareaField
-                  label="Free CSS"
-                  description="Added after the settings above, so it wins. Remote URLs don't load; use assets."
-                  mono
-                  rows={8}
-                />
-              )}
-            </form.AppField>
-
-            {canEdit && (
-              <div className="flex items-center gap-3">
-                <form.Subscribe selector={(state) => state.canSubmit}>
-                  {(canSubmit) => (
-                    <Button type="submit" disabled={!canSubmit || save.isPending}>
-                      Save theme
-                    </Button>
-                  )}
-                </form.Subscribe>
-                {save.isSuccess && (
-                  <span role="status" className="text-sm text-muted-foreground">
-                    Saved.
-                  </span>
-                )}
               </div>
-            )}
-            <ErrorAlert error={save.error} />
+              <form.AppField name="settings.fontSize">
+                {(field) => <field.NumberField label="Size (pt)" />}
+              </form.AppField>
+              <form.AppField name="settings.lineHeight">
+                {(field) => <field.NumberField label="Line height" step={0.05} />}
+              </form.AppField>
+              <form.AppField name="settings.textColor">
+                {(field) => <field.ColorField label="Text" />}
+              </form.AppField>
+              <form.AppField name="settings.linkColor">
+                {(field) => <field.ColorField label="Links" />}
+              </form.AppField>
+              <form.AppField name="settings.accentColor">
+                {(field) => <field.ColorField label="Accent (rules)" />}
+              </form.AppField>
+            </SettingsCard>
+
+            <SettingsCard legend="Headings">
+              <div className="col-span-2">
+                <form.AppField name="settings.headingFont">
+                  {() => <FontField label="Heading font" />}
+                </form.AppField>
+              </div>
+              <form.AppField name="settings.headingColor">
+                {(field) => <field.ColorField label="Colour" />}
+              </form.AppField>
+              <form.AppField name="settings.h1Size">
+                {(field) => <field.NumberField label="H1 size (pt)" />}
+              </form.AppField>
+              <form.AppField name="settings.h2Size">
+                {(field) => <field.NumberField label="H2 size (pt)" />}
+              </form.AppField>
+              <form.AppField name="settings.h3Size">
+                {(field) => <field.NumberField label="H3 size (pt)" />}
+              </form.AppField>
+            </SettingsCard>
+
+            <SettingsCard legend="Tables">
+              <form.AppField name="settings.tableBorderColor">
+                {(field) => <field.ColorField label="Borders" />}
+              </form.AppField>
+              <form.AppField name="settings.tableHeaderBackground">
+                {(field) => <field.ColorField label="Header shading" />}
+              </form.AppField>
+              <form.AppField name="settings.tableCellPadding">
+                {(field) => <field.NumberField label="Cell padding (mm)" />}
+              </form.AppField>
+            </SettingsCard>
+
+            <Card size="sm">
+              <CardContent>
+                <form.AppField name="css">
+                  {(field) => (
+                    <Field>
+                      <FieldLabel className="font-heading text-[15px] font-bold">
+                        Free CSS
+                      </FieldLabel>
+                      <CodeEditor
+                        label="Free CSS"
+                        language="css"
+                        readOnly={!canEdit}
+                        value={field.state.value ?? ""}
+                        onChange={field.handleChange}
+                        placeholder={"blockquote { border-left: 2pt solid #aa3300; }"}
+                        className="[&_.cm-editor]:min-h-48"
+                      />
+                      <FieldDescription>
+                        Added after the settings above, so it wins. Remote URLs and @import don't
+                        load; use assets.
+                      </FieldDescription>
+                      <FieldError errors={field.state.meta.errors} />
+                    </Field>
+                  )}
+                </form.AppField>
+              </CardContent>
+            </Card>
           </fieldset>
         </form>
-
-        <section className="space-y-2 lg:sticky lg:top-28 lg:self-start">
-          <div className="flex items-center justify-between text-sm text-muted-foreground">
-            <span>Sample document</span>
-            <span>
-              {preview.isFetching
-                ? "Rendering…"
-                : request
-                  ? "Up to date"
-                  : "Fix the errors to preview"}
-            </span>
-          </div>
-          <ErrorAlert error={preview.error} />
-          {preview.data ? (
-            <PdfFrame pdf={preview.data.pdf} title="Theme preview" className="h-[80svh]" />
-          ) : (
-            <div className="flex h-[80svh] items-center justify-center rounded-lg border text-sm text-muted-foreground">
-              Rendering preview…
-            </div>
-          )}
-        </section>
       </div>
 
       {deleting && <DeleteThemeDialog theme={theme} onClose={() => setDeleting(false)} />}
       <HistoryPanel targetType="theme" targetId={theme.id} />
     </Page>
+  );
+}
+
+/** One group of settings, as a card titled by its legend. */
+function SettingsCard({ legend, children }: { legend: string; children: ReactNode }) {
+  return (
+    <Card size="sm">
+      <CardContent>
+        <FieldSet>
+          <FieldLegend className="mb-3 font-heading text-[15px] font-bold">{legend}</FieldLegend>
+          <FieldGroup className="grid grid-cols-2 gap-4">{children}</FieldGroup>
+        </FieldSet>
+      </CardContent>
+    </Card>
   );
 }
 

@@ -378,7 +378,7 @@ export const faq: readonly FaqEntry[] = [
     group: "Assets",
     what: "A shared library of uploaded images (PNG, JPEG, SVG, WebP) and fonts (TTF, OTF, WOFF2), up to 20 MB each. Rendered pages can't reach the internet, so logos and fonts have to live here. The server checks each file's real type, not just its name.",
     howTo:
-      "Open Assets and drop files on the upload area or pick them. Use 'Copy reference' to get the snippet: {{ 'asset-id' | asset_url }} in HTML, or https://assets.necodoc.invalid/<asset id> in CSS. Fonts are picked in the theme editor.",
+      "Open Assets and use Upload, or drop files on the library. Use 'Copy reference' to get the snippet: {{ 'asset-id' | asset_url }} in HTML, or https://assets.necodoc.invalid/<asset id> in CSS. Fonts are picked in the theme editor.",
     limitations: [
       "Assets are global: everyone with a role can see and use all of them.",
       "No crop or resize in the app.",

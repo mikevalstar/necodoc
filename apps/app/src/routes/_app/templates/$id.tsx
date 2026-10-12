@@ -16,6 +16,7 @@ import {
   CloudCheckIcon,
   DotsThreeIcon,
   EyeIcon,
+  EyeSlashIcon,
   RocketLaunchIcon,
   SparkleIcon,
   WarningCircleIcon,
@@ -140,6 +141,17 @@ function issueTab(path: readonly PropertyKey[]): TabValue | null {
   return "content";
 }
 
+// Overlay editors can fold the live preview away to give the canvas the width; remembered per
+// browser. Designed templates always show it.
+const previewHiddenKey = "necodoc-overlay-preview-hidden";
+function readPreviewHidden() {
+  try {
+    return localStorage.getItem(previewHiddenKey) === "1";
+  } catch {
+    return false; // storage blocked
+  }
+}
+
 function TemplatePage() {
   const { id } = Route.useParams();
   const queryClient = useQueryClient();
@@ -212,6 +224,15 @@ function TemplateEditor({
   const assistantAvailable = aiEnabled && draft.kind === "designed";
   /** null until first opened; closing hides the panel but keeps the conversation. */
   const [assistantOpen, setAssistantOpen] = useState<boolean | null>(build ? true : null);
+  const [previewHidden, setPreviewHiddenState] = useState(readPreviewHidden);
+  const setPreviewHidden = (hidden: boolean) => {
+    setPreviewHiddenState(hidden);
+    try {
+      localStorage.setItem(previewHiddenKey, hidden ? "1" : "0");
+    } catch {
+      // storage blocked: lasts until reload
+    }
+  };
   /** An unapplied proposal the preview shows instead of the draft. */
   const [proposal, setProposal] = useState<{ id: string; draft: DesignedDraft } | null>(null);
   // Sent once: drop it from the URL so a reload doesn't ask again.
@@ -425,9 +446,22 @@ function TemplateEditor({
             Back to draft
           </Button>
         )}
+        {draft.kind === "overlay" && (
+          <Button
+            variant="ghost"
+            size="icon-sm"
+            className="text-white hover:bg-white/15 hover:text-white"
+            aria-label="Hide preview"
+            title="Hide preview"
+            onClick={() => setPreviewHidden(true)}
+          >
+            <EyeSlashIcon />
+          </Button>
+        )}
       </span>
     </>
   );
+  const overlayPreviewHidden = draft.kind === "overlay" && previewHidden;
 
   return (
     <Page width="wide" className="space-y-4 pt-1 pb-6">
@@ -671,9 +705,11 @@ function TemplateEditor({
 
         <div
           className={
-            draft.kind === "overlay"
-              ? "grid gap-6 xl:grid-cols-[minmax(0,1.5fr)_minmax(0,0.6fr)]"
-              : "grid gap-6 xl:grid-cols-[minmax(0,1fr)_minmax(0,0.9fr)]"
+            draft.kind === "designed"
+              ? "grid gap-6 xl:grid-cols-[minmax(0,1fr)_minmax(0,0.9fr)]"
+              : overlayPreviewHidden
+                ? "grid gap-6 xl:grid-cols-[minmax(0,1fr)_auto]"
+                : "grid gap-6 xl:grid-cols-[minmax(0,1.5fr)_minmax(0,0.6fr)]"
           }
         >
           <div className="min-w-0">
@@ -830,53 +866,69 @@ function TemplateEditor({
             </TabsContent>
           </div>
 
-          <div className="min-w-0 space-y-3 xl:sticky xl:top-4 xl:self-start">
-            {assistantAvailable && assistantOpen !== null && draft.kind === "designed" && (
-              <div hidden={!assistantOpen}>
-                <AssistantPanel
-                  templateId={template.id}
-                  draft={draft}
-                  build={build}
-                  onBuildSent={clearBuild}
-                  onApply={(next, parts) => setDraft((d) => mergeApplied(d, next, parts))}
-                  previewing={proposal?.id ?? null}
-                  onPreview={setProposal}
-                  onClose={() => {
-                    setAssistantOpen(false);
-                    setProposal(null);
-                  }}
-                />
-              </div>
-            )}
-            <ErrorAlert error={preview.error ?? version.error} />
-            {preview.data && preview.data.warnings.length > 0 && (
-              <Alert className="bg-warn-wash *:[svg]:text-warn">
-                <WarningIcon />
-                <AlertTitle>Render warnings</AlertTitle>
-                <AlertDescription>
-                  <ul className="list-disc pl-4">
-                    {preview.data.warnings.map((warning) => (
-                      <li key={warning}>{warning}</li>
-                    ))}
-                  </ul>
-                </AlertDescription>
-              </Alert>
-            )}
-            {preview.data ? (
-              <PdfFrame
-                pdf={preview.data.pdf}
-                title="Template preview"
-                toolbar={previewToolbar}
-                className={previewHeight}
-              />
-            ) : (
-              <PdfTray toolbar={previewToolbar}>
-                <div className={cn("grid place-items-center text-sm text-white/80", previewHeight)}>
-                  {preview.error ? "The preview couldn't render." : "Rendering preview…"}
+          {overlayPreviewHidden ? (
+            <div className="xl:sticky xl:top-4 xl:self-start">
+              <Button
+                variant="outline"
+                className="xl:size-10 xl:p-0"
+                title="Show live preview"
+                onClick={() => setPreviewHidden(false)}
+              >
+                <EyeIcon />
+                <span className="xl:sr-only">Show live preview</span>
+              </Button>
+            </div>
+          ) : (
+            <div className="min-w-0 space-y-3 xl:sticky xl:top-4 xl:self-start">
+              {assistantAvailable && assistantOpen !== null && draft.kind === "designed" && (
+                <div hidden={!assistantOpen}>
+                  <AssistantPanel
+                    templateId={template.id}
+                    draft={draft}
+                    build={build}
+                    onBuildSent={clearBuild}
+                    onApply={(next, parts) => setDraft((d) => mergeApplied(d, next, parts))}
+                    previewing={proposal?.id ?? null}
+                    onPreview={setProposal}
+                    onClose={() => {
+                      setAssistantOpen(false);
+                      setProposal(null);
+                    }}
+                  />
                 </div>
-              </PdfTray>
-            )}
-          </div>
+              )}
+              <ErrorAlert error={preview.error ?? version.error} />
+              {preview.data && preview.data.warnings.length > 0 && (
+                <Alert className="bg-warn-wash *:[svg]:text-warn">
+                  <WarningIcon />
+                  <AlertTitle>Render warnings</AlertTitle>
+                  <AlertDescription>
+                    <ul className="list-disc pl-4">
+                      {preview.data.warnings.map((warning) => (
+                        <li key={warning}>{warning}</li>
+                      ))}
+                    </ul>
+                  </AlertDescription>
+                </Alert>
+              )}
+              {preview.data ? (
+                <PdfFrame
+                  pdf={preview.data.pdf}
+                  title="Template preview"
+                  toolbar={previewToolbar}
+                  className={previewHeight}
+                />
+              ) : (
+                <PdfTray toolbar={previewToolbar}>
+                  <div
+                    className={cn("grid place-items-center text-sm text-white/80", previewHeight)}
+                  >
+                    {preview.error ? "The preview couldn't render." : "Rendering preview…"}
+                  </div>
+                </PdfTray>
+              )}
+            </div>
+          )}
         </div>
       </Tabs>
 

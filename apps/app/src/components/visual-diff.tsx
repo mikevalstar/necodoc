@@ -2,6 +2,7 @@ import { diffLines, PAGE_CHANGED_PERCENT, type PageDiff } from "@necodoc/shared"
 import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
 import { ErrorAlert } from "@/components/form";
+import { PdfTray } from "@/components/pdf-frame";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Field, FieldLabel } from "@/components/ui/field";
@@ -87,7 +88,7 @@ export function VisualDiff({
             </Button>
           ))}
         </fieldset>
-        <span className="text-sm text-muted-foreground" role="status">
+        <span className="text-sm text-ink-3" role="status">
           {diff.isFetching
             ? "Rendering and comparing…"
             : diff.data
@@ -99,7 +100,7 @@ export function VisualDiff({
       </div>
       <ErrorAlert error={diff.error} />
       {diff.data?.beforeError && (
-        <p className="text-sm text-amber-700">
+        <p className="text-sm text-warn">
           The published version didn't render with this data: {diff.data.beforeError}
         </p>
       )}
@@ -112,13 +113,15 @@ export function VisualDiff({
                   type="button"
                   onClick={() => setSelected(p.page)}
                   className={cn(
-                    "flex w-full items-center justify-between gap-2 rounded-md border px-2 py-1 text-left text-sm",
-                    p.page === page.page ? "border-primary bg-muted" : "hover:bg-muted",
+                    "flex w-full items-center justify-between gap-2 rounded-lg px-2.5 py-1.5 text-left text-sm",
+                    p.page === page.page
+                      ? "bg-surface font-semibold shadow-card"
+                      : "bg-tint hover:bg-tint-2",
                   )}
                 >
                   Page {p.page}
                   {changed(p) ? (
-                    <Badge variant="destructive" className="px-1.5">
+                    <Badge variant="bad" className="px-1.5">
                       {p.before && p.after
                         ? `${p.changedPercent.toFixed(p.changedPercent < 1 ? 2 : 1)}%`
                         : p.after
@@ -126,7 +129,7 @@ export function VisualDiff({
                           : "gone"}
                     </Badge>
                   ) : (
-                    <span className="text-xs text-muted-foreground">same</span>
+                    <span className="text-xs text-ink-3">same</span>
                   )}
                 </button>
               </li>
@@ -141,12 +144,12 @@ export function VisualDiff({
 
 function PageImage({ src, label }: { src: string | null; label: string }) {
   return (
-    <figure className="space-y-1">
-      <figcaption className="text-xs text-muted-foreground">{label}</figcaption>
+    <figure className="space-y-1.5">
+      <figcaption className="text-xs font-semibold text-white/85">{label}</figcaption>
       {src ? (
-        <img src={src} alt={label} className="w-full rounded border bg-white" />
+        <img src={src} alt={label} className="w-full rounded-sm bg-white shadow-float" />
       ) : (
-        <div className="flex aspect-[8.5/11] items-center justify-center rounded border text-sm text-muted-foreground">
+        <div className="flex aspect-[8.5/11] items-center justify-center rounded-sm bg-white/10 text-sm text-white/80">
           No such page
         </div>
       )}
@@ -158,66 +161,77 @@ function PageView({ page, mode }: { page: PageDiff; mode: Mode }) {
   const [opacity, setOpacity] = useState(50);
   if (mode === "side") {
     return (
-      <div className="grid gap-3 sm:grid-cols-2">
-        <PageImage src={page.before} label="Published" />
-        <PageImage src={page.after} label="Draft" />
-      </div>
+      <PdfTray wellClassName="p-4">
+        <div className="grid gap-4 sm:grid-cols-2">
+          <PageImage src={page.before} label="Published" />
+          <PageImage src={page.after} label="Draft" />
+        </div>
+      </PdfTray>
     );
   }
   if (mode === "diff") {
     return (
-      <div className="space-y-1">
-        <p className="text-xs text-muted-foreground">
-          <span className="text-emerald-700">Green</span>: only in the draft.{" "}
-          <span className="text-red-700">Red</span>: only in the published version. Grey: unchanged.{" "}
-          {page.changedPixels.toLocaleString()} pixels changed ({page.changedPercent.toFixed(2)}%).
-        </p>
+      <PdfTray
+        wellClassName="p-4"
+        toolbar={
+          <span className="text-white/90">
+            Green: only in the draft. Red: only in the published version. Grey: unchanged.{" "}
+            {page.changedPixels.toLocaleString()} pixels changed ({page.changedPercent.toFixed(2)}
+            %).
+          </span>
+        }
+      >
         <PageImage src={page.diff ?? page.after ?? page.before} label="Diff" />
-      </div>
+      </PdfTray>
     );
   }
   if (mode === "overlay") {
     return (
-      <div className="space-y-2">
-        <label className="flex items-center gap-2 text-xs text-muted-foreground">
-          Published
-          <input
-            type="range"
-            min={0}
-            max={100}
-            value={opacity}
-            onChange={(e) => setOpacity(Number(e.target.value))}
-            aria-label="Draft opacity"
-          />
-          Draft
-        </label>
+      <PdfTray
+        wellClassName="p-4"
+        toolbar={
+          <label className="flex items-center gap-2 font-semibold">
+            Published
+            <input
+              type="range"
+              min={0}
+              max={100}
+              value={opacity}
+              onChange={(e) => setOpacity(Number(e.target.value))}
+              aria-label="Draft opacity"
+              className="accent-sun"
+            />
+            Draft
+          </label>
+        }
+      >
         <div className="relative">
           {page.before && (
-            <img src={page.before} alt="Published" className="w-full rounded border bg-white" />
+            <img src={page.before} alt="Published" className="w-full rounded-sm bg-white" />
           )}
           {page.after && (
             <img
               src={page.after}
               alt="Draft"
               style={{ opacity: page.before ? opacity / 100 : 1 }}
-              className={cn("w-full rounded border bg-white", page.before && "absolute inset-0")}
+              className={cn("w-full rounded-sm bg-white", page.before && "absolute inset-0")}
             />
           )}
         </div>
-      </div>
+      </PdfTray>
     );
   }
   const lines = diffLines(page.beforeText, page.afterText);
   return (
-    <pre className="max-h-[70svh] overflow-auto rounded border p-2 text-xs whitespace-pre-wrap">
+    <pre className="max-h-[70svh] overflow-auto rounded-lg bg-tint p-3 font-mono text-xs whitespace-pre-wrap">
       {lines.map((line, i) => (
         <div
           // Lines repeat; their position is their identity here.
           // biome-ignore lint/suspicious/noArrayIndexKey: static list
           key={i}
           className={cn(
-            line.op === "added" && "bg-emerald-500/15 text-emerald-800 dark:text-emerald-300",
-            line.op === "removed" && "bg-red-500/15 text-red-800 line-through dark:text-red-300",
+            line.op === "added" && "bg-ok-wash text-ok",
+            line.op === "removed" && "bg-bad-wash text-bad line-through",
           )}
         >
           {line.op === "added" ? "+ " : line.op === "removed" ? "- " : "  "}

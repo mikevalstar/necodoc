@@ -1,14 +1,16 @@
 import { createSnippetSchema, hasPermission, snippetKeySchema } from "@necodoc/shared";
-import { PlusIcon, PuzzlePieceIcon } from "@phosphor-icons/react";
+import { MagnifyingGlassIcon, PlusIcon, PuzzlePieceIcon } from "@phosphor-icons/react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute, Link, redirect, useNavigate } from "@tanstack/react-router";
-import { useDeferredValue, useState } from "react";
+import { useState } from "react";
 import { z } from "zod";
+import { activeFilter, DebouncedInput, DensityToggle, FilterSelect } from "@/components/data-table";
 import { snippetText } from "@/components/editor/snippet";
 import { ErrorAlert, useAppForm } from "@/components/form";
 import { EmptyState, FaqLink, ListSkeleton, Page, PageHeader } from "@/components/page";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
 import {
   Dialog,
   DialogClose,
@@ -18,9 +20,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Field, FieldGroup, FieldLabel } from "@/components/ui/field";
-import { Input } from "@/components/ui/input";
-import { NativeSelect, NativeSelectOption } from "@/components/ui/native-select";
+import { FieldGroup } from "@/components/ui/field";
 import {
   Table,
   TableBody,
@@ -29,9 +29,11 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { api, ok } from "@/lib/api";
 import { dayjs } from "@/lib/date";
 import { snippetsQuery } from "@/lib/queries";
+import { cn } from "@/lib/utils";
 
 // Spec: docs/features/snippet-library.md. Everyone who opens template drafts can browse snippets.
 
@@ -60,10 +62,10 @@ function Snippets() {
   const canCreate = hasPermission(me.user.roles, { document: ["create"] });
   const snippets = useQuery(snippetsQuery);
   const [creating, setCreating] = useState(false);
-  const [query, setQuery] = useState(search.q ?? "");
-  const words = useDeferredValue(query).toLowerCase().split(/\s+/).filter(Boolean);
+  const words = (search.q ?? "").toLowerCase().split(/\s+/).filter(Boolean);
 
   const all = snippets.data ?? [];
+  const archivedCount = all.filter((s) => s.archivedAt).length;
   const tags = [...new Set(all.flatMap((s) => s.tags))].sort();
   const rows = all.filter((s) => {
     if (Boolean(s.archivedAt) !== Boolean(search.archived)) return false;
@@ -71,6 +73,12 @@ function Snippets() {
     const text = `${s.name} ${s.key} ${s.description} ${s.tags.join(" ")}`.toLowerCase();
     return words.every((word) => text.includes(word));
   });
+  const newSnippet = canCreate && (
+    <Button onClick={() => setCreating(true)}>
+      <PlusIcon weight="bold" />
+      New snippet
+    </Button>
+  );
 
   return (
     <Page>
@@ -80,132 +88,138 @@ function Snippets() {
         actions={
           <>
             <FaqLink feature="Snippet library" />
-            {canCreate && (
-              <Button onClick={() => setCreating(true)}>
-                <PlusIcon weight="bold" />
-                New snippet
-              </Button>
-            )}
+            {all.length > 0 && newSnippet}
           </>
         }
       />
-
-      <div className="flex flex-wrap items-end gap-3">
-        <Field className="w-full sm:w-64">
-          <FieldLabel htmlFor="snippet-search">Search</FieldLabel>
-          <Input
-            id="snippet-search"
-            type="search"
-            placeholder="Name, key, description or tag"
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            onBlur={() => navigate({ search: { ...search, q: query || undefined }, replace: true })}
-          />
-        </Field>
-        <Field className="w-auto">
-          <FieldLabel htmlFor="snippet-tag">Tag</FieldLabel>
-          <NativeSelect
-            id="snippet-tag"
-            value={search.tag ?? ""}
-            onChange={(e) => navigate({ search: { ...search, tag: e.target.value || undefined } })}
-          >
-            <NativeSelectOption value="">Any tag</NativeSelectOption>
-            {tags.map((tag) => (
-              <NativeSelectOption key={tag} value={tag}>
-                {tag}
-              </NativeSelectOption>
-            ))}
-          </NativeSelect>
-        </Field>
-        <Field className="w-auto">
-          <FieldLabel htmlFor="snippet-archived">Show</FieldLabel>
-          <NativeSelect
-            id="snippet-archived"
-            value={search.archived ? "archived" : ""}
-            onChange={(e) =>
-              navigate({
-                search: { ...search, archived: e.target.value === "archived" || undefined },
-              })
-            }
-          >
-            <NativeSelectOption value="">Active</NativeSelectOption>
-            <NativeSelectOption value="archived">Archived</NativeSelectOption>
-          </NativeSelect>
-        </Field>
-      </div>
 
       <ErrorAlert error={snippets.error} />
 
       {snippets.isPending ? (
         <ListSkeleton />
       ) : all.length === 0 ? (
-        <EmptyState
-          icon={PuzzlePieceIcon}
-          title="No snippets yet"
-          description="Write a clause once, then insert it into any template from the editor's Insert menu. Editing the snippet updates every draft that uses it."
-          action={
-            canCreate && (
-              <Button onClick={() => setCreating(true)}>
-                <PlusIcon weight="bold" />
-                New snippet
-              </Button>
-            )
-          }
-        />
+        snippets.isSuccess && (
+          <EmptyState
+            icon={PuzzlePieceIcon}
+            title="No snippets yet"
+            description="Write a clause once, then insert it into any template from the editor's Insert menu. Editing the snippet updates every draft that uses it."
+            action={newSnippet}
+          />
+        )
       ) : (
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Name</TableHead>
-              <TableHead className="hidden md:table-cell">Content</TableHead>
-              <TableHead>Tags</TableHead>
-              <TableHead className="hidden sm:table-cell">Saved</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {rows.map((s) => (
-              <TableRow key={s.id}>
-                <TableCell className="max-w-xs">
-                  <Link
-                    to="/snippets/$id"
-                    params={{ id: s.id }}
-                    className="font-medium hover:underline"
-                  >
-                    {s.name}
-                  </Link>
-                  <p className="truncate text-xs text-muted-foreground">
-                    <code>{s.key}</code>
-                    {s.description && ` · ${s.description}`}
-                  </p>
-                </TableCell>
-                <TableCell className="hidden max-w-md md:table-cell">
-                  <p className="line-clamp-2 text-xs whitespace-normal text-muted-foreground">
-                    {snippetText(s.content)}
-                  </p>
-                </TableCell>
-                <TableCell>
-                  <span className="flex flex-wrap gap-1">
-                    {s.tags.map((tag) => (
-                      <Badge key={tag} variant="outline">
-                        {tag}
-                      </Badge>
-                    ))}
-                  </span>
-                </TableCell>
-                <TableCell className="hidden text-muted-foreground sm:table-cell">
-                  {dayjs(s.updatedAt).fromNow()}
-                </TableCell>
-              </TableRow>
-            ))}
-            {rows.length === 0 && (
-              <TableRow>
-                <TableCell colSpan={4} className="py-8 text-center text-muted-foreground">
-                  No snippets match.
-                </TableCell>
-              </TableRow>
+        <Card className="gap-0 py-0">
+          <div className="flex flex-wrap items-center gap-3 border-b border-hair px-4 py-3.5">
+            <div className="relative w-full sm:w-72">
+              <MagnifyingGlassIcon
+                aria-hidden
+                className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-ink-3"
+              />
+              <DebouncedInput
+                type="search"
+                aria-label="Search snippets"
+                className={cn("pl-9", search.q && activeFilter)}
+                placeholder="Name, key, description or tag"
+                value={search.q ?? ""}
+                onCommit={(q) =>
+                  navigate({ search: { ...search, q: q || undefined }, replace: true })
+                }
+              />
+            </div>
+            {tags.length > 0 && (
+              <FilterSelect
+                label="Tag"
+                value={search.tag}
+                options={tags.map((tag) => ({ value: tag, label: tag }))}
+                onChange={(tag) => navigate({ search: { ...search, tag: tag || undefined } })}
+              />
             )}
-          </TableBody>
-        </Table>
+            <Tabs
+              value={search.archived ? "archived" : "active"}
+              onValueChange={(value) =>
+                navigate({ search: { ...search, archived: value === "archived" || undefined } })
+              }
+            >
+              <TabsList aria-label="Show">
+                <TabsTrigger value="active" className="h-8 flex-none">
+                  Active
+                  <span className="font-mono text-[11px] text-ink-3 tabular-nums">
+                    {all.length - archivedCount}
+                  </span>
+                </TabsTrigger>
+                <TabsTrigger value="archived" className="h-8 flex-none">
+                  Archived
+                  <span className="font-mono text-[11px] text-ink-3 tabular-nums">
+                    {archivedCount}
+                  </span>
+                </TabsTrigger>
+              </TabsList>
+            </Tabs>
+            <div className="ml-auto flex items-center gap-3">
+              <span className="text-[13px] text-ink-3" aria-live="polite">
+                {rows.length} {rows.length === 1 ? "snippet" : "snippets"}
+              </span>
+              <DensityToggle />
+            </div>
+          </div>
+          <Table>
+            <TableHeader>
+              <TableRow className="hover:bg-transparent">
+                <TableHead className="pl-4">Name</TableHead>
+                <TableHead className="hidden lg:table-cell">Content</TableHead>
+                <TableHead>Tags</TableHead>
+                <TableHead className="hidden pr-4 sm:table-cell">Saved</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {rows.map((s) => (
+                <TableRow key={s.id}>
+                  <TableCell className="max-w-xs pl-4">
+                    <Link
+                      to="/snippets/$id"
+                      params={{ id: s.id }}
+                      className="block truncate font-semibold hover:underline"
+                    >
+                      {s.name}
+                    </Link>
+                    <p className="truncate text-xs text-ink-3">
+                      <code className="font-mono">{s.key}</code>
+                      {s.description && ` · ${s.description}`}
+                    </p>
+                  </TableCell>
+                  <TableCell className="hidden max-w-md lg:table-cell">
+                    <p className="line-clamp-2 text-[13px] whitespace-normal text-ink-2">
+                      {snippetText(s.content)}
+                    </p>
+                  </TableCell>
+                  <TableCell>
+                    <span className="flex flex-wrap gap-1">
+                      {s.tags.map((tag) => (
+                        <Badge key={tag} variant="secondary">
+                          {tag}
+                        </Badge>
+                      ))}
+                    </span>
+                  </TableCell>
+                  <TableCell
+                    className="hidden pr-4 text-ink-2 sm:table-cell"
+                    title={dayjs(s.updatedAt).format("MMM D, YYYY h:mm A")}
+                  >
+                    {dayjs(s.updatedAt).fromNow()}
+                  </TableCell>
+                </TableRow>
+              ))}
+              {rows.length === 0 && (
+                <TableRow className="hover:bg-transparent">
+                  <TableCell colSpan={4} className="py-10 text-center text-ink-3">
+                    {search.archived && archivedCount === 0
+                      ? "No archived snippets."
+                      : "No snippets match these filters."}
+                  </TableCell>
+                </TableRow>
+              )}
+            </TableBody>
+          </Table>
+        </Card>
       )}
 
       {creating && <CreateSnippetDialog onClose={() => setCreating(false)} />}
@@ -256,8 +270,9 @@ function CreateSnippetDialog({ onClose }: { onClose: () => void }) {
           <DialogHeader>
             <DialogTitle>New snippet</DialogTitle>
             <DialogDescription>
-              The key is how code templates and API HTML include it: {"{% render 'key' %}"}. It
-              can't change later.
+              The key is how code templates and API HTML include it:{" "}
+              <code className="font-mono text-xs">{"{% render 'key' %}"}</code>. It can't change
+              later.
             </DialogDescription>
           </DialogHeader>
           <FieldGroup>

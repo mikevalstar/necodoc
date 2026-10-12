@@ -17,9 +17,21 @@ export const templateDiffQuery = (id: string) =>
   });
 
 const opBadge = {
-  added: <Badge className="bg-emerald-600 text-white">Added</Badge>,
-  removed: <Badge variant="destructive">Removed</Badge>,
-  changed: <Badge variant="secondary">Changed</Badge>,
+  added: (
+    <Badge variant="ok" dot>
+      Added
+    </Badge>
+  ),
+  removed: (
+    <Badge variant="bad" dot>
+      Removed
+    </Badge>
+  ),
+  changed: (
+    <Badge variant="secondary" dot>
+      Changed
+    </Badge>
+  ),
 } as const;
 
 function Group({ title, children }: { title: string; children: ReactNode }) {
@@ -44,13 +56,9 @@ function Row({ op, children }: { op: keyof typeof opBadge; children: ReactNode }
 export function TemplateDiffView({ id, compact = false }: { id: string; compact?: boolean }) {
   const diff = useQuery(templateDiffQuery(id));
   if (diff.error) return <ErrorAlert error={diff.error} />;
-  if (!diff.data) return <p className="text-sm text-muted-foreground">Comparing…</p>;
+  if (!diff.data) return <p className="text-sm text-ink-3">Comparing…</p>;
   if (!diff.data.diff) {
-    return (
-      <p className="text-sm text-muted-foreground">
-        Not published yet: everything in the draft is new.
-      </p>
-    );
+    return <p className="text-sm text-ink-3">Not published yet: everything in the draft is new.</p>;
   }
   return compact ? (
     <DiffSummary diff={diff.data.diff} />
@@ -61,7 +69,7 @@ export function TemplateDiffView({ id, compact = false }: { id: string; compact?
 
 function DiffSummary({ diff }: { diff: TemplateDiff }) {
   const lines = summarizeTemplateDiff(diff);
-  if (!lines.length) return <p className="text-sm text-muted-foreground">No changes.</p>;
+  if (!lines.length) return <p className="text-sm text-ink-3">No changes.</p>;
   return (
     <ul className="list-disc space-y-0.5 pl-4 text-sm">
       {lines.map((line) => (
@@ -100,7 +108,7 @@ export function StructuralDiff({
   const empty = summarizeTemplateDiff(diff).length === 0;
   return (
     <div className="space-y-4">
-      <p className="text-sm text-muted-foreground">
+      <p className="text-sm text-ink-3">
         {caption ?? `Saved draft compared with version ${baseVersion}.`}
         {empty && " Nothing changed."}
       </p>
@@ -155,16 +163,13 @@ export function StructuralDiff({
         <Group title="Content blocks">
           {content.blocks.map((block) => (
             <Row key={`${block.op}${block.index}`} op={block.op}>
-              <span className="text-muted-foreground">
+              <span className="text-ink-3">
                 #{block.index + 1} {block.type}
               </span>{" "}
               {block.op === "changed" ? (
                 <>
-                  <del className="text-red-700 dark:text-red-400">{block.before || "(empty)"}</del>{" "}
-                  →{" "}
-                  <ins className="text-emerald-700 no-underline dark:text-emerald-400">
-                    {block.after || "(empty)"}
-                  </ins>
+                  <del className="text-bad">{block.before || "(empty)"}</del> →{" "}
+                  <ins className="text-ok no-underline">{block.after || "(empty)"}</ins>
                 </>
               ) : (
                 (block.after ?? block.before) || "(no text)"

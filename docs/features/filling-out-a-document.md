@@ -49,7 +49,10 @@ they happen, reuses answers, and produces a clean document.
 - **Documents area** (the app's home page): "My documents" lists the user's
   drafts and finished documents with template, version and last edit; open,
   continue, duplicate or delete each. "New document" opens a picker of
-  published, non-archived templates with search and descriptions.
+  published, non-archived templates with search and descriptions; it shows
+  the published name and description, never an unpublished draft's, to
+  editors too. "Fill in" on the templates list opens the picker narrowed to
+  that template.
 - **Get started.** For people who set necodoc up (admins, and anyone who can
   create or publish templates) the home page opens with a checklist: design a
   template, upload a PDF form, publish one, fill in a first document, get an

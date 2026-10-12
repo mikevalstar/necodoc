@@ -42,7 +42,8 @@ an API restart replaced the page with an error.
 - **Collapsing**: the sidebar collapses to an icon rail (remembered in this
   browser) and is always a rail below 1000 px. In the rail, a section's icon
   opens a menu of its pages, so every page stays reachable.
-- **Top bar**: a breadcrumb (section, then page), Help (admins, to the
+- **Top bar**: a breadcrumb (section, then page, then the record a detail
+  page shows, e.g. "Templates › Invoice"; [breadcrumb.ts](../../apps/app/src/lib/breadcrumb.ts)), Help (admins, to the
   [Admin FAQ](admin-faq.md)) and the notification bell.
 - **Account**: at the bottom of the sidebar, your initials and name with a
   light/dark toggle. It opens a menu with Settings, My usage and Sign out

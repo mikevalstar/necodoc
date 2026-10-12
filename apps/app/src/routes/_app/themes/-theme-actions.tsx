@@ -1,4 +1,4 @@
-import type { createThemeSchema, Theme } from "@necodoc/shared";
+import { bundledFonts, type createThemeSchema, type Theme, type ThemeFont } from "@necodoc/shared";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
 import { toast } from "sonner";
@@ -20,6 +20,13 @@ import { themesQuery } from "@/lib/queries";
 // Spec: docs/features/document-themes.md. Starters are copied, never edited.
 
 type ThemeSource = z.input<typeof createThemeSchema>;
+
+/** A CSS font stack for showing a theme font in the app. Uploaded fonts aren't loaded here. */
+export function fontStack(font: ThemeFont) {
+  if (typeof font !== "string") return undefined;
+  const { family, generic } = bundledFonts[font];
+  return `"${family}", ${generic}`;
+}
 
 /** Copies a theme and opens the copy in the editor. */
 export function useDuplicateTheme() {

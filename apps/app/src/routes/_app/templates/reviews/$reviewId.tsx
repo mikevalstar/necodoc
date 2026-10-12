@@ -17,6 +17,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
 import { VisualDiff } from "@/components/visual-diff";
 import { api, ok } from "@/lib/api";
+import { usePageCrumb } from "@/lib/breadcrumb";
 import { dayjs } from "@/lib/date";
 import { templateQuery } from "../-draft";
 import { ReviewStatusBadge } from "../-review";
@@ -60,6 +61,7 @@ function ReviewPage() {
   const { me } = Route.useRouteContext();
   const queryClient = useQueryClient();
   const review = useQuery(reviewQuery(reviewId));
+  usePageCrumb(review.data?.templateName);
   const templateId = review.data?.templateId;
   const draft = useQuery({ ...templateQuery(templateId ?? ""), enabled: !!templateId });
   const cases = useQuery({ ...testCasesQuery(templateId ?? ""), enabled: !!templateId });

@@ -529,7 +529,8 @@ export function OverlayEditor({
             {doc ? (
               // biome-ignore lint/a11y/noStaticElementInteractions: the page and its boxes take arrow keys, Delete and ⌘D for the selected box
               <div
-                className="relative mx-auto w-fit shadow-card"
+                // .paper: boxes keep their light-mode colours on the white page in dark mode.
+                className="paper relative mx-auto w-fit shadow-card"
                 // biome-ignore lint/a11y/noNoninteractiveTabindex: see above
                 tabIndex={0}
                 onKeyDown={onKeyDown}

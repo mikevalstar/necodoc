@@ -1,18 +1,25 @@
 import {
   ASSET_ORIGIN,
   type Asset,
+  type AssetMime,
   assetKindSchema,
   hasPermission,
   MAX_FILE_BYTES,
   renameAssetSchema,
 } from "@necodoc/shared";
-import { DotsThreeIcon, ImageIcon, TextTIcon, UploadSimpleIcon } from "@phosphor-icons/react";
+import {
+  DotsThreeIcon,
+  ImageIcon,
+  MagnifyingGlassIcon,
+  UploadSimpleIcon,
+} from "@phosphor-icons/react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useRef, useState } from "react";
+import { type DragEvent, useRef, useState } from "react";
 import { toast } from "sonner";
 import { z } from "zod";
 import { CopyButton } from "@/components/copy-button";
+import { activeFilter, DebouncedInput, FilterSelect } from "@/components/data-table";
 import { ErrorAlert, useAppForm } from "@/components/form";
 import { EmptyState, FaqLink, ListSkeleton, Page, PageHeader } from "@/components/page";
 import {
@@ -26,6 +33,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
 import {
   Dialog,
   DialogClose,
@@ -43,16 +51,6 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { FieldGroup } from "@/components/ui/field";
-import { Input } from "@/components/ui/input";
-import { NativeSelect, NativeSelectOption } from "@/components/ui/native-select";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
 import { api, assetFileUrl, ok } from "@/lib/api";
 import { dayjs } from "@/lib/date";
 import { assetsQuery } from "@/lib/queries";
@@ -71,6 +69,21 @@ export const Route = createFileRoute("/_app/assets")({
 
 type AssetDialog = { kind: "use" | "rename" | "delete"; asset: Asset };
 
+const formatLabels: Record<AssetMime, string> = {
+  "image/png": "PNG",
+  "image/jpeg": "JPEG",
+  "image/svg+xml": "SVG",
+  "image/webp": "WebP",
+  "font/ttf": "TTF",
+  "font/otf": "OTF",
+  "font/woff2": "WOFF2",
+};
+
+const accepted = "PNG, JPEG, SVG, WebP, TTF, OTF or WOFF2, up to 20 MB each";
+
+/** The family name a font asset previews under on this page. */
+const previewFamily = (asset: Asset) => `necodoc-asset-${asset.id}`;
+
 function Assets() {
   const search = Route.useSearch();
   const navigate = useNavigate({ from: Route.fullPath });
@@ -78,170 +91,135 @@ function Assets() {
   const canUpload = hasPermission(me.user.roles, { document: ["create"] });
   const canEdit = hasPermission(me.user.roles, { document: ["edit"] });
   const assets = useQuery(assetsQuery(search));
-  const [query, setQuery] = useState(search.q ?? "");
+  const upload = useUpload();
   const [dialog, setDialog] = useState<AssetDialog | null>(null);
   const close = () => setDialog(null);
+  const filtered = Boolean(search.q || search.kind);
+  const setFilter = (next: z.infer<typeof searchSchema>) =>
+    navigate({ search: { ...search, ...next }, replace: true });
+  const fonts = assets.data?.filter((asset) => asset.kind === "font") ?? [];
 
   return (
     <Page>
       <PageHeader
         title="Assets"
         description="Images and fonts for themes and documents. Rendered pages can't load anything from the internet, so logos and fonts live here."
-        actions={<FaqLink feature="Assets" />}
+        actions={
+          <>
+            <FaqLink feature="Assets" />
+            {canUpload && (
+              <Button onClick={upload.pick} disabled={upload.isPending} title={accepted}>
+                <UploadSimpleIcon weight="bold" />
+                {upload.isPending ? "Uploading…" : "Upload"}
+              </Button>
+            )}
+          </>
+        }
       />
 
-      {canUpload && <UploadZone />}
-
-      <form
-        className="flex flex-wrap gap-2"
-        onSubmit={(e) => {
-          e.preventDefault();
-          navigate({ search: { ...search, q: query || undefined } });
-        }}
-      >
-        <Input
-          className="max-w-xs"
-          type="search"
-          aria-label="Search assets"
-          placeholder="Search by name"
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-        />
-        <NativeSelect
-          aria-label="Type"
-          value={search.kind ?? ""}
-          onChange={(e) =>
-            navigate({
-              search: { ...search, kind: assetKindSchema.safeParse(e.target.value).data },
-            })
-          }
-        >
-          <NativeSelectOption value="">Images and fonts</NativeSelectOption>
-          <NativeSelectOption value="image">Images</NativeSelectOption>
-          <NativeSelectOption value="font">Fonts</NativeSelectOption>
-        </NativeSelect>
-        <Button type="submit" variant="outline">
-          Search
-        </Button>
-      </form>
-
-      <ErrorAlert error={assets.error} />
+      {canUpload && upload.input}
+      <ErrorAlert error={assets.error ?? upload.error} />
 
       {assets.isPending ? (
         <ListSkeleton />
-      ) : assets.data?.length === 0 && !search.q && !search.kind ? (
-        <EmptyState
-          icon={ImageIcon}
-          title="No assets yet"
-          description={
-            canUpload
-              ? "Upload a logo or a font above, then copy its reference into a template, theme or API render."
-              : "Logos and fonts appear here once an editor uploads them."
-          }
-        />
+      ) : assets.data?.length === 0 && !filtered ? (
+        <div {...(canUpload ? upload.dropProps : {})}>
+          <EmptyState
+            icon={ImageIcon}
+            title="No assets yet"
+            className={cn(upload.dragging && "border-brand bg-brand-wash")}
+            description={
+              canUpload
+                ? `Upload a logo or a font, or drop files here (${accepted}). Then copy its reference into a template, theme or API render.`
+                : "Logos and fonts appear here once an editor uploads them."
+            }
+            action={
+              canUpload && (
+                <Button onClick={upload.pick} disabled={upload.isPending}>
+                  <UploadSimpleIcon weight="bold" />
+                  Upload files
+                </Button>
+              )
+            }
+          />
+        </div>
       ) : (
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead className="w-16">
-                <span className="sr-only">Preview</span>
-              </TableHead>
-              <TableHead>Name</TableHead>
-              <TableHead className="hidden sm:table-cell">Type</TableHead>
-              <TableHead className="hidden sm:table-cell">Size</TableHead>
-              <TableHead className="hidden md:table-cell">Uploaded</TableHead>
-              <TableHead className="w-0">
-                <span className="sr-only">Actions</span>
-              </TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {assets.data?.map((asset) => (
-              <TableRow key={asset.id}>
-                <TableCell>
-                  {asset.kind === "image" ? (
-                    <img
-                      src={assetFileUrl(asset.id)}
-                      alt=""
-                      loading="lazy"
-                      className="size-12 rounded border bg-[repeating-conic-gradient(#0000000d_0_25%,transparent_0_50%)] bg-size-[12px_12px] object-contain"
-                    />
-                  ) : (
-                    <div className="flex size-12 items-center justify-center rounded border text-muted-foreground">
-                      <TextTIcon />
-                    </div>
-                  )}
-                </TableCell>
-                <TableCell className="font-medium">
-                  <span className="break-all">{asset.name}</span>
-                  <div className="text-xs font-normal text-muted-foreground sm:hidden">
-                    {asset.mimeType} · {formatBytes(asset.size)}
-                  </div>
-                </TableCell>
-                <TableCell className="hidden sm:table-cell">{asset.mimeType}</TableCell>
-                <TableCell className="hidden sm:table-cell">{formatBytes(asset.size)}</TableCell>
-                <TableCell className="hidden md:table-cell">
-                  {dayjs(asset.createdAt).format("YYYY-MM-DD")}
-                  <div className="text-xs text-muted-foreground">{asset.uploaderName ?? "—"}</div>
-                </TableCell>
-                <TableCell>
-                  <div className="flex items-center gap-1">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => setDialog({ kind: "use", asset })}
-                    >
-                      Copy reference
-                    </Button>
-                    <DropdownMenu>
-                      <DropdownMenuTrigger
-                        render={
-                          <Button
-                            variant="ghost"
-                            size="icon-sm"
-                            aria-label={`Actions for ${asset.name}`}
-                          />
-                        }
-                      >
-                        <DotsThreeIcon weight="bold" />
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        <DropdownMenuItem
-                          render={
-                            <a href={assetFileUrl(asset.id)} target="_blank" rel="noreferrer" />
-                          }
-                        >
-                          Open file
-                        </DropdownMenuItem>
-                        {canEdit && (
-                          <>
-                            <DropdownMenuItem onClick={() => setDialog({ kind: "rename", asset })}>
-                              Rename
-                            </DropdownMenuItem>
-                            <DropdownMenuSeparator />
-                            <DropdownMenuItem
-                              variant="destructive"
-                              onClick={() => setDialog({ kind: "delete", asset })}
-                            >
-                              Delete
-                            </DropdownMenuItem>
-                          </>
-                        )}
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  </div>
-                </TableCell>
-              </TableRow>
-            ))}
-            {assets.data?.length === 0 && (
-              <TableRow>
-                <TableCell colSpan={6} className="py-8 text-center text-muted-foreground">
-                  No assets match.
-                </TableCell>
-              </TableRow>
-            )}
-          </TableBody>
-        </Table>
+        <Card
+          className={cn(
+            "gap-0 py-0 transition-shadow",
+            upload.dragging && "ring-2 ring-brand ring-offset-2 ring-offset-background",
+          )}
+          {...(canUpload ? upload.dropProps : {})}
+        >
+          {/* Fonts preview in their own face; the browser fetches each only once it's drawn. */}
+          {fonts.length > 0 && (
+            <style>
+              {fonts
+                .map(
+                  (font) =>
+                    `@font-face { font-family: "${previewFamily(font)}"; src: url(${assetFileUrl(font.id)}); }`,
+                )
+                .join("\n")}
+            </style>
+          )}
+          <div className="flex flex-wrap items-center gap-2 border-b border-hair px-4 py-3">
+            <div className="relative">
+              <MagnifyingGlassIcon
+                aria-hidden
+                className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-ink-3"
+              />
+              <DebouncedInput
+                type="search"
+                aria-label="Search assets"
+                className={cn("w-56 pl-9", search.q && activeFilter)}
+                placeholder="Search by name"
+                value={search.q ?? ""}
+                onCommit={(q) => setFilter({ q: q.trim() || undefined })}
+              />
+            </div>
+            <FilterSelect
+              label="Type"
+              any="Images and fonts"
+              value={search.kind}
+              options={[
+                { value: "image", label: "Images" },
+                { value: "font", label: "Fonts" },
+              ]}
+              onChange={(value) => setFilter({ kind: assetKindSchema.safeParse(value).data })}
+            />
+            <p className="ml-auto text-sm text-ink-3" aria-live="polite">
+              {plural(assets.data?.length ?? 0, "asset")}
+              {canUpload && <span className="hidden md:inline"> · drop files here to upload</span>}
+            </p>
+          </div>
+
+          {assets.data?.length === 0 ? (
+            <div className="flex flex-col items-center gap-3 px-6 py-12 text-center text-sm text-ink-3">
+              No assets match.
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setFilter({ q: undefined, kind: undefined })}
+              >
+                Clear filters
+              </Button>
+            </div>
+          ) : (
+            <ul
+              aria-label="Assets"
+              className="grid grid-cols-2 gap-4 p-4 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5"
+            >
+              {assets.data?.map((asset) => (
+                <AssetTile
+                  key={asset.id}
+                  asset={asset}
+                  canEdit={canEdit}
+                  onAction={(kind) => setDialog({ kind, asset })}
+                />
+              ))}
+            </ul>
+          )}
+        </Card>
       )}
 
       {dialog?.kind === "use" && <UseAssetDialog asset={dialog.asset} onClose={close} />}
@@ -251,10 +229,95 @@ function Assets() {
   );
 }
 
-/** Drop files anywhere on it, or click to pick. Files upload one at a time. */
-function UploadZone() {
+function AssetTile({
+  asset,
+  canEdit,
+  onAction,
+}: {
+  asset: Asset;
+  canEdit: boolean;
+  onAction: (kind: AssetDialog["kind"]) => void;
+}) {
+  return (
+    <li className="flex min-w-0 flex-col gap-2.5">
+      <div className="relative grid aspect-[4/3] place-items-center overflow-hidden rounded-lg bg-tint">
+        {asset.kind === "image" ? (
+          <img
+            src={assetFileUrl(asset.id)}
+            alt=""
+            loading="lazy"
+            className="absolute inset-0 size-full bg-[repeating-conic-gradient(var(--tint-2)_0_25%,transparent_0_50%)] bg-size-[14px_14px] object-contain p-5"
+          />
+        ) : (
+          <div
+            aria-hidden
+            className="flex flex-col items-center gap-1 px-3 text-center text-ink"
+            style={{ fontFamily: `"${previewFamily(asset)}", var(--font-sans)` }}
+          >
+            <span className="text-5xl leading-none">Aa</span>
+            <span className="text-sm text-ink-2">The quick brown fox</span>
+          </div>
+        )}
+      </div>
+      <div className="min-w-0 px-0.5">
+        <p className="truncate text-sm font-semibold" title={asset.name}>
+          {asset.name}
+        </p>
+        <p className="truncate text-xs text-ink-3">
+          {formatLabels[asset.mimeType]} · {formatBytes(asset.size)} ·{" "}
+          <time dateTime={asset.createdAt} title={asset.uploaderName ?? undefined}>
+            {dayjs(asset.createdAt).format("MMM D, YYYY")}
+          </time>
+          {asset.uploaderName && ` · ${asset.uploaderName}`}
+        </p>
+      </div>
+      <div className="flex items-center gap-1">
+        <Button
+          variant="secondary"
+          size="sm"
+          className="min-w-0 flex-1"
+          aria-label={`Copy reference for ${asset.name}`}
+          onClick={() => onAction("use")}
+        >
+          Copy reference
+        </Button>
+        <DropdownMenu>
+          <DropdownMenuTrigger
+            render={
+              <Button variant="ghost" size="icon-sm" aria-label={`Actions for ${asset.name}`} />
+            }
+          >
+            <DotsThreeIcon weight="bold" />
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="w-40">
+            <DropdownMenuItem
+              render={<a href={assetFileUrl(asset.id)} target="_blank" rel="noreferrer" />}
+            >
+              Open file
+            </DropdownMenuItem>
+            {canEdit && (
+              <>
+                <DropdownMenuItem onClick={() => onAction("rename")}>Rename</DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem variant="destructive" onClick={() => onAction("delete")}>
+                  Delete
+                </DropdownMenuItem>
+              </>
+            )}
+          </DropdownMenuContent>
+        </DropdownMenu>
+      </div>
+    </li>
+  );
+}
+
+/**
+ * Upload from the header button's picker or by dropping files on the library. Files upload one
+ * at a time; `input` is the hidden picker to render once.
+ */
+function useUpload() {
   const queryClient = useQueryClient();
-  const input = useRef<HTMLInputElement>(null);
+  const ref = useRef<HTMLInputElement>(null);
   const [dragging, setDragging] = useState(false);
   const upload = useMutation({
     mutationFn: async (files: File[]) => {
@@ -267,38 +330,36 @@ function UploadZone() {
     onSettled: () => queryClient.invalidateQueries({ queryKey: ["assets"] }),
   });
   const send = (files: FileList | null) => {
-    if (files?.length) upload.mutate([...files]);
+    if (files?.length && !upload.isPending) upload.mutate([...files]);
   };
+  const isFileDrag = (e: DragEvent) => e.dataTransfer.types.includes("Files");
 
-  return (
-    <div className="space-y-2">
-      <button
-        type="button"
-        className={cn(
-          "flex w-full flex-col items-center gap-1 rounded-lg border border-dashed p-6 text-sm text-muted-foreground transition-colors hover:bg-muted/50",
-          dragging && "border-primary bg-muted",
-        )}
-        disabled={upload.isPending}
-        onClick={() => input.current?.click()}
-        onDragOver={(e) => {
-          e.preventDefault();
-          setDragging(true);
-        }}
-        onDragLeave={() => setDragging(false)}
-        onDrop={(e) => {
-          e.preventDefault();
-          setDragging(false);
-          send(e.dataTransfer.files);
-        }}
-      >
-        <UploadSimpleIcon className="size-5" />
-        <span className="font-medium text-foreground">
-          {upload.isPending ? "Uploading…" : "Drop files here or click to upload"}
-        </span>
-        <span>PNG, JPEG, SVG, WebP, TTF, OTF or WOFF2, up to 20 MB each</span>
-      </button>
+  return {
+    isPending: upload.isPending,
+    error: upload.error,
+    dragging,
+    pick: () => ref.current?.click(),
+    dropProps: {
+      onDragOver: (e: DragEvent) => {
+        if (!isFileDrag(e)) return;
+        e.preventDefault();
+        setDragging(true);
+      },
+      onDragLeave: (e: DragEvent) => {
+        // Moving between children fires dragleave too; only clear when leaving the target.
+        if (e.relatedTarget instanceof Node && e.currentTarget.contains(e.relatedTarget)) return;
+        setDragging(false);
+      },
+      onDrop: (e: DragEvent) => {
+        if (!isFileDrag(e)) return;
+        e.preventDefault();
+        setDragging(false);
+        send(e.dataTransfer.files);
+      },
+    },
+    input: (
       <input
-        ref={input}
+        ref={ref}
         type="file"
         multiple
         hidden
@@ -308,15 +369,15 @@ function UploadZone() {
           e.target.value = "";
         }}
       />
-      <ErrorAlert error={upload.error} />
-    </div>
-  );
+    ),
+  };
 }
 
 function UseAssetDialog({ asset, onClose }: { asset: Asset; onClose: () => void }) {
   const url = `${ASSET_ORIGIN}/${asset.id}`;
-  const snippets =
-    asset.kind === "image"
+  const snippets = [
+    { label: "Asset id (API renders)", code: asset.id },
+    ...(asset.kind === "image"
       ? [
           {
             label: "HTML (Liquid)",
@@ -329,7 +390,8 @@ function UseAssetDialog({ asset, onClose }: { asset: Asset; onClose: () => void 
             label: "CSS",
             code: `@font-face { font-family: "${asset.name.replace(/"/g, "")}"; src: url(${url}); }`,
           },
-        ];
+        ]),
+  ];
   return (
     <Dialog open onOpenChange={(open) => !open && onClose()}>
       <DialogContent className="sm:max-w-xl">
@@ -347,7 +409,7 @@ function UseAssetDialog({ asset, onClose }: { asset: Asset; onClose: () => void 
                 <span className="text-sm font-medium">{label}</span>
                 <CopyButton text={code} />
               </div>
-              <pre className="rounded-lg bg-muted p-3 font-mono text-xs break-all whitespace-pre-wrap">
+              <pre className="rounded-lg bg-tint p-3 font-mono text-xs break-all whitespace-pre-wrap">
                 {code}
               </pre>
             </div>

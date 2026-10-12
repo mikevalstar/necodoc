@@ -38,6 +38,11 @@ matches the brand helps self-serve users trust it, and one shared system keeps
   muted), from the [badge](../../apps/app/src/components/ui/badge.tsx).
 - **Next step**: marigold marks the single thing to do next on a screen (the
   next get-started step, an assistant suggestion). Never more than one.
+- **Paper**: anything drawn on a white PDF page (overlay boxes) keeps the
+  light-mode colours in dark mode (`.paper` in
+  [index.css](../../apps/app/src/index.css)), so it stays legible.
+- **Disabled** controls look clearly off in both themes (flat tint, muted
+  text), not just faded.
 - **Ears** only on the active nav item, the PDF preview tray
   ([pdf-frame.tsx](../../apps/app/src/components/pdf-frame.tsx)) and template
   thumbnails.

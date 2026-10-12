@@ -3,8 +3,8 @@ import { DotsThreeIcon, LinkIcon, PlusIcon } from "@phosphor-icons/react";
 import { useQuery } from "@tanstack/react-query";
 import { createFileRoute, Link, redirect } from "@tanstack/react-router";
 import { useState } from "react";
-import { DensityToggle } from "@/components/data-table";
 import { CopyButton } from "@/components/copy-button";
+import { DensityToggle } from "@/components/data-table";
 import { ErrorAlert } from "@/components/form";
 import { EmptyState, FaqLink, ListSkeleton, Page, PageHeader } from "@/components/page";
 import { Badge } from "@/components/ui/badge";
@@ -29,9 +29,9 @@ import { dayjs } from "@/lib/date";
 import { shareLinksQuery } from "@/lib/queries";
 import {
   copyLink,
-  publicLinkUrl,
   DeleteShareLinkDialog,
   LinkStateBadge,
+  publicLinkUrl,
   responseCount,
   ShareLinkDialog,
   type ShareLinkRow,

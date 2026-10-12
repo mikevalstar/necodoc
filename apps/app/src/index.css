@@ -239,6 +239,33 @@
   --chart-axis: #343d74;
 }
 
+/* Things drawn on a white PDF page (the overlay canvas) keep the light semantic colours in dark
+   mode: dark-mode tints are made for dark surfaces and wash out on paper. */
+.dark .paper {
+  color-scheme: light;
+  --surface: #ffffff;
+  --card: #ffffff;
+  --ink: #0c1233;
+  --ink-2: #3f4668;
+  --ink-3: #5b6285;
+  --foreground: var(--ink);
+  --brand: #2f6bff;
+  --brand-ink: #1f50e0;
+  --brand-wash: #e7eeff;
+  --on-brand: #ffffff;
+  --primary: var(--brand);
+  --sun-ink: #6b4a00;
+  --sun-wash: #fff3d1;
+  --ok: #0b7a52;
+  --ok-wash: #dcf5e9;
+  --warn: #8a5600;
+  --warn-wash: #fff0cc;
+  --bad: #c92a32;
+  --bad-wash: #fde4e4;
+  --run: #1f50e0;
+  --run-wash: #e7eeff;
+}
+
 [data-density="compact"] {
   --row-h: 40px;
 }
