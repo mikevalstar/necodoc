@@ -258,7 +258,9 @@ function DataSubjects() {
       <AlertDialog open={confirming} onOpenChange={setConfirming}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Erase {pickedCount} items?</AlertDialogTitle>
+            <AlertDialogTitle>
+              Erase {pickedCount} {pickedCount === 1 ? "item" : "items"}?
+            </AlertDialogTitle>
             <AlertDialogDescription>
               The selected generations, their PDFs and stored files, packets, documents and
               responses are deleted for good. This can't be undone.

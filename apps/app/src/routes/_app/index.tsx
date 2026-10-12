@@ -70,7 +70,7 @@ function Documents() {
             Answer a template's questions and get the finished PDF. Drafts save as you type.
           </p>
         </div>
-        <Button render={<Link to="/documents/new" />}>
+        <Button nativeButton={false} render={<Link to="/documents/new" />}>
           <PlusIcon />
           New document
         </Button>

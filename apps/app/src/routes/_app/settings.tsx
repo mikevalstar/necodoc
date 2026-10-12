@@ -299,7 +299,7 @@ function ApiKeysCard() {
         </CardDescription>
       </CardHeader>
       <CardContent>
-        <Button variant="outline" render={<Link to="/settings/api-keys" />}>
+        <Button variant="outline" nativeButton={false} render={<Link to="/settings/api-keys" />}>
           Manage API keys
         </Button>
       </CardContent>
