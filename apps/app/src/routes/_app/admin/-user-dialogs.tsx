@@ -124,9 +124,7 @@ export function CreateUserDialog({ onClose, onDone }: Omit<DialogProps, "user">)
         {(field) => <field.TextField label="Email" type="email" />}
       </form.AppField>
       <form.AppField name="password">
-        {(field) => (
-          <field.TextField label="Password" type="password" autoComplete="new-password" />
-        )}
+        {(field) => <field.PasswordField label="Password" autoComplete="new-password" />}
       </form.AppField>
       <form.AppField name="role">{(field) => <field.RolesField />}</form.AppField>
     </FormDialog>
@@ -239,9 +237,7 @@ export function SetPasswordDialog({ user, onClose, onDone }: DialogProps) {
       onClose={onClose}
     >
       <form.AppField name="newPassword">
-        {(field) => (
-          <field.TextField label="New password" type="password" autoComplete="new-password" />
-        )}
+        {(field) => <field.PasswordField label="New password" autoComplete="new-password" />}
       </form.AppField>
     </FormDialog>
   );

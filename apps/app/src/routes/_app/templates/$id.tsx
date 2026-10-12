@@ -54,6 +54,7 @@ import { Input } from "@/components/ui/input";
 import { NativeSelect, NativeSelectOption } from "@/components/ui/native-select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ApiError, api, ok, previewTemplate } from "@/lib/api";
+import { usePageCrumb } from "@/lib/breadcrumb";
 import { dayjs } from "@/lib/date";
 import { snippetsQuery, templatesQuery } from "@/lib/queries";
 import { useSaveShortcut } from "@/lib/save-shortcut";
@@ -143,6 +144,7 @@ function TemplatePage() {
   const { id } = Route.useParams();
   const queryClient = useQueryClient();
   const template = useSuspenseQuery(templateQuery(id)).data;
+  usePageCrumb(template.name);
   /** Bumped to throw the editor's state away and load the stored draft (reload, restore). */
   const [loads, setLoads] = useState(0);
   const reload = useCallback(async () => {
@@ -640,11 +642,7 @@ function TemplateEditor({
 
       <Tabs defaultValue="content" className="gap-4">
         <div className="flex items-center gap-3">
-          {/* One row: scrolls sideways (fading at the edge) when the window is too narrow for every tab. */}
-          <TabsList
-            aria-label="Template sections"
-            className="max-w-full min-w-0 justify-start overflow-x-auto [scrollbar-width:none] *:data-[slot=tabs-trigger]:flex-none max-xl:pr-10 max-xl:[mask-image:linear-gradient(to_right,#000_calc(100%-2.5rem),transparent)]"
-          >
+          <TabsList aria-label="Template sections" scrollable>
             {tabs.map((tab) => {
               const bad = tabIssues.get(tab.value);
               return (

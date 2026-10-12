@@ -221,7 +221,7 @@ const templates: readonly FaqEntry[] = [
     group: "Templates",
     what: "An editor submits a template's saved draft for review with a note. A reviewer opens it from Templates › Reviews and sees what changed since the published version (fields, sections, content blocks, header/footer, page setup, theme, snippets, overlay boxes), a page-by-page visual diff and the test results, then approves it or requests changes in a comment thread. With 'Require review before publish' on (Admin › System › Publishing), only a draft that still matches an approved review can be published; any later edit to the draft, its theme or its snippets makes the review stale.",
     howTo:
-      "Editor: save, then Submit for review (header, or the Reviews tab). Reviewer: Templates › Reviews, open the review, read the Changes, Visual diff and Tests tabs, then Approve or write a comment and Request changes. Editor: fix the draft, save and Resubmit. Publisher: Publish from the review page or the template. The template's Reviews tab lists every review.",
+      "Editor: save, then Submit for review (header, or the Reviews tab). Reviewer: Templates › Reviews, open the review, read the Changes, Visual diff and Tests tabs, then Approve (it asks first if tests fail) or write a comment and Request changes. Editor: fix the draft, save and Resubmit, or Withdraw it from the review page or the template. Publisher: Publish from the review page or the template. The template's Reviews tab lists every review.",
     limitations: [
       "One open review per template, shared by every reviewer; the first decision wins.",
       "No assignment: every reviewer is asked.",
@@ -671,7 +671,7 @@ export const faq: readonly FaqEntry[] = [
     group: "Templates",
     what: "Fill a PDF you already use (a government form, a carrier's bond) instead of rebuilding it. You upload the PDF, place boxes where the answers go, and bind each box to a template field with a Liquid expression. Generation writes the values onto the original pages, so the output looks exactly like the form. Fields, sample data, publishing, versions, batches and the generation log work as for designed templates.",
     howTo:
-      "Templates › Upload PDF (or New template › Fill an existing PDF), pick the file (up to 20 MB, 200 pages). On the Boxes tab, choose a box type in 'Draw', drag on the page, then set its value in the inspector: pick 'Bind to a field' or type a new label and 'Create field'. Click a box to move or resize it; arrow keys nudge it (Shift for 10 pt), Delete removes it, ⌘D duplicates it. The PDF tab has Flatten (no editable fields in the output) and 'Upload a new PDF' for a new revision of the form.",
+      "Templates › Upload PDF (or New template › Fill an existing PDF), pick the file (up to 20 MB, 200 pages). On the Boxes tab, choose a box type in 'Draw', drag on the page, then set its value in the inspector: pick 'Bind to a field' or type a new label and 'Create field'. Click a box (or Tab to it) to move it, or drag a corner or edge handle to resize it; the position shows in points while you drag. Arrow keys nudge it (Shift for 10 pt), Delete removes it, ⌘D duplicates it. The PDF tab has Flatten (no editable fields in the output) and 'Upload a new PDF' for a new revision of the form.",
     limitations: [
       "Text never flows from one box to the next. Auto-shrink stops at the minimum size; past it the text is cut and the generation records a warning.",
       "A signature box draws an image unless it names a signer; then it's left blank for the e-sign provider (see Signing packages).",
@@ -838,7 +838,7 @@ export const faq: readonly FaqEntry[] = [
     group: "Documents",
     what: "A public link to a published template, for people without an account: a customer's intake form, a supplier's details. They fill the same guided form under the necodoc mark and submit; their answers arrive as your document with its PDF, marked 'Share link'. Options: a label, a pinned version or the latest, an expiry date, a maximum number of submissions (1 for a single-use request), asking for the filler's email, letting them download their PDF, and prefilled answers you can lock.",
     howTo:
-      "Open Share links › New share link, pick the template, set the options and Create link, then Copy link and send it. Adding ?field_name=value to the link prefills unlocked fields. Responses shows each submission; the nav and the list count new ones. Disable stops the link at once, Enable turns it back on; Delete removes the link but keeps its responses in My documents.",
+      "Open Share links › New share link, pick the template, set the options and Create link, then Copy link and send it. Adding ?field_name=value to the link prefills unlocked fields. Open a link to see its responses (new ones are marked), views, conversion and settings; the nav and the list count new ones. Disable stops the link at once, Enable turns it back on; Delete removes the link but keeps its responses in My documents.",
     limitations: [
       "No email: necodoc doesn't send the link or tell you about responses; watch the count in the app.",
       "Anyone with the link can submit; there's no identity check or CAPTCHA, only a per-address rate limit (10 at once, then one a minute).",

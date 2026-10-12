@@ -2,6 +2,8 @@ import {
   ArrowUUpLeftIcon,
   ArrowUUpRightIcon,
   BracketsCurlyIcon,
+  DotsThreeIcon,
+  EraserIcon,
   LinkIcon,
   ListBulletsIcon,
   ListNumbersIcon,
@@ -22,8 +24,12 @@ import { type ReactNode, useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
+  DropdownMenuCheckboxItem,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuRadioGroup,
+  DropdownMenuRadioItem,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
@@ -85,11 +91,7 @@ export function Toolbar({
     }),
   });
   const chain = () => editor.chain().focus();
-  const mark = (
-    name: "bold" | "italic" | "underline" | "strike",
-    label: string,
-    icon: ReactNode,
-  ) => (
+  const mark = (name: "bold" | "italic" | "underline", label: string, icon: ReactNode) => (
     <Toggle
       size="sm"
       aria-label={label}
@@ -101,9 +103,13 @@ export function Toolbar({
     </Toggle>
   );
 
+  const alignIcon = ALIGNS.find((a) => a.value === state.align) ?? ALIGNS[0];
+
+  // One row at the editor column's width (cobalt/editor.html): alignment and the less-used marks
+  // sit in menus; Field and Insert are grouped on the right.
   return (
-    <div className="sticky top-0 z-10 space-y-1 rounded-t-lg border-b bg-background/95 p-1 backdrop-blur">
-      <div className="flex flex-wrap items-center gap-0.5">
+    <div className="sticky top-0 z-10 rounded-t-xl border-b border-hair bg-card/95 px-1.5 py-1.5 backdrop-blur">
+      <div className="flex flex-wrap items-center [&_[data-slot=toggle]]:px-0">
         <Button
           variant="ghost"
           size="icon-sm"
@@ -146,16 +152,15 @@ export function Toolbar({
         {mark("bold", "Bold", <TextBIcon />)}
         {mark("italic", "Italic", <TextItalicIcon />)}
         {mark("underline", "Underline", <TextUnderlineIcon />)}
-        {mark("strike", "Strikethrough", <TextStrikethroughIcon />)}
         <label
           title="Text colour"
-          className="relative flex size-7 cursor-pointer items-center justify-center rounded-md hover:bg-muted"
+          className="relative flex size-8 cursor-pointer items-center justify-center rounded-[9px] text-ink-2 hover:bg-tint"
         >
           <span className="text-sm font-semibold" style={{ color: state.color || undefined }}>
             A
           </span>
           <span
-            className="absolute inset-x-1.5 bottom-1 h-0.5 rounded"
+            className="absolute inset-x-2 bottom-1.5 h-0.5 rounded"
             style={{ background: state.color || "currentColor" }}
           />
           <input
@@ -166,26 +171,38 @@ export function Toolbar({
             onChange={(e) => chain().setColor(e.target.value).run()}
           />
         </label>
-        {state.color && (
-          <Button variant="ghost" size="xs" onClick={() => chain().unsetColor().run()}>
-            Clear colour
-          </Button>
-        )}
         <LinkButton editor={editor} active={state.link} />
         <Separator orientation="vertical" className="mx-1 h-5" />
-        {ALIGNS.map(({ value, icon: Icon }) => (
-          <Toggle
-            key={value}
-            size="sm"
-            aria-label={`Align ${value}`}
-            title={`Align ${value}`}
-            pressed={state.align === value}
-            onPressedChange={() => chain().setTextAlign(value).run()}
+        <DropdownMenu>
+          <DropdownMenuTrigger
+            render={
+              <Button
+                variant="ghost"
+                size="icon-sm"
+                aria-label={`Alignment: ${state.align}`}
+                title="Alignment"
+              />
+            }
           >
-            <Icon />
-          </Toggle>
-        ))}
-        <Separator orientation="vertical" className="mx-1 h-5" />
+            <alignIcon.icon />
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="start">
+            <DropdownMenuRadioGroup
+              value={state.align}
+              onValueChange={(value) => {
+                const align = ALIGNS.find((a) => a.value === value);
+                if (align) chain().setTextAlign(align.value).run();
+              }}
+            >
+              {ALIGNS.map(({ value, icon: Icon }) => (
+                <DropdownMenuRadioItem key={value} value={value}>
+                  <Icon />
+                  Align {value}
+                </DropdownMenuRadioItem>
+              ))}
+            </DropdownMenuRadioGroup>
+          </DropdownMenuContent>
+        </DropdownMenu>
         <Toggle
           size="sm"
           aria-label="Bullet list"
@@ -204,31 +221,53 @@ export function Toolbar({
         >
           <ListNumbersIcon />
         </Toggle>
-        <Toggle
-          size="sm"
-          aria-label="Quote"
-          title="Quote"
-          pressed={state.blockquote}
-          onPressedChange={() => chain().toggleBlockquote().run()}
-        >
-          <QuotesIcon />
-        </Toggle>
-        <Separator orientation="vertical" className="mx-1 h-5" />
-        {fieldButton}
         <DropdownMenu>
-          <DropdownMenuTrigger render={<Button variant="ghost" size="sm" />}>
-            <PlusIcon weight="bold" />
-            Insert
+          <DropdownMenuTrigger
+            render={
+              <Button variant="ghost" size="icon-sm" aria-label="More formatting" title="More" />
+            }
+          >
+            <DotsThreeIcon weight="bold" />
           </DropdownMenuTrigger>
-          <DropdownMenuContent align="start" className="w-56">
-            {insertItems.map((item) => (
-              <DropdownMenuItem key={item.title} onClick={() => item.run(editor)}>
-                <item.icon />
-                {item.title}
-              </DropdownMenuItem>
-            ))}
+          <DropdownMenuContent align="start">
+            <DropdownMenuCheckboxItem
+              checked={state.strike}
+              onCheckedChange={() => chain().toggleStrike().run()}
+            >
+              <TextStrikethroughIcon />
+              Strikethrough
+            </DropdownMenuCheckboxItem>
+            <DropdownMenuCheckboxItem
+              checked={state.blockquote}
+              onCheckedChange={() => chain().toggleBlockquote().run()}
+            >
+              <QuotesIcon />
+              Quote
+            </DropdownMenuCheckboxItem>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem disabled={!state.color} onClick={() => chain().unsetColor().run()}>
+              <EraserIcon />
+              Clear text colour
+            </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
+        <div className="ml-auto flex items-center gap-1 [&_[data-slot=button]]:px-2.5">
+          {fieldButton}
+          <DropdownMenu>
+            <DropdownMenuTrigger render={<Button variant="secondary" size="sm" />}>
+              <PlusIcon weight="bold" />
+              Insert
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-56">
+              {insertItems.map((item) => (
+                <DropdownMenuItem key={item.title} onClick={() => item.run(editor)}>
+                  <item.icon />
+                  {item.title}
+                </DropdownMenuItem>
+              ))}
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
       </div>
       {state.inTable && <TableBar editor={editor} />}
     </div>
@@ -312,8 +351,8 @@ function TableBar({ editor }: { editor: Editor }) {
     </Button>
   );
   return (
-    <div className="flex flex-wrap items-center gap-0.5 border-t pt-1 text-xs">
-      <span className="px-1 font-medium text-muted-foreground">Table</span>
+    <div className="mt-1.5 flex flex-wrap items-center gap-0.5 border-t border-hair pt-1.5 text-xs">
+      <span className="px-1 font-semibold text-ink-3">Table</span>
       {action("Row above", () => chain().addRowBefore().run())}
       {action("Row below", () => chain().addRowAfter().run())}
       {action("Column left", () => chain().addColumnBefore().run())}
@@ -324,7 +363,7 @@ function TableBar({ editor }: { editor: Editor }) {
       {action("Merge/split cells", () => chain().mergeOrSplit().run())}
       {action("Delete table", () => chain().deleteTable().run())}
       <Separator orientation="vertical" className="mx-1 h-5" />
-      <BracketsCurlyIcon className="size-3.5 text-violet-600" />
+      <BracketsCurlyIcon className="size-3.5 text-brand-ink" />
       <NativeSelect
         size="sm"
         aria-label="Repeat this row"

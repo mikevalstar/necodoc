@@ -302,7 +302,7 @@ export function DocEditor({
 
   return (
     <EditorFieldsContext.Provider value={context}>
-      <div className={cn("rounded-lg border bg-background", className)}>
+      <div className={cn("rounded-xl bg-card shadow-card", className)}>
         {editable && (
           <Toolbar
             editor={editor}
@@ -312,11 +312,11 @@ export function DocEditor({
                 open={fieldOpen}
                 onOpenChange={(open) => (open ? openFieldPicker() : setFieldOpen(false))}
               >
-                <PopoverTrigger render={<Button variant="ghost" size="sm" />}>
+                <PopoverTrigger render={<Button variant="secondary" size="sm" />}>
                   <BracketsCurlyIcon />
                   Field
                 </PopoverTrigger>
-                <PopoverContent align="start" className="w-80">
+                <PopoverContent align="end" className="w-80">
                   {fieldChoices.length === 0 ? (
                     <p className="text-sm text-muted-foreground">
                       {snippetId

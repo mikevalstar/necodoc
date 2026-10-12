@@ -2,11 +2,10 @@ import { signInSchema } from "@necodoc/shared";
 import { useMutation, useSuspenseQuery } from "@tanstack/react-query";
 import { createFileRoute, Link, redirect } from "@tanstack/react-router";
 import { z } from "zod";
-import { AuthFrame } from "@/components/auth-frame";
+import { AuthFrame, OrDivider } from "@/components/auth-frame";
 import { ErrorAlert, useAppForm } from "@/components/form";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { FieldGroup } from "@/components/ui/field";
 import { authClient, meQuery, signInOptionsQuery, unwrap, useSessionChange } from "@/lib/auth";
 
@@ -62,87 +61,96 @@ function Login() {
     onSubmit: ({ value }) => signIn.mutate(value),
   });
 
+  const sso = options.providers.length > 0;
+
   return (
-    <AuthFrame>
-      <Card>
-        <CardHeader>
-          <CardTitle>Sign in</CardTitle>
-          <CardDescription>
-            {options.password
-              ? "Use the email and password you registered with."
-              : "Sign in with your organisation's account."}
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          {ssoError && (
-            <Alert variant="destructive">
-              <AlertDescription>{ssoError}</AlertDescription>
-            </Alert>
-          )}
-          {options.providers.length > 0 && (
-            <div className="flex flex-col gap-2">
-              <ErrorAlert error={ssoSignIn.error} />
-              {options.providers.map((provider) =>
-                provider.type === "header" ? (
-                  <Button
-                    key={provider.id}
-                    variant="outline"
-                    nativeButton={false}
-                    render={<a href={`/api/sso/header/${provider.id}`} />}
-                  >
-                    Sign in with {provider.label}
-                  </Button>
-                ) : (
-                  <Button
-                    key={provider.id}
-                    variant="outline"
-                    disabled={ssoSignIn.isPending}
-                    onClick={() => ssoSignIn.mutate(provider.id)}
-                  >
-                    Sign in with {provider.label}
-                  </Button>
-                ),
-              )}
-            </div>
-          )}
-          {options.password && options.providers.length > 0 && (
-            <p className="text-center text-xs text-muted-foreground uppercase">or</p>
-          )}
-          {options.password && (
-            <form
-              onSubmit={(e) => {
-                e.preventDefault();
-                form.handleSubmit();
-              }}
-            >
-              <FieldGroup>
-                <ErrorAlert error={signIn.error} />
-                <form.AppField name="email">
-                  {(field) => <field.TextField label="Email" type="email" autoComplete="email" />}
-                </form.AppField>
-                <form.AppField name="password">
-                  {(field) => (
-                    <field.TextField
-                      label="Password"
-                      type="password"
-                      autoComplete="current-password"
-                    />
-                  )}
-                </form.AppField>
-                <Button type="submit" disabled={signIn.isPending}>
-                  Sign in
+    <AuthFrame
+      title="Sign in"
+      description={
+        options.password && sso
+          ? "Use your organisation's account, or the email and password you registered with."
+          : options.password
+            ? "Use the email and password you registered with."
+            : "Use your organisation's account."
+      }
+    >
+      <div className="space-y-5">
+        {ssoError && (
+          <Alert variant="destructive">
+            <AlertDescription>{ssoError}</AlertDescription>
+          </Alert>
+        )}
+        {sso && (
+          <div className="flex flex-col gap-2">
+            <ErrorAlert error={ssoSignIn.error} />
+            {options.providers.map((provider) =>
+              provider.type === "header" ? (
+                <Button
+                  key={provider.id}
+                  variant="outline"
+                  nativeButton={false}
+                  render={<a href={`/api/sso/header/${provider.id}`} />}
+                >
+                  Sign in with {provider.label}
                 </Button>
-                <p className="text-center text-sm text-muted-foreground">
-                  No account?{" "}
-                  <Link to="/register" className="underline underline-offset-4">
-                    Register
-                  </Link>
-                </p>
-              </FieldGroup>
-            </form>
-          )}
-        </CardContent>
-      </Card>
+              ) : (
+                <Button
+                  key={provider.id}
+                  variant="outline"
+                  disabled={ssoSignIn.isPending}
+                  onClick={() => ssoSignIn.mutate(provider.id)}
+                >
+                  {ssoSignIn.isPending && ssoSignIn.variables === provider.id
+                    ? `Redirecting to ${provider.label}…`
+                    : `Sign in with ${provider.label}`}
+                </Button>
+              ),
+            )}
+          </div>
+        )}
+        {options.password && sso && <OrDivider />}
+        {options.password && (
+          <form
+            noValidate
+            onSubmit={(e) => {
+              e.preventDefault();
+              form.handleSubmit();
+            }}
+          >
+            <FieldGroup className="gap-5">
+              <ErrorAlert error={signIn.error} />
+              <form.AppField name="email">
+                {(field) => (
+                  <field.TextField
+                    label="Email"
+                    type="email"
+                    autoComplete="username"
+                    autoCapitalize="none"
+                    spellCheck={false}
+                  />
+                )}
+              </form.AppField>
+              <form.AppField name="password">
+                {(field) => (
+                  <field.PasswordField label="Password" autoComplete="current-password" />
+                )}
+              </form.AppField>
+              <Button type="submit" disabled={signIn.isPending}>
+                {signIn.isPending ? "Signing in…" : "Sign in"}
+              </Button>
+              <p className="text-center text-sm text-ink-2">
+                New to necodoc?{" "}
+                <Link
+                  to="/register"
+                  className="font-semibold text-brand-ink underline-offset-4 hover:underline"
+                >
+                  Create an account
+                </Link>
+              </p>
+            </FieldGroup>
+          </form>
+        )}
+      </div>
     </AuthFrame>
   );
 }

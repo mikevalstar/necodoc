@@ -1,14 +1,22 @@
 import { CheckIcon, CopyIcon } from "@phosphor-icons/react";
-import { useState } from "react";
+import { type ComponentProps, useState } from "react";
 import { Button } from "@/components/ui/button";
 
-export function CopyButton({ text, label = "Copy" }: { text: string; label?: string }) {
+/** Copies `text` and shows "Copied" for a moment. Other Button props (size, className, aria-label) pass through. */
+export function CopyButton({
+  text,
+  label = "Copy",
+  size = "sm",
+  variant = "outline",
+  ...props
+}: { text: string; label?: string } & Omit<ComponentProps<typeof Button>, "onClick" | "children">) {
   const [copied, setCopied] = useState(false);
   return (
     <Button
       type="button"
-      variant="outline"
-      size="sm"
+      variant={variant}
+      size={size}
+      {...props}
       onClick={async () => {
         await navigator.clipboard.writeText(text);
         setCopied(true);

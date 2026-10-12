@@ -83,6 +83,9 @@ function visibility(sections: readonly FieldSection[], values: Readonly<Values>)
   });
 }
 
+/** Step and review titles read as headings. */
+const stepTitle = "font-heading text-lg font-bold tracking-tight";
+
 export type GuidedFormProps = {
   sections: readonly FieldSection[];
   /** Values to start from, e.g. saved sample data. Remount (change `key`) to load new ones. */
@@ -104,6 +107,8 @@ export type GuidedFormProps = {
   onStepChange?: (step: number) => void;
   /** Top-level fields shown but not editable (a share link's locked prefill). */
   lockedKeys?: readonly string[];
+  /** Hides the required markers, where nothing is required yet (a share link's prefill). */
+  hideRequired?: boolean;
 };
 
 export function GuidedForm({
@@ -119,6 +124,7 @@ export function GuidedForm({
   initialStep = 0,
   onStepChange,
   lockedKeys = [],
+  hideRequired = false,
 }: GuidedFormProps) {
   const schema = useMemo(() => templateDataSchema(sections), [sections]);
   /** Shows every error, touched or not, after a blocked Next or submit. */
@@ -154,9 +160,7 @@ export function GuidedForm({
   const visible = visibility(sections, values);
 
   if (!sections.some((s) => s.fields.length)) {
-    return (
-      <p className="text-sm text-muted-foreground">This template doesn't declare any fields.</p>
-    );
+    return <p className="text-sm text-ink-3">This template doesn't declare any fields.</p>;
   }
 
   const scalar = (field: ScalarField, name: string, errorKey: string, readOnly = false) => (
@@ -186,7 +190,7 @@ export function GuidedForm({
             {field.type === "boolean" && input}
             <FieldLabel htmlFor={name} className={field.type === "boolean" ? "font-normal" : ""}>
               {field.label}
-              {field.required && <span className="text-destructive">*</span>}
+              {field.required && !hideRequired && <span className="text-destructive">*</span>}
             </FieldLabel>
             {field.type !== "boolean" && input}
             {field.help && <FieldDescription>{field.help}</FieldDescription>}
@@ -209,7 +213,7 @@ export function GuidedForm({
           <FieldSet>
             <FieldLegend variant="label">
               {field.label}
-              {field.required && <span className="text-destructive">*</span>}
+              {field.required && !hideRequired && <span className="text-destructive">*</span>}
             </FieldLegend>
             {field.help && <FieldDescription>{field.help}</FieldDescription>}
             {items.map((item, i) => {
@@ -218,8 +222,8 @@ export function GuidedForm({
               return (
                 // Items have no ids; inputs are controlled, so index keys are safe.
                 // biome-ignore lint/suspicious/noArrayIndexKey: see above
-                <div key={i} className="space-y-3 rounded-lg border p-3">
-                  <div className="flex items-center justify-between text-xs text-muted-foreground">
+                <div key={i} className="space-y-3 rounded-lg bg-tint p-3">
+                  <div className="flex items-center justify-between text-xs font-semibold text-ink-3">
                     <span>
                       {field.label} {i + 1}
                     </span>
@@ -275,7 +279,7 @@ export function GuidedForm({
     const shown = visible[index]?.shown ?? new Set<string>();
     return (
       <FieldSet key={index}>
-        <FieldLegend>{title}</FieldLegend>
+        <FieldLegend className={stepTitle}>{title}</FieldLegend>
         {description && <FieldDescription>{description}</FieldDescription>}
         <FieldGroup>
           {fields
@@ -325,22 +329,22 @@ export function GuidedForm({
     body = (
       <>
         <div className="space-y-1.5">
-          <div className="flex justify-between text-xs text-muted-foreground">
+          <div className="flex justify-between text-xs text-ink-3">
             <span>
               Step {current + 1} of {total}
             </span>
             <span>{reviewing ? "Review" : sections[currentIndex]?.title}</span>
           </div>
-          <div className="h-1 overflow-hidden rounded-full bg-muted">
+          <div className="h-1.5 overflow-hidden rounded-full bg-tint-2">
             <div
-              className="h-full bg-primary transition-all"
+              className="h-full rounded-full bg-primary transition-all"
               style={{ width: `${((current + 1) / total) * 100}%` }}
             />
           </div>
         </div>
         {reviewing ? (
           <FieldSet>
-            <FieldLegend>Review your answers</FieldLegend>
+            <FieldLegend className={stepTitle}>Review your answers</FieldLegend>
             <FieldDescription>Check everything before you finish.</FieldDescription>
             <AnswerSummary sections={sections} values={values} onEdit={(i) => setStep(i)} />
           </FieldSet>
@@ -550,11 +554,11 @@ function ImageInput({
 }) {
   return (
     <div className="flex items-center gap-3">
-      <div className="flex size-16 shrink-0 items-center justify-center overflow-hidden rounded-lg border bg-muted">
+      <div className="flex size-16 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-tint">
         {value ? (
           <img src={value} alt="" className="size-full object-contain" />
         ) : (
-          <ImageIcon className="size-5 text-muted-foreground" />
+          <ImageIcon className="size-5 text-ink-3" />
         )}
       </div>
       <Input
@@ -603,9 +607,9 @@ export function AnswerSummary({
   return (
     <div className="space-y-4">
       {open.map(({ section, shown }, step) => (
-        <section key={section.title + String(step)} className="rounded-lg border p-3 sm:p-4">
+        <section key={section.title + String(step)} className="rounded-lg bg-tint p-3 sm:p-4">
           <div className="mb-2 flex items-center justify-between gap-2">
-            <h3 className="font-medium">{section.title}</h3>
+            <h3 className="font-heading font-bold">{section.title}</h3>
             {onEdit && (
               <Button type="button" variant="ghost" size="sm" onClick={() => onEdit(step)}>
                 <PencilSimpleIcon />
@@ -618,7 +622,7 @@ export function AnswerSummary({
               .filter((field) => shown.has(field.key))
               .map((field) => (
                 <div key={field.key} className="contents">
-                  <dt className="text-muted-foreground">{field.label}</dt>
+                  <dt className="text-ink-3">{field.label}</dt>
                   <dd className="min-w-0 break-words">
                     {field.type === "group" ? (
                       <GroupAnswer field={field} value={values[field.key]} />
@@ -643,22 +647,22 @@ function GroupAnswer({
   value: unknown;
 }) {
   const items = Array.isArray(value) ? value.filter(isRecord) : [];
-  if (!items.length) return <span className="text-muted-foreground">None</span>;
+  if (!items.length) return <span className="text-ink-3">None</span>;
   return (
     <ol className="space-y-2">
       {items.map((item, i) => {
         const shown = shownKeys(field.fields, item, {});
         return (
           // biome-ignore lint/suspicious/noArrayIndexKey: items have no ids
-          <li key={i} className="rounded-md bg-muted/50 p-2">
-            <div className="text-xs text-muted-foreground">
+          <li key={i} className="rounded-md bg-surface p-2">
+            <div className="text-xs text-ink-3">
               {field.label} {i + 1}
             </div>
             {field.fields
               .filter((child) => shown.has(child.key))
               .map((child) => (
                 <div key={child.key}>
-                  <span className="text-muted-foreground">{child.label}: </span>
+                  <span className="text-ink-3">{child.label}: </span>
                   <ScalarAnswer field={child} value={item[child.key]} />
                 </div>
               ))}
@@ -671,7 +675,7 @@ function GroupAnswer({
 
 function ScalarAnswer({ field, value }: { field: ScalarField; value: unknown }) {
   if (isEmptyValue(value) && field.type !== "boolean") {
-    return <span className="text-muted-foreground">Not answered</span>;
+    return <span className="text-ink-3">Not answered</span>;
   }
   switch (field.type) {
     case "boolean":
@@ -686,7 +690,7 @@ function ScalarAnswer({ field, value }: { field: ScalarField; value: unknown }) 
     case "image":
     case "signature":
       return typeof value === "string" ? (
-        <img src={value} alt={field.label} className="max-h-16 rounded border bg-white" />
+        <img src={value} alt={field.label} className="max-h-16 rounded-md bg-white shadow-card" />
       ) : null;
     case "long_text":
       return <span className="whitespace-pre-line">{String(value)}</span>;

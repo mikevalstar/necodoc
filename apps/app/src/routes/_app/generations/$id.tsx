@@ -25,6 +25,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Card, CardAction, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { api, generationPdfUrl, ok } from "@/lib/api";
+import { usePageCrumb } from "@/lib/breadcrumb";
 import { dayjs } from "@/lib/date";
 import { cn, formatBytes } from "@/lib/utils";
 import {
@@ -58,6 +59,7 @@ const linkClass = "font-semibold text-brand-ink underline-offset-4 hover:underli
 function GenerationDetail() {
   const { id } = Route.useParams();
   const generation = useSuspenseQuery(generationQuery(id)).data;
+  usePageCrumb(generation.filename);
   const navigate = useNavigate();
   const rerun = useRerun();
   const [deleting, setDeleting] = useState(false);

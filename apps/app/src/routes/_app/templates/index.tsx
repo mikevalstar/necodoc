@@ -6,6 +6,7 @@ import {
   DotsThreeIcon,
   FileTextIcon,
   MagnifyingGlassIcon,
+  NotePencilIcon,
   PencilRulerIcon,
   PencilSimpleIcon,
   type Icon as PhosphorIcon,
@@ -301,6 +302,18 @@ function Templates() {
                         </time>
                       </TableCell>
                       <TableCell className="pr-4">
+                        {/* Anyone who can see a published template can fill it in. */}
+                        {!seesDrafts && (
+                          <Button
+                            variant="secondary"
+                            size="sm"
+                            nativeButton={false}
+                            aria-label={`Fill in ${t.name}`}
+                            render={<Link to="/documents/new" search={{ template: t.id }} />}
+                          >
+                            Fill in
+                          </Button>
+                        )}
                         {seesDrafts && (
                           <DropdownMenu>
                             <DropdownMenuTrigger
@@ -314,13 +327,21 @@ function Templates() {
                             >
                               <DotsThreeIcon weight="bold" />
                             </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end" className="w-44">
+                            <DropdownMenuContent align="end" className="w-48">
                               <DropdownMenuItem
                                 render={<Link to="/templates/$id" params={{ id: t.id }} />}
                               >
                                 <PencilSimpleIcon />
                                 {can("edit") ? "Edit" : "Open"}
                               </DropdownMenuItem>
+                              {t.latestVersion !== null && !t.archivedAt && (
+                                <DropdownMenuItem
+                                  render={<Link to="/documents/new" search={{ template: t.id }} />}
+                                >
+                                  <NotePencilIcon />
+                                  Fill in
+                                </DropdownMenuItem>
+                              )}
                               {can("create") && (
                                 <DropdownMenuItem
                                   disabled={duplicate.isPending}

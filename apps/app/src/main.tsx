@@ -4,13 +4,22 @@ import { createRouter, RouterProvider } from "@tanstack/react-router";
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import { NotFound, RouteError, RoutePending } from "./components/route-states";
+import { ApiError } from "./lib/api";
 import { routeTree } from "./routeTree.gen";
 import "./index.css";
 import "./lib/theme"; // keeps the theme in sync with the system setting
 import "./lib/density";
 
 // Any change may have added audit entries (docs/features/audit-log.md): History panels refetch.
+// A 4xx won't change on retry, so not-found and forbidden pages show at once; network errors
+// and 5xx still retry.
 const queryClient: QueryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      retry: (failures, error) =>
+        !(error instanceof ApiError && error.status >= 400 && error.status < 500) && failures < 3,
+    },
+  },
   mutationCache: new MutationCache({
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["audit"] }),
   }),

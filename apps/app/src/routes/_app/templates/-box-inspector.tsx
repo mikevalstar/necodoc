@@ -57,6 +57,24 @@ const num = (value: string, fallback: number) => {
   return Number.isFinite(n) ? n : fallback;
 };
 
+/** One titled group of settings; `grid` lays its fields out in two columns. */
+function Section({
+  title,
+  grid,
+  children,
+}: {
+  title: string;
+  grid?: boolean;
+  children: React.ReactNode;
+}) {
+  return (
+    <section className="space-y-3 border-t border-hair pt-4">
+      <h4 className="text-xs font-semibold tracking-wide text-ink-3 uppercase">{title}</h4>
+      {grid ? <div className="grid grid-cols-2 gap-x-2 gap-y-3">{children}</div> : children}
+    </section>
+  );
+}
+
 export function BoxInspector({
   box,
   pages,
@@ -92,117 +110,147 @@ export function BoxInspector({
   const fillable = acroFields.filter((f) => f.type !== "button");
 
   return (
-    <fieldset disabled={!editable} className="space-y-4">
-      <div className="flex items-center gap-2">
-        <NativeSelect
-          aria-label="Box type"
-          value={box.type}
-          onChange={(e) => {
-            const type = overlayBoxTypes.find((t) => t === e.target.value);
-            if (type) onChange(retype(box, type));
-          }}
-        >
-          {overlayBoxTypes.map((type) => (
-            <NativeSelectOption key={type} value={type}>
-              {boxTypeLabels[type]}
-            </NativeSelectOption>
-          ))}
-        </NativeSelect>
-        <Button variant="ghost" size="icon-sm" aria-label="Duplicate box" onClick={onDuplicate}>
-          <CopyIcon />
-        </Button>
-        <Button variant="ghost" size="icon-sm" aria-label="Delete box" onClick={onDelete}>
-          <TrashIcon />
-        </Button>
+    <fieldset disabled={!editable} className="space-y-5">
+      <div className="space-y-3">
+        <div className="flex items-center gap-1.5">
+          <h3 className="min-w-0 flex-1 font-heading text-[15px] font-bold">
+            {boxTypeLabels[box.type]} box
+            <span className="ml-1.5 font-sans text-xs font-normal text-ink-3">page {box.page}</span>
+          </h3>
+          <Button
+            variant="outline"
+            size="icon-sm"
+            aria-label="Duplicate box"
+            title="Duplicate (⌘D)"
+            onClick={onDuplicate}
+          >
+            <CopyIcon />
+          </Button>
+          <Button
+            variant="destructive"
+            size="icon-sm"
+            aria-label="Delete box"
+            title="Delete (Delete key)"
+            onClick={onDelete}
+          >
+            <TrashIcon />
+          </Button>
+        </div>
+        <Field>
+          <FieldLabel htmlFor={id("type")}>Type</FieldLabel>
+          <NativeSelect
+            id={id("type")}
+            className="w-full"
+            value={box.type}
+            onChange={(e) => {
+              const type = overlayBoxTypes.find((t) => t === e.target.value);
+              if (type) onChange(retype(box, type));
+            }}
+          >
+            {overlayBoxTypes.map((type) => (
+              <NativeSelectOption key={type} value={type}>
+                {boxTypeLabels[type]}
+              </NativeSelectOption>
+            ))}
+          </NativeSelect>
+          <FieldDescription>Changing it keeps the place, value and form field.</FieldDescription>
+        </Field>
       </div>
 
       <FieldGroup className="gap-4">
         {/* A signer's box is left blank for the e-sign provider: its value is never drawn. */}
         {!(box.type === "signature" && box.signerId) && (
-          <Field>
-            <FieldLabel>Value (Liquid)</FieldLabel>
-            <CodeEditor
-              label="Box value"
-              language="liquid"
-              sections={sections}
-              value={box.value}
-              readOnly={!editable}
-              placeholder="{{ field_key }}"
-              onChange={(value) => onChange({ ...box, value })}
-              className="[&_.cm-editor]:min-h-12"
-            />
-            <NativeSelect
-              aria-label="Bind to a field"
-              value=""
-              onChange={(e) => {
-                const key = e.target.value;
-                if (key)
-                  onChange({
-                    ...box,
-                    value:
-                      box.type === "date" ? `{{ ${key} | date: "MM/DD/YYYY" }}` : `{{ ${key} }}`,
-                  });
-              }}
-            >
-              <NativeSelectOption value="">Bind to a field…</NativeSelectOption>
-              {fields.map((f) => (
-                <NativeSelectOption key={f.key} value={f.key}>
-                  {f.label} ({f.key})
-                </NativeSelectOption>
-              ))}
-            </NativeSelect>
-            <div className="flex gap-2">
-              <Input
-                aria-label="New field label"
-                placeholder="New field label"
-                value={newLabel}
-                onChange={(e) => setNewLabel(e.target.value)}
+          <Section title="Value">
+            <Field>
+              <FieldLabel>Liquid template</FieldLabel>
+              <CodeEditor
+                label="Box value"
+                language="liquid"
+                sections={sections}
+                value={box.value}
+                readOnly={!editable}
+                placeholder="{{ field_key }}"
+                onChange={(value) => onChange({ ...box, value })}
+                className="[&_.cm-editor]:min-h-12"
               />
-              <Button
-                variant="outline"
-                size="sm"
-                disabled={!newLabel.trim()}
-                onClick={() => {
-                  const bound = bindNewField(box, newLabel, sections);
-                  onSections(bound.box, bound.sections);
-                  setNewLabel("");
+              <NativeSelect
+                className="w-full"
+                aria-label="Bind to a field"
+                value=""
+                onChange={(e) => {
+                  const key = e.target.value;
+                  if (key)
+                    onChange({
+                      ...box,
+                      value:
+                        box.type === "date" ? `{{ ${key} | date: "MM/DD/YYYY" }}` : `{{ ${key} }}`,
+                    });
                 }}
               >
-                Create field
-              </Button>
-            </div>
-          </Field>
+                <NativeSelectOption value="">Bind to a field…</NativeSelectOption>
+                {fields.map((f) => (
+                  <NativeSelectOption key={f.key} value={f.key}>
+                    {f.label} ({f.key})
+                  </NativeSelectOption>
+                ))}
+              </NativeSelect>
+              <div className="flex gap-2">
+                <Input
+                  aria-label="New field label"
+                  placeholder="New field label"
+                  value={newLabel}
+                  onChange={(e) => setNewLabel(e.target.value)}
+                />
+                <Button
+                  variant="outline"
+                  size="sm"
+                  disabled={!newLabel.trim()}
+                  onClick={() => {
+                    const bound = bindNewField(box, newLabel, sections);
+                    onSections(bound.box, bound.sections);
+                    setNewLabel("");
+                  }}
+                >
+                  Create field
+                </Button>
+              </div>
+            </Field>
+          </Section>
         )}
 
         {fillable.length > 0 && (
-          <Field>
-            <FieldLabel htmlFor={id("acro")}>Form field</FieldLabel>
-            <NativeSelect
-              id={id("acro")}
-              value={box.acroField ?? ""}
-              onChange={(e) => {
-                const { acroField: _a, ...rest } = box;
-                onChange(e.target.value ? { ...box, acroField: e.target.value } : { ...rest });
-              }}
-            >
-              <NativeSelectOption value="">None: draw on the page</NativeSelectOption>
-              {fillable.map((f) => (
-                <NativeSelectOption key={f.name} value={f.name}>
-                  {f.name} (p{f.page}, {f.type})
-                </NativeSelectOption>
-              ))}
-            </NativeSelect>
-            <FieldDescription>
-              Fills the PDF's own field by name instead of drawing.
-            </FieldDescription>
-          </Field>
+          <Section title="PDF form field">
+            <Field>
+              <FieldLabel htmlFor={id("acro")}>Fill this form field</FieldLabel>
+              <NativeSelect
+                className="w-full"
+                id={id("acro")}
+                value={box.acroField ?? ""}
+                onChange={(e) => {
+                  const { acroField: _a, ...rest } = box;
+                  onChange(e.target.value ? { ...box, acroField: e.target.value } : { ...rest });
+                }}
+              >
+                <NativeSelectOption value="">None: draw on the page</NativeSelectOption>
+                {fillable.map((f) => (
+                  <NativeSelectOption key={f.name} value={f.name}>
+                    {f.name} (p{f.page}, {f.type})
+                  </NativeSelectOption>
+                ))}
+              </NativeSelect>
+              <FieldDescription>
+                Fills the PDF's own field by name instead of drawing.
+              </FieldDescription>
+            </Field>
+          </Section>
         )}
 
         {"style" in box && (
-          <div className="grid grid-cols-2 gap-2">
+          <Section title="Text style" grid>
             <Field className="col-span-2">
               <FieldLabel htmlFor={id("font")}>Font</FieldLabel>
               <NativeSelect
+                className="w-full"
                 id={id("font")}
                 value={typeof box.style.font === "string" ? box.style.font : box.style.font.assetId}
                 onChange={(e) => {
@@ -263,6 +311,7 @@ export function BoxInspector({
             <Field>
               <FieldLabel htmlFor={id("align")}>Align</FieldLabel>
               <NativeSelect
+                className="w-full"
                 id={id("align")}
                 value={box.style.align}
                 onChange={(e) =>
@@ -284,6 +333,7 @@ export function BoxInspector({
             <Field>
               <FieldLabel htmlFor={id("valign")}>Vertical</FieldLabel>
               <NativeSelect
+                className="w-full"
                 id={id("valign")}
                 value={box.style.valign}
                 onChange={(e) =>
@@ -311,14 +361,15 @@ export function BoxInspector({
                 onChange={(e) => setStyle({ color: e.target.value })}
               />
             </Field>
-          </div>
+          </Section>
         )}
 
         {box.type === "checkbox" && (
-          <div className="grid grid-cols-2 gap-2">
+          <Section title="Checkbox" grid>
             <Field>
               <FieldLabel htmlFor={id("mark")}>Mark</FieldLabel>
               <NativeSelect
+                className="w-full"
                 id={id("mark")}
                 value={box.mark}
                 onChange={(e) =>
@@ -350,34 +401,38 @@ export function BoxInspector({
             <FieldDescription className="col-span-2">
               Drawn when the value isn't empty, false, 0 or no.
             </FieldDescription>
-          </div>
+          </Section>
         )}
 
         {box.type === "barcode" && (
-          <Field>
-            <FieldLabel htmlFor={id("symbology")}>Symbology</FieldLabel>
-            <NativeSelect
-              id={id("symbology")}
-              value={box.symbology}
-              onChange={(e) => {
-                const symbology = barcodeSymbologies.find((s) => s === e.target.value);
-                if (symbology) onChange({ ...box, symbology });
-              }}
-            >
-              {barcodeSymbologies.map((s) => (
-                <NativeSelectOption key={s} value={s}>
-                  {s}
-                </NativeSelectOption>
-              ))}
-            </NativeSelect>
-          </Field>
+          <Section title="Barcode">
+            <Field>
+              <FieldLabel htmlFor={id("symbology")}>Symbology</FieldLabel>
+              <NativeSelect
+                className="w-full"
+                id={id("symbology")}
+                value={box.symbology}
+                onChange={(e) => {
+                  const symbology = barcodeSymbologies.find((s) => s === e.target.value);
+                  if (symbology) onChange({ ...box, symbology });
+                }}
+              >
+                {barcodeSymbologies.map((s) => (
+                  <NativeSelectOption key={s} value={s}>
+                    {s}
+                  </NativeSelectOption>
+                ))}
+              </NativeSelect>
+            </Field>
+          </Section>
         )}
 
         {box.type === "signature" && (
-          <div className="grid grid-cols-2 gap-2">
+          <Section title="Signing" grid>
             <Field>
               <FieldLabel htmlFor={id("signer")}>Signer</FieldLabel>
               <NativeSelect
+                className="w-full"
                 id={id("signer")}
                 value={box.signerId ?? ""}
                 onChange={(e) => {
@@ -404,6 +459,7 @@ export function BoxInspector({
               <Field>
                 <FieldLabel htmlFor={id("signing")}>Kind</FieldLabel>
                 <NativeSelect
+                  className="w-full"
                   id={id("signing")}
                   value={box.signingKind ?? "signature"}
                   onChange={(e) => {
@@ -434,11 +490,11 @@ export function BoxInspector({
                 ? "Left blank in the PDF and listed in the signing package for the e-sign provider."
                 : "Draws the signature image in the value. Pick a signer to hand the box to an e-sign provider instead (add signers in the Signing panel)."}
             </FieldDescription>
-          </div>
+          </Section>
         )}
 
-        <div className="grid grid-cols-2 gap-2">
-          <Field className="col-span-2 max-w-28">
+        <Section title="Position" grid>
+          <Field className="col-span-2 max-w-24">
             <FieldLabel htmlFor={id("page")}>Page</FieldLabel>
             <Input
               id={id("page")}
@@ -472,8 +528,10 @@ export function BoxInspector({
               />
             </Field>
           ))}
-        </div>
-        <FieldDescription>Points, from the page's bottom-left corner.</FieldDescription>
+          <FieldDescription className="col-span-2">
+            Points, from the page's bottom-left corner.
+          </FieldDescription>
+        </Section>
       </FieldGroup>
     </fieldset>
   );

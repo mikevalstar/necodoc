@@ -4,6 +4,7 @@ import { Link } from "@tanstack/react-router";
 import { useState } from "react";
 import { ErrorAlert } from "@/components/form";
 import { Badge } from "@/components/ui/badge";
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import {
   Sheet,
   SheetContent,
@@ -217,38 +218,42 @@ export function HistoryPanel({
   if (!isAdmin) return null;
   const total = history.data?.total ?? 0;
   return (
-    <section className="space-y-2">
-      <div className="flex items-baseline justify-between gap-2">
-        <h2 className="text-lg font-semibold">History</h2>
+    <Card className="gap-3 pb-2">
+      <CardHeader className="flex items-baseline justify-between gap-2">
+        <h2 className="font-heading text-[17px] leading-snug font-bold tracking-tight">History</h2>
         {total > 0 && (
           <Link
             to="/admin/audit"
             search={{ targetType, targetId }}
-            className="text-sm text-muted-foreground hover:underline"
+            className="text-sm font-semibold text-brand-ink hover:underline"
           >
             {total > 20
               ? `All ${total.toLocaleString()} in the audit log`
               : "Open in the audit log"}
           </Link>
         )}
-      </div>
-      <ErrorAlert error={history.error} />
+      </CardHeader>
+      {history.error && (
+        <CardContent>
+          <ErrorAlert error={history.error} />
+        </CardContent>
+      )}
       {history.data && !history.data.items.length && (
-        <p className="text-sm text-muted-foreground">Nothing recorded yet.</p>
+        <CardContent className="pb-3 text-ink-3">Nothing recorded yet.</CardContent>
       )}
       {history.data?.items.length ? (
-        <ul className="divide-y rounded-lg border text-sm">
+        <ul className="divide-y divide-hair border-t border-hair">
           {history.data.items.map((entry) => (
             <li key={entry.id}>
               <button
                 type="button"
-                className="flex w-full flex-wrap items-baseline gap-x-3 px-3 py-2 text-left hover:bg-muted/50"
+                className="flex w-full flex-wrap items-center gap-x-3 gap-y-1 px-5 py-2.5 text-left hover:bg-tint"
                 onClick={() => setOpen(entry.id)}
               >
-                <span className="tabular-nums text-muted-foreground">
+                <span className="font-mono text-xs text-ink-3 tabular-nums">
                   {dayjs(entry.createdAt).format("YYYY-MM-DD HH:mm")}
                 </span>
-                <Badge variant="outline">{actionLabel(entry.action)}</Badge>
+                <Badge variant="secondary">{actionLabel(entry.action)}</Badge>
                 <ActorCell entry={entry} />
               </button>
             </li>
@@ -256,6 +261,6 @@ export function HistoryPanel({
         </ul>
       ) : null}
       <AuditEntrySheet id={open} onClose={() => setOpen(null)} />
-    </section>
+    </Card>
   );
 }

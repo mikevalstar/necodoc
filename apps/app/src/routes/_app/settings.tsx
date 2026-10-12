@@ -160,25 +160,15 @@ function PasswordCard() {
           <FieldGroup>
             <form.AppField name="currentPassword">
               {(field) => (
-                <field.TextField
-                  label="Current password"
-                  type="password"
-                  autoComplete="current-password"
-                />
+                <field.PasswordField label="Current password" autoComplete="current-password" />
               )}
             </form.AppField>
             <form.AppField name="newPassword">
-              {(field) => (
-                <field.TextField label="New password" type="password" autoComplete="new-password" />
-              )}
+              {(field) => <field.PasswordField label="New password" autoComplete="new-password" />}
             </form.AppField>
             <form.AppField name="confirmPassword">
               {(field) => (
-                <field.TextField
-                  label="Confirm new password"
-                  type="password"
-                  autoComplete="new-password"
-                />
+                <field.PasswordField label="Confirm new password" autoComplete="new-password" />
               )}
             </form.AppField>
             <form.AppField name="revokeOtherSessions">
@@ -400,11 +390,7 @@ function DeleteAccountCard() {
               <FieldGroup>
                 <form.AppField name="password">
                   {(field) => (
-                    <field.TextField
-                      label="Password"
-                      type="password"
-                      autoComplete="current-password"
-                    />
+                    <field.PasswordField label="Password" autoComplete="current-password" />
                   )}
                 </form.AppField>
                 <ErrorAlert error={remove.error} />

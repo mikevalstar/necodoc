@@ -146,6 +146,8 @@ export const templateRoutes = new Hono<AppEnv>()
         latestVersion: latest?.version ?? null,
         publishedAt: latest?.publishedAt ?? null,
         hasUnpublishedChanges: !latest || draft.updatedAt > latest.publishedAt,
+        /** What filling it uses: pickers show this, not the draft's copy, to editors too. */
+        published: latest ? { name: latest.name, description: latest.description } : null,
         archivedAt: draft.archivedAt,
         createdAt: draft.createdAt,
         updatedAt: draft.updatedAt,

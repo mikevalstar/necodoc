@@ -44,8 +44,7 @@ export function BodyPanel({ content, onChange, sections, editable }: Props) {
       sections={sections}
       signers={content.signers}
       editable={editable}
-      // A card of its own on the canvas (the shared default is a bordered box).
-      className="min-h-[60svh] rounded-xl border-0 bg-card shadow-card"
+      className="min-h-[60svh]"
     />
   );
 }
@@ -189,7 +188,6 @@ export function BandsPanel({ content, onChange, sections, editable }: Props) {
                   sections={sections}
                   band
                   editable={editable}
-                  className="bg-card"
                   placeholder={`${label} content, e.g. a logo, a title or page numbers…`}
                 />
                 <Field orientation="horizontal">
@@ -212,7 +210,6 @@ export function BandsPanel({ content, onChange, sections, editable }: Props) {
                       sections={sections}
                       band
                       editable={editable}
-                      className="bg-card"
                       placeholder={`First page ${name}…`}
                     />
                   </>

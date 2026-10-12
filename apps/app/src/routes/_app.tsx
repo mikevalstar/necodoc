@@ -39,6 +39,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { type Me, meQuery, useSignOut } from "@/lib/auth";
+import { useCurrentCrumb } from "@/lib/breadcrumb";
 import { shareLinksQuery } from "@/lib/queries";
 import { toggleTheme, useTheme } from "@/lib/theme";
 import { cn } from "@/lib/utils";
@@ -186,6 +187,7 @@ function AppShell() {
   const routeWantsRail = useMatches({
     select: (matches) => matches.some((match) => match.staticData.railSidebar),
   });
+  const pageCrumb = useCurrentCrumb();
   const forced = narrow || routeWantsRail;
   const rail = collapsed || forced;
   const visible = roles.length ? sections.filter((section) => section.show?.(roles) ?? true) : [];
@@ -196,7 +198,8 @@ function AppShell() {
   const current = visible.find((section) => inSection(section, pathname));
   const currentItems = current ? itemsOf(current) : [];
   // The longest matching path wins: /templates/reviews is Reviews, /templates/abc is Templates,
-  // /documents/abc falls back to the section's first page.
+  // /documents/abc falls back to the section's first page. Pages add their own last crumb with
+  // usePageCrumb (lib/breadcrumb.ts): "Templates › Invoice".
   const currentItem =
     currentItems
       .filter((item) => item.to && item.to !== "/" && inPath(item.to, pathname))
@@ -359,18 +362,24 @@ function AppShell() {
                 </li>
               )}
               {current && currentItem ? (
-                <li className="truncate">
-                  {pathname === currentItem.to ? (
+                <li className={cn("truncate", pageCrumb && "flex shrink-0 items-center gap-1.5")}>
+                  {pathname === currentItem.to && !pageCrumb ? (
                     <span aria-current="page" className="font-semibold text-ink">
                       {labelOf(currentItem)}
                     </span>
                   ) : (
                     <Link
                       to={currentItem.to}
-                      className="rounded font-semibold text-ink hover:underline"
+                      className={cn(
+                        "rounded",
+                        pageCrumb ? "hover:text-ink" : "font-semibold text-ink hover:underline",
+                      )}
                     >
                       {labelOf(currentItem)}
                     </Link>
+                  )}
+                  {pageCrumb && (
+                    <CaretRightIcon weight="bold" aria-hidden="true" className="size-3.5" />
                   )}
                 </li>
               ) : (
@@ -379,6 +388,11 @@ function AppShell() {
                     {otherPages[pathname]}
                   </li>
                 )
+              )}
+              {current && pageCrumb && (
+                <li aria-current="page" className="truncate font-semibold text-ink">
+                  {pageCrumb}
+                </li>
               )}
             </ol>
           </nav>

@@ -1,14 +1,18 @@
 import { hasPermission, type ReviewDecision, type ReviewEventKind } from "@necodoc/shared";
+import { ArrowSquareOutIcon, SealCheckIcon, WarningIcon } from "@phosphor-icons/react";
 import { queryOptions, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute, Link, redirect } from "@tanstack/react-router";
 import { useState } from "react";
 import { toast } from "sonner";
+import { ConfirmDialog } from "@/components/confirm-dialog";
 import { ErrorAlert } from "@/components/form";
-import { BackLink, FaqLink, ListSkeleton, Page } from "@/components/page";
+import { BackLink, FaqLink, ListSkeleton, Page, PageHeader } from "@/components/page";
 import { TemplateDiffView } from "@/components/template-diff";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Field, FieldLabel } from "@/components/ui/field";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Field, FieldDescription, FieldLabel } from "@/components/ui/field";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
 import { VisualDiff } from "@/components/visual-diff";
@@ -17,7 +21,7 @@ import { dayjs } from "@/lib/date";
 import { templateQuery } from "../-draft";
 import { ReviewStatusBadge } from "../-review";
 import { PublishDialog } from "../-template-actions";
-import { TestRun, testCasesQuery } from "../-tests";
+import { TestRun, testCasesQuery, testRunQuery, testSummary } from "../-tests";
 
 // Spec: docs/features/review-and-approval.md (review page): what changed, structurally and on
 // the page, the tests, and the thread where the decision is made.
@@ -49,6 +53,8 @@ const eventLabels: Record<ReviewEventKind, string> = {
   withdrawn: "withdrew it",
 };
 
+const fullDate = (iso: string) => dayjs(iso).format("MMM D, YYYY h:mm A");
+
 function ReviewPage() {
   const { reviewId } = Route.useParams();
   const { me } = Route.useRouteContext();
@@ -59,6 +65,25 @@ function ReviewPage() {
   const cases = useQuery({ ...testCasesQuery(templateId ?? ""), enabled: !!templateId });
   const [comment, setComment] = useState("");
   const [publishing, setPublishing] = useState(false);
+  const [withdrawing, setWithdrawing] = useState(false);
+  const [confirmingApproval, setConfirmingApproval] = useState(false);
+
+  const roles = me.user.roles;
+  const canReview = hasPermission(roles, { document: ["review"] });
+  const canPublish = hasPermission(roles, { document: ["publish"] });
+  const canEdit = hasPermission(roles, { document: ["edit"] });
+  const r = review.data;
+  const mayDecide =
+    !!r && canReview && (r.submittedBy !== me.user.id || r.settings.allowSelfApproval);
+  // The API's rules: approve a pending, current draft; request changes on pending or approved.
+  const canApprove = mayDecide && r?.status === "pending" && !r.stale;
+  const canRequestChanges = mayDecide && (r?.status === "pending" || r?.status === "approved");
+  // The approver sees the test result next to Approve; same cache as the Tests tab.
+  const tests = useQuery({
+    ...testRunQuery(templateId ?? "", draft.data?.updatedAt ?? ""),
+    enabled: canApprove && !!draft.data,
+  });
+  const summary = testSummary(tests.data?.results);
 
   const refresh = () => queryClient.invalidateQueries({ queryKey: ["reviews"] });
   const decide = useMutation({
@@ -70,6 +95,11 @@ function ReviewPage() {
       await refresh();
     },
   });
+  const approve = () =>
+    decide.mutate(
+      { decision: "approve", comment: comment.trim() || undefined },
+      { onSettled: () => setConfirmingApproval(false) },
+    );
   const addComment = useMutation({
     mutationFn: async () =>
       (
@@ -82,8 +112,17 @@ function ReviewPage() {
       await refresh();
     },
   });
+  const withdraw = useMutation({
+    mutationFn: async () =>
+      (await ok(api.reviews[":id"].withdraw.$post({ param: { id: reviewId } }))).json(),
+    onSuccess: async () => {
+      setWithdrawing(false);
+      toast.success("Review withdrawn");
+      await refresh();
+    },
+  });
 
-  if (!review.data) {
+  if (!r) {
     return (
       <Page width="wide">
         <BackLink to="/templates/reviews">Reviews</BackLink>
@@ -91,57 +130,80 @@ function ReviewPage() {
       </Page>
     );
   }
-  const r = review.data;
-  const roles = me.user.roles;
-  const canReview = hasPermission(roles, { document: ["review"] });
-  const canPublish = hasPermission(roles, { document: ["publish"] });
-  const own = r.submittedBy === me.user.id;
-  const mayDecide = canReview && (!own || r.settings.allowSelfApproval);
   const open =
     r.status === "pending" || r.status === "changes_requested" || r.status === "approved";
   const publishable = r.status === "approved" && !r.stale;
+  const publishBlocked = !publishable && r.settings.requireReview;
+  const busy = decide.isPending || addComment.isPending;
+  const hasComment = comment.trim().length > 0;
+
+  // Why the decision buttons are off, in one line under them.
+  const decisionNote = !open
+    ? null
+    : r.stale
+      ? "The draft changed since it was submitted. The editor has to resubmit before it can be approved."
+      : r.status === "changes_requested"
+        ? "Changes were requested. The editor fixes the draft and resubmits."
+        : r.status === "approved"
+          ? `Approved. ${publishable && canPublish ? "Publish it from the top of the page" : "A publisher can publish it now"}; requesting changes takes the approval back.`
+          : null;
 
   return (
-    <Page width="wide" className="space-y-4 py-6">
-      <div className="flex items-center justify-between gap-2">
-        <BackLink to="/templates/reviews">Reviews</BackLink>
-        <FaqLink feature="Review and approval" />
-      </div>
-      <div className="flex flex-wrap items-center gap-3">
-        <h1 className="text-2xl font-semibold tracking-tight">{r.templateName}</h1>
-        <ReviewStatusBadge status={r.status} stale={r.stale} />
-        <div className="ml-auto flex gap-2">
-          <Button
-            variant="outline"
-            nativeButton={false}
-            render={<Link to="/templates/$id" params={{ id: r.templateId }} />}
-          >
-            Open template
-          </Button>
-          {canPublish && open && (
+    <Page width="wide">
+      <PageHeader
+        back={<BackLink to="/templates/reviews">Reviews</BackLink>}
+        title={r.templateName}
+        description={
+          <>
+            Submitted by {r.submitterName ?? "a deleted user"}{" "}
+            <time dateTime={r.submittedAt} title={fullDate(r.submittedAt)}>
+              {dayjs(r.submittedAt).fromNow()}
+            </time>
+            {r.baseVersion !== null
+              ? `, compared with version ${r.baseVersion}`
+              : ", before the first version"}
+            {r.publishedVersion !== null && `. Published as version ${r.publishedVersion}.`}
+          </>
+        }
+        actions={
+          <>
+            <FaqLink feature="Review and approval" />
+            {canEdit && open && (
+              <Button variant="destructive" onClick={() => setWithdrawing(true)}>
+                Withdraw…
+              </Button>
+            )}
             <Button
-              disabled={!publishable && r.settings.requireReview}
-              title={
-                publishable || !r.settings.requireReview
-                  ? undefined
-                  : "Publishing needs this review approved, for the current draft"
-              }
-              onClick={() => setPublishing(true)}
+              variant="outline"
+              nativeButton={false}
+              render={<Link to="/templates/$id" params={{ id: r.templateId }} />}
             >
-              Publish
+              <ArrowSquareOutIcon />
+              Open template
             </Button>
-          )}
-        </div>
-      </div>
-      <p className="text-sm text-muted-foreground">
-        Submitted by {r.submitterName ?? "a deleted user"} {dayjs(r.submittedAt).fromNow()}
-        {r.baseVersion !== null
-          ? `, against version ${r.baseVersion}`
-          : ", before the first version"}
-        {r.publishedVersion !== null && ` · published as version ${r.publishedVersion}`}
-      </p>
+            {canPublish && open && (
+              <Button
+                variant={publishable ? "default" : "outline"}
+                disabled={publishBlocked || !draft.data}
+                title={
+                  publishBlocked
+                    ? "Publishing needs this review approved, for the current draft"
+                    : undefined
+                }
+                onClick={() => setPublishing(true)}
+              >
+                Publish…
+              </Button>
+            )}
+          </>
+        }
+      >
+        <ReviewStatusBadge status={r.status} stale={r.stale} />
+      </PageHeader>
+
       {r.stale && (
         <Alert>
+          <WarningIcon className="text-warn" />
           <AlertTitle>The draft changed since this was submitted</AlertTitle>
           <AlertDescription>
             {r.staleReason ??
@@ -152,106 +214,182 @@ function ReviewPage() {
       {r.latestVersion !== r.baseVersion && open && (
         <Alert>
           <AlertDescription>
-            Version {r.latestVersion} was published since; the diffs compare with it.
+            Version {r.latestVersion} was published since it was submitted; the diffs compare with
+            it.
           </AlertDescription>
         </Alert>
       )}
 
-      <div className="grid gap-6 xl:grid-cols-[minmax(0,1.6fr)_minmax(0,0.8fr)]">
-        <Tabs defaultValue="changes">
-          <TabsList>
-            <TabsTrigger value="changes">Changes</TabsTrigger>
-            <TabsTrigger value="visual">Visual diff</TabsTrigger>
-            <TabsTrigger value="tests">Tests</TabsTrigger>
-          </TabsList>
-          <TabsContent value="changes">
-            <TemplateDiffView id={r.templateId} />
-          </TabsContent>
-          <TabsContent value="visual">
-            {draft.data && (
-              <VisualDiff
-                templateId={r.templateId}
-                cases={cases.data ?? []}
-                draftUpdatedAt={draft.data.updatedAt}
-              />
+      <div className="grid items-start gap-6 xl:grid-cols-[minmax(0,1.6fr)_minmax(22rem,0.8fr)]">
+        <Card>
+          <Tabs defaultValue="changes" className="gap-4 px-5">
+            <TabsList aria-label="What changed" className="self-start">
+              <TabsTrigger value="changes">Changes</TabsTrigger>
+              <TabsTrigger value="visual">Visual diff</TabsTrigger>
+              <TabsTrigger value="tests">Tests</TabsTrigger>
+            </TabsList>
+            {!open && (
+              <p className="text-[13px] text-ink-3">
+                This review is closed. The tabs show the template's current draft, not what was
+                reviewed.
+              </p>
             )}
-          </TabsContent>
-          <TabsContent value="tests">
-            {draft.data && <TestRun id={r.templateId} draftUpdatedAt={draft.data.updatedAt} />}
-          </TabsContent>
-        </Tabs>
-
-        <section className="space-y-3">
-          <h2 className="font-medium">Discussion</h2>
-          <ol className="space-y-2">
-            {r.events.map((e) => (
-              <li key={e.id} className="rounded-lg border p-3 text-sm">
-                <div className="text-xs text-muted-foreground">
-                  <span className="font-medium text-foreground">
-                    {e.authorName ?? "A deleted user"}
-                  </span>{" "}
-                  {eventLabels[e.kind]} · {dayjs(e.createdAt).fromNow()}
-                </div>
-                {e.body && <p className="mt-1 whitespace-pre-wrap">{e.body}</p>}
-              </li>
-            ))}
-          </ol>
-          {open && (
-            <div className="space-y-2">
-              <Field>
-                <FieldLabel htmlFor="review-comment">Comment</FieldLabel>
-                <Textarea
-                  id="review-comment"
-                  rows={3}
-                  maxLength={5000}
-                  value={comment}
-                  onChange={(e) => setComment(e.target.value)}
+            <TabsContent value="changes">
+              <TemplateDiffView id={r.templateId} />
+            </TabsContent>
+            <TabsContent value="visual">
+              {draft.data ? (
+                <VisualDiff
+                  templateId={r.templateId}
+                  cases={cases.data ?? []}
+                  draftUpdatedAt={draft.data.updatedAt}
                 />
-              </Field>
-              <ErrorAlert error={decide.error ?? addComment.error} />
-              <div className="flex flex-wrap gap-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  disabled={!comment.trim() || addComment.isPending}
-                  onClick={() => addComment.mutate()}
-                >
-                  Comment
-                </Button>
-                {mayDecide && (
-                  <>
-                    <Button
-                      variant="destructive"
-                      size="sm"
-                      disabled={
-                        !comment.trim() || decide.isPending || r.status === "changes_requested"
-                      }
-                      title={comment.trim() ? undefined : "Say what needs to change"}
-                      onClick={() => decide.mutate({ decision: "request_changes", comment })}
-                    >
-                      Request changes
-                    </Button>
-                    <Button
-                      size="sm"
-                      disabled={decide.isPending || r.status !== "pending" || r.stale}
-                      onClick={() =>
-                        decide.mutate({ decision: "approve", comment: comment.trim() || undefined })
-                      }
-                    >
-                      Approve
-                    </Button>
-                  </>
+              ) : (
+                <ListSkeleton rows={2} />
+              )}
+            </TabsContent>
+            <TabsContent value="tests">
+              {draft.data ? (
+                <TestRun id={r.templateId} draftUpdatedAt={draft.data.updatedAt} />
+              ) : (
+                <ListSkeleton rows={2} />
+              )}
+            </TabsContent>
+          </Tabs>
+        </Card>
+
+        <Card className="xl:sticky xl:top-4">
+          <CardHeader>
+            <CardTitle>
+              <h2>Discussion</h2>
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <ol className="space-y-2">
+              {r.events.map((e) => (
+                <li key={e.id} className="rounded-lg bg-tint p-3 text-sm">
+                  <div className="text-[13px] text-ink-3">
+                    <span className="font-semibold text-ink">
+                      {e.authorName ?? "A deleted user"}
+                    </span>{" "}
+                    {eventLabels[e.kind]} ·{" "}
+                    <time dateTime={e.createdAt} title={fullDate(e.createdAt)}>
+                      {dayjs(e.createdAt).fromNow()}
+                    </time>
+                  </div>
+                  {e.body && <p className="mt-1 whitespace-pre-wrap text-ink">{e.body}</p>}
+                </li>
+              ))}
+            </ol>
+
+            {open ? (
+              <div className="space-y-3 border-t border-hair pt-4">
+                <Field>
+                  <FieldLabel htmlFor="review-comment">Comment</FieldLabel>
+                  <Textarea
+                    id="review-comment"
+                    rows={3}
+                    maxLength={5000}
+                    value={comment}
+                    onChange={(e) => setComment(e.target.value)}
+                  />
+                  {canRequestChanges && (
+                    <FieldDescription>Required to request changes.</FieldDescription>
+                  )}
+                </Field>
+                <ErrorAlert error={decide.error ?? addComment.error} />
+                {canApprove && (
+                  <p className="text-[13px] text-ink-3" role="status">
+                    Tests on the current draft:{" "}
+                    {tests.isFetching ? (
+                      "running…"
+                    ) : summary ? (
+                      <Badge dot variant={summary.allPassed ? "ok" : "bad"}>
+                        {summary.passed} of {summary.total} passing
+                      </Badge>
+                    ) : tests.error ? (
+                      "couldn't run, see the Tests tab."
+                    ) : (
+                      "none set up."
+                    )}
+                  </p>
+                )}
+                <div className="flex flex-wrap items-center gap-2">
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    disabled={!hasComment || busy}
+                    onClick={() => addComment.mutate()}
+                  >
+                    {addComment.isPending ? "Posting…" : "Comment"}
+                  </Button>
+                  {canRequestChanges && (
+                    <div className="ml-auto flex flex-wrap gap-2">
+                      <Button
+                        variant="destructive"
+                        size="sm"
+                        disabled={!hasComment || busy}
+                        title={hasComment ? undefined : "Say what needs to change in the comment"}
+                        onClick={() => decide.mutate({ decision: "request_changes", comment })}
+                      >
+                        Request changes
+                      </Button>
+                      {r.status === "pending" && (
+                        <Button
+                          size="sm"
+                          disabled={busy || !canApprove}
+                          onClick={() =>
+                            summary && !summary.allPassed ? setConfirmingApproval(true) : approve()
+                          }
+                        >
+                          <SealCheckIcon />
+                          Approve
+                        </Button>
+                      )}
+                    </div>
+                  )}
+                </div>
+                {mayDecide && decisionNote && (
+                  <p className="text-[13px] text-ink-3">{decisionNote}</p>
+                )}
+                {canReview && !mayDecide && (
+                  <p className="text-[13px] text-ink-3">
+                    You submitted this, so someone else has to approve it or request changes.
+                  </p>
                 )}
               </div>
-              {canReview && !mayDecide && (
-                <p className="text-xs text-muted-foreground">
-                  You submitted this, so someone else has to approve it or request changes.
-                </p>
-              )}
-            </div>
-          )}
-        </section>
+            ) : (
+              <p className="border-t border-hair pt-4 text-[13px] text-ink-3">
+                This review is closed
+                {r.status === "published" ? ": the draft was published." : ": it was withdrawn."}
+              </p>
+            )}
+          </CardContent>
+        </Card>
       </div>
+
+      {confirmingApproval && summary && (
+        <ConfirmDialog
+          title="Approve with failing tests?"
+          description={`${summary.total - summary.passed} of ${summary.total} test cases fail on the current draft. Check the Tests tab first; approving lets a publisher publish it as it is.`}
+          confirmLabel="Approve anyway"
+          destructive={false}
+          pending={decide.isPending}
+          onConfirm={approve}
+          onClose={() => setConfirmingApproval(false)}
+        />
+      )}
+      {withdrawing && (
+        <ConfirmDialog
+          title="Withdraw this review?"
+          description="Reviewers no longer see it as waiting for them, and any approval no longer counts for publishing. The draft can be submitted again later."
+          confirmLabel="Withdraw review"
+          pending={withdraw.isPending}
+          error={withdraw.error}
+          onConfirm={() => withdraw.mutate()}
+          onClose={() => setWithdrawing(false)}
+        />
+      )}
       {publishing && draft.data && (
         <PublishDialog
           template={{

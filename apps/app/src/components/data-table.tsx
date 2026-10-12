@@ -29,7 +29,6 @@ import {
   DropdownMenuLabel,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Field, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { NativeSelect, NativeSelectOption } from "@/components/ui/native-select";
 import { TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -143,7 +142,7 @@ export function DataTable<TData extends RowData, TSort extends string>({
 
   return (
     <div className="overflow-hidden rounded-xl bg-card shadow-card">
-      <div className="flex flex-wrap items-end gap-3 border-b border-hair px-4 py-3.5">
+      <div className="flex flex-wrap items-center gap-3 border-b border-hair px-4 py-3.5">
         {toolbar}
         <div className="ml-auto flex items-center gap-2">
           <DensityToggle />
@@ -412,35 +411,50 @@ export function DebouncedInput({
   );
 }
 
-/** A toolbar filter: "Any" or one option. */
+/** Marks a toolbar filter that's set, like the mockup's chips. Inputs use it too. */
+export const activeFilter = "border-transparent bg-sun-wash text-sun-ink";
+
+/**
+ * A compact toolbar filter: "Any <label>" or one option. The first option names the filter, so
+ * there's no visible label; a set filter is tinted.
+ */
 export function FilterSelect({
   label,
+  any = `Any ${label.toLowerCase()}`,
   value,
   options,
   onChange,
 }: {
   label: string;
+  /** The empty option; defaults to "Any <label>". */
+  any?: string;
   value: string | undefined;
   options: { value: string; label: string }[];
   onChange: (value: string) => void;
 }) {
-  const id = `filter-${label.toLowerCase().replaceAll(" ", "-")}`;
   return (
-    <Field className="w-auto">
-      <FieldLabel htmlFor={id}>{label}</FieldLabel>
-      <NativeSelect
-        id={id}
-        className="max-w-48"
-        value={value ?? ""}
-        onChange={(e) => onChange(e.target.value)}
-      >
-        <NativeSelectOption value="">Any</NativeSelectOption>
-        {options.map((option) => (
-          <NativeSelectOption key={option.value} value={option.value}>
-            {option.label}
-          </NativeSelectOption>
-        ))}
-      </NativeSelect>
-    </Field>
+    <NativeSelect
+      aria-label={label}
+      title={label}
+      className={cn(
+        "max-w-48",
+        value && "[&_select]:border-transparent [&_select]:bg-sun-wash [&_select]:text-sun-ink",
+      )}
+      value={value ?? ""}
+      onChange={(e) => onChange(e.target.value)}
+    >
+      <NativeSelectOption value="">{any}</NativeSelectOption>
+      {/* A link (or a deleted entry) can set an id that isn't listed; don't show it as "Any". */}
+      {value && !options.some((option) => option.value === value) && (
+        <NativeSelectOption value={value}>
+          {label} {value.slice(0, 8)}
+        </NativeSelectOption>
+      )}
+      {options.map((option) => (
+        <NativeSelectOption key={option.value} value={option.value}>
+          {option.label}
+        </NativeSelectOption>
+      ))}
+    </NativeSelect>
   );
 }

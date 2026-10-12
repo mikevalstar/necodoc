@@ -4,22 +4,25 @@ import { cn } from "cn";
 
 // Cobalt (ADR 0042): raised white buttons instead of outlines, 40px tall. Text on the brand
 // fill is 14px semibold because white on cobalt is exactly 4.5:1. `sun` is the marigold
-// "do this next" button: at most one per screen.
+// "do this next" button: at most one per screen. Disabled buttons drop to flat tint with ink-3
+// text rather than fading, which was too subtle on cobalt in dark mode.
 const buttonVariants = cva(
-  "group/button inline-flex shrink-0 items-center justify-center rounded-lg bg-clip-padding text-sm font-semibold whitespace-nowrap transition-all outline-none select-none active:not-aria-[haspopup]:translate-y-px disabled:pointer-events-none disabled:opacity-50 aria-invalid:ring-2 aria-invalid:ring-bad [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-[1.15em]",
+  "group/button inline-flex shrink-0 items-center justify-center rounded-lg bg-clip-padding text-sm font-semibold whitespace-nowrap transition-all outline-none select-none active:not-aria-[haspopup]:translate-y-px disabled:pointer-events-none disabled:text-ink-3 disabled:shadow-none data-disabled:pointer-events-none data-disabled:text-ink-3 data-disabled:shadow-none aria-invalid:ring-2 aria-invalid:ring-bad [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-[1.15em]",
   {
     variants: {
       variant: {
         default:
-          "bg-primary text-primary-foreground shadow-[inset_0_1px_0_rgba(255,255,255,0.25),0_8px_18px_-8px_color-mix(in_srgb,var(--brand)_80%,transparent)] hover:bg-[color-mix(in_srgb,var(--brand),var(--ink)_10%)]",
+          "bg-primary text-primary-foreground shadow-[inset_0_1px_0_rgba(255,255,255,0.25),0_8px_18px_-8px_color-mix(in_srgb,var(--brand)_80%,transparent)] hover:bg-[color-mix(in_srgb,var(--brand),var(--ink)_10%)] disabled:bg-tint-2 data-disabled:bg-tint-2",
         outline:
-          "bg-surface text-foreground shadow-card hover:bg-tint aria-expanded:bg-tint dark:hover:bg-tint-2",
+          "bg-surface text-foreground shadow-card hover:bg-tint aria-expanded:bg-tint dark:hover:bg-tint-2 disabled:bg-tint data-disabled:bg-tint",
         secondary:
-          "bg-tint text-foreground hover:bg-tint-2 aria-expanded:bg-tint-2 dark:hover:bg-tint-2",
-        ghost: "text-ink-2 hover:bg-tint hover:text-foreground aria-expanded:bg-tint",
-        destructive: "bg-surface text-bad shadow-card hover:bg-bad-wash aria-expanded:bg-bad-wash",
-        sun: "bg-sun text-sun-foreground hover:bg-[color-mix(in_srgb,var(--sun),var(--sun-foreground)_10%)]",
-        link: "text-brand-ink underline-offset-4 hover:underline",
+          "bg-tint text-foreground hover:bg-tint-2 aria-expanded:bg-tint-2 dark:hover:bg-tint-2 disabled:opacity-70 data-disabled:opacity-70",
+        ghost:
+          "text-ink-2 hover:bg-tint hover:text-foreground aria-expanded:bg-tint disabled:opacity-70 data-disabled:opacity-70",
+        destructive:
+          "bg-surface text-bad shadow-card hover:bg-bad-wash aria-expanded:bg-bad-wash disabled:bg-tint data-disabled:bg-tint",
+        sun: "bg-sun text-sun-foreground hover:bg-[color-mix(in_srgb,var(--sun),var(--sun-foreground)_10%)] disabled:bg-tint-2 data-disabled:bg-tint-2",
+        link: "text-brand-ink underline-offset-4 hover:underline disabled:opacity-70 data-disabled:opacity-70",
       },
       size: {
         default:

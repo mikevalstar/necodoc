@@ -43,6 +43,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ApiError, api, ok, submissionPdfUrl } from "@/lib/api";
+import { usePageCrumb } from "@/lib/breadcrumb";
 import { dayjs } from "@/lib/date";
 import { submissionQuery } from "@/lib/queries";
 import { cn } from "@/lib/utils";
@@ -70,12 +71,11 @@ function DocumentPage() {
     ...submissionQuery(id),
     // Poll while the PDF is being made.
     refetchInterval: (query) => (rendering(query.state.data) ? 1500 : false),
-    // A deleted document or an old link: say so at once instead of retrying.
-    retry: (failures, error) => !isNotFound(error) && failures < 3,
   });
   const [editing, setEditing] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const data = doc.data;
+  usePageCrumb(data?.name);
 
   return (
     <Page width="narrow">
@@ -357,7 +357,7 @@ function Finished({
               >
                 <DotsThreeIcon weight="bold" />
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="start" className="w-72">
+              <DropdownMenuContent align="start">
                 <DropdownMenuItem disabled={busy} onClick={() => regenerate.mutate()}>
                   <ArrowClockwiseIcon />
                   Regenerate PDF

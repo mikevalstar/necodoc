@@ -28,10 +28,12 @@ import { toast } from "sonner";
 import { z } from "zod";
 import { apiKeysQuery } from "@/components/api-keys";
 import {
+  activeFilter,
   DataTable,
   type DataTableFeatures,
   DebouncedInput,
   dataTableSearchSchema,
+  FilterSelect,
 } from "@/components/data-table";
 import { ErrorAlert } from "@/components/form";
 import { FaqLink, Page, PageHeader } from "@/components/page";
@@ -55,7 +57,6 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
-import { NativeSelect, NativeSelectOption } from "@/components/ui/native-select";
 import { api, generationPdfUrl, ok } from "@/lib/api";
 import { authClient, unwrap } from "@/lib/auth";
 import { dayjs } from "@/lib/date";
@@ -457,14 +458,14 @@ function Generations() {
               <DebouncedInput
                 type="search"
                 aria-label="Search generations"
-                className={cn("w-48 pl-9", search.q && active)}
+                className={cn("w-48 pl-9", search.q && activeFilter)}
                 placeholder="File, error or ID…"
                 title="File name, template name, error, or a generation, batch or request ID"
                 value={search.q ?? ""}
                 onCommit={(q) => setFilter({ q: q.trim() || undefined })}
               />
             </div>
-            <Filter
+            <FilterSelect
               label="Status"
               any="Any status"
               value={search.status}
@@ -476,7 +477,7 @@ function Generations() {
                 setFilter({ status: generationStatusSchema.safeParse(value).data })
               }
             />
-            <Filter
+            <FilterSelect
               label="Source"
               any="Any source"
               value={search.source}
@@ -488,7 +489,7 @@ function Generations() {
                 setFilter({ source: generationSourceSchema.safeParse(value).data })
               }
             />
-            <Filter
+            <FilterSelect
               label="Template"
               any="Any template"
               value={search.templateId}
@@ -535,7 +536,7 @@ function Generations() {
               // order-last puts this row under the density and Columns controls.
               <div id="more-filters" className="order-last flex basis-full flex-wrap gap-3">
                 {isAdmin && (
-                  <Filter
+                  <FilterSelect
                     label="User"
                     any="Any user"
                     value={search.userId}
@@ -553,7 +554,7 @@ function Generations() {
                     type="date"
                     aria-label="Queued from"
                     title="Queued from"
-                    className={cn("w-36", search.from && active)}
+                    className={cn("w-36", search.from && activeFilter)}
                     value={search.from ?? ""}
                     onChange={(e) => setFilter({ from: e.target.value || undefined })}
                   />
@@ -562,12 +563,12 @@ function Generations() {
                     type="date"
                     aria-label="Queued to"
                     title="Queued to"
-                    className={cn("w-36", search.to && active)}
+                    className={cn("w-36", search.to && activeFilter)}
                     value={search.to ?? ""}
                     onChange={(e) => setFilter({ to: e.target.value || undefined })}
                   />
                 </div>
-                <Filter
+                <FilterSelect
                   label="Batch"
                   any="Any batch"
                   value={search.batchId}
@@ -577,7 +578,7 @@ function Generations() {
                   }))}
                   onChange={(value) => setFilter({ batchId: z.uuid().safeParse(value).data })}
                 />
-                <Filter
+                <FilterSelect
                   label="API key"
                   any="Any API key"
                   value={search.apiKeyId}
@@ -592,7 +593,7 @@ function Generations() {
                   aria-label="Slower than, in seconds"
                   min={0}
                   step="any"
-                  className={cn("w-40", search.slowerThan !== undefined && active)}
+                  className={cn("w-40", search.slowerThan !== undefined && activeFilter)}
                   placeholder="Slower than (s)"
                   value={search.slowerThan === undefined ? "" : String(search.slowerThan)}
                   onCommit={(value) =>
@@ -630,50 +631,6 @@ function Generations() {
         />
       )}
     </Page>
-  );
-}
-
-/** Marks a filter that's on, like the mockup's chips. */
-const active = "border-transparent bg-sun-wash text-sun-ink";
-
-/** A compact toolbar select: the "Any" option names the filter, so there's no visible label. */
-function Filter({
-  label,
-  any,
-  value,
-  options,
-  onChange,
-}: {
-  label: string;
-  any: string;
-  value: string | undefined;
-  options: { value: string; label: string }[];
-  onChange: (value: string) => void;
-}) {
-  return (
-    <NativeSelect
-      aria-label={label}
-      title={label}
-      className={cn(
-        "max-w-40",
-        value && "[&_select]:border-transparent [&_select]:bg-sun-wash [&_select]:text-sun-ink",
-      )}
-      value={value ?? ""}
-      onChange={(e) => onChange(e.target.value)}
-    >
-      <NativeSelectOption value="">{any}</NativeSelectOption>
-      {/* A link (or a deleted entry) can set an id that isn't listed; don't show it as "Any". */}
-      {value && !options.some((option) => option.value === value) && (
-        <NativeSelectOption value={value}>
-          {label} {value.slice(0, 8)}
-        </NativeSelectOption>
-      )}
-      {options.map((option) => (
-        <NativeSelectOption key={option.value} value={option.value}>
-          {option.label}
-        </NativeSelectOption>
-      ))}
-    </NativeSelect>
   );
 }
 

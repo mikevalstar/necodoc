@@ -18,6 +18,7 @@ import { Field, FieldDescription, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { NativeSelect, NativeSelectOption } from "@/components/ui/native-select";
 import { Skeleton } from "@/components/ui/skeleton";
+import { usePageCrumb } from "@/lib/breadcrumb";
 import { dayjs } from "@/lib/date";
 import { submissionsQuery, templatesQuery } from "@/lib/queries";
 import { useStartDocument } from "./-document-actions";
@@ -26,25 +27,27 @@ import { useStartDocument } from "./-document-actions";
 // from a previous document's answers (fields with the same key carry over).
 
 export const Route = createFileRoute("/_app/documents/new")({
-  validateSearch: z.object({ from: z.uuid().optional() }),
+  validateSearch: z.object({ from: z.uuid().optional(), template: z.uuid().optional() }),
   component: NewDocument,
 });
 
 function NewDocument() {
   const search = Route.useSearch();
+  usePageCrumb("New document");
   const navigate = useNavigate({ from: Route.fullPath });
   const templates = useQuery(templatesQuery);
   const previous = useQuery(submissionsQuery());
   const start = useStartDocument();
   const [query, setQuery] = useState("");
   const words = useDeferredValue(query).toLowerCase().split(/\s+/).filter(Boolean);
-  // Editors also get drafts from this endpoint; only published, live templates can be filled.
-  const fillable = (templates.data ?? []).filter(
-    (t) =>
-      t.latestVersion !== null &&
-      !t.archivedAt &&
-      words.every((word) => `${t.name} ${t.description}`.toLowerCase().includes(word)),
-  );
+  // Editors also get drafts from this endpoint; only published, live templates can be filled,
+  // and they show the published name and description, not the draft's. `template` (from the
+  // templates list's Fill in) narrows the picker to one.
+  const fillable = (templates.data ?? []).flatMap(({ published, ...t }) => {
+    if (!published || t.archivedAt || (search.template && t.id !== search.template)) return [];
+    const text = `${published.name} ${published.description}`.toLowerCase();
+    return words.every((word) => text.includes(word)) ? [{ ...t, ...published }] : [];
+  });
   // Nothing to copy from on a first visit, so the picker only shows once there is.
   const showFrom = Boolean(search.from) || (previous.data?.length ?? 0) > 0;
   const startingId = start.isPending ? start.variables.templateId : undefined;
@@ -85,7 +88,10 @@ function NewDocument() {
               className="w-full"
               value={search.from ?? ""}
               onChange={(e) =>
-                navigate({ search: { from: e.target.value || undefined }, replace: true })
+                navigate({
+                  search: (prev) => ({ ...prev, from: e.target.value || undefined }),
+                  replace: true,
+                })
               }
             >
               <NativeSelectOption value="">No, start blank</NativeSelectOption>
@@ -101,6 +107,20 @@ function NewDocument() {
       </div>
 
       <ErrorAlert error={templates.error} />
+
+      {search.template && (
+        <p className="text-sm text-ink-3">
+          Showing the template you picked.{" "}
+          <Link
+            to="."
+            search={(prev) => ({ ...prev, template: undefined })}
+            replace
+            className="font-semibold text-brand-ink hover:underline"
+          >
+            Show all templates
+          </Link>
+        </p>
+      )}
 
       {templates.isSuccess && fillable.length > 0 && (
         <p className="sr-only" aria-live="polite">
@@ -169,13 +189,23 @@ function NewDocument() {
       )}
       {templates.isSuccess &&
         fillable.length === 0 &&
-        (query ? (
+        (query || search.template ? (
           <EmptyState
             icon={MagnifyingGlassIcon}
             title="No templates match"
-            description={`Nothing matches "${query}". Try fewer words.`}
+            description={
+              query
+                ? `Nothing matches "${query}". Try fewer words.`
+                : "That template isn't published or was archived."
+            }
             action={
-              <Button variant="outline" onClick={() => setQuery("")}>
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setQuery("");
+                  navigate({ search: (prev) => ({ ...prev, template: undefined }), replace: true });
+                }}
+              >
                 Clear search
               </Button>
             }

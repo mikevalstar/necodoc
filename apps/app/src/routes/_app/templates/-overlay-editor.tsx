@@ -24,15 +24,17 @@ import {
   XIcon,
 } from "@phosphor-icons/react";
 import { queryOptions, useMutation, useQuery } from "@tanstack/react-query";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { Fragment, useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import { SuggestButton, useAiEnabled } from "@/components/ai";
 import { ErrorAlert } from "@/components/form";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Field, FieldDescription, FieldLabel } from "@/components/ui/field";
 import { NativeSelect, NativeSelectOption } from "@/components/ui/native-select";
+import { Skeleton } from "@/components/ui/skeleton";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { api, ok, pdfSourceUrl } from "@/lib/api";
@@ -63,11 +65,12 @@ export async function uploadPdfSource(file: File): Promise<PdfSource> {
 }
 
 type Point = { x: number; y: number };
-type Corner = "nw" | "ne" | "sw" | "se";
+/** A resize handle: a corner or the middle of an edge. */
+type Handle = "nw" | "n" | "ne" | "e" | "se" | "s" | "sw" | "w";
 type Drag =
   | { kind: "draw"; start: Point; now: Point }
   | { kind: "move"; id: string; start: Point; now: Point; from: ViewRect }
-  | { kind: "resize"; id: string; corner: Corner; start: Point; now: Point; from: ViewRect };
+  | { kind: "resize"; id: string; corner: Handle; start: Point; now: Point; from: ViewRect };
 
 /** The rectangle a drag describes so far, in view pixels. */
 function dragRect(drag: Drag): ViewRect {
@@ -105,10 +108,66 @@ function iou(a: OverlayBox["rect"], b: OverlayBox["rect"]) {
   return inter / (a.width * a.height + b.width * b.height - inter || 1);
 }
 
+type Tone = "brand" | "ok" | "warn";
+/**
+ * Box colours by what the box does. Labels on the page use shell navy, dark in both themes, so
+ * they read on the white paper; the selected box's tag is solid.
+ */
+const tones: Record<Tone, { box: string; tag: string; legend: string }> = {
+  brand: {
+    box: "border-brand bg-brand/12 hover:bg-brand/25 ring-brand/35",
+    tag: "bg-brand text-on-brand",
+    legend: "Drawn on the page",
+  },
+  ok: {
+    box: "border-ok bg-ok/12 hover:bg-ok/25 ring-ok/35",
+    tag: "bg-ok text-card",
+    legend: "Fills a PDF form field",
+  },
+  warn: {
+    box: "border-warn bg-warn/15 hover:bg-warn/30 ring-warn/35",
+    tag: "bg-warn text-card",
+    legend: "Left blank for a signer",
+  },
+};
+const toneOf = (box: OverlayBox): Tone =>
+  box.type === "signature" && box.signerId ? "warn" : box.acroField ? "ok" : "brand";
+
+const handles = ["nw", "n", "ne", "e", "se", "s", "sw", "w"] as const satisfies readonly Handle[];
+const handleClasses: Record<Handle, string> = {
+  nw: "-top-1.5 -left-1.5 cursor-nwse-resize",
+  n: "-top-1.5 left-1/2 -ml-1.5 cursor-ns-resize",
+  ne: "-top-1.5 -right-1.5 cursor-nesw-resize",
+  e: "top-1/2 -right-1.5 -mt-1.5 cursor-ew-resize",
+  se: "-right-1.5 -bottom-1.5 cursor-nwse-resize",
+  s: "-bottom-1.5 left-1/2 -ml-1.5 cursor-ns-resize",
+  sw: "-bottom-1.5 -left-1.5 cursor-nesw-resize",
+  w: "top-1/2 -left-1.5 -mt-1.5 cursor-ew-resize",
+};
+
+const shortcuts = [
+  ["Arrows", "Nudge 1 pt (Shift: 10 pt)"],
+  ["⌘D", "Duplicate"],
+  ["Delete", "Remove"],
+  ["Esc", "Deselect"],
+  ["Tab", "Next box on the page"],
+] as const;
+
+function Kbd({ children }: { children: React.ReactNode }) {
+  return (
+    <kbd className="rounded-md bg-tint px-1 py-px font-mono text-[11px] text-ink-2">{children}</kbd>
+  );
+}
+
 const boxName = (box: OverlayBox) =>
   box.type === "signature" && box.signerId
     ? `${signingKindLabels[box.signingKind ?? "signature"]} · ${box.signerId}`
     : box.value.replace(/[{}]|\|.*$/g, "").trim() || box.acroField || boxTypeLabels[box.type];
+
+const boxLabel = (box: OverlayBox) =>
+  box.type === "signature" && box.signerId
+    ? `${boxTypeLabels[box.type]}: ${boxName(box)}`
+    : `${boxTypeLabels[box.type]}: ${box.value || "(no value)"}${box.acroField ? ` → form field ${box.acroField}` : ""}`;
 
 type Suggestion = DetectedField & { sid: string };
 
@@ -182,7 +241,7 @@ export function OverlayEditor({
       ? pageInfo.view[2] - pageInfo.view[0]
       : pageInfo.view[3] - pageInfo.view[1]
     : 612;
-  const scale = zoom === "fit" ? Math.max(0.3, (width - 8) / pageWidth) : zoom * (4 / 3);
+  const scale = zoom === "fit" ? Math.max(0.3, width / pageWidth) : zoom * (4 / 3);
 
   useEffect(() => {
     const node = area.current;
@@ -289,7 +348,9 @@ export function OverlayEditor({
     setSelected(null);
   };
   const onKeyDown = (e: React.KeyboardEvent) => {
-    if (e.target !== e.currentTarget || !selectedBox || !editable) return;
+    // Keys come from the page itself or a focused box, never from the inspector.
+    const fromBox = e.target instanceof HTMLElement && e.target.dataset.box !== undefined;
+    if ((e.target !== e.currentTarget && !fromBox) || !selectedBox || !editable) return;
     const step = e.shiftKey ? 10 : 1;
     const moves: Record<string, [number, number]> = {
       ArrowLeft: [-step, 0],
@@ -319,74 +380,19 @@ export function OverlayEditor({
   const onPage = content.boxes.filter((b) => b.page === page);
   const suggested = fresh.filter((s) => s.page === page);
   const approximate = fresh.filter((s) => !s.anchored).length;
+  // While a drag changes something, show where it lands in points.
+  const dragging =
+    drag && (drag.kind === "draw" || drag.now.x !== drag.start.x || drag.now.y !== drag.start.y);
+  const readout =
+    dragging && viewport ? { view: dragRect(drag), pdf: toPdf(viewport, dragRect(drag)) } : null;
 
   return (
     <div className="space-y-3">
-      <div className="flex flex-wrap items-center gap-2">
-        {editable && (
-          <NativeSelect
-            aria-label="New box type"
-            title="Drag on the page to draw a box of this type"
-            value={newType}
-            onChange={(e) => {
-              const type = overlayBoxTypes.find((t) => t === e.target.value);
-              if (type) setNewType(type);
-            }}
-          >
-            {overlayBoxTypes.map((type) => (
-              <NativeSelectOption key={type} value={type}>
-                Draw: {boxTypeLabels[type]}
-              </NativeSelectOption>
-            ))}
-          </NativeSelect>
-        )}
-        {editable && unmapped.length > 0 && (
-          <Button variant="outline" size="sm" onClick={importFields}>
-            <FileArrowDownIcon />
-            Import form fields ({unmapped.length})
-          </Button>
-        )}
-        {editable && aiEnabled && (
-          <Button
-            variant="outline"
-            size="sm"
-            disabled={detection.running}
-            title="Sends the page images to Anthropic (Claude). Suggestions only; review each one."
-            onClick={() => {
-              setNotice(null);
-              detection.start.mutate();
-            }}
-          >
-            <SparkleIcon />
-            {detection.running ? "Detecting…" : "Detect with AI"}
-          </Button>
-        )}
-        <div className="ml-auto flex items-center gap-1">
-          <Button
-            variant="ghost"
-            size="icon-sm"
-            aria-label="Zoom out"
-            onClick={() =>
-              setZoom(ZOOMS.filter((z) => z * (4 / 3) < scale - 0.01).at(-1) ?? ZOOMS[0] ?? 0.5)
-            }
-          >
-            <MagnifyingGlassMinusIcon />
-          </Button>
-          <Button variant="ghost" size="xs" onClick={() => setZoom("fit")}>
-            {zoom === "fit" ? "Fit" : `${Math.round(zoom * 100)}%`}
-          </Button>
-          <Button
-            variant="ghost"
-            size="icon-sm"
-            aria-label="Zoom in"
-            onClick={() => setZoom(ZOOMS.find((z) => z * (4 / 3) > scale + 0.01) ?? 3)}
-          >
-            <MagnifyingGlassPlusIcon />
-          </Button>
-        </div>
-      </div>
       {detection.running && (
-        <p className="text-sm text-muted-foreground">
+        <p role="status" className="flex items-center gap-2 text-sm text-ink-3">
+          <Badge variant="run" dot>
+            Detecting
+          </Badge>
           Reading the pages with Claude: about 5 to 10 seconds a page.
         </p>
       )}
@@ -402,262 +408,434 @@ export function OverlayEditor({
         }
       />
 
-      <div className="grid gap-3 lg:grid-cols-[5.5rem_minmax(0,1fr)_17rem]">
-        <nav aria-label="Pages" className="flex gap-2 overflow-auto lg:max-h-[78svh] lg:flex-col">
-          {doc &&
-            pages.map((_, i) => {
-              const n = i + 1;
-              const count = content.boxes.filter((b) => b.page === n).length;
-              return (
-                <button
-                  key={n}
-                  type="button"
-                  onClick={() => setPage(n)}
-                  className={cn(
-                    "shrink-0 rounded border p-1 text-xs text-muted-foreground hover:bg-muted",
-                    n === page && "border-primary ring-1 ring-primary",
-                  )}
-                >
-                  <PageCanvas doc={doc} page={n} scale={0.12} className="mx-auto" />
-                  {n}
-                  {count > 0 && ` · ${count}`}
-                </button>
-              );
-            })}
-        </nav>
-
-        <div
-          ref={area}
-          className="min-w-0 overflow-auto rounded-lg border bg-muted p-1 lg:max-h-[78svh]"
+      <div className="grid items-start gap-4 md:grid-cols-[minmax(0,1fr)_15rem] lg:grid-cols-[5.5rem_minmax(0,1fr)_17rem]">
+        <nav
+          aria-label="Pages"
+          className="flex gap-2 overflow-auto p-1 md:col-span-2 lg:col-span-1 lg:max-h-[78svh] lg:flex-col"
         >
-          {doc ? (
-            // biome-ignore lint/a11y/noStaticElementInteractions: the canvas takes arrow keys, Delete and ⌘D for the selected box
-            <div
-              className="relative mx-auto w-fit outline-none"
-              // biome-ignore lint/a11y/noNoninteractiveTabindex: see above
-              tabIndex={0}
-              onKeyDown={onKeyDown}
-            >
-              <PageCanvas doc={doc} page={page} scale={scale} onViewport={setViewport} />
-              {viewport && (
-                <div
-                  ref={layer}
-                  className={cn("absolute inset-0", editable && "cursor-crosshair")}
-                  onPointerDown={(e) => {
-                    if (e.target !== e.currentTarget) return;
-                    const at = pointAt(e);
-                    startDrag(e, { kind: "draw", start: at, now: at });
-                    if (!editable) setSelected(null);
-                  }}
-                  onPointerMove={(e) => drag && setDrag({ ...drag, now: pointAt(e) })}
-                  onPointerUp={endDrag}
-                >
-                  {onPage.map((box) => {
-                    const dragging = drag && drag.kind !== "draw" && drag.id === box.id;
-                    const r = dragging ? dragRect(drag) : toView(viewport, box.rect);
-                    const isSelected = box.id === selected;
-                    return (
-                      <div
-                        key={box.id}
-                        title={
-                          box.type === "signature" && box.signerId
-                            ? `${boxTypeLabels[box.type]}: ${boxName(box)}`
-                            : `${boxTypeLabels[box.type]}: ${box.value || "(no value)"}${box.acroField ? ` → form field ${box.acroField}` : ""}`
-                        }
-                        className={cn(
-                          "absolute cursor-move overflow-hidden border text-[10px] leading-tight",
-                          box.type === "signature" && box.signerId
-                            ? "border-amber-600 bg-amber-500/15 text-amber-900"
-                            : box.acroField
-                              ? "border-emerald-600 bg-emerald-500/15 text-emerald-900"
-                              : "border-sky-600 bg-sky-500/15 text-sky-900",
-                          isSelected && "z-10 ring-2 ring-primary",
-                        )}
-                        style={{ left: r.left, top: r.top, width: r.width, height: r.height }}
-                        onPointerDown={(e) => {
-                          setSelected(box.id);
-                          const at = pointAt(e);
-                          startDrag(e, { kind: "move", id: box.id, start: at, now: at, from: r });
-                        }}
-                      >
-                        <span className="pointer-events-none block truncate px-0.5">
-                          {boxName(box)}
-                        </span>
-                        {isSelected &&
-                          editable &&
-                          (["nw", "ne", "sw", "se"] as const).map((corner) => (
-                            <span
-                              key={corner}
-                              className={cn(
-                                "absolute size-2 border border-primary bg-background",
-                                corner.startsWith("n") ? "-top-1" : "-bottom-1",
-                                corner.endsWith("w") ? "-left-1" : "-right-1",
-                                corner === "nw" || corner === "se"
-                                  ? "cursor-nwse-resize"
-                                  : "cursor-nesw-resize",
-                              )}
-                              onPointerDown={(e) => {
-                                const at = pointAt(e);
-                                startDrag(e, {
-                                  kind: "resize",
-                                  id: box.id,
-                                  corner,
-                                  start: at,
-                                  now: at,
-                                  from: r,
-                                });
-                              }}
-                            />
-                          ))}
-                      </div>
-                    );
-                  })}
-                  {suggested.map((s) => {
-                    const r = toView(viewport, s.rect);
-                    return (
-                      <button
-                        key={s.sid}
-                        type="button"
-                        title={`Suggested ${s.type}: ${s.label} (${s.key})${s.anchored ? "" : ", approximate"}`}
-                        className={cn(
-                          "absolute overflow-hidden border-2 border-dashed text-left text-[10px] leading-tight",
-                          s.anchored
-                            ? "border-violet-600 bg-violet-500/15 text-violet-900"
-                            : "border-amber-500 bg-amber-400/20 text-amber-900",
-                          picked === s.sid && "z-10 ring-2 ring-violet-700",
-                        )}
-                        style={{ left: r.left, top: r.top, width: r.width, height: r.height }}
-                        onPointerDown={(e) => e.stopPropagation()}
-                        onClick={() => setPicked(s.sid)}
-                      >
-                        <span className="block truncate px-0.5">
-                          {s.anchored ? "" : "≈ "}
-                          {s.key}
-                        </span>
-                      </button>
-                    );
-                  })}
-                  {drag?.kind === "draw" && (
-                    <div
-                      className="pointer-events-none absolute border border-dashed border-primary bg-primary/10"
-                      style={dragRect(drag)}
-                    />
-                  )}
-                </div>
-              )}
-            </div>
-          ) : (
-            <p className="p-8 text-center text-sm text-muted-foreground">Loading the PDF…</p>
-          )}
-        </div>
-
-        <aside className="space-y-4 lg:max-h-[78svh] lg:overflow-auto">
-          {fresh.length > 0 && (
-            <section className="space-y-2 rounded-lg border border-violet-300 p-3">
-              <h3 className="text-sm font-medium">
-                {fresh.length} AI suggestions
-                {approximate > 0 && (
-                  <span className="text-amber-700"> · {approximate} approximate</span>
-                )}
-              </h3>
-              <p className="text-xs text-muted-foreground">
-                Check each one. Approximate (≈) boxes didn't line up with a printed line or box.
-                Keys and labels are guesses.
-              </p>
-              <div className="flex flex-wrap gap-2">
-                <Button
-                  size="xs"
-                  disabled={!editable || fresh.every((s) => !s.anchored)}
-                  onClick={() => accept(fresh.filter((s) => s.anchored))}
-                >
-                  Accept all{approximate > 0 ? " but approximate" : ""}
-                </Button>
-                <Button size="xs" variant="ghost" onClick={() => reject(fresh.map((s) => s.sid))}>
-                  Reject all
-                </Button>
-              </div>
-              <ul className="space-y-1">
-                {fresh.map((s) => (
-                  <li
-                    key={s.sid}
+          {doc
+            ? pages.map((_, i) => {
+                const n = i + 1;
+                const count = content.boxes.filter((b) => b.page === n).length;
+                return (
+                  <button
+                    key={n}
+                    type="button"
+                    aria-current={n === page ? "page" : undefined}
+                    aria-label={`Page ${n}, ${plural(count, "box", "boxes")}`}
+                    onClick={() => setPage(n)}
                     className={cn(
-                      "flex items-center gap-1 rounded px-1 text-xs",
-                      picked === s.sid && "bg-violet-100 dark:bg-violet-950",
+                      "shrink-0 rounded-lg bg-card p-1.5 text-xs text-ink-3 shadow-card transition-colors hover:bg-tint",
+                      n === page &&
+                        "bg-brand-wash text-brand-ink ring-2 ring-brand hover:bg-brand-wash",
                     )}
                   >
-                    <button
-                      type="button"
-                      className="min-w-0 flex-1 truncate text-left"
-                      onClick={() => {
-                        setPage(s.page);
-                        setPicked(s.sid);
-                      }}
-                    >
-                      <span className="text-muted-foreground">p{s.page}</span> {s.label}{" "}
-                      <span className="font-mono text-muted-foreground">{s.key}</span>
-                    </button>
-                    {!s.anchored && <Badge variant="outline">≈</Badge>}
-                    <Button
-                      size="icon-xs"
-                      variant="ghost"
-                      aria-label={`Accept ${s.key}`}
-                      disabled={!editable}
-                      onClick={() => accept([s])}
-                    >
-                      <CheckIcon weight="bold" />
-                    </Button>
-                    <Button
-                      size="icon-xs"
-                      variant="ghost"
-                      aria-label={`Reject ${s.key}`}
-                      onClick={() => reject([s.sid])}
-                    >
-                      <XIcon weight="bold" />
-                    </Button>
-                  </li>
+                    <PageCanvas doc={doc} page={n} scale={0.12} className="mx-auto shadow-xs" />
+                    <span className="mt-1 flex items-center justify-center gap-1 font-medium tabular-nums">
+                      {n}
+                      {count > 0 && (
+                        <span className="rounded-full bg-tint-2 px-1.5 text-[10px] text-ink-2">
+                          {count}
+                        </span>
+                      )}
+                    </span>
+                  </button>
+                );
+              })
+            : [0, 1].map((i) => <Skeleton key={i} className="h-28 w-20 shrink-0 lg:w-full" />)}
+        </nav>
+
+        <Card className="min-w-0 gap-0 py-0">
+          <div className="flex flex-wrap items-center gap-2 border-b border-hair px-3 py-2.5">
+            {editable && (
+              <NativeSelect
+                size="sm"
+                aria-label="New box type"
+                title="Drag on the page to draw a box of this type"
+                value={newType}
+                onChange={(e) => {
+                  const type = overlayBoxTypes.find((t) => t === e.target.value);
+                  if (type) setNewType(type);
+                }}
+              >
+                {overlayBoxTypes.map((type) => (
+                  <NativeSelectOption key={type} value={type}>
+                    Draw: {boxTypeLabels[type]}
+                  </NativeSelectOption>
                 ))}
-              </ul>
-            </section>
+              </NativeSelect>
+            )}
+            {editable && unmapped.length > 0 && (
+              <Button variant="secondary" size="sm" onClick={importFields}>
+                <FileArrowDownIcon />
+                Import form fields ({unmapped.length})
+              </Button>
+            )}
+            {editable && aiEnabled && (
+              <Button
+                variant="secondary"
+                size="sm"
+                disabled={detection.running}
+                title="Sends the page images to Anthropic (Claude). Suggestions only; review each one."
+                onClick={() => {
+                  setNotice(null);
+                  detection.start.mutate();
+                }}
+              >
+                <SparkleIcon />
+                {detection.running ? "Detecting…" : "Detect with AI"}
+              </Button>
+            )}
+            <div className="ml-auto flex items-center gap-2">
+              <span className="text-xs text-ink-3 tabular-nums">
+                Page {page} of {pages.length || 1}
+              </span>
+              <div className="flex items-center rounded-lg bg-tint p-0.5">
+                <Button
+                  variant="ghost"
+                  size="icon-xs"
+                  aria-label="Zoom out"
+                  onClick={() =>
+                    setZoom(
+                      ZOOMS.filter((z) => z * (4 / 3) < scale - 0.01).at(-1) ?? ZOOMS[0] ?? 0.5,
+                    )
+                  }
+                >
+                  <MagnifyingGlassMinusIcon weight="bold" />
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="xs"
+                  className="min-w-12 tabular-nums"
+                  title="Fit to width"
+                  aria-label={`Zoom ${zoom === "fit" ? "fits the width" : `${Math.round(zoom * 100)}%`}; fit to width`}
+                  onClick={() => setZoom("fit")}
+                >
+                  {zoom === "fit" ? "Fit" : `${Math.round(zoom * 100)}%`}
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="icon-xs"
+                  aria-label="Zoom in"
+                  onClick={() => setZoom(ZOOMS.find((z) => z * (4 / 3) > scale + 0.01) ?? 3)}
+                >
+                  <MagnifyingGlassPlusIcon weight="bold" />
+                </Button>
+              </div>
+            </div>
+          </div>
+
+          <div ref={area} className="min-w-0 overflow-auto bg-tint p-4 lg:max-h-[72svh]">
+            {doc ? (
+              // biome-ignore lint/a11y/noStaticElementInteractions: the page and its boxes take arrow keys, Delete and ⌘D for the selected box
+              <div
+                className="relative mx-auto w-fit shadow-card"
+                // biome-ignore lint/a11y/noNoninteractiveTabindex: see above
+                tabIndex={0}
+                onKeyDown={onKeyDown}
+              >
+                <PageCanvas doc={doc} page={page} scale={scale} onViewport={setViewport} />
+                {viewport && (
+                  <div
+                    ref={layer}
+                    className={cn("absolute inset-0", editable && "cursor-crosshair")}
+                    onPointerDown={(e) => {
+                      if (e.target !== e.currentTarget) return;
+                      const at = pointAt(e);
+                      startDrag(e, { kind: "draw", start: at, now: at });
+                      if (!editable) setSelected(null);
+                    }}
+                    onPointerMove={(e) => drag && setDrag({ ...drag, now: pointAt(e) })}
+                    onPointerUp={endDrag}
+                  >
+                    {onPage.map((box) => {
+                      const moving = drag && drag.kind !== "draw" && drag.id === box.id;
+                      const r = moving ? dragRect(drag) : toView(viewport, box.rect);
+                      const isSelected = box.id === selected;
+                      const look = tones[toneOf(box)];
+                      return (
+                        <button
+                          key={box.id}
+                          type="button"
+                          data-box={box.id}
+                          aria-pressed={isSelected}
+                          aria-label={boxLabel(box)}
+                          title={boxLabel(box)}
+                          className={cn(
+                            "absolute rounded-[2px] border-[1.5px] p-0 text-left",
+                            editable ? "cursor-move" : "cursor-pointer",
+                            look.box,
+                            isSelected && "z-10 border-2 ring-3",
+                          )}
+                          style={{ left: r.left, top: r.top, width: r.width, height: r.height }}
+                          onFocus={() => setSelected(box.id)}
+                          onPointerDown={(e) => {
+                            setSelected(box.id);
+                            const at = pointAt(e);
+                            startDrag(e, { kind: "move", id: box.id, start: at, now: at, from: r });
+                          }}
+                        >
+                          <span className="pointer-events-none block max-h-full truncate px-0.5 text-[10px] leading-[12px] font-medium text-shell">
+                            {boxName(box)}
+                          </span>
+                          {isSelected && (
+                            <span
+                              className={cn(
+                                "pointer-events-none absolute bottom-full left-[-1.5px] mb-1 max-w-64 truncate rounded-md px-1.5 py-0.5 text-[11px] leading-tight font-semibold whitespace-nowrap shadow-card",
+                                look.tag,
+                              )}
+                            >
+                              {boxTypeLabels[box.type]} · {boxName(box)}
+                            </span>
+                          )}
+                          {isSelected &&
+                            editable &&
+                            handles
+                              .filter(
+                                (h) =>
+                                  h.length === 2 ||
+                                  ((h === "n" || h === "s") && r.width >= 40) ||
+                                  ((h === "e" || h === "w") && r.height >= 40),
+                              )
+                              .map((handle) => (
+                                <span
+                                  key={handle}
+                                  aria-hidden="true"
+                                  className={cn(
+                                    "absolute size-3 rounded-[3px] border-[1.5px] border-brand bg-white shadow-xs",
+                                    handleClasses[handle],
+                                  )}
+                                  onPointerDown={(e) => {
+                                    const at = pointAt(e);
+                                    startDrag(e, {
+                                      kind: "resize",
+                                      id: box.id,
+                                      corner: handle,
+                                      start: at,
+                                      now: at,
+                                      from: r,
+                                    });
+                                  }}
+                                />
+                              ))}
+                        </button>
+                      );
+                    })}
+                    {suggested.map((s) => {
+                      const r = toView(viewport, s.rect);
+                      return (
+                        <button
+                          key={s.sid}
+                          type="button"
+                          aria-pressed={picked === s.sid}
+                          title={`Suggested ${s.type}: ${s.label} (${s.key})${s.anchored ? "" : ", approximate"}`}
+                          className={cn(
+                            "absolute rounded-[2px] border-2 border-dashed p-0 text-left",
+                            s.anchored ? "border-sun bg-sun/20" : "border-bad bg-bad/10",
+                            picked === s.sid && "z-10 border-solid ring-3 ring-sun/50",
+                          )}
+                          style={{ left: r.left, top: r.top, width: r.width, height: r.height }}
+                          onPointerDown={(e) => e.stopPropagation()}
+                          onClick={() => setPicked(s.sid)}
+                        >
+                          <span className="block max-h-full truncate px-0.5 text-[10px] leading-[12px] font-medium text-shell">
+                            {s.anchored ? "" : "≈ "}
+                            {s.key}
+                          </span>
+                        </button>
+                      );
+                    })}
+                    {drag?.kind === "draw" && (
+                      <div
+                        className="pointer-events-none absolute rounded-[2px] border-[1.5px] border-dashed border-brand bg-brand/10"
+                        style={dragRect(drag)}
+                      />
+                    )}
+                    {readout && (
+                      <div
+                        className="pointer-events-none absolute z-20 rounded-md bg-ink px-1.5 py-0.5 font-mono text-[10px] whitespace-nowrap text-card shadow-float"
+                        style={{
+                          left: readout.view.left,
+                          top: readout.view.top + readout.view.height + 6,
+                        }}
+                      >
+                        x {Math.round(readout.pdf.x)} · y {Math.round(readout.pdf.y)} ·{" "}
+                        {Math.round(readout.pdf.width)} × {Math.round(readout.pdf.height)} pt
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            ) : (
+              <Skeleton className="mx-auto aspect-[17/22] w-full max-w-xl bg-tint-2">
+                <span className="sr-only">Loading the PDF…</span>
+              </Skeleton>
+            )}
+          </div>
+        </Card>
+
+        <aside className="space-y-3 lg:max-h-[78svh] lg:overflow-auto lg:p-1">
+          {fresh.length > 0 && (
+            <Card size="sm" className="gap-3">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-1.5">
+                  <SparkleIcon className="text-sun-ink" />
+                  AI suggestions
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                <div className="flex flex-wrap gap-1.5">
+                  <Badge variant="secondary">{fresh.length} to review</Badge>
+                  {approximate > 0 && <Badge variant="bad">{approximate} approximate</Badge>}
+                </div>
+                <p className="text-xs text-ink-3">
+                  Check each one. Approximate (≈) boxes didn't line up with a printed line or box.
+                  Keys and labels are guesses.
+                </p>
+                <div className="flex flex-wrap gap-2">
+                  <Button
+                    size="sm"
+                    variant="sun"
+                    disabled={!editable || fresh.every((s) => !s.anchored)}
+                    onClick={() => accept(fresh.filter((s) => s.anchored))}
+                  >
+                    Accept all{approximate > 0 ? " but approximate" : ""}
+                  </Button>
+                  <Button size="sm" variant="ghost" onClick={() => reject(fresh.map((s) => s.sid))}>
+                    Reject all
+                  </Button>
+                </div>
+                <ul className="-mx-1 space-y-0.5">
+                  {fresh.map((s) => (
+                    <li
+                      key={s.sid}
+                      className={cn(
+                        "flex items-center gap-1 rounded-md px-1 text-xs",
+                        picked === s.sid && "bg-sun-wash",
+                      )}
+                    >
+                      <button
+                        type="button"
+                        className="min-w-0 flex-1 truncate py-1 text-left"
+                        onClick={() => {
+                          setPage(s.page);
+                          setPicked(s.sid);
+                        }}
+                      >
+                        <span className="font-mono text-ink-3">p{s.page}</span> {s.label}{" "}
+                        <span className="font-mono text-ink-3">{s.key}</span>
+                      </button>
+                      {!s.anchored && (
+                        <Badge variant="bad" title="Approximate">
+                          ≈
+                        </Badge>
+                      )}
+                      <Button
+                        size="icon-xs"
+                        variant="ghost"
+                        aria-label={`Accept ${s.key}`}
+                        disabled={!editable}
+                        onClick={() => accept([s])}
+                      >
+                        <CheckIcon weight="bold" />
+                      </Button>
+                      <Button
+                        size="icon-xs"
+                        variant="ghost"
+                        aria-label={`Reject ${s.key}`}
+                        onClick={() => reject([s.sid])}
+                      >
+                        <XIcon weight="bold" />
+                      </Button>
+                    </li>
+                  ))}
+                </ul>
+              </CardContent>
+            </Card>
           )}
           {suggestions.length > fresh.length && (
-            <p className="text-xs text-muted-foreground">
-              {suggestions.length - fresh.length} suggestions hidden: they overlap boxes you already
-              have.
+            <p className="text-xs text-ink-3">
+              {plural(suggestions.length - fresh.length, "suggestion")} hidden: they overlap boxes
+              you already have.
             </p>
           )}
-          {selectedBox ? (
-            <BoxInspector
-              key={selectedBox.id}
-              box={selectedBox}
-              pages={pages.length || 1}
-              sections={sections}
-              signers={content.signers}
-              acroFields={source.data?.fields ?? []}
-              editable={editable}
-              onChange={updateBox}
-              onSections={(box, next) =>
-                onChange({
-                  content: {
-                    ...content,
-                    boxes: content.boxes.map((b) => (b.id === box.id ? box : b)),
-                  },
-                  sections: next,
-                })
-              }
-              onDelete={() => remove(selectedBox.id)}
-              onDuplicate={() => duplicate(selectedBox)}
-            />
-          ) : (
-            <p className="text-sm text-muted-foreground">
-              {editable
-                ? "Drag on the page to draw a box; click one to edit it. Arrow keys nudge (Shift: 10 pt), Delete removes, ⌘D duplicates."
-                : "Click a box to see its settings."}
+          <Card size="sm">
+            {selectedBox ? (
+              <CardContent>
+                <BoxInspector
+                  key={selectedBox.id}
+                  box={selectedBox}
+                  pages={pages.length || 1}
+                  sections={sections}
+                  signers={content.signers}
+                  acroFields={source.data?.fields ?? []}
+                  editable={editable}
+                  onChange={updateBox}
+                  onSections={(box, next) =>
+                    onChange({
+                      content: {
+                        ...content,
+                        boxes: content.boxes.map((b) => (b.id === box.id ? box : b)),
+                      },
+                      sections: next,
+                    })
+                  }
+                  onDelete={() => remove(selectedBox.id)}
+                  onDuplicate={() => duplicate(selectedBox)}
+                />
+              </CardContent>
+            ) : (
+              <>
+                <CardHeader>
+                  <CardTitle>No box selected</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-2 text-sm text-ink-2">
+                  {editable ? (
+                    <>
+                      <p>Drag on the page to draw a box, or click one to edit it.</p>
+                      <dl className="grid grid-cols-[auto_1fr] items-baseline gap-x-2 gap-y-1.5 text-xs text-ink-3">
+                        {shortcuts.map(([keys, does]) => (
+                          <Fragment key={does}>
+                            <dt>
+                              <Kbd>{keys}</Kbd>
+                            </dt>
+                            <dd>{does}</dd>
+                          </Fragment>
+                        ))}
+                      </dl>
+                    </>
+                  ) : (
+                    <p>Click a box to see its settings.</p>
+                  )}
+                </CardContent>
+              </>
+            )}
+          </Card>
+          <div className="space-y-1.5 px-1 text-xs text-ink-3">
+            <p className="font-medium text-ink-2">
+              {plural(content.boxes.length, "box", "boxes")} · {onPage.length} on this page
             </p>
-          )}
-          <p className="text-xs text-muted-foreground">
-            {plural(content.boxes.length, "box", "boxes")} · blue draws on the page, green fills a
-            form field, amber is for a signer
-          </p>
+            <ul className="space-y-1">
+              {(Object.keys(tones) as Tone[]).map((tone) => (
+                <li key={tone} className="flex items-center gap-2">
+                  <span
+                    aria-hidden="true"
+                    className={cn("size-3 rounded-[3px] border-[1.5px]", tones[tone].box)}
+                  />
+                  {tones[tone].legend}
+                </li>
+              ))}
+              {fresh.length > 0 && (
+                <li className="flex items-center gap-2">
+                  <span
+                    aria-hidden="true"
+                    className="size-3 rounded-[3px] border-[1.5px] border-dashed border-sun bg-sun/20"
+                  />
+                  AI suggestion, not added yet
+                </li>
+              )}
+            </ul>
+          </div>
         </aside>
       </div>
     </div>

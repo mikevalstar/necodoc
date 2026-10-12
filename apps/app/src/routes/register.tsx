@@ -5,7 +5,6 @@ import type { z } from "zod";
 import { AuthFrame } from "@/components/auth-frame";
 import { ErrorAlert, useAppForm } from "@/components/form";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { FieldGroup } from "@/components/ui/field";
 import { authClient, meQuery, signInOptionsQuery, unwrap, useSessionChange } from "@/lib/auth";
 
@@ -32,48 +31,56 @@ function Register() {
   });
 
   return (
-    <AuthFrame>
-      <Card>
-        <CardHeader>
-          <CardTitle>Create an account</CardTitle>
-          <CardDescription>
-            The first account becomes the admin. Everyone after that waits for an admin to grant
-            access.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <form
-            onSubmit={(e) => {
-              e.preventDefault();
-              form.handleSubmit();
-            }}
-          >
-            <FieldGroup>
-              <ErrorAlert error={signUp.error} />
-              <form.AppField name="name">
-                {(field) => <field.TextField label="Name" autoComplete="name" />}
-              </form.AppField>
-              <form.AppField name="email">
-                {(field) => <field.TextField label="Email" type="email" autoComplete="email" />}
-              </form.AppField>
-              <form.AppField name="password">
-                {(field) => (
-                  <field.TextField label="Password" type="password" autoComplete="new-password" />
-                )}
-              </form.AppField>
-              <Button type="submit" disabled={signUp.isPending}>
-                Register
-              </Button>
-              <p className="text-center text-sm text-muted-foreground">
-                Already registered?{" "}
-                <Link to="/login" className="underline underline-offset-4">
-                  Sign in
-                </Link>
-              </p>
-            </FieldGroup>
-          </form>
-        </CardContent>
-      </Card>
+    <AuthFrame
+      title="Create an account"
+      description="The first account becomes the admin. Everyone after that waits for an admin to grant access."
+    >
+      <form
+        noValidate
+        onSubmit={(e) => {
+          e.preventDefault();
+          form.handleSubmit();
+        }}
+      >
+        <FieldGroup className="gap-5">
+          <ErrorAlert error={signUp.error} />
+          <form.AppField name="name">
+            {(field) => <field.TextField label="Name" autoComplete="name" />}
+          </form.AppField>
+          <form.AppField name="email">
+            {(field) => (
+              <field.TextField
+                label="Email"
+                type="email"
+                autoComplete="email"
+                autoCapitalize="none"
+                spellCheck={false}
+              />
+            )}
+          </form.AppField>
+          <form.AppField name="password">
+            {(field) => (
+              <field.PasswordField
+                label="Password"
+                description="At least 8 characters."
+                autoComplete="new-password"
+              />
+            )}
+          </form.AppField>
+          <Button type="submit" disabled={signUp.isPending}>
+            {signUp.isPending ? "Creating account…" : "Create account"}
+          </Button>
+          <p className="text-center text-sm text-ink-2">
+            Already have an account?{" "}
+            <Link
+              to="/login"
+              className="font-semibold text-brand-ink underline-offset-4 hover:underline"
+            >
+              Sign in
+            </Link>
+          </p>
+        </FieldGroup>
+      </form>
     </AuthFrame>
   );
 }

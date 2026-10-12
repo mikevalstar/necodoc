@@ -1,7 +1,9 @@
 import { type Role, roleSchema } from "@necodoc/shared";
+import { EyeIcon, EyeSlashIcon } from "@phosphor-icons/react";
 import { createFormHook, createFormHookContexts } from "@tanstack/react-form";
-import type { ComponentProps, ReactNode } from "react";
+import { type ComponentProps, type ReactNode, useState } from "react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
   Field,
@@ -206,6 +208,59 @@ function SwitchField({ label }: { label: string }) {
   );
 }
 
+/** A password input with a show/hide toggle, as `field.PasswordField`. */
+function PasswordField({
+  label,
+  description,
+  autoComplete,
+}: {
+  label: string;
+  description?: string;
+  autoComplete: ComponentProps<"input">["autoComplete"];
+}) {
+  const field = useFieldContext<string>();
+  const [visible, setVisible] = useState(false);
+  const invalid = field.state.meta.isTouched && !field.state.meta.isValid;
+  const descriptionId = `${field.name}-description`;
+  return (
+    <Field data-invalid={invalid}>
+      <FieldLabel htmlFor={field.name}>{label}</FieldLabel>
+      <div className="relative">
+        <Input
+          id={field.name}
+          name={field.name}
+          type={visible ? "text" : "password"}
+          autoComplete={autoComplete}
+          autoCapitalize="none"
+          autoCorrect="off"
+          spellCheck={false}
+          value={field.state.value}
+          onChange={(e) => field.handleChange(e.target.value)}
+          onBlur={field.handleBlur}
+          aria-invalid={invalid}
+          aria-describedby={description && !invalid ? descriptionId : undefined}
+          className="pr-11"
+        />
+        <Button
+          type="button"
+          variant="ghost"
+          size="icon-sm"
+          className="absolute top-1 right-1 text-ink-3"
+          aria-label={visible ? "Hide password" : "Show password"}
+          aria-pressed={visible}
+          onClick={() => setVisible((v) => !v)}
+        >
+          {visible ? <EyeSlashIcon /> : <EyeIcon />}
+        </Button>
+      </div>
+      {description && !invalid && (
+        <FieldDescription id={descriptionId}>{description}</FieldDescription>
+      )}
+      {invalid && <FieldError errors={field.state.meta.errors} />}
+    </Field>
+  );
+}
+
 /** Shows a failed request's message (e.g. the API's last-admin guard). */
 export function ErrorAlert({ error }: { error: Error | null }) {
   if (!error) return null;
@@ -227,6 +282,7 @@ export const { useAppForm } = createFormHook({
     TextareaField,
     ColorField,
     SwitchField,
+    PasswordField,
   },
   formComponents: {},
 });

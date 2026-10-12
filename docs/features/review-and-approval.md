@@ -52,7 +52,10 @@ step to [Publishing and versions](publishing-and-versions.md).
   - visual diff and test results
     ([Template test cases and visual diff](template-test-cases-and-visual-diff.md))
   - a comment thread, one per review, that also records each state change
-  - **Approve** or **Request changes** (a comment is required), for reviewers
+  - **Approve** or **Request changes** (a comment is required), for reviewers;
+    the draft's current test result is shown beside them, and approving with
+    failing tests asks for confirmation
+  - **Withdraw** (confirmed) for editors while the review is open
   - **Publish** for publishers, once approved and not stale
 - **Publish gate.** With review required, publishing is refused unless the
   draft's current fingerprint matches an approved review. Publishing marks

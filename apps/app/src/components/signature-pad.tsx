@@ -97,9 +97,11 @@ export function SignaturePad({
         aria-describedby={statusId}
         aria-invalid={invalid}
         className={cn(
-          "aspect-[3/1] w-full max-w-md touch-none rounded-lg border border-input bg-white",
+          // Paper stays white in dark mode (the signature is ink on paper), dimmed a little and
+          // framed like a sheet rather than a bright bordered slab.
+          "aspect-[3/1] w-full max-w-md touch-none rounded-lg bg-white shadow-card ring-1 ring-hair dark:brightness-90 dark:ring-white/10",
           disabled ? "cursor-not-allowed opacity-50" : "cursor-crosshair",
-          invalid && "border-destructive",
+          invalid && "ring-2 ring-bad dark:ring-bad",
         )}
         onPointerDown={(e) => {
           const ctx = e.currentTarget.getContext("2d");
@@ -138,7 +140,7 @@ export function SignaturePad({
           onChange={(e) => typeName(e.target.value)}
         />
       )}
-      <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+      <div className="flex flex-wrap items-center gap-2 text-xs text-ink-3">
         <span id={statusId} aria-live="polite">
           {value ? "Signed." : "Sign in the box."}
         </span>
