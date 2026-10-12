@@ -127,13 +127,16 @@ const consumers: Record<PausableQueue, () => Promise<unknown>> = {
         return detectFields(bytes, { known: job.data.known, signal: job.signal });
       }),
     ),
+  // In slots too: a batch fires a webhook per row, and pg-boss's default wait between jobs would
+  // trickle those out.
   [queues.webhook]: () =>
-    boss.work(
-      queues.webhook,
-      { localConcurrency: 4, includeMetadata: true },
+    workInSlots(
+      boss,
+      4,
       observed(queues.webhook, async ([job]: JobWithMetadata<WebhookJobData>[]) => {
         if (job) await deliver(job.data.deliveryId, job.retryCount < job.retryLimit);
       }),
+      (handler) => boss.work(queues.webhook, { includeMetadata: true }, handler),
     ),
   [queues.retention]: () =>
     boss.work(
