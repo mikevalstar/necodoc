@@ -46,10 +46,15 @@ The runner is [run.ts](../../scripts/bench/src/run.ts); the stack it starts is i
 - **Hardware.** Numbers belong to the machine in the result's environment. A laptop shares its CPU with everything else running and throttles under sustained load; a server will differ in both directions. The site must state the hardware next to every number.
 - **Everything is local.** Postgres runs on the same machine with default settings (except `max_connections`), storage is the local disk driver, and the client calls over loopback. No network latency, object storage (S3, Azure) round trips, TLS or reverse proxy are included.
 - **Our documents, not yours.** Render time grows with page count, images, fonts and table size. The scenarios are representative insurance documents, not a worst case.
-- **Batch throughput includes the queue.** It's measured from the batch's creation to its last row finishing, so it includes pg-boss pickup and the worker's poll gap between jobs. Workers run on one machine, so past the core count adding workers stops helping; the scaling curve on a laptop says little about a multi-node cluster. Each worker slot waits up to 0.5 s between jobs ([known limitations](render-queue-batch-jobs-and-scaling.md#known-limitations)), so per-worker throughput is set more by that gap and `RENDER_CONCURRENCY` than by render time.
+- **Batch throughput includes the queue.** It's measured from the batch's creation to its last row finishing, so it includes pg-boss pickup. Workers run on one machine and share its CPU, so the scaling curve on a laptop says little about a multi-node cluster.
 - **Cold start** is a fresh worker process launching Chromium on its first job, not a container or machine cold start.
 - **Synchronous latency** is one request at a time; it says nothing about latency under concurrent load.
 - Claims on the site quote p50 and p95 from a full (non-`--quick`) run, with the date, hardware and commit, and link to this page.
+
+## Findings
+
+- **The fetch loop capped batches (fixed).** Each worker slot waited out pg-boss's 0.5 s poll after every job, so a worker did 240 docs/min at `RENDER_CONCURRENCY=2` whatever the render time, and throughput only grew by adding workers. Slots now fetch again as soon as they finish ([render queue implementation](render-queue-batch-jobs-and-scaling.md#implementation)): one worker went from 240 to about 940 docs/min with sequential latency unchanged.
+- **Past that, the laptop's Chromium capacity is the ceiling.** With 2 or more workers the M5 laptop levels off at about 1,100 to 1,250 docs/min. Each render's Chromium and band time rise roughly with the number of renders running at once while Postgres shows no lock waits, so the renders compete for the machine (4 performance cores, shared with whatever else runs), not for the queue. More workers help on more cores or more machines.
 
 ## Acceptance criteria
 

@@ -33,6 +33,7 @@ Add one with `okq new feature "<title>"`.
 | PDF overlay templates | [pdf-overlay-templates.md](pdf-overlay-templates.md) |
 | Performance benchmark | [performance-benchmark.md](performance-benchmark.md) |
 | Personal data masking and erasure | [personal-data-masking-and-erasure.md](personal-data-masking-and-erasure.md) |
+| Product tour reel | [product-tour-reel.md](product-tour-reel.md) |
 | Publishing and versions | [publishing-and-versions.md](publishing-and-versions.md) |
 | Render queue, batch jobs and scaling | [render-queue-batch-jobs-and-scaling.md](render-queue-batch-jobs-and-scaling.md) |
 | Review and approval | [review-and-approval.md](review-and-approval.md) |
