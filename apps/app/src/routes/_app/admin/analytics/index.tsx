@@ -3,6 +3,7 @@ import {
   type GenerationStatus,
   generationSourceSchema,
 } from "@necodoc/shared";
+import { ChartBarIcon, ListMagnifyingGlassIcon } from "@phosphor-icons/react";
 import { keepPreviousData, queryOptions, useQuery } from "@tanstack/react-query";
 import { createFileRoute, Link, redirect, useNavigate } from "@tanstack/react-router";
 import { z } from "zod";
@@ -33,8 +34,9 @@ import {
 } from "@/components/charts";
 import { FilterSelect } from "@/components/data-table";
 import { ErrorAlert } from "@/components/form";
-import { Page } from "@/components/page";
+import { EmptyState, Page } from "@/components/page";
 import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
 import { api, ok } from "@/lib/api";
 import { authClient, unwrap } from "@/lib/auth";
 import { dayjs } from "@/lib/date";
@@ -207,15 +209,19 @@ function DocumentAnalytics() {
             Clear filters
           </Button>
         )}
-        <Link
-          to="/generations"
-          search={logSearch(rangeDays)}
-          className="ml-auto self-center text-sm text-muted-foreground hover:underline"
+        <Button
+          variant="outline"
+          size="sm"
+          className="ml-auto"
+          nativeButton={false}
+          render={<Link to="/generations" search={logSearch(rangeDays)} />}
         >
+          <ListMagnifyingGlassIcon />
           Open in the generation log
-        </Link>
+        </Button>
       </div>
       <ErrorAlert error={result.error} />
+      {result.isPending && <DashboardSkeleton />}
 
       {data && byStatus && bySource && queueWait && runTime && (
         <>
@@ -229,6 +235,18 @@ function DocumentAnalytics() {
             <StatTile label="Pages" value={formatCount(data.totals.pages)} />
             <StatTile label="Output size" value={formatBytes(data.totals.bytes)} />
           </div>
+
+          {data.totals.generations === 0 && (
+            <EmptyState
+              icon={ChartBarIcon}
+              title="No generations in this range"
+              description={
+                hasFilter
+                  ? "Nothing matches these filters. Clear them or pick a longer date range."
+                  : "Documents generated from the app, the API, batches and share links show up here. Try a longer date range."
+              }
+            />
+          )}
 
           <div className="grid gap-4 lg:grid-cols-2">
             <ChartCard
@@ -288,7 +306,7 @@ function DocumentAnalytics() {
             </ChartCard>
           </div>
 
-          <div className="grid gap-4 lg:grid-cols-2">
+          <div className="grid gap-4 xl:grid-cols-2">
             <RankedCard
               title="Top templates"
               filename="top-templates"
@@ -386,7 +404,7 @@ function DocumentAnalytics() {
                   {b.templateName} v{b.version}
                 </Link>,
                 `${b.rows.toLocaleString()} / ${b.total.toLocaleString()}`,
-                b.errors,
+                <ErrorCount key="errors" count={b.errors} />,
                 b.startedAt && b.finishedAt ? dayjs(b.startedAt).to(b.finishedAt, true) : "—",
                 b.rowsPerMinute === null ? "—" : Math.round(b.rowsPerMinute),
               ])}
@@ -428,7 +446,7 @@ function DocumentAnalytics() {
                   params={{ id: l.id }}
                   className="hover:underline"
                 >
-                  {l.label} <span className="text-muted-foreground">· {l.templateName}</span>
+                  {l.label} <span className="text-ink-3">· {l.templateName}</span>
                 </Link>,
                 l.responses,
                 l.views,
@@ -479,13 +497,19 @@ function RankedCard({
       csv={{ filename, header, rows: rows.map((row) => row.cells) }}
     >
       <SimpleTable
-        header={header}
-        rows={rows.map(({ key, cells: [name, value, ...rest], bar, link }) => [
+        header={[
+          // Sets the name column's minimum; the names inside truncate to whatever it gets.
+          <span key="name" className="inline-block min-w-28">
+            {header[0]}
+          </span>,
+          ...header.slice(1),
+        ]}
+        rows={rows.map(({ key, cells: [name, value, errorCount, ...rest], bar, link }) => [
           <Link
             key={key}
             to="/generations"
             search={{ ...logSearch, ...link }}
-            className="hover:underline"
+            className="block w-0 min-w-full truncate hover:underline"
             title={String(name)}
           >
             {name}
@@ -496,9 +520,41 @@ function RankedCard({
             max={max}
             label={typeof value === "number" ? value.toLocaleString() : value}
           />,
+          typeof errorCount === "number" ? (
+            <ErrorCount key="errors" count={errorCount} />
+          ) : (
+            errorCount
+          ),
           ...rest,
         ])}
       />
     </ChartCard>
+  );
+}
+
+/** Errors read red only when there are some. */
+function ErrorCount({ count }: { count: number }) {
+  return (
+    <span className={count > 0 ? "font-semibold text-bad" : undefined}>
+      {count.toLocaleString()}
+    </span>
+  );
+}
+
+/** Tiles and chart cards in the shape of the dashboard while the first load runs. */
+function DashboardSkeleton() {
+  return (
+    <div className="space-y-6" role="status" aria-busy="true" aria-label="Loading">
+      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        {[1, 2, 3, 4].map((n) => (
+          <Skeleton key={n} className="h-23 rounded-xl" />
+        ))}
+      </div>
+      <div className="grid gap-4 lg:grid-cols-2">
+        {[1, 2, 3, 4].map((n) => (
+          <Skeleton key={n} className="h-72 rounded-xl" />
+        ))}
+      </div>
+    </div>
   );
 }

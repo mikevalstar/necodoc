@@ -1,6 +1,9 @@
 import { type Role, type SignInChannel, signInChannels } from "@necodoc/shared";
+import { ListMagnifyingGlassIcon } from "@phosphor-icons/react";
 import { keepPreviousData, queryOptions, useQuery } from "@tanstack/react-query";
 import { createFileRoute, Link, redirect, useNavigate } from "@tanstack/react-router";
+import type { InferResponseType } from "hono/client";
+import { useState } from "react";
 import { z } from "zod";
 import {
   AnalyticsHeader,
@@ -25,6 +28,8 @@ import {
 } from "@/components/charts";
 import { ErrorAlert } from "@/components/form";
 import { Page } from "@/components/page";
+import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
 import { api, ok } from "@/lib/api";
 import { dayjs } from "@/lib/date";
 
@@ -141,15 +146,19 @@ function AccessAnalytics() {
       <AnalyticsHeader current="access" />
       <div className="flex flex-wrap items-end gap-3">
         <RangeControls search={search} onChange={(next) => navigate({ search: next })} />
-        <Link
-          to="/admin/audit"
-          search={{ action: "auth.signed_in", ...days }}
-          className="ml-auto self-center text-sm text-muted-foreground hover:underline"
+        <Button
+          variant="outline"
+          size="sm"
+          className="ml-auto"
+          nativeButton={false}
+          render={<Link to="/admin/audit" search={{ action: "auth.signed_in", ...days }} />}
         >
+          <ListMagnifyingGlassIcon />
           Open sign-ins in the audit log
-        </Link>
+        </Button>
       </div>
       <ErrorAlert error={result.error} />
+      {result.isPending && <DashboardSkeleton />}
 
       {data && signIns && failed && active && newUsers && (
         <>
@@ -157,22 +166,26 @@ function AccessAnalytics() {
             <StatTile
               label="Sign-ins"
               value={formatCount(totalOk)}
-              hint={`${formatCount(totalFailed)} failed`}
+              hint={
+                <span className={totalFailed > 0 ? "font-semibold text-bad" : undefined}>
+                  {formatCount(totalFailed)} failed
+                </span>
+              }
             />
             <StatTile
               label="Active users in range"
               value={formatCount(data.active.inRange)}
-              hint={`New: ${formatCount(data.newUsers.reduce((sum, row) => sum + row.count, 0))}`}
+              hint={`${formatCount(data.newUsers.reduce((sum, row) => sum + row.count, 0))} new`}
             />
             <StatTile
-              label="DAU / WAU / MAU"
+              label="Daily / weekly / monthly active"
               value={`${data.active.daily} / ${data.active.weekly} / ${data.active.monthly}`}
-              hint={`Ending ${dayjs(range.to).subtract(1, "minute").format("MMM D")}`}
+              hint={`Days ending ${dayjs(range.to).subtract(1, "minute").format("MMM D")}`}
             />
             <StatTile
               label="API keys used in range"
               value={data.keys.filter((key) => key.generations > 0).length}
-              hint={`${data.keys.length} keys shown`}
+              hint={`Among the ${data.keys.length} busiest keys`}
             />
           </div>
 
@@ -283,14 +296,21 @@ function AccessAnalytics() {
               }}
             >
               <SimpleTable
-                header={["Email", "Failures", "Last"]}
+                header={[
+                  <span key="email" className="inline-block min-w-32">
+                    Email
+                  </span>,
+                  "Failures",
+                  "Last",
+                ]}
                 rows={data.failures.emails.map((r) => [
                   r.email ? (
                     <Link
                       key="link"
                       to="/admin/audit"
                       search={{ action: "auth.sign_in_failed", q: r.email, ...days }}
-                      className="hover:underline"
+                      className="block w-0 min-w-full truncate hover:underline"
+                      title={r.email}
                     >
                       {r.email}
                     </Link>
@@ -333,124 +353,182 @@ function AccessAnalytics() {
             </ChartCard>
           </div>
 
-          <ChartCard
-            title="Roles"
-            description="Current users, not the range. A user with several roles counts in each."
-            fetching={fetching}
-            csv={{
-              filename: "roles",
-              header: ["Role", "Users"],
-              rows: data.roles.map((r) => [roleLabels[r.role], r.users]),
-            }}
-          >
-            <SimpleTable
-              header={["Role", "Users"]}
-              rows={data.roles.map((r) => [
-                <Link key="link" to="/admin/users" className="hover:underline">
-                  {roleLabels[r.role]}
-                </Link>,
-                <InlineBar
-                  key="bar"
-                  value={r.users}
-                  max={Math.max(...data.roles.map((x) => x.users))}
-                />,
-              ])}
-            />
-          </ChartCard>
+          <div className="grid gap-4 lg:grid-cols-2">
+            <ChartCard
+              title="Roles"
+              description="Current users, not the range. A user with several roles counts in each."
+              fetching={fetching}
+              csv={{
+                filename: "roles",
+                header: ["Role", "Users"],
+                rows: data.roles.map((r) => [roleLabels[r.role], r.users]),
+              }}
+            >
+              <SimpleTable
+                header={["Role", "Users"]}
+                rows={data.roles.map((r) => [
+                  <Link key="link" to="/admin/users" className="hover:underline">
+                    {roleLabels[r.role]}
+                  </Link>,
+                  <InlineBar
+                    key="bar"
+                    value={r.users}
+                    max={Math.max(...data.roles.map((x) => x.users))}
+                  />,
+                ])}
+              />
+            </ChartCard>
 
-          <ChartCard
-            title="API keys"
-            description="Requests and last use are lifetime; generations and errors are in the range."
-            fetching={fetching}
-            csv={{
-              filename: "api-keys",
-              header: [
-                "Key",
-                "Owner",
-                "Service account",
-                "Requests",
-                "Last used",
-                "Generations",
-                "Errors",
-                "Revoked",
-              ],
-              rows: data.keys.map((k) => [
-                k.name ?? k.id,
-                k.ownerName,
-                k.serviceAccount,
-                k.requests,
-                k.lastUsedAt,
-                k.generations,
-                k.errors,
-                k.revokedAt,
-              ]),
-            }}
-          >
-            <SimpleTable
-              header={["Key · owner", "Requests", "Last used", "Generations", "Errors"]}
-              rows={data.keys.map((k) => [
-                <Link
-                  key="link"
-                  to="/generations"
-                  search={{ apiKeyId: k.id, ...days }}
-                  className="hover:underline"
-                >
-                  {k.name ?? k.id}{" "}
-                  <span className="text-muted-foreground">
-                    · {k.ownerName}
-                    {k.revokedAt ? " · revoked" : ""}
-                  </span>
-                </Link>,
-                <InlineBar
-                  key="bar"
-                  value={k.requests}
-                  max={data.keys[0]?.requests ?? 0}
-                  label={formatCount(k.requests)}
-                />,
-                ago(k.lastUsedAt),
-                k.generations,
-                k.errors,
-              ])}
-            />
-          </ChartCard>
+            <ChartCard
+              title="Service accounts"
+              fetching={fetching}
+              csv={{
+                filename: "service-accounts",
+                header: ["Account", "Contact", "Disabled", "Keys", "Last used", "Generations"],
+                rows: data.serviceAccounts.map((a) => [
+                  a.name,
+                  a.contact,
+                  a.disabled,
+                  a.keys,
+                  a.lastUsedAt,
+                  a.generations,
+                ]),
+              }}
+            >
+              <SimpleTable
+                header={["Account", "Keys", "Last used", "Generations"]}
+                empty="No service accounts."
+                rows={data.serviceAccounts.map((a) => [
+                  <Link
+                    key="link"
+                    to="/admin/service-accounts/$id"
+                    params={{ id: a.userId }}
+                    className="hover:underline"
+                  >
+                    {a.name}
+                    {a.disabled && <span className="text-ink-3"> · disabled</span>}
+                  </Link>,
+                  a.keys,
+                  ago(a.lastUsedAt),
+                  a.generations,
+                ])}
+              />
+            </ChartCard>
+          </div>
 
-          <ChartCard
-            title="Service accounts"
-            fetching={fetching}
-            csv={{
-              filename: "service-accounts",
-              header: ["Account", "Contact", "Disabled", "Keys", "Last used", "Generations"],
-              rows: data.serviceAccounts.map((a) => [
-                a.name,
-                a.contact,
-                a.disabled,
-                a.keys,
-                a.lastUsedAt,
-                a.generations,
-              ]),
-            }}
-          >
-            <SimpleTable
-              header={["Account", "Keys", "Last used", "Generations"]}
-              empty="No service accounts."
-              rows={data.serviceAccounts.map((a) => [
-                <Link
-                  key="link"
-                  to="/admin/service-accounts/$id"
-                  params={{ id: a.userId }}
-                  className="hover:underline"
-                >
-                  {a.name}
-                  {a.disabled && <span className="text-muted-foreground"> · disabled</span>}
-                </Link>,
-                a.keys,
-                ago(a.lastUsedAt),
-                a.generations,
-              ])}
-            />
-          </ChartCard>
+          <ApiKeysCard keys={data.keys} days={days} fetching={fetching} />
         </>
       )}
     </Page>
+  );
+}
+
+type AccessData = InferResponseType<typeof api.analytics.access.$get, 200>;
+const SHOWN_KEYS = 10;
+
+/** The busiest keys first; the rest behind a toggle so the table doesn't run the page. */
+function ApiKeysCard({
+  keys,
+  days,
+  fetching,
+}: {
+  keys: AccessData["keys"];
+  days: { from: string; to: string };
+  fetching: boolean;
+}) {
+  const [all, setAll] = useState(false);
+  const shown = all ? keys : keys.slice(0, SHOWN_KEYS);
+  return (
+    <ChartCard
+      title="API keys"
+      description="Requests and last use are lifetime; generations and errors are in the range."
+      fetching={fetching}
+      csv={{
+        filename: "api-keys",
+        header: [
+          "Key",
+          "Owner",
+          "Service account",
+          "Requests",
+          "Last used",
+          "Generations",
+          "Errors",
+          "Revoked",
+        ],
+        rows: keys.map((k) => [
+          k.name ?? k.id,
+          k.ownerName,
+          k.serviceAccount,
+          k.requests,
+          k.lastUsedAt,
+          k.generations,
+          k.errors,
+          k.revokedAt,
+        ]),
+      }}
+    >
+      <SimpleTable
+        header={[
+          <span key="name" className="inline-block min-w-40">
+            Key · owner
+          </span>,
+          "Requests",
+          "Last used",
+          "Generations",
+          "Errors",
+        ]}
+        rows={shown.map((k) => [
+          <Link
+            key="link"
+            to="/generations"
+            search={{ apiKeyId: k.id, ...days }}
+            className="block w-0 min-w-full truncate hover:underline"
+          >
+            {k.name ?? k.id}{" "}
+            <span className="text-ink-3">
+              · {k.ownerName}
+              {k.revokedAt ? " · revoked" : ""}
+            </span>
+          </Link>,
+          <InlineBar
+            key="bar"
+            value={k.requests}
+            max={keys[0]?.requests ?? 0}
+            label={formatCount(k.requests)}
+          />,
+          ago(k.lastUsedAt),
+          k.generations,
+          k.errors,
+        ])}
+      />
+      {keys.length > SHOWN_KEYS && (
+        <Button
+          variant="ghost"
+          size="sm"
+          className="mt-2"
+          onClick={() => setAll((value) => !value)}
+        >
+          {all ? `Show the busiest ${SHOWN_KEYS}` : `Show all ${keys.length} keys`}
+        </Button>
+      )}
+    </ChartCard>
+  );
+}
+
+/** Tiles and chart cards in the shape of the dashboard while the first load runs. */
+function DashboardSkeleton() {
+  return (
+    <div className="space-y-6" role="status" aria-busy="true" aria-label="Loading">
+      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        {[1, 2, 3, 4].map((n) => (
+          <Skeleton key={n} className="h-23 rounded-xl" />
+        ))}
+      </div>
+      <div className="grid gap-4 lg:grid-cols-2">
+        {[1, 2, 3, 4].map((n) => (
+          <Skeleton key={n} className="h-72 rounded-xl" />
+        ))}
+      </div>
+    </div>
   );
 }

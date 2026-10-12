@@ -5,9 +5,9 @@ import {
   type auditFilterSchema,
   auditTargetTypeSchema,
 } from "@necodoc/shared";
-import { DownloadSimpleIcon } from "@phosphor-icons/react";
+import { DownloadSimpleIcon, MagnifyingGlassIcon, XIcon } from "@phosphor-icons/react";
 import { keepPreviousData, queryOptions, useQuery } from "@tanstack/react-query";
-import { createFileRoute, redirect, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, Link, redirect, useNavigate } from "@tanstack/react-router";
 import { createColumnHelper } from "@tanstack/react-table";
 import type { InferResponseType } from "hono/client";
 import { z } from "zod";
@@ -19,6 +19,7 @@ import {
   targetTypeLabel,
 } from "@/components/audit";
 import {
+  activeFilter,
   DataTable,
   type DataTableFeatures,
   DebouncedInput,
@@ -28,11 +29,11 @@ import {
 import { FaqLink, Page, PageHeader } from "@/components/page";
 import { Badge } from "@/components/ui/badge";
 import { Button, buttonVariants } from "@/components/ui/button";
-import { Field, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { api, ok } from "@/lib/api";
 import { authClient, unwrap } from "@/lib/auth";
 import { dayjs } from "@/lib/date";
+import { cn } from "@/lib/utils";
 
 // Spec: docs/features/audit-log.md. The API filters, sorts and pages; the URL holds the view.
 
@@ -108,23 +109,37 @@ const column = createColumnHelper<DataTableFeatures, Entry>();
 const columns = column.columns([
   column.accessor("createdAt", {
     header: "Time",
-    cell: ({ getValue }) => (
-      <span className="tabular-nums">{dayjs(getValue()).format("YYYY-MM-DD HH:mm:ss")}</span>
+    // A link as well as the row click, so the entry opens from the keyboard.
+    cell: ({ getValue, row: { original } }) => (
+      <Link
+        from="/admin/audit"
+        to="."
+        search={(prev) => ({ ...prev, entry: original.id })}
+        className="font-mono text-[13px] whitespace-nowrap tabular-nums hover:underline"
+      >
+        {dayjs(getValue()).format("YYYY-MM-DD HH:mm:ss")}
+      </Link>
     ),
     enableHiding: false,
   }),
   column.accessor("action", {
     header: "Action",
-    cell: ({ getValue }) => <Badge variant="outline">{actionLabel(getValue())}</Badge>,
+    // Failed sign-ins are what a security review scans for; everything else is a plain tag.
+    cell: ({ getValue }) => (
+      <Badge variant={getValue() === "auth.sign_in_failed" ? "bad" : "secondary"}>
+        {actionLabel(getValue())}
+      </Badge>
+    ),
   }),
   column.accessor("targetType", {
     header: "Target type",
-    cell: ({ getValue }) => targetTypeLabel(getValue()),
+    cell: ({ getValue }) => <span className="text-ink-2">{targetTypeLabel(getValue())}</span>,
+    meta: { className: "max-lg:hidden" },
   }),
   column.accessor("targetName", {
     header: "Target",
     cell: ({ row: { original } }) => (
-      <span title={original.targetId ?? undefined}>
+      <span title={original.targetId ?? undefined} className="font-semibold">
         {original.targetName ?? original.targetId ?? "—"}
       </span>
     ),
@@ -136,16 +151,17 @@ const columns = column.columns([
   }),
   column.accessor("ip", {
     header: "IP",
-    cell: ({ getValue }) => <span className="font-mono text-xs">{getValue() ?? "—"}</span>,
+    cell: ({ getValue }) => <span className="font-mono text-[13px]">{getValue() ?? "—"}</span>,
+    meta: { className: "max-lg:hidden" },
   }),
   column.accessor("requestId", {
     header: "Request id",
-    cell: ({ getValue }) => <span className="font-mono text-xs">{getValue() ?? "—"}</span>,
+    cell: ({ getValue }) => <span className="font-mono text-[13px]">{getValue() ?? "—"}</span>,
     meta: { hiddenByDefault: true, className: "max-w-40 truncate" },
   }),
   column.accessor("targetId", {
     header: "Target id",
-    cell: ({ getValue }) => <span className="font-mono text-xs">{getValue() ?? "—"}</span>,
+    cell: ({ getValue }) => <span className="font-mono text-[13px]">{getValue() ?? "—"}</span>,
     meta: { hiddenByDefault: true, className: "max-w-40 truncate" },
   }),
 ]);
@@ -167,6 +183,11 @@ function AuditLog() {
     navigate({ search: (prev) => ({ ...prev, ...next }) });
   const setFilter = (next: Partial<AuditSearch>) => setSearch({ ...next, page: 1 });
   const hasFilter = Object.values(toFilter(search)).some((value) => value !== undefined);
+  // History panels link here by target id; every row then shares the target, so name it.
+  const targetName = search.targetId
+    ? (entries.data?.items.find((entry) => entry.targetId === search.targetId)?.targetName ??
+      search.targetId)
+    : undefined;
 
   return (
     <Page>
@@ -196,19 +217,24 @@ function AuditLog() {
         error={entries.error}
         noun="event"
         onRowClick={(entry) => setSearch({ entry: entry.id })}
+        empty={hasFilter ? "No events match these filters." : "Nothing recorded yet."}
         toolbar={
           <>
-            <Field className="w-auto">
-              <FieldLabel htmlFor="q">Search</FieldLabel>
+            <div className="relative">
+              <MagnifyingGlassIcon
+                aria-hidden
+                className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-ink-3"
+              />
               <DebouncedInput
-                id="q"
                 type="search"
-                className="w-56"
-                placeholder="Target, actor, request id, IP…"
+                aria-label="Search the audit log"
+                className={cn("w-64 pl-9", search.q && activeFilter)}
+                placeholder="Target, actor, request ID, IP…"
+                title="Target or actor name, request ID, IP, or an exact target ID"
                 value={search.q ?? ""}
                 onCommit={(q) => setFilter({ q: q.trim() || undefined })}
               />
-            </Field>
+            </div>
             <FilterSelect
               label="Action"
               value={search.action}
@@ -249,35 +275,40 @@ function AuditLog() {
                 setFilter({ actorKind: auditActorKindSchema.safeParse(value).data })
               }
             />
-            {search.targetId && (
-              <Field className="w-auto">
-                <FieldLabel htmlFor="targetId">Target id</FieldLabel>
-                <Input
-                  id="targetId"
-                  className="w-48 font-mono text-xs"
-                  value={search.targetId}
-                  readOnly
-                />
-              </Field>
-            )}
-            <Field className="w-auto">
-              <FieldLabel htmlFor="from">From</FieldLabel>
+            {/* biome-ignore lint/a11y/useSemanticElements: a fieldset can't be a flex row in every browser */}
+            <div role="group" aria-label="Date range" className="flex items-center gap-1.5">
               <Input
-                id="from"
                 type="date"
+                aria-label="From"
+                title="From (inclusive)"
+                className={cn("w-36", search.from && activeFilter)}
+                max={search.to}
                 value={search.from ?? ""}
                 onChange={(e) => setFilter({ from: e.target.value || undefined })}
               />
-            </Field>
-            <Field className="w-auto">
-              <FieldLabel htmlFor="to">To</FieldLabel>
+              <span className="text-[13px] text-ink-3">to</span>
               <Input
-                id="to"
                 type="date"
+                aria-label="To"
+                title="To (inclusive)"
+                className={cn("w-36", search.to && activeFilter)}
+                min={search.from}
                 value={search.to ?? ""}
                 onChange={(e) => setFilter({ to: e.target.value || undefined })}
               />
-            </Field>
+            </div>
+            {search.targetId && (
+              <Button
+                variant="ghost"
+                className={cn("max-w-64", activeFilter)}
+                title={`Target ${search.targetId}. Click to remove this filter.`}
+                aria-label={`Remove target filter: ${targetName}`}
+                onClick={() => setFilter({ targetId: undefined })}
+              >
+                <span className="truncate">Target: {targetName}</span>
+                <XIcon weight="bold" />
+              </Button>
+            )}
             {hasFilter && (
               <Button
                 variant="ghost"
@@ -292,7 +323,8 @@ function AuditLog() {
                   })
                 }
               >
-                Clear filters
+                <XIcon weight="bold" />
+                Clear
               </Button>
             )}
           </>

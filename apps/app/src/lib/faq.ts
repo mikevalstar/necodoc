@@ -432,7 +432,7 @@ export const faq: readonly FaqEntry[] = [
     feature: "Users and roles",
     group: "Admin",
     what: "Admins create users, set their roles, reset passwords, ban, sign out and impersonate them. Roles add up: admin, publisher, reviewer, editor and viewer. A user with no roles is pending and can only see Settings. The Sign-in column shows whether each person uses a password, single sign-on or both.",
-    howTo: "Open Admin › Users.",
+    howTo: "Open Admin › Users. New sign-ups waiting for a role are listed at the top under Waiting for access; filter the list by role or status (active, pending, banned).",
     limitations: [
       "There are no invite, verification or password-reset emails; share passwords yourself.",
       "Roles are global; there are no organisations or teams.",
@@ -1022,6 +1022,7 @@ export const faq: readonly FaqEntry[] = [
     limitations: [
       "Only generations made as you count; calls through your API keys count, renders by others of your templates only show under templates you created.",
       "Documents show those started in the range next to the all-time count.",
+      "Templates you created that nobody generated in the range are left out of the table; the CSV still lists them.",
     ],
     access: [{ action: "See your own usage", needs: view }],
     spec: "docs/features/analytics-dashboards.md",

@@ -9,17 +9,8 @@ import {
 import type { UserWithRole } from "better-auth/plugins";
 import type { ReactNode } from "react";
 import type { z } from "zod";
+import { ConfirmDialog } from "@/components/confirm-dialog";
 import { ErrorAlert, useAppForm } from "@/components/form";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -112,7 +103,7 @@ export function CreateUserDialog({ onClose, onDone }: Omit<DialogProps, "user">)
   return (
     <FormDialog
       title="Create user"
-      description="Share the password with them yourself; there is no invite email."
+      description="Share the password with them yourself; there is no invite email. Leave every role unchecked to keep them pending."
       submitLabel="Create user"
       pending={create.isPending}
       error={create.error}
@@ -166,6 +157,7 @@ export function EditRolesDialog({ user, onClose, onDone }: DialogProps) {
       unwrap(authClient.admin.setRole({ userId: user.id, role })),
     () => onDone(`Saved roles for ${user.name}.`),
   );
+  const isPending = parseRoles(user.role).length === 0;
   const form = useAppForm({
     defaultValues: { role: parseRoles(user.role) },
     validators: { onChange: setRolesSchema },
@@ -173,9 +165,13 @@ export function EditRolesDialog({ user, onClose, onDone }: DialogProps) {
   });
   return (
     <FormDialog
-      title="Edit roles"
-      description={`${user.name} gets every permission of every role checked. No roles means pending.`}
-      submitLabel="Save roles"
+      title={isPending ? `Grant ${user.name} access` : "Edit roles"}
+      description={
+        isPending
+          ? `${user.name} (${user.email}) is waiting for access. Pick the roles they need; they get every permission of every role checked.`
+          : `${user.name} gets every permission of every role checked. No roles means pending.`
+      }
+      submitLabel={isPending ? "Grant access" : "Save roles"}
       pending={setRoles.isPending}
       error={setRoles.error}
       onSubmit={form.handleSubmit}
@@ -249,26 +245,14 @@ export function DeleteUserDialog({ user, onClose, onDone }: DialogProps) {
     () => onDone(`Deleted ${user.name}.`),
   );
   return (
-    <AlertDialog open onOpenChange={(open) => !open && onClose()}>
-      <AlertDialogContent>
-        <AlertDialogHeader>
-          <AlertDialogTitle>Delete {user.name}?</AlertDialogTitle>
-          <AlertDialogDescription>
-            This permanently deletes {user.email} and their sessions. It can't be undone.
-          </AlertDialogDescription>
-        </AlertDialogHeader>
-        <ErrorAlert error={remove.error} />
-        <AlertDialogFooter>
-          <AlertDialogCancel>Cancel</AlertDialogCancel>
-          <AlertDialogAction
-            variant="destructive"
-            disabled={remove.isPending}
-            onClick={() => remove.mutate()}
-          >
-            Delete user
-          </AlertDialogAction>
-        </AlertDialogFooter>
-      </AlertDialogContent>
-    </AlertDialog>
+    <ConfirmDialog
+      title={`Delete ${user.name}?`}
+      description={`This permanently deletes ${user.email} and signs them out. It can't be undone; ban them instead to keep their account.`}
+      confirmLabel="Delete user"
+      pending={remove.isPending}
+      error={remove.error}
+      onConfirm={() => remove.mutate()}
+      onClose={onClose}
+    />
   );
 }

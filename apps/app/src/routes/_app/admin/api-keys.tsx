@@ -1,12 +1,15 @@
 import { apiKeyStatusSchema } from "@necodoc/shared";
+import { FunnelXIcon, KeyIcon } from "@phosphor-icons/react";
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
-import { createFileRoute, redirect, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, Link, redirect, useNavigate } from "@tanstack/react-router";
 import { z } from "zod";
 import { ApiKeyTable, apiKeysQuery, ExpiryWarning } from "@/components/api-keys";
+import { DensityToggle, FilterSelect } from "@/components/data-table";
 import { ErrorAlert } from "@/components/form";
-import { FaqLink, Page, PageHeader } from "@/components/page";
-import { Field, FieldLabel } from "@/components/ui/field";
-import { NativeSelect, NativeSelectOption } from "@/components/ui/native-select";
+import { EmptyState, FaqLink, ListSkeleton, Page, PageHeader } from "@/components/page";
+import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
+import { CardBar } from "./service-accounts/-shared";
 
 // Spec: docs/features/html-to-pdf-api.md (keys). Every key across people and service accounts.
 const ownerKindSchema = z.enum(["user", "service"]);
@@ -23,6 +26,15 @@ export const Route = createFileRoute("/_app/admin/api-keys")({
   component: AdminApiKeys,
 });
 
+const ownerOptions = [
+  { value: "user", label: "People" },
+  { value: "service", label: "Service accounts" },
+];
+const statusOptions = apiKeyStatusSchema.options.map((status) => ({
+  value: status,
+  label: status.charAt(0).toUpperCase() + status.slice(1),
+}));
+
 function AdminApiKeys() {
   const search = Route.useSearch();
   const navigate = useNavigate({ from: Route.fullPath });
@@ -31,57 +43,96 @@ function AdminApiKeys() {
     ...apiKeysQuery({ all: "true", ...search }),
     placeholderData: keepPreviousData,
   });
+  const filtered = search.ownerKind !== undefined || search.status !== undefined;
+  const linkClass = "font-semibold text-brand-ink hover:underline";
   return (
     <Page>
       <PageHeader
         title="All API keys"
-        description="Every key, personal and service account. Revoke any; rotate service accounts' keys (and your own). People rotate their own under Developers › API keys."
+        description={
+          <>
+            Every key, personal and{" "}
+            <Link to="/admin/service-accounts" className={linkClass}>
+              service account
+            </Link>
+            . You can revoke any of them, and rotate service accounts' keys and your own. People
+            rotate theirs under{" "}
+            <Link to="/settings/api-keys" className={linkClass}>
+              Developers › API keys
+            </Link>
+            .
+          </>
+        }
         actions={<FaqLink feature="API keys and scopes" />}
       />
-      <div className="flex flex-wrap gap-3">
-        <Field className="w-auto">
-          <FieldLabel htmlFor="ownerKind">Owner</FieldLabel>
-          <NativeSelect
-            id="ownerKind"
-            value={search.ownerKind ?? ""}
-            onChange={(e) =>
-              navigate({
-                search: { ...search, ownerKind: ownerKindSchema.safeParse(e.target.value).data },
-              })
-            }
-          >
-            <NativeSelectOption value="">Anyone</NativeSelectOption>
-            <NativeSelectOption value="user">People</NativeSelectOption>
-            <NativeSelectOption value="service">Service accounts</NativeSelectOption>
-          </NativeSelect>
-        </Field>
-        <Field className="w-auto">
-          <FieldLabel htmlFor="status">Status</FieldLabel>
-          <NativeSelect
-            id="status"
-            value={search.status ?? ""}
-            onChange={(e) =>
-              navigate({
-                search: { ...search, status: apiKeyStatusSchema.safeParse(e.target.value).data },
-              })
-            }
-          >
-            <NativeSelectOption value="">Any</NativeSelectOption>
-            {apiKeyStatusSchema.options.map((status) => (
-              <NativeSelectOption key={status} value={status} className="capitalize">
-                {status}
-              </NativeSelectOption>
-            ))}
-          </NativeSelect>
-        </Field>
-      </div>
       <ErrorAlert error={keys.error} />
       <ExpiryWarning keys={keys.data} />
-      <ApiKeyTable
-        keys={keys.data}
-        showOwner
-        canRotate={(key) => key.ownerIsService || key.ownerId === me.user.id}
-      />
+      <Card className="gap-0 py-0">
+        <CardBar title="Keys">
+          <FilterSelect
+            label="Owner"
+            any="Any owner"
+            value={search.ownerKind}
+            options={ownerOptions}
+            onChange={(value) =>
+              navigate({ search: { ...search, ownerKind: ownerKindSchema.safeParse(value).data } })
+            }
+          />
+          <FilterSelect
+            label="Status"
+            value={search.status}
+            options={statusOptions}
+            onChange={(value) =>
+              navigate({ search: { ...search, status: apiKeyStatusSchema.safeParse(value).data } })
+            }
+          />
+          {!!keys.data?.length && (
+            <>
+              <span className="text-[13px] text-ink-3">
+                {keys.data.length} key{keys.data.length > 1 && "s"}
+              </span>
+              <DensityToggle />
+            </>
+          )}
+        </CardBar>
+        {keys.isPending ? (
+          <ListSkeleton className="p-4" />
+        ) : (
+          keys.data && (
+            <ApiKeyTable
+              keys={keys.data}
+              showOwner
+              canRotate={(key) => key.ownerIsService || key.ownerId === me.user.id}
+              empty={
+                filtered ? (
+                  <EmptyState
+                    className="m-4"
+                    icon={FunnelXIcon}
+                    title="No keys match these filters"
+                    action={
+                      <Button variant="outline" onClick={() => navigate({ search: {} })}>
+                        Clear filters
+                      </Button>
+                    }
+                  />
+                ) : (
+                  <EmptyState
+                    className="m-4"
+                    icon={KeyIcon}
+                    title="No API keys yet"
+                    description="People create their own under Developers › API keys; a system's keys belong on a service account."
+                    action={
+                      <Button render={<Link to="/admin/service-accounts" />}>
+                        Service accounts
+                      </Button>
+                    }
+                  />
+                )
+              }
+            />
+          )
+        )}
+      </Card>
     </Page>
   );
 }

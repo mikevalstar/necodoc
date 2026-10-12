@@ -4,11 +4,12 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute, Link, redirect, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
 import type { z } from "zod";
+import { DensityToggle } from "@/components/data-table";
 import { ErrorAlert, useAppForm } from "@/components/form";
 import { EmptyState, FaqLink, ListSkeleton, Page, PageHeader } from "@/components/page";
 import { RoleBadges } from "@/components/role-badges";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
 import {
   Dialog,
   DialogClose,
@@ -29,7 +30,14 @@ import {
 } from "@/components/ui/table";
 import { api, ok } from "@/lib/api";
 import { dayjs } from "@/lib/date";
-import { ServiceRolesField, serviceAccountFormSchema, serviceAccountsQuery } from "./-shared";
+import { cn } from "@/lib/utils";
+import {
+  AccountStatusBadge,
+  CardBar,
+  ServiceRolesField,
+  serviceAccountFormSchema,
+  serviceAccountsQuery,
+} from "./-shared";
 
 // ADR 0029; spec: docs/features/html-to-pdf-api.md (keys). Identities for systems, so their keys
 // outlive the people who set them up.
@@ -76,59 +84,73 @@ function ServiceAccounts() {
         />
       )}
       {!!accounts.data?.length && (
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Name</TableHead>
-              <TableHead>Owner / contact</TableHead>
-              <TableHead>Roles</TableHead>
-              <TableHead className="text-right">Active keys</TableHead>
-              <TableHead>Status</TableHead>
-              <TableHead className="hidden md:table-cell">Created</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {accounts.data?.map((account) => (
-              <TableRow
-                key={account.id}
-                className="cursor-pointer"
-                onClick={() =>
-                  navigate({ to: "/admin/service-accounts/$id", params: { id: account.id } })
-                }
-              >
-                <TableCell>
-                  <Link
-                    to="/admin/service-accounts/$id"
-                    params={{ id: account.id }}
-                    className="font-medium hover:underline"
-                  >
-                    {account.name}
-                  </Link>
-                  {account.description && (
-                    <div className="max-w-72 truncate text-xs text-muted-foreground">
-                      {account.description}
-                    </div>
-                  )}
-                </TableCell>
-                <TableCell>{account.contact}</TableCell>
-                <TableCell>
-                  <RoleBadges roles={account.roles} />
-                </TableCell>
-                <TableCell className="text-right tabular-nums">{account.activeKeys}</TableCell>
-                <TableCell>
-                  {account.disabled ? (
-                    <Badge variant="destructive">Disabled</Badge>
-                  ) : (
-                    <span className="text-sm text-muted-foreground">Active</span>
-                  )}
-                </TableCell>
-                <TableCell className="hidden tabular-nums md:table-cell">
-                  {dayjs(account.createdAt).format("YYYY-MM-DD")}
-                </TableCell>
+        <Card className="gap-0 py-0">
+          <CardBar title="Accounts">
+            <span className="text-[13px] text-ink-3">
+              {accounts.data.filter((account) => !account.disabled).length} active of{" "}
+              {accounts.data.length}
+            </span>
+            <DensityToggle />
+          </CardBar>
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Name</TableHead>
+                <TableHead>Owner / contact</TableHead>
+                <TableHead>Roles</TableHead>
+                <TableHead className="text-right">Active keys</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead className="hidden lg:table-cell">Created</TableHead>
               </TableRow>
-            ))}
-          </TableBody>
-        </Table>
+            </TableHeader>
+            <TableBody>
+              {accounts.data.map((account) => (
+                <TableRow
+                  key={account.id}
+                  className="cursor-pointer"
+                  onClick={() =>
+                    navigate({ to: "/admin/service-accounts/$id", params: { id: account.id } })
+                  }
+                >
+                  <TableCell>
+                    <Link
+                      to="/admin/service-accounts/$id"
+                      params={{ id: account.id }}
+                      className="font-semibold hover:underline"
+                    >
+                      {account.name}
+                    </Link>
+                    {account.description && (
+                      <div className="max-w-72 truncate text-xs text-ink-3">
+                        {account.description}
+                      </div>
+                    )}
+                  </TableCell>
+                  <TableCell className="max-w-56 truncate" title={account.contact}>
+                    {account.contact}
+                  </TableCell>
+                  <TableCell>
+                    <RoleBadges roles={account.roles} />
+                  </TableCell>
+                  <TableCell
+                    className={cn(
+                      "text-right tabular-nums",
+                      account.activeKeys === 0 && "text-ink-3",
+                    )}
+                  >
+                    {account.activeKeys}
+                  </TableCell>
+                  <TableCell>
+                    <AccountStatusBadge disabled={account.disabled} />
+                  </TableCell>
+                  <TableCell className="hidden font-mono text-xs text-ink-2 lg:table-cell">
+                    {dayjs(account.createdAt).format("YYYY-MM-DD")}
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </Card>
       )}
       {creating && <CreateServiceAccountDialog onClose={() => setCreating(false)} />}
     </Page>

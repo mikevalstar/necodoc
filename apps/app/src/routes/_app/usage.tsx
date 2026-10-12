@@ -1,4 +1,5 @@
 import { type GenerationStatus, hasPermission, type SubmissionStatus } from "@necodoc/shared";
+import { ChartBarIcon } from "@phosphor-icons/react";
 import { keepPreviousData, queryOptions, useQuery } from "@tanstack/react-query";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { z } from "zod";
@@ -24,9 +25,11 @@ import {
   timeTable,
 } from "@/components/charts";
 import { ErrorAlert } from "@/components/form";
-import { FaqLink, Page, PageHeader } from "@/components/page";
+import { EmptyState, FaqLink, Page, PageHeader } from "@/components/page";
+import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
 import { api, ok } from "@/lib/api";
-import { formatBytes } from "@/lib/utils";
+import { cn, formatBytes } from "@/lib/utils";
 import { formatMs, statusLabels } from "./generations/-generation-actions";
 
 // Spec: docs/features/analytics-dashboards.md (My usage). Everyone with a role; the API scopes
@@ -84,6 +87,10 @@ function Usage() {
       (row) => row.count,
     );
   const finished = data ? data.totals.success + data.totals.errors : 0;
+  // Templates nobody generated in the range stay in the CSV but not on screen.
+  const usedTemplates = data?.templateUsage?.filter((t) => t.generations > 0) ?? [];
+  const unusedTemplates = (data?.templateUsage?.length ?? 0) - usedTemplates.length;
+  const canCreate = hasPermission(me.user.roles, { document: ["create"] });
   const editor =
     hasPermission(me.user.roles, { document: ["create"] }) ||
     hasPermission(me.user.roles, { document: ["edit"] });
@@ -93,83 +100,121 @@ function Usage() {
       <PageHeader
         title="My usage"
         description={`What you generated and filled in${editor ? ", and how often your templates are used" : ""}.`}
-        actions={<FaqLink feature="My usage" />}
+        actions={
+          <>
+            <FaqLink feature="My usage" />
+            <Button
+              variant="outline"
+              nativeButton={false}
+              render={<Link to="/generations" search={days} />}
+            >
+              Open my generations
+            </Button>
+          </>
+        }
       />
       <div className="flex flex-wrap items-end gap-3">
         <RangeControls search={search} onChange={(next) => navigate({ search: next })} />
-        <Link
-          to="/generations"
-          search={days}
-          className="ml-auto self-center text-sm text-muted-foreground hover:underline"
-        >
-          Open my generations
-        </Link>
       </div>
       <ErrorAlert error={result.error} />
 
+      {result.isPending && (
+        <div className="space-y-4" role="status" aria-busy="true" aria-label="Loading">
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+            {["generations", "errors", "pages", "size"].map((key) => (
+              <Skeleton key={key} className="h-24 rounded-xl" />
+            ))}
+          </div>
+          <Skeleton className="h-72 rounded-xl" />
+        </div>
+      )}
+
       {data && byStatus && (
         <>
-          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-            <StatTile label="Generations" value={formatCount(data.totals.generations)} />
-            <StatTile
-              label="Errors"
-              value={formatCount(data.totals.errors)}
-              hint={
-                finished
-                  ? `${((data.totals.errors / finished) * 100).toFixed(1)}% of finished`
-                  : undefined
+          {data.totals.generations === 0 ? (
+            <EmptyState
+              icon={ChartBarIcon}
+              title="No generations in this range"
+              description="PDFs you generate, from a form, a batch or your API keys, show up here. Try a longer date range."
+              action={
+                canCreate && (
+                  <Button nativeButton={false} render={<Link to="/documents/new" />}>
+                    New document
+                  </Button>
+                )
               }
             />
-            <StatTile label="Pages" value={formatCount(data.totals.pages)} />
-            <StatTile label="Output size" value={formatBytes(data.totals.bytes)} />
-          </div>
+          ) : (
+            <>
+              <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+                <StatTile label="Generations" value={formatCount(data.totals.generations)} />
+                <StatTile
+                  label="Errors"
+                  value={formatCount(data.totals.errors)}
+                  hint={
+                    finished
+                      ? `${((data.totals.errors / finished) * 100).toFixed(1)}% of finished`
+                      : undefined
+                  }
+                />
+                <StatTile label="Pages" value={formatCount(data.totals.pages)} />
+                <StatTile label="Output size" value={formatBytes(data.totals.bytes)} />
+              </div>
 
-          <ChartCard
-            title="My generations"
-            description="Click a column to open those entries."
-            fetching={fetching}
-            table={timeTable(byStatus, true)}
-            csv={{ filename: "my-generations", ...timeTable(byStatus, true) }}
+              <ChartCard
+                title="My generations"
+                description="Click a column to open those entries."
+                fetching={fetching}
+                table={timeTable(byStatus, true)}
+                csv={{ filename: "my-generations", ...timeTable(byStatus, true) }}
+              >
+                <TimeChart
+                  data={byStatus}
+                  kind="stacked"
+                  label="My generations over time by status"
+                  onSelect={(t) =>
+                    navigate({ to: "/generations", search: bucketDays(data.bucket, t) })
+                  }
+                />
+              </ChartCard>
+            </>
+          )}
+
+          <div
+            className={cn("grid gap-4", data.totals.generations > 0 && "xl:grid-cols-[3fr_2fr]")}
           >
-            <TimeChart
-              data={byStatus}
-              kind="stacked"
-              label="My generations over time by status"
-              onSelect={(t) => navigate({ to: "/generations", search: bucketDays(data.bucket, t) })}
-            />
-          </ChartCard>
-
-          <div className="grid gap-4 lg:grid-cols-2">
-            <ChartCard
-              title="Templates I generated"
-              fetching={fetching}
-              csv={{
-                filename: "my-templates-generated",
-                header: ["Template", "Generations", "Errors", "p95 total ms"],
-                rows: data.templates.map((t) => [t.name, t.generations, t.errors, t.p95TotalMs]),
-              }}
-            >
-              <SimpleTable
-                header={["Template", "Generations", "Errors", "p95 total"]}
-                rows={data.templates.map((t) => [
-                  <Link
-                    key="link"
-                    to="/generations"
-                    search={{ templateId: t.templateId, ...days }}
-                    className="hover:underline"
-                  >
-                    {t.name}
-                  </Link>,
-                  <InlineBar
-                    key="bar"
-                    value={t.generations}
-                    max={data.templates[0]?.generations ?? 0}
-                  />,
-                  t.errors,
-                  formatMs(t.p95TotalMs),
-                ])}
-              />
-            </ChartCard>
+            {data.totals.generations > 0 && (
+              <ChartCard
+                title="Templates I generated"
+                fetching={fetching}
+                csv={{
+                  filename: "my-templates-generated",
+                  header: ["Template", "Generations", "Errors", "p95 total ms"],
+                  rows: data.templates.map((t) => [t.name, t.generations, t.errors, t.p95TotalMs]),
+                }}
+              >
+                <SimpleTable
+                  header={["Template", "Generations", "Errors", "p95 total"]}
+                  rows={data.templates.map((t) => [
+                    <Link
+                      key="link"
+                      to="/generations"
+                      search={{ templateId: t.templateId, ...days }}
+                      className="hover:underline"
+                    >
+                      {t.name}
+                    </Link>,
+                    <InlineBar
+                      key="bar"
+                      value={t.generations}
+                      max={data.templates[0]?.generations ?? 0}
+                    />,
+                    t.errors,
+                    formatMs(t.p95TotalMs),
+                  ])}
+                />
+              </ChartCard>
+            )}
             <ChartCard
               title="My documents"
               description="Started in the range, and all time."
@@ -198,7 +243,11 @@ function Usage() {
           {data.templateUsage && (
             <ChartCard
               title="Templates I created"
-              description="Generated by anyone in the range."
+              description={
+                unusedTemplates > 0
+                  ? `Generated by anyone in the range. ${unusedTemplates} with no generations hidden; the CSV lists them.`
+                  : "Generated by anyone in the range."
+              }
               fetching={fetching}
               csv={{
                 filename: "my-template-usage",
@@ -208,8 +257,12 @@ function Usage() {
             >
               <SimpleTable
                 header={["Template", "Generations", "Errors", "Users"]}
-                empty="You haven't created any templates."
-                rows={data.templateUsage.map((t) => [
+                empty={
+                  data.templateUsage.length
+                    ? "Nobody generated your templates in this range."
+                    : "You haven't created any templates."
+                }
+                rows={usedTemplates.map((t) => [
                   <Link
                     key="link"
                     to="/templates/$id"
@@ -221,7 +274,7 @@ function Usage() {
                   <InlineBar
                     key="bar"
                     value={t.generations}
-                    max={data.templateUsage?.[0]?.generations ?? 0}
+                    max={usedTemplates[0]?.generations ?? 0}
                   />,
                   t.errors,
                   t.users,

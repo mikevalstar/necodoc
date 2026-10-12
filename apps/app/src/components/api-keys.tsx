@@ -143,7 +143,7 @@ export function ApiKeyTable({
         <TableHeader>
           <TableRow>
             <TableHead>Name</TableHead>
-            {showOwner && <TableHead>Owner</TableHead>}
+            {showOwner && <TableHead className="hidden xl:table-cell">Owner</TableHead>}
             <TableHead>Scopes</TableHead>
             <TableHead className="hidden lg:table-cell">Created</TableHead>
             <TableHead>Expires</TableHead>
@@ -166,20 +166,17 @@ export function ApiKeyTable({
                     {key.ipAllowlist.length} allowed address{key.ipAllowlist.length > 1 && "es"}
                   </div>
                 )}
+                {showOwner && (
+                  // The Owner column is hidden below xl so Status and the menu fit a tablet.
+                  <div className="text-xs text-ink-3 xl:hidden">
+                    <OwnerName apiKey={key} />
+                    {key.ownerIsService && " (service account)"}
+                  </div>
+                )}
               </TableCell>
               {showOwner && (
-                <TableCell>
-                  {key.ownerIsService ? (
-                    <Link
-                      to="/admin/service-accounts/$id"
-                      params={{ id: key.ownerId }}
-                      className="hover:underline"
-                    >
-                      {key.ownerName}
-                    </Link>
-                  ) : (
-                    key.ownerName
-                  )}
+                <TableCell className="hidden xl:table-cell">
+                  <OwnerName apiKey={key} />
                   <div className="text-xs text-ink-3">
                     {key.ownerIsService ? "Service account" : "Person"}
                     {key.ownerDisabled && " · disabled"}
@@ -320,6 +317,20 @@ export function ApiKeyTable({
       {action?.kind === "revoke" && <RevokeDialog apiKey={action.key} onClose={close} />}
       {secret && <KeySecretDialog secret={secret} onClose={() => setSecret(null)} />}
     </>
+  );
+}
+
+function OwnerName({ apiKey }: { apiKey: ApiKeyRow }) {
+  return apiKey.ownerIsService ? (
+    <Link
+      to="/admin/service-accounts/$id"
+      params={{ id: apiKey.ownerId }}
+      className="hover:underline"
+    >
+      {apiKey.ownerName}
+    </Link>
+  ) : (
+    apiKey.ownerName
   );
 }
 
