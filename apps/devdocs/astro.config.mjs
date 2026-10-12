@@ -19,6 +19,13 @@ export default defineConfig({
       title: "necodoc docs",
       logo: { src: "./src/assets/neko-mark.svg" },
       favicon: "/favicon.svg",
+      social: [{ icon: "external", label: "necodoc.com", href: "https://necodoc.com" }],
+      // Social cards need an absolute image URL, so only with the public URL.
+      head: site
+        ? [{ tag: "meta", attrs: { property: "og:image", content: new URL("/og.png", site).href } }]
+        : [],
+      // API reference titles and descriptions (src/route-data.ts).
+      routeMiddleware: "./src/route-data.ts",
       plugins: [
         starlightOpenAPI([
           {

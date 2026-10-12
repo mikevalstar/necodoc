@@ -33,7 +33,7 @@ The public API takes JSON batches:
 | `GET /api/v1/batches/:id/zip` | `batches:read` |
 | `GET /api/v1/batches/:id/packet` | `batches:read` |
 
-The body is the same `{ rows, filename }` as below; it answers `202` with the batch summary. A [webhook](/guides/webhooks/) on `batch.completed` fires once the last row finishes.
+The body is the same `{ rows, filename }` as the app's [JSON batch](#json). The v1 route answers `202` with the batch summary. A [webhook](/guides/webhooks/) on `batch.completed` fires once the last row finishes.
 
 ```sh
 curl -H "x-api-key: $NECODOC_API_KEY" -H 'Content-Type: application/json' \
@@ -76,9 +76,9 @@ curl -b cookies.txt -H 'Origin: http://localhost:8080' \
   http://localhost:8080/api/templates/$TEMPLATE_ID/versions/latest/batch/csv
 ```
 
-Both endpoints answer `201` with the batch summary, `404` if the version isn't found, `409` if the template is archived, and `422` for an empty CSV or one over 10,000 rows.
+The app's two endpoints answer `201` with the batch summary (v1 answers `202`), `404` if the version isn't found, `409` if the template is archived, and `422` for an empty CSV or one over 10,000 rows.
 
-In the app, a new batch (under Batches) takes the CSV upload and its column mapping.
+In the app, a new batch (under **Developers › Batches**) takes the CSV upload and its column mapping.
 
 ### Progress and cancel
 

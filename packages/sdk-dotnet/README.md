@@ -64,14 +64,17 @@ With `response: Json`, deserialize it with the SDK's serializer options:
 
 ```csharp
 var json = provider.GetRequiredService<JsonSerializerOptionsProvider>().Options;
-var generated = await provider.GetRequiredService<ITemplatesApi>()
-    .PostTemplatesByIdVersionsByVersionGenerateAsync(templateId, "latest",
+var templates = provider.GetRequiredService<ITemplatesApi>();
+var data = new Dictionary<string, object> { ["client_name"] = "Acme" };
+var generated = await templates.PostTemplatesByIdVersionsByVersionGenerateAsync(templateId, "latest",
         new GenerateRequest(data: data, response: RenderRequestResponse.Json));
 var result = JsonSerializer.Deserialize<GenerationResult>(generated.Ok()!, json)!;
 // result.GenerationId, result.DownloadUrl (signed, 1 hour), result.PdfPath
 ```
 
 ## Signing packages
+
+With `json`, `templates` and `data` from the previous example:
 
 ```csharp
 var signing = await templates.PostTemplatesByIdVersionsByVersionGenerateAsync(templateId, "latest",

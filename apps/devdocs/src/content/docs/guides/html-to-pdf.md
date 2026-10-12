@@ -34,6 +34,10 @@ A JSON body:
 | `async` | boolean | `false` | Answer `202` at once instead of waiting. |
 | `signers` | array | | Who signs the `data-sign` boxes. See [Signing packages](/guides/signing-packages/). |
 | `signing` | `true` \| object | | Answer with a signing package instead of the PDF. |
+| `output` | object | | `{ pdfa?, pdfua?, certify?, lang? }`. See [Archival, accessible and certified output](/guides/archival-and-certified-output/) and [Localization](/guides/localization/). |
+| `translations` | object | | Text for the `t` filter per language; `output.lang` picks one. See [Localization](/guides/localization/#translations). |
+| `partials` | object | | HTML for `{% render 'name' %}`, by name. Without it, snippets load from the library. See [Snippets](/guides/templates-and-liquid/#snippets). |
+| `subject` | string | | Who the document is about (an email, a customer number), for erasure. See [Personal data](/guides/personal-data/#tag-generations-with-a-subject). |
 
 Band heights and margins are millimetres.
 
@@ -103,7 +107,7 @@ curl -H "x-api-key: $NECODOC_API_KEY" https://necodoc.example.com/api/v1/generat
 curl -H "x-api-key: $NECODOC_API_KEY" -o out.pdf https://necodoc.example.com/api/v1/generations/$ID/pdf
 ```
 
-`GET /api/v1/generations/:id` returns the entry, including `status` (`queued`, `running`, `success`, `error`, `cancelled`), `error`, `pageCount`, `size` and `hasOutput`. The PDF is served inline, or as an attachment with `?download=1`, with ETags and range requests. `POST /api/v1/generations/:id/link` mints a signed link valid for an hour.
+`GET /api/v1/generations/:id` returns the entry, including `status` (`queued`, `running`, `success`, `error`, `cancelled`), `error`, `pageCount`, `size` and `hasOutput`. The PDF is served inline, or as an attachment with `?download=1`, with ETags and range requests. `POST /api/v1/generations/:id/link` mints a signed link, valid for an hour unless the body sets `expiresInSeconds` (60 seconds to 7 days).
 
 A key reads only its owner's generations. To be told when a render finishes instead of polling, use a [webhook](/guides/webhooks/).
 
@@ -117,7 +121,7 @@ A key reads only its owner's generations. To be told when a render finishes inst
 
 ## Templates instead of HTML
 
-To render a published template with validated data, `POST /api/v1/templates/:id/versions/:version/generate` with `{ data, response?, async? }` (scope `templates:generate`). `GET /api/v1/templates/:id/versions/:version/schema` returns the JSON Schema the data must match. See [Generating from a template](/guides/templates-and-liquid/#generating-from-a-template).
+To render a published template with validated data, `POST /api/v1/templates/:id/versions/:version/generate` with `{ data, filename?, output?, response?, async?, signing?, subject? }` (scope `templates:generate`). `GET /api/v1/templates/:id/versions/:version/schema` returns the JSON Schema the data must match. See [Generating from a template](/guides/templates-and-liquid/#generating-from-a-template).
 
 ## Combining PDFs
 

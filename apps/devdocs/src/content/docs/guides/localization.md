@@ -17,9 +17,10 @@ Every render has one **document language**, a BCP 47 tag in `output.lang` (defau
 A template's own language is set in the editor (Output tab). Override it per PDF:
 
 ```bash
-curl -X POST "$NECODOC/api/v1/templates/$TEMPLATE/versions/latest/generate" \
-  -H "Authorization: Bearer $KEY" -H "Content-Type: application/json" \
-  -d '{"data":{"total":1234.5,"due":"2026-11-30"},"output":{"lang":"fr-CA"}}'
+curl -H "x-api-key: $NECODOC_API_KEY" -H "Content-Type: application/json" \
+  -d '{"data":{"total":1234.5,"due":"2026-11-30"},"output":{"lang":"fr-CA"}}' \
+  -o facture.pdf \
+  https://necodoc.example.com/api/v1/templates/$TEMPLATE_ID/versions/latest/generate
 ```
 
 `POST /api/v1/render` takes the same `output.lang`, plus optional `translations` for its HTML.

@@ -56,7 +56,9 @@ With `response(JSON)`, read it with the SDK's Jackson mapper:
 
 ```java
 ObjectMapper json = JSON.getDefault().getMapper();
-File body = new TemplatesApi(client).postTemplatesByIdVersionsByVersionGenerate(templateId, "latest",
+TemplatesApi templates = new TemplatesApi(client);
+Map<String, Object> data = Map.of("client_name", "Acme");
+File body = templates.postTemplatesByIdVersionsByVersionGenerate(templateId, "latest",
     new GenerateRequest().data(data).response(RenderRequestResponse.JSON));
 GenerationResult result = json.readValue(body, GenerationResult.class);
 // result.getGenerationId(), result.getDownloadUrl() (signed, 1 hour), result.getPdfPath()
@@ -64,10 +66,12 @@ GenerationResult result = json.readValue(body, GenerationResult.class);
 
 ## Signing packages
 
+With `json`, `templates` and `data` from the previous example:
+
 ```java
-File body = templates.postTemplatesByIdVersionsByVersionGenerate(templateId, "latest",
+File signingBody = templates.postTemplatesByIdVersionsByVersionGenerate(templateId, "latest",
     new GenerateRequest().data(data).signing(new SigningOptions(true)));
-SigningPackage signing = json.readValue(body, SigningPackage.class);
+SigningPackage signing = json.readValue(signingBody, SigningPackage.class);
 // signing.getBoxes().get(i).getTopLeft(), signing.getFormats().getDocusign() (envelope JSON)
 ```
 

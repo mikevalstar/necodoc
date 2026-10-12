@@ -15,7 +15,7 @@ Every response carries `X-Request-Id`. Send your own (letters, digits, `.`, `:`,
 
 ## Personal keys and service accounts
 
-- **Personal keys** belong to you and act as you. Create them under **Settings › API keys**. Any user with a role can.
+- **Personal keys** belong to you and act as you. Create them under **Developers › API keys**. Any user with a role can.
 - **Service accounts** are identities for systems: a billing integration, a nightly job. They have a name, a description, an owner contact and roles, and can't sign in. Admins create them under **Admin › Service accounts** and manage their keys there. Keys on a service account keep working when the person who made them leaves.
 
 Disabling a service account, or banning a user, stops all their keys at once. Admins see every key under **Admin › API keys**, with usage and a link to the generations each one made.
@@ -29,7 +29,7 @@ A key has:
 - an optional **expiry**, in days
 - an optional list of **templates** it may use; empty means every template its owner can see
 - an optional **IP allowlist** of addresses and CIDR ranges (`203.0.113.7`, `198.51.100.0/24`, `2001:db8::/32`); empty means any address
-- a **rate limit** in requests per minute (default 120)
+- a **rate limit** in requests per hour (default 7200)
 
 The secret starts with `nd_` and is shown once. Store it in your secret manager; a lost key is replaced, not recovered. Lists show its first characters, when it was created and last used (and from where), its total requests, and a warning when it expires within 14 days.
 
@@ -44,7 +44,7 @@ Scopes and the other settings are fixed when the key is made. To change them, ro
 | `templates:generate` | `POST /templates/:id/versions/:version/generate` |
 | `batches:write` | `POST /templates/:id/versions/:version/batch` |
 | `batches:read` | `GET /batches/:id`, `.../zip`, `.../packet` |
-| `generations:read` | `GET /generations/:id`, `.../pdf`, `POST .../link` |
+| `generations:read` | `GET /generations/:id`, `.../pdf`, `.../signing-package`, `POST .../link` |
 | `combine:write` | `POST /combine` |
 
 Every scope needs its owner to hold a role with `document: view` (all roles do). A key is checked against its owner's roles on every call, so removing someone's roles stops their keys too.
@@ -59,7 +59,7 @@ A key reads only its owner's own generations and batches.
 
 ## Rate limits
 
-Each key allows its number of requests per minute. Past that, calls answer `429` with `Retry-After` (seconds). The count resets once a full minute has passed since the key's last allowed request, so a client that keeps retrying inside the window stays blocked; wait out `Retry-After`.
+Each key allows its number of requests per hour, counted over the last 60 minutes and shared by every API replica. Past that, calls answer `429` with `Retry-After`: the seconds until enough of the counted requests age out. Calls refused while blocked don't count, so retrying doesn't extend the block, but it doesn't help either. Wait out `Retry-After`.
 
 ## Errors
 
@@ -90,10 +90,12 @@ Invalid input adds `fieldErrors` (field path → messages). A failed render adds
 | 422 | `render_failed` | The render failed (Liquid error, timeout); see `generationId`. |
 | 429 | `rate_limited` | Over the key's rate limit; see `Retry-After`. |
 
+A body over 20 MB answers `413` and malformed JSON answers `400`, in the same `{ error, code }` shape.
+
 ## Behind a proxy
 
-IP allowlists compare the address the API sees. Behind a reverse proxy or load balancer, set `TRUST_PROXY=true` so it reads the client from `X-Forwarded-For` (see [Configuration](/self-hosting/configuration/)). Without it every call appears to come from the proxy.
+IP allowlists compare the address the API sees. Behind a reverse proxy or load balancer, set `TRUST_PROXY` to the number of proxies in front of the API so it reads the client from `X-Forwarded-For` (see [Configuration](/self-hosting/configuration/#proxies-and-load-balancers)). Without it every call appears to come from the proxy.
 
 ## The OpenAPI document
 
-Each deployment serves its OpenAPI 3.1 document at `/api/v1/openapi.json`, no key needed. The [API reference](/reference/api/) here, the in-app **API** page and the [SDKs](/reference/sdks/) are generated from it.
+Each deployment serves its OpenAPI 3.1 document at `/api/v1/openapi.json`, no key needed. The [API reference](/reference/api/) here, the app's **Developers › API reference** page and the [SDKs](/reference/sdks/) are generated from it.

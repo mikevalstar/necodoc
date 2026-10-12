@@ -53,7 +53,7 @@ Templates, bands and HTML renders use [Liquid](https://liquidjs.com/) (LiquidJS)
 - Output is **HTML-escaped by default**. `{{ value | raw }}` outputs it unescaped; use it only for trusted HTML.
 - **Unknown filters are errors**, not silently ignored.
 - Only the data's own properties are readable.
-- `include` and `render` can't load partials.
+- `{% render %}` and `{% include %}` load [snippets](#snippets), nothing from disk.
 
 The standard LiquidJS tags and filters work (`if`, `unless`, `for`, `assign`, `upcase`, `newline_to_br`, ...), except that `date` is replaced. necodoc adds the filters below. Each one returns an empty string for a missing, `null` or empty value.
 
@@ -119,6 +119,16 @@ Turns an asset id into the URL the renderer serves it from. See [Assets](/guides
 ```liquid
 <img src="{{ 'c0ffee00-1234-4abc-8def-000000000000' | asset_url }}">
 ```
+
+### Snippets
+
+A snippet is a named block (a clause, an address, a signature block) kept in the snippet library (**Templates › Snippets**) and included by key:
+
+```liquid
+{% render 'confidentiality_clause' %}
+```
+
+The visual editor's snippet block compiles to `{% render '<snippet id>' %}`. A snippet sees the document's top-level fields and can include other snippets; cycles and missing snippets are errors. Drafts, previews and `/api/v1/render` use each snippet's current content. Publishing copies the snippets a template uses into the version, so later edits don't change it. `/api/v1/render` also takes a `partials` map (`{ "name": "<html>" }`) that replaces library lookups for that request.
 
 ### Data in compiled templates
 

@@ -27,5 +27,6 @@ SDKs are generated from the `/api/v1` OpenAPI document, so they match the [API r
   client from it (for example with [openapi-generator](https://openapi-generator.tech)) if you
   need an exact match or another language.
 
-Each SDK has a smoke example (`examples/` in its package) that renders HTML, generates from a
-template as JSON and as a signing package against a running deployment.
+The Python, .NET and Java SDKs have a smoke example (`examples/` in each package) that renders
+HTML, generates from a template as JSON and as a signing package against a running deployment.
+The TypeScript SDK has none; its page shows the same calls.

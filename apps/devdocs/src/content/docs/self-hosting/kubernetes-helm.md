@@ -57,12 +57,12 @@ You can put `DATABASE_URL` and `BETTER_AUTH_SECRET` under `secrets:` instead of 
 
 ## Ingress
 
-Your controller must allow request bodies of 25 MB (uploads are capped at 20 MB) and upstream reads of at least 60 seconds (synchronous renders wait up to `RENDER_WAIT_MS`). Set those through `ingress.annotations` in your controller's syntax.
+Your controller must allow request bodies of 25 MB (uploads are capped at 20 MB) and upstream reads of `RENDER_WAIT_MS` plus a margin, 120 seconds with the default (synchronous renders wait up to `RENDER_WAIT_MS`). Set those through `ingress.annotations` in your controller's syntax.
 
 ## Storage
 
 - `disk`: the chart creates a PVC (or uses `storage.disk.existingClaim`) and mounts it at `/data/files` on every API and worker pod. With more than one pod it must be `ReadWriteMany` (NFS, EFS, Azure Files, CephFS). It has `helm.sh/resource-policy: keep`, so uninstalling keeps your PDFs.
-- `s3` and `azure`: no volume. Put keys in the Secret, or leave them out and use workload identity: annotate the chart's ServiceAccount through `serviceAccount.annotations` (IRSA's `eks.amazonaws.com/role-arn`, or `azure.workload.identity/client-id` plus the pod label your setup needs).
+- `s3` and `azure`: no volume. Put keys in the Secret, or leave them out and use workload identity: annotate the chart's ServiceAccount through `serviceAccount.annotations` (IRSA's `eks.amazonaws.com/role-arn`, or `azure.workload.identity/client-id`). Azure workload identity also needs the `azure.workload.identity/use: "true"` pod label, which the chart has no value for: add it with a Helm post-renderer, or use a connection string or account key instead.
 
 Details and examples: [Storage](/self-hosting/storage/).
 

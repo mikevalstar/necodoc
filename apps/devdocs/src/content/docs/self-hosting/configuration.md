@@ -21,7 +21,7 @@ The API and worker read their configuration from the environment and validate it
 | `PREVIEW_CONCURRENCY` | `2` | Live previews one API process renders at once (1–32). Previews skip the queue. |
 | `APP_VERSION` | `dev` | Reported in worker heartbeats, to spot mixed versions mid-deploy. The image sets it from the `APP_VERSION` build arg; the chart sets it from the image tag. |
 | `DOWNLOAD_SIGNING_SECRET` | `BETTER_AUTH_SECRET` | At least 32 characters. Signs download links. Changing it voids live links. |
-| `TRUST_PROXY` | `false` | `true` behind a reverse proxy: the client address is the last `X-Forwarded-For` hop. Used by API key IP allowlists, share-link rate limits and trusted-header SSO. Leave it off when clients can reach the API directly, or they can spoof their address. |
+| `TRUST_PROXY` | `false` | The number of reverse proxies in front of the API; `true` means 1. The client address is the Nth `X-Forwarded-For` hop from the end. The app container's nginx counts as one, so a TLS proxy in front of it makes 2. Used by API key IP allowlists, share-link rate limits and trusted-header SSO. Too high a count, or any value when clients can reach the API directly, lets clients spoof their address. |
 | `WEBHOOK_ALLOW_LOCALHOST` | `false` | Development only. `true` lets [webhooks](/guides/webhooks/) use `http://` and loopback URLs, for a receiver on the same machine. Never set it in production. |
 | `STORAGE_REDIRECT` | `off` | `presigned` answers downloads with a redirect to a short-lived S3 presigned URL or Azure SAS instead of streaming through the API. Browsers must reach the bucket. |
 
@@ -89,7 +89,7 @@ AI features ([AI template assistant](/guides/ai-template-assistant/), AI field d
 | --- | --- | --- |
 | `STORAGE_DRIVER` | `disk` | `disk`, `s3` or `azure`. See [Storage](/self-hosting/storage/). |
 | `STORAGE_DIR` | `/data/files` in the image | `disk`: where outputs are written. Relative paths resolve from the working directory. |
-| `STORAGE_PREFIX` | none | `s3`, `azure`: key prefix, e.g. `necodoc/outputs`. |
+| `STORAGE_PREFIX` | none | `s3`, `azure`: key prefix, e.g. `necodoc/outputs`. The `disk` driver ignores it. |
 | `S3_BUCKET` | required for `s3` | Bucket name. |
 | `S3_REGION` | `us-east-1` | Region. Cloudflare R2 uses `auto`. |
 | `S3_ENDPOINT` | none | For MinIO, R2 and other S3-compatible stores. Leave unset for AWS. |
@@ -121,5 +121,6 @@ Anything in front of the app or API must:
 
 - Serve the app and `/api` on the same origin, the one in `BETTER_AUTH_URL`.
 - Allow request bodies of 25 MB. Uploads and request bodies are capped at 20 MB, plus multipart overhead.
-- Allow upstream reads of at least `RENDER_WAIT_MS` plus a margin (the app image uses 120 seconds).
+- Allow upstream reads of `RENDER_WAIT_MS` plus a margin: 120 seconds with the default, as the app image's nginx uses.
 - Pass the `Origin` header through unchanged. Auth requests from another origin are rejected.
+- Append to `X-Forwarded-For`, with `TRUST_PROXY` set to the number of proxies in front of the API, counting the app container's nginx.

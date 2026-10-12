@@ -1,6 +1,6 @@
 ---
 title: Introduction
-description: What necodoc is and what it does.
+description: necodoc is a self-hosted service that turns guided-form answers, HTML or JSON data into PDFs, with a versioned REST API, batches and webhooks.
 sidebar:
   order: 1
 ---
@@ -15,7 +15,7 @@ It does three things:
 
 Every render is recorded in the [generation log](/guides/generation-log/) with its input, timings and output.
 
-Other systems call the public API, `/api/v1`, with scoped [API keys](/guides/api-keys/) owned by a person or a service account, and hear back through signed [webhooks](/guides/webhooks/). The [API reference](/reference/api/) and the [TypeScript SDK](/reference/sdks/typescript/) are generated from its OpenAPI document.
+Other systems call the public API, `/api/v1`, with scoped [API keys](/guides/api-keys/) owned by a person or a service account, and hear back through signed [webhooks](/guides/webhooks/). The [API reference](/reference/api/) and the [SDKs](/reference/sdks/) (TypeScript, Python, .NET, Java) are generated from its OpenAPI document.
 
 ## Self-hosted
 

@@ -5,9 +5,17 @@ API's OpenAPI document; requests go through [openapi-fetch](https://openapi-ts.d
 
 ## Install
 
-The package lives in the necodoc repository (`packages/sdk-ts`) and isn't published to npm yet.
-Inside the workspace, depend on `@necodoc/sdk`; elsewhere, copy the package or install it from a
-git checkout.
+The package lives in the necodoc repository (`packages/sdk-ts`) and isn't on npm. Install it from a
+checkout as a local path:
+
+```sh
+npm install ../necodoc/packages/sdk-ts   # or: pnpm add ../necodoc/packages/sdk-ts
+```
+
+It ships TypeScript source (`src/index.ts`), not compiled JavaScript, so your build has to compile
+it: a bundler such as Vite, esbuild or webpack with a TS loader, or a runtime such as Bun or tsx.
+Node's built-in type stripping skips `node_modules` and won't load it. Inside the necodoc workspace,
+depend on `"@necodoc/sdk": "workspace:*"`.
 
 ## Create a client
 
@@ -56,7 +64,10 @@ Invalid data answers 422 with `error.fieldErrors`, one entry per field.
 ```ts
 const { data: pkg } = await necodoc.POST("/templates/{id}/versions/{version}/generate", {
   params: { path: { id: templateId, version: "latest" } },
-  body: { data, signing: { formats: ["docusign"], placement: "position" } },
+  body: {
+    data: { client_name: "Acme" },
+    signing: { formats: ["docusign"], placement: "position" },
+  },
 });
 if (!pkg || !("boxes" in pkg)) throw new Error("Expected a signing package");
 // pkg.boxes[i].topLeft (points from the page's top-left), pkg.formats.docusign (envelope JSON)

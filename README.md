@@ -4,7 +4,7 @@ pnpm monorepo. See [AGENTS.md](AGENTS.md) for the architecture and [docs/](docs/
 
 ## Getting started
 
-Postgres 18 via Homebrew:
+Needs Node 24+ and pnpm. Postgres 18 via Homebrew:
 
 ```sh
 brew install postgresql@18 && brew services start postgresql@18
@@ -15,9 +15,10 @@ Then:
 
 ```sh
 pnpm install
+pnpm --filter @necodoc/api chromium:install   # Chromium for the renderer
 cp apps/api/.env.example apps/api/.env   # then set BETTER_AUTH_SECRET
 pnpm db:migrate
-pnpm dev                                 # web :4321, app :5173, api :3000
+pnpm dev                                 # web :4321, devdocs :4322, app :5173, api :3000
 ```
 
 ## Scripts

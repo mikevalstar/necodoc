@@ -28,7 +28,7 @@ Send it on `POST /api/v1/render` and `POST /api/v1/combine`, or on `POST /api/v1
 | `certify` | `false` | Certify with the server's certificate |
 | `lang` | `"en"` | The document language, a BCP 47 tag |
 
-The generation (`GET /api/v1/generations/{id}`) reports what was applied in `outputProfile`, e.g. `{ "pdfa": "2u", "pdfua": true, "certified": { "subject": "Acme Surety", "timestamped": true } }`. When something couldn't be applied, the PDF is still made and `warnings` says why.
+The generation (`GET /api/v1/generations/{id}`) reports what was applied in `outputProfile`, e.g. `{ "pdfa": "2u", "pdfua": true, "certified": { "subject": "Acme Surety", "timestamped": true } }`. When PDF/A or PDF/UA couldn't be applied, the PDF is still made and `warnings` says why. Certification is different: without a certificate on the worker, the generation fails.
 
 ## What to know
 

@@ -13,7 +13,7 @@ generated: { by: okq/0.9.0, at: 2026-10-12T06:32:35Z }
 
 Accepted. Behaviour: [Document localization](../features/document-localization.md).
 Builds on [ADR 0015](0015-liquidjs-for-templating.md) (Liquid filters),
-[ADR 0016](0016-tiptap-json-compiled-to-liquid-for-visual-templates.md)
+[ADR 0016](0016-tiptap-for-the-document-editor.md)
 (visual compile) and [ADR 0037](0037-pdf-a-2-and-pdf-ua-1-by-post-processing-chromium-output-in-pdf-lib.md)
 (the PDF `/Lang` already comes from `output.lang`).
 

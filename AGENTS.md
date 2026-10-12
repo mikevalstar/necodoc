@@ -67,7 +67,7 @@ Rules:
 
 ## Commands
 
-- `pnpm dev`: web :4321, app :5173 (proxies `/api`), api :3000
+- `pnpm dev`: web :4321, devdocs :4322, app :5173 (proxies `/api`), api :3000
 - `pnpm check` / `pnpm fix`: Biome lint + format, no writes / apply
 - `pnpm typecheck`, `pnpm test` (Vitest), `pnpm build`
 - `pnpm docs:check`: validate the `docs/` bundle (needs `okq` on PATH)

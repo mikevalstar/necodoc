@@ -15,7 +15,7 @@ A webhook belongs to an account: you, or a service account. It fires for:
 - **the whole account**: every generation made with any of its keys
 - **a template**: every generation of that template, from any source, the app included (needs the editor role)
 
-A key or template webhook can also be narrowed to the other. Create your own under **Settings › API keys**; admins create service accounts' under **Admin › Service accounts**. Each webhook's page shows its delivery log and has a **Send test** button.
+A key or template webhook can also be narrowed to the other. Create your own under **Developers › API keys**; admins create service accounts' under **Admin › Service accounts**. Each webhook row's menu has **Deliveries** (the delivery log) and **Send test**.
 
 ## Events
 
@@ -133,7 +133,7 @@ Answer with any `2xx` quickly and do slow work afterwards; the request times out
 ## Delivery and retries
 
 - Deliveries run on the job queue, so they survive restarts.
-- A non-2xx answer, a timeout or a connection error is retried 5 times, with exponential backoff from about half a minute up to ten. A delivery gives up 10 to 20 minutes after the first attempt.
+- A non-2xx answer, a timeout or a connection error is retried 5 times with exponential backoff: the first retry comes 10 to 20 seconds later, the last 160 to 320 seconds after the one before. A delivery gives up 5 to 10 minutes after the first attempt.
 - Redirects aren't followed; a `3xx` counts as a failure.
 - The delivery log shows each delivery's status (pending, success, failed) and every attempt with its response code, time and error.
 - Order isn't guaranteed, and a delivery can arrive twice if a worker dies mid-send. Deduplicate on the delivery id.

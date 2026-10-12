@@ -9,7 +9,7 @@ Generated PDFs go to one storage driver per install, set by `STORAGE_DRIVER`. Ev
 
 Readiness (`/api/health/ready`) checks storage: a probe write, read and delete on disk, a bucket or container check otherwise. A node with a missing mount or bad credentials goes unready.
 
-Object keys are the file's id, sharded two levels deep (`ab/cd/abcd…`), under `STORAGE_PREFIX` if set. Deleting a generation, or running retention, deletes its object.
+Object keys are the file's id, sharded two levels deep (`ab/cd/abcd…`), under `STORAGE_PREFIX` if set (S3 and Azure only; disk ignores it). Deleting a generation, or running retention, deletes its object.
 
 ## Disk
 

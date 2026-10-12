@@ -11,8 +11,9 @@ The template editor has a chat panel where you describe a document ("a surety bo
 
 - Fields and sections, including show-if conditions and repeating groups.
 - Body content, a selection, or the header and footer, using the template's fields.
-- Page size, margins and theme; sample data.
-- In code mode, the HTML/Liquid body, bands and template CSS.
+- The template's name and description.
+- Page size, margins and theme; sample data; template CSS.
+- In code mode, the HTML/Liquid body and bands.
 - A translation of the template into another language (see [Localization](/guides/localization/)).
 
 It can also explain the template or a Liquid expression without changing anything.

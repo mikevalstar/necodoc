@@ -38,6 +38,8 @@ Admin > System shows workers online (host, process, version, concurrency, runnin
 
 Workers report `APP_VERSION`, so a rolling deploy shows old and new versions side by side until it finishes.
 
+**Admin › Queue** pauses and resumes a queue (`render`, `webhook`, `detect-fields`, `retention`; `POST /api/system/queue/pause`). Every worker stops fetching its jobs, running ones finish, and new jobs wait until it resumes. The pause survives restarts; `necodoc_queue_paused` reports it ([Observability](/self-hosting/observability/#metrics)).
+
 ## Shutdown
 
 On `SIGTERM` a process stops taking jobs, lets running renders finish for up to 15 seconds, and leaves the worker list. Give pods a termination grace period above that (the chart uses 60 seconds for workers). A render cut off anyway is retried elsewhere.

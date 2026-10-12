@@ -11,7 +11,7 @@ necodoc keeps state in two places, plus its secrets. Back up all three.
 | --- | --- | --- |
 | Postgres | your database | Users and sessions, templates and versions, themes, assets and uploaded PDFs, the generation log (inputs, metadata, timings), settings, and the render queue (`pgboss` schema). |
 | Output storage | disk volume, bucket or container | Generated PDFs, keyed by file id. |
-| Secrets | your secret store | `BETTER_AUTH_SECRET`, `DOWNLOAD_SIGNING_SECRET`, storage credentials. |
+| Secrets | your secret store | `BETTER_AUTH_SECRET`, `DOWNLOAD_SIGNING_SECRET`, storage credentials, the `CERTIFY_*` certificate and key, SSO client secrets, `ANTHROPIC_KEY`. |
 
 Without Postgres, stored PDFs are unreadable blobs with no owner. Without storage, the log is intact but those PDFs can't be downloaded. Postgres matters most.
 
@@ -37,14 +37,14 @@ Back up storage *after* Postgres. A PDF written between the two backups just isn
 
 ## Restore
 
-1. Stop the API and workers (scale to 0), so nothing renders into a half-restored install.
+1. Stop the API and workers (scale to 0), so nothing renders into a half-restored install. On Helm, disable the worker HPA or KEDA scaler first, or it scales them back up.
 2. Restore Postgres:
    ```sh
    pg_restore --clean --if-exists --no-owner --dbname="$DATABASE_URL" necodoc-2026-10-11.dump
    ```
 3. Restore storage to the same bucket, container or path, keeping the key layout (`prefix/ab/cd/<file id>`). If the bucket's name or endpoint changes, update the storage env.
 4. Restore the same `BETTER_AUTH_SECRET`. A different one signs everyone out; a different download signing secret voids outstanding download links.
-5. Run `migrate` (a no-op for a same-version restore), then start the API and workers. Check `/api/health/ready`.
+5. Run migrations (a no-op for a same-version restore): `docker compose run --rm migrate` on Compose, or the chart's migration hook Job on Helm (`helm upgrade` runs it). Then start the API and workers. Check `/api/health/ready`.
 
 Jobs that were queued or running at backup time come back with the database. Ones that were running are retried when the queue notices their worker is gone.
 

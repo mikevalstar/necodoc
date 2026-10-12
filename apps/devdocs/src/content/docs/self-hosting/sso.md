@@ -5,7 +5,7 @@ sidebar:
   order: 10
 ---
 
-necodoc signs people in with email and password, through your identity provider (IdP), or both. Every IdP below works over OIDC or SAML 2.0. A generic OIDC or SAML provider works the same way for any other IdP (Okta, Keycloak, Ping, ADFS…). Design notes: [ADR 0031](https://github.com/mikevalstar/necodoc/blob/main/docs/adrs/0031-single-sign-on-with-the-better-auth-sso-plugin-configured-from-env.md).
+necodoc signs people in with email and password, through your identity provider (IdP) over OIDC or SAML 2.0, or both. IdPs not covered below (Okta, Keycloak, Ping, ADFS…) use the same settings. Design notes: [ADR 0031](https://github.com/mikevalstar/necodoc/blob/main/docs/adrs/0031-single-sign-on-with-the-better-auth-sso-plugin-configured-from-env.md).
 
 ## How it works
 
@@ -31,7 +31,7 @@ With `BETTER_AUTH_URL=https://necodoc.example.com` and a provider id `<id>`:
 | SAML SP metadata | same as the entity id: open it to download the XML |
 | Sign-on / login URL | `https://necodoc.example.com/login` |
 
-Sign-in starts from necodoc (SP-initiated). IdP-initiated sign-in, such as a tile on an IdP portal that posts straight to the ACS, is refused. Point portal tiles at the login URL.
+Sign-in starts from necodoc. A portal tile that posts straight to the ACS (IdP-initiated) is refused, so point tiles at the login URL.
 
 ## Settings
 
@@ -283,10 +283,10 @@ SSO_SITEMINDER_OIDC_ROLE_MAP='{"cn=necodoc-admins,ou=groups,dc=example,dc=com":[
 In this mode necodoc believes a request header that says who the user is. Anyone who can send a request to the API **from one of the trusted proxy addresses** can sign in as anyone, admins included. Only use it when a SiteMinder web agent (or a similar proxy) is the only way to reach necodoc. Prefer SAML or OIDC.
 :::
 
-For a SiteMinder web agent (or another authenticating reverse proxy) in front of necodoc, which authenticates users and passes their identity in headers such as `SM_USER`:
+The proxy authenticates users and passes their identity in headers such as `SM_USER`.
 
 - It's off unless a provider has `TYPE=header`. Only one is allowed. The API logs a warning at every start while it's on.
-- The header is believed only when the request's peer address is in `TRUSTED_PROXIES`. That's the TCP peer, or with `TRUST_PROXY=true` the last `X-Forwarded-For` hop, as for API key allowlists. Everything else is refused.
+- The header is believed only when the request's peer address is in `TRUSTED_PROXIES`. That's the TCP peer, or with `TRUST_PROXY` set the client address it picks from `X-Forwarded-For`, as for API key allowlists. Everything else is refused.
 - "Sign in with &lt;label&gt;" opens `/api/sso/header/<id>`, which reads the headers, provisions and maps roles like any other provider, and starts a session.
 
 | Variable | Default | Description |
@@ -317,7 +317,7 @@ Checklist:
 
 - The proxy must **remove** any of these headers a client sends before adding its own. SiteMinder web agents do this for `SM_` headers; check any other proxy.
 - Clients must not reach the API (or the `necodoc-app` container) except through the proxy: firewall it, or bind it to a private network.
-- With the `necodoc-app` image between the proxy and the API, the API sees nginx as the peer. Set `TRUST_PROXY=true` on the API and list the web agent's address. nginx drops headers with underscores (`SM_USER`) unless you add `underscores_in_headers on;`; header names with dashes need nothing.
+- With the `necodoc-app` image between the proxy and the API, the API sees nginx as the peer. Set `TRUST_PROXY=1` on the API and list the web agent's address. nginx drops headers with underscores (`SM_USER`) unless you add `underscores_in_headers on;`; header names with dashes need nothing.
 - A necodoc session lasts until it expires or the user signs out, even after the proxy session ends.
 
 ## Signing out
@@ -341,10 +341,8 @@ Failed sign-ins come back to the login page with a message, and the API logs a l
 
 ## Limitations
 
-- No single logout (SAML SLO, OIDC end-session).
-- No IdP-initiated sign-in (SAML unsolicited responses, OIDC third-party initiated login).
+- No single logout ([Signing out](#signing-out)) and no IdP-initiated sign-in.
 - No signed AuthnRequests and no encrypted assertions.
 - SAML IdP metadata URLs aren't fetched. Paste the certificate or metadata XML, and update it when the IdP rotates its certificate.
 - Providers are configured by env only; changing one needs a restart.
 - No SCIM: someone removed at the IdP keeps their necodoc account (but can't sign in by SSO). Ban them in Admin › Users to end their sessions.
-- SSO sign-ins aren't in an audit log yet.

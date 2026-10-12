@@ -11,7 +11,7 @@ sidebar:
 - `migrate`: applies database migrations, then exits. `api` and `worker` wait for it to succeed.
 - `api` (`ROLE=api`) and `worker` (`ROLE=worker`), sharing the `files` volume for disk storage.
 - `app`: the web app on `APP_PORT` (default 8080), proxying `/api` to `api`.
-- Profiles: `minio` (S3-compatible storage) and `site` (the marketing site).
+- Profiles: `minio` (S3-compatible storage), `monitoring` (Prometheus and Jaeger, see [Observability](/self-hosting/observability/)) and `site` (the marketing site).
 
 ## Start
 
@@ -23,6 +23,8 @@ cp .env.example .env
 # and BETTER_AUTH_URL to the URL people will open.
 docker compose up -d --build
 ```
+
+`BETTER_AUTH_URL` must match the URL in the browser: if you change `APP_PORT`, change it too, or sign-in fails.
 
 `--build` builds the images from the checkout. To use images from a registry instead, set `NECODOC_API_IMAGE` and `NECODOC_APP_IMAGE` in `.env` and drop `--build`.
 
@@ -53,7 +55,7 @@ A `minio-bucket` one-shot creates the bucket. Outputs rendered before the switch
 
 ## TLS
 
-The `app` container speaks plain HTTP. Put your TLS proxy (Caddy, Traefik, a load balancer) in front of it, forward everything to `app:8080`, and set `BETTER_AUTH_URL` to the `https://` URL. Allow request bodies of 25 MB and reads of at least 60 seconds on that proxy (see [Configuration](/self-hosting/configuration/#proxies-and-load-balancers)).
+The `app` container speaks plain HTTP. Put your TLS proxy (Caddy, Traefik, a load balancer) in front of it, forward everything to `app:8080`, and set `BETTER_AUTH_URL` to the `https://` URL. Allow request bodies of 25 MB and upstream reads of `RENDER_WAIT_MS` plus a margin, 120 seconds with the default (see [Configuration](/self-hosting/configuration/#proxies-and-load-balancers)). Set `TRUST_PROXY=2`: your proxy and the `app` container's nginx are both in front of the API.
 
 ## Upgrade
 

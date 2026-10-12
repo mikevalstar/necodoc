@@ -29,10 +29,10 @@ writeFileSync(specPath, `${JSON.stringify(spec, null, 2)}\n`);
 
 // Each SDK's README becomes its page; the READMEs are the single source.
 const sdkPages = [
-  { dir: "sdk-ts", slug: "typescript", title: "TypeScript SDK", order: 1 },
-  { dir: "sdk-python", slug: "python", title: "Python SDK", order: 2 },
-  { dir: "sdk-dotnet", slug: "dotnet", title: ".NET SDK", order: 3 },
-  { dir: "sdk-java", slug: "java", title: "Java SDK", order: 4 },
+  { dir: "sdk-ts", slug: "typescript", title: "TypeScript SDK", language: "TypeScript", order: 1 },
+  { dir: "sdk-python", slug: "python", title: "Python SDK", language: "Python", order: 2 },
+  { dir: "sdk-dotnet", slug: "dotnet", title: ".NET SDK", language: ".NET (C#)", order: 3 },
+  { dir: "sdk-java", slug: "java", title: "Java SDK", language: "Java", order: 4 },
 ];
 for (const sdk of sdkPages) {
   const readme = readFileSync(join(root, `../../packages/${sdk.dir}/README.md`), "utf8")
@@ -42,7 +42,7 @@ for (const sdk of sdkPages) {
     join(root, `src/content/docs/reference/sdks/${sdk.slug}.md`),
     `---
 title: ${sdk.title}
-description: A typed client for /api/v1, generated from the OpenAPI document.
+description: Install and use the necodoc ${sdk.language} SDK, a typed client for the /api/v1 REST API generated from its OpenAPI document.
 sidebar:
   order: ${sdk.order}
 ---

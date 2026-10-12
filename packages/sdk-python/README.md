@@ -62,10 +62,12 @@ result = GenerationResult.from_json(body)
 ## Signing packages
 
 ```python
-from necodoc.models import SigningOptions, SigningPackage
+from necodoc.models import GenerateRequest, SigningOptions, SigningPackage
 
-body = templates.post_templates_by_id_versions_by_version_generate(
-    template_id, "latest", GenerateRequest(data=data, signing=SigningOptions(True))
+body = necodoc.TemplatesApi(client).post_templates_by_id_versions_by_version_generate(
+    template_id,
+    "latest",
+    GenerateRequest(data={"client_name": "Acme"}, signing=SigningOptions(True)),
 )
 package = SigningPackage.from_json(body)
 # package.boxes[i].top_left, package.formats.docusign (envelope JSON)

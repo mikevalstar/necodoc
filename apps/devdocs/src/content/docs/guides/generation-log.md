@@ -10,7 +10,7 @@ Every render except a live preview is a **generation**: from the app, the API, s
 ## What's recorded
 
 - Source: `app`, `api`, `share_link`, `combine`, `rerun` or `batch`.
-- User (and API key, once `/api/v1` exists), template and version, batch and row.
+- User and API key, template and version, batch and row.
 - Status: `queued`, `running`, `success`, `error` or `cancelled`; the error message and warnings.
 - Queued, started and finished times; the worker that ran it; the attempt count; the request id.
 - Page count and size.
@@ -47,7 +47,7 @@ Internal API:
 
 ### Signed download links
 
-`POST /api/generations/:id/link` mints a link that downloads the PDF without a session:
+`POST /api/generations/:id/link` (or `POST /api/v1/generations/:id/link` with a key) mints a link that downloads the PDF without a session:
 
 ```json
 { "expiresInSeconds": 86400 }

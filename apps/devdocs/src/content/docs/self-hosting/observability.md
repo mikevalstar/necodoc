@@ -20,7 +20,7 @@ Every line has `level` (a name, not a number), `time` (ISO 8601), `msg`, `pid`, 
 
 - **Each request** (`info`; `error` for 5xx; health checks at `debug`): `requestId`, `method`, `path`, `route` (the pattern, e.g. `/api/templates/:id`), `status`, `durationMs`, `userId` or `apiKeyId`, `ip`. Share-link and signed-download tokens are logged as the route pattern, not the token.
 - **Anything logged during a request** carries its `requestId`, the same value as the `X-Request-Id` response header (send your own `X-Request-Id` and it's kept). With tracing on, lines also carry `trace_id` and `span_id`.
-- **Each finished render attempt** (`info`, or `warn` when it failed): `generationId`, `mode` (`html`, `overlay`, `combine`), `status`, `attempt`, `workerId`, `pageCount`, `size`, `queueWaitMs`, `durationMs`, `totalMs`, and `timings` (`liquidMs`, `chromiumMs`, `bandsMs`, `stampMs`), or `error`. Previews log at `debug`.
+- **Each finished render attempt** (`info`, or `warn` when it failed): `generationId`, `mode` (`html`, `overlay`, `combine`), `status`, `attempt`, `workerId`, `pageCount`, `size`, `queueWaitMs`, `durationMs`, `totalMs`, and `timings` (`liquidMs`, `chromiumMs`, `bandsMs`, `stampMs`, `finishMs`), or `error`. Previews log at `debug`.
 - **Each queue job**: lines carry `queue`, `jobId` and `generationId`; failures log at `warn` with the error before pg-boss retries them.
 - **Errors** are logged as `err` with `type`, `message` and `stack`. Database errors keep the query but not its parameters.
 
@@ -42,11 +42,12 @@ Set `METRICS_PORT` (e.g. `9464`) and every process, API and worker, serves Prome
 | --- | --- | --- | --- |
 | `necodoc_http_request_duration_seconds` | histogram | `method`, `route`, `status` | API requests until the response started. `_count` is the request rate. |
 | `necodoc_render_duration_seconds` | histogram | `mode`, `kind` (`generation`, `preview`), `status` | Rendering itself: Liquid, Chromium, bands, pdf-lib. |
-| `necodoc_render_phase_seconds` | histogram | `mode`, `phase` (`liquid`, `chromium`, `bands`, `stamp`) | Where logged renders spent their time. |
+| `necodoc_render_phase_seconds` | histogram | `mode`, `phase` (`liquid`, `chromium`, `bands`, `stamp`, `finish`) | Where logged renders spent their time. `finish` is PDF/A, PDF/UA and certification. |
 | `necodoc_render_queue_wait_seconds` | histogram | | Queued to the start of the last attempt. |
 | `necodoc_job_duration_seconds` | histogram | `queue`, `status` (`completed`, `failed`) | Every queue job a worker ran: `render`, `webhook`, `detect-fields`, `retention`, `render-lost`. |
 | `necodoc_queue_jobs` | gauge | `queue`, `state` (`ready`, `deferred`, `active`, `failed`) | Jobs per pg-boss queue, cluster-wide. |
 | `necodoc_queue_oldest_ready_seconds` | gauge | `queue` | Age of the oldest job waiting to start. |
+| `necodoc_queue_paused` | gauge | `queue` | 1 while an admin has the queue paused, else 0. |
 | `necodoc_worker_renders_running` | gauge | | Render jobs this process is running. |
 | `necodoc_worker_render_slots` | gauge | | This process's `RENDER_CONCURRENCY` (0 for `ROLE=api`). |
 | `necodoc_build_info` | gauge | `version`, `role` | Always 1. |
