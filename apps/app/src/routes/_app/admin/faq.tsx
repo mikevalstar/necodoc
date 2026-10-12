@@ -1,6 +1,6 @@
 import { hasPermission, roleSchema } from "@necodoc/shared";
 import { LinkSimpleIcon, MagnifyingGlassIcon } from "@phosphor-icons/react";
-import { createFileRoute, redirect } from "@tanstack/react-router";
+import { createFileRoute } from "@tanstack/react-router";
 import { Fragment, type ReactNode, useDeferredValue, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { z } from "zod";
@@ -17,13 +17,12 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { requireAccess } from "@/lib/auth";
 import { type FaqEntry, type FaqExample, type FaqGuide, faq, faqGroups } from "@/lib/faq";
 
 // Spec: docs/features/admin-faq.md
 export const Route = createFileRoute("/_app/admin/faq")({
-  beforeLoad: ({ context }) => {
-    if (!context.me.user.roles.includes("admin")) throw redirect({ to: "/" });
-  },
+  beforeLoad: ({ context }) => requireAccess(context.me, "admin"),
   // ?entry= opens one entry: the "Help" links next to features (components/page.tsx FaqLink).
   validateSearch: z.object({ entry: z.string().optional() }),
   component: Faq,

@@ -1,7 +1,6 @@
-import { hasPermission } from "@necodoc/shared";
 import { ArrowSquareOutIcon, CopyIcon, FilePdfIcon, TrayIcon } from "@phosphor-icons/react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { createFileRoute, Link, redirect, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { type ReactNode, useEffect, useState } from "react";
 import { HistoryPanel } from "@/components/audit";
 import { CopyButton } from "@/components/copy-button";
@@ -20,6 +19,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { api, ok, submissionPdfUrl } from "@/lib/api";
+import { requireAccess } from "@/lib/auth";
 import { usePageCrumb } from "@/lib/breadcrumb";
 import { dayjs } from "@/lib/date";
 import { shareLinksQuery } from "@/lib/queries";
@@ -39,10 +39,7 @@ import {
 // responses; opening this page marks them seen.
 
 export const Route = createFileRoute("/_app/share-links/$id")({
-  beforeLoad: ({ context }) => {
-    if (!hasPermission(context.me.user.roles, { document: ["publish"] }))
-      throw redirect({ to: "/" });
-  },
+  beforeLoad: ({ context }) => requireAccess(context.me, ["publish"]),
   component: ShareLinkResponses,
 });
 

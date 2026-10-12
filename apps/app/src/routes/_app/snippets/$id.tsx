@@ -17,7 +17,7 @@ import {
   WarningIcon,
 } from "@phosphor-icons/react";
 import { queryOptions, useMutation, useQueryClient, useSuspenseQuery } from "@tanstack/react-query";
-import { createFileRoute, Link, redirect, useBlocker, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, Link, useBlocker, useNavigate } from "@tanstack/react-router";
 import type { JSONContent } from "@tiptap/core";
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
@@ -51,6 +51,7 @@ import { Field, FieldDescription, FieldGroup, FieldLabel } from "@/components/ui
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { api, ok } from "@/lib/api";
+import { requireAccess } from "@/lib/auth";
 import { usePageCrumb } from "@/lib/breadcrumb";
 import { dayjs } from "@/lib/date";
 import { snippetsQuery } from "@/lib/queries";
@@ -69,13 +70,7 @@ const snippetQuery = (id: string) =>
   queryOptions({ queryKey: ["snippets", id], queryFn: () => fetchSnippet(id) });
 
 export const Route = createFileRoute("/_app/snippets/$id")({
-  beforeLoad: ({ context }) => {
-    const roles = context.me.user.roles;
-    const sees = (["create", "edit", "review", "publish"] as const).some((action) =>
-      hasPermission(roles, { document: [action] }),
-    );
-    if (!sees) throw redirect({ to: "/" });
-  },
+  beforeLoad: ({ context }) => requireAccess(context.me, ["create", "edit", "review", "publish"]),
   loader: ({ context, params }) => context.queryClient.ensureQueryData(snippetQuery(params.id)),
   component: SnippetPage,
 });

@@ -1,10 +1,10 @@
 import { ssoClient } from "@better-auth/sso/client";
-import { ac, roles } from "@necodoc/shared";
+import { ac, hasPermission, type ReturnPath, roles, type statements } from "@necodoc/shared";
 import { queryOptions, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useNavigate, useRouter } from "@tanstack/react-router";
 import { adminClient } from "better-auth/client/plugins";
 import { createAuthClient } from "better-auth/react";
-import { api, ok } from "./api";
+import { ApiError, api, ok } from "./api";
 
 // Spec: docs/features/user-management-and-roles.md
 export const authClient = createAuthClient({ plugins: [adminClient({ ac, roles }), ssoClient()] });
@@ -20,11 +20,31 @@ export const signInOptionsQuery = queryOptions({
 async function fetchMe() {
   const res = await api.me.$get();
   if (res.status === 401) return null;
-  if (!res.ok) throw new Error(`Couldn't load your account (${res.status})`);
+  if (!res.ok) throw new ApiError(`Couldn't load your account (${res.status})`, res.status);
   return res.json();
 }
 
 export type Me = NonNullable<Awaited<ReturnType<typeof fetchMe>>>;
+type Roles = Me["user"]["roles"];
+
+/** Who may open a page: admins, or anyone granted at least one of these document actions. */
+export type Access = "admin" | readonly (typeof statements.document)[number][];
+
+export function canAccess(roles: Roles, access: Access) {
+  return access === "admin"
+    ? roles.includes("admin")
+    : access.some((action) => hasPermission(roles, { document: [action] }));
+}
+
+/**
+ * Route guard for `beforeLoad`. Throws a 403 so the route's error screen says "You don't have
+ * access to this" at the URL that was asked for, instead of silently redirecting.
+ */
+export function requireAccess(me: Me, access: Access) {
+  if (!canAccess(me.user.roles, access)) {
+    throw new ApiError("You don't have access to this", 403);
+  }
+}
 
 // Every route waits on this, so ride out an API restart (502s for a few seconds) instead of
 // failing the page. ensureQueryData doesn't retry unless the query says so.
@@ -54,9 +74,9 @@ export async function unwrap<T>(result: Promise<AuthResult<T>>): Promise<T> {
 export function useSessionChange() {
   const queryClient = useQueryClient();
   const navigate = useNavigate();
-  return async (to: "/" | "/login" | "/admin/users") => {
+  return async (to: "/" | "/login" | "/admin/users" | ReturnPath) => {
     await queryClient.resetQueries({ queryKey: meQuery.queryKey });
-    await navigate({ to });
+    await navigate({ href: to });
     queryClient.removeQueries({ type: "inactive" });
   };
 }

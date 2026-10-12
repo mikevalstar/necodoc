@@ -18,7 +18,7 @@ import {
   UsersIcon,
 } from "@phosphor-icons/react";
 import { keepPreviousData, queryOptions, useMutation, useQuery } from "@tanstack/react-query";
-import { createFileRoute, redirect, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import type { InferResponseType } from "hono/client";
 import { type ReactNode, useState } from "react";
 import { toast } from "sonner";
@@ -47,7 +47,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { api, ok } from "@/lib/api";
-import { authClient, unwrap, useSessionChange, useUserMutation } from "@/lib/auth";
+import { authClient, requireAccess, unwrap, useSessionChange, useUserMutation } from "@/lib/auth";
 import { dayjs } from "@/lib/date";
 import { cn } from "@/lib/utils";
 import {
@@ -106,9 +106,7 @@ const pendingQuery = queryOptions({
 
 export const Route = createFileRoute("/_app/admin/users")({
   validateSearch: searchSchema,
-  beforeLoad: ({ context }) => {
-    if (!context.me.user.roles.includes("admin")) throw redirect({ to: "/" });
-  },
+  beforeLoad: ({ context }) => requireAccess(context.me, "admin"),
   component: Users,
 });
 

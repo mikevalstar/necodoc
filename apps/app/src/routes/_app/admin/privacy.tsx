@@ -12,7 +12,7 @@ import {
   WarningIcon,
 } from "@phosphor-icons/react";
 import { useMutation } from "@tanstack/react-query";
-import { createFileRoute, Link, redirect } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { type FormEvent, type MouseEvent, type ReactNode, useState } from "react";
 import { ErrorAlert } from "@/components/form";
 import { CardBar, EmptyState, FaqLink, Page, PageHeader } from "@/components/page";
@@ -41,6 +41,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { api, ok } from "@/lib/api";
+import { requireAccess } from "@/lib/auth";
 import { dayjs } from "@/lib/date";
 import { cn, plural } from "@/lib/utils";
 import { DocumentStatusBadge } from "../documents/-document-actions";
@@ -50,9 +51,7 @@ import { StatusBadge } from "../generations/-generation-actions";
 // false positives, erase, keep the report.
 
 export const Route = createFileRoute("/_app/admin/privacy")({
-  beforeLoad: ({ context }) => {
-    if (!context.me.user.roles.includes("admin")) throw redirect({ to: "/" });
-  },
+  beforeLoad: ({ context }) => requireAccess(context.me, "admin"),
   component: DataSubjects,
 });
 
@@ -404,6 +403,7 @@ function MatchCard<T extends { id: string }>({
               <Checkbox
                 aria-label={`Select all ${title.toLowerCase()}`}
                 checked={selected === rows.length}
+                indeterminate={selected > 0 && selected < rows.length}
                 onCheckedChange={(on) => onPick(ids, on)}
               />
             </TableHead>

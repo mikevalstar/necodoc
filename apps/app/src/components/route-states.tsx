@@ -175,6 +175,7 @@ function kindOf(error: unknown) {
 
 export function RouteError({ error, reset }: ErrorComponentProps) {
   const router = useRouter();
+  const { href } = useLocation();
   const kind = kindOf(error);
   const online = useOnline();
   const [retrying, setRetrying] = useState(false);
@@ -227,7 +228,7 @@ export function RouteError({ error, reset }: ErrorComponentProps) {
           title="You’ve been signed out"
           description="Your session ended. Sign in again to carry on."
           actions={
-            <Button nativeButton={false} render={<Link to="/login" />}>
+            <Button nativeButton={false} render={<Link to="/login" search={{ redirect: href }} />}>
               <SignInIcon />
               Sign in
             </Button>

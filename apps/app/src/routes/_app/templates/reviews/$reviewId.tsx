@@ -1,7 +1,7 @@
 import { hasPermission, type ReviewDecision, type ReviewEventKind } from "@necodoc/shared";
 import { ArrowSquareOutIcon, SealCheckIcon, WarningIcon } from "@phosphor-icons/react";
 import { queryOptions, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { createFileRoute, Link, redirect } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState } from "react";
 import { toast } from "sonner";
 import { ConfirmDialog } from "@/components/confirm-dialog";
@@ -17,6 +17,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
 import { VisualDiff } from "@/components/visual-diff";
 import { api, ok } from "@/lib/api";
+import { requireAccess } from "@/lib/auth";
 import { usePageCrumb } from "@/lib/breadcrumb";
 import { dayjs } from "@/lib/date";
 import { templateQuery } from "../-draft";
@@ -34,13 +35,7 @@ const reviewQuery = (id: string) =>
   });
 
 export const Route = createFileRoute("/_app/templates/reviews/$reviewId")({
-  beforeLoad: ({ context }) => {
-    const roles = context.me.user.roles;
-    const seesDrafts = (["edit", "review", "publish"] as const).some((action) =>
-      hasPermission(roles, { document: [action] }),
-    );
-    if (!seesDrafts) throw redirect({ to: "/templates" });
-  },
+  beforeLoad: ({ context }) => requireAccess(context.me, ["edit", "review", "publish"]),
   component: ReviewPage,
 });
 

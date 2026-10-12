@@ -7,7 +7,7 @@ import {
 } from "@necodoc/shared";
 import { DownloadSimpleIcon, MagnifyingGlassIcon, XIcon } from "@phosphor-icons/react";
 import { keepPreviousData, queryOptions, useQuery } from "@tanstack/react-query";
-import { createFileRoute, Link, redirect, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { createColumnHelper } from "@tanstack/react-table";
 import type { InferResponseType } from "hono/client";
 import { z } from "zod";
@@ -31,7 +31,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { api, ok } from "@/lib/api";
-import { authClient, unwrap } from "@/lib/auth";
+import { authClient, requireAccess, unwrap } from "@/lib/auth";
 import { dayjs } from "@/lib/date";
 import { cn } from "@/lib/utils";
 
@@ -168,9 +168,7 @@ const columns = column.columns([
 
 export const Route = createFileRoute("/_app/admin/audit")({
   validateSearch: searchSchema,
-  beforeLoad: ({ context }) => {
-    if (!context.me.user.roles.includes("admin")) throw redirect({ to: "/" });
-  },
+  beforeLoad: ({ context }) => requireAccess(context.me, "admin"),
   component: AuditLog,
 });
 

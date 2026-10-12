@@ -1,4 +1,4 @@
-import { signInSchema } from "@necodoc/shared";
+import { returnPathSchema, signInSchema } from "@necodoc/shared";
 import { useMutation, useSuspenseQuery } from "@tanstack/react-query";
 import { createFileRoute, Link, redirect } from "@tanstack/react-router";
 import { z } from "zod";
@@ -10,7 +10,9 @@ import { FieldGroup } from "@/components/ui/field";
 import { authClient, meQuery, signInOptionsQuery, unwrap, useSessionChange } from "@/lib/auth";
 
 // Spec: docs/features/single-sign-on.md. Failed SSO sign-ins come back here with ?error=.
+// ?redirect= is the page to return to (docs/features/app-shell-and-navigation.md).
 const searchSchema = z.object({
+  redirect: returnPathSchema,
   error: z.string().optional(),
   error_description: z.string().optional(),
 });
@@ -30,8 +32,10 @@ const ssoErrors: Record<string, string> = {
 
 export const Route = createFileRoute("/login")({
   validateSearch: searchSchema,
-  beforeLoad: async ({ context }) => {
-    if (await context.queryClient.ensureQueryData(meQuery)) throw redirect({ to: "/" });
+  beforeLoad: async ({ context, search }) => {
+    if (await context.queryClient.ensureQueryData(meQuery)) {
+      throw redirect({ href: search.redirect ?? "/" });
+    }
   },
   loader: ({ context }) => context.queryClient.ensureQueryData(signInOptionsQuery),
   component: Login,
@@ -40,6 +44,11 @@ export const Route = createFileRoute("/login")({
 function Login() {
   const options = useSuspenseQuery(signInOptionsQuery).data;
   const search = Route.useSearch();
+  const returnTo = search.redirect ?? "/";
+  // Carried through the SSO round trips; the API checks it again (routes/sso.ts).
+  const returnQuery = search.redirect
+    ? `?${new URLSearchParams({ redirect: search.redirect })}`
+    : "";
   const ssoError = search.error
     ? (ssoErrors[search.error] ??
       search.error_description ??
@@ -48,12 +57,18 @@ function Login() {
   const ssoSignIn = useMutation({
     // The client follows the IdP redirect; nothing to do on success.
     mutationFn: (providerId: string) =>
-      unwrap(authClient.signIn.sso({ providerId, callbackURL: "/", errorCallbackURL: "/login" })),
+      unwrap(
+        authClient.signIn.sso({
+          providerId,
+          callbackURL: returnTo,
+          errorCallbackURL: `/login${returnQuery}`,
+        }),
+      ),
   });
   const sessionChanged = useSessionChange();
   const signIn = useMutation({
     mutationFn: (value: z.infer<typeof signInSchema>) => unwrap(authClient.signIn.email(value)),
-    onSuccess: () => sessionChanged("/"),
+    onSuccess: () => sessionChanged(returnTo),
   });
   const form = useAppForm({
     defaultValues: { email: "", password: "" },
@@ -89,7 +104,7 @@ function Login() {
                   key={provider.id}
                   variant="outline"
                   nativeButton={false}
-                  render={<a href={`/api/sso/header/${provider.id}`} />}
+                  render={<a href={`/api/sso/header/${provider.id}${returnQuery}`} />}
                 >
                   Sign in with {provider.label}
                 </Button>
@@ -142,6 +157,7 @@ function Login() {
                 New to necodoc?{" "}
                 <Link
                   to="/register"
+                  search={{ redirect: search.redirect }}
                   className="font-semibold text-brand-ink underline-offset-4 hover:underline"
                 >
                   Create an account

@@ -1,7 +1,7 @@
 import { type Role, type SignInChannel, signInChannels } from "@necodoc/shared";
 import { ListMagnifyingGlassIcon } from "@phosphor-icons/react";
 import { keepPreviousData, queryOptions, useQuery } from "@tanstack/react-query";
-import { createFileRoute, Link, redirect, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import type { InferResponseType } from "hono/client";
 import { useState } from "react";
 import { z } from "zod";
@@ -31,6 +31,7 @@ import { Page } from "@/components/page";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { api, ok } from "@/lib/api";
+import { requireAccess } from "@/lib/auth";
 import { dayjs } from "@/lib/date";
 
 // Spec: docs/features/analytics-dashboards.md (Auth & access). Sign-ins come from the audit log;
@@ -77,9 +78,7 @@ const roleLabels = {
 
 export const Route = createFileRoute("/_app/admin/analytics/access")({
   validateSearch: searchSchema,
-  beforeLoad: ({ context }) => {
-    if (!context.me.user.roles.includes("admin")) throw redirect({ to: "/" });
-  },
+  beforeLoad: ({ context }) => requireAccess(context.me, "admin"),
   component: AccessAnalytics,
 });
 

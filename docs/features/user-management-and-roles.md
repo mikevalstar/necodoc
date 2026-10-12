@@ -84,7 +84,9 @@ Definitions: [packages/shared/src/roles.ts](../../packages/shared/src/roles.ts),
 - **Sign-in and pending.** [Login](../../apps/app/src/routes/login.tsx) and
   [register](../../apps/app/src/routes/register.tsx) link to each other. The
   [signed-in layout](../../apps/app/src/routes/_app.tsx) sends users with no
-  roles to the [pending page](../../apps/app/src/routes/pending.tsx).
+  roles to the [pending page](../../apps/app/src/routes/pending.tsx). Both
+  keep the page a signed-out visitor asked for and return there after sign-in
+  ([App shell](app-shell-and-navigation.md)).
 - **Admin > Users** ([users.tsx](../../apps/app/src/routes/_app/admin/users.tsx),
   [actions](../../apps/app/src/routes/_app/admin/-user-dialogs.tsx)), shown in the
   nav only to admins:

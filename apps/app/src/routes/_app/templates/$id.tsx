@@ -23,7 +23,7 @@ import {
   WarningIcon,
 } from "@phosphor-icons/react";
 import { useMutation, useQuery, useQueryClient, useSuspenseQuery } from "@tanstack/react-query";
-import { createFileRoute, Link, redirect, useBlocker, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, Link, useBlocker, useNavigate } from "@tanstack/react-router";
 import { useCallback, useMemo, useState } from "react";
 import { z } from "zod";
 import { useAiEnabled } from "@/components/ai";
@@ -55,6 +55,7 @@ import { Input } from "@/components/ui/input";
 import { NativeSelect, NativeSelectOption } from "@/components/ui/native-select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ApiError, api, ok, previewTemplate } from "@/lib/api";
+import { requireAccess } from "@/lib/auth";
 import { usePageCrumb } from "@/lib/breadcrumb";
 import { dayjs } from "@/lib/date";
 import { snippetsQuery, templatesQuery } from "@/lib/queries";
@@ -98,13 +99,7 @@ import { VersionsPanel, versionQuery, versionsQuery } from "./-versions";
 
 export const Route = createFileRoute("/_app/templates/$id")({
   staticData: { railSidebar: true },
-  beforeLoad: ({ context }) => {
-    const roles = context.me.user.roles;
-    const seesDrafts = (["edit", "review", "publish"] as const).some((action) =>
-      hasPermission(roles, { document: [action] }),
-    );
-    if (!seesDrafts) throw redirect({ to: "/templates" });
-  },
+  beforeLoad: ({ context }) => requireAccess(context.me, ["edit", "review", "publish"]),
   // `build`: a description from the new-template dialog for the AI assistant to build from.
   validateSearch: z.object({ build: z.string().max(4000).optional() }),
   loader: ({ context, params }) => context.queryClient.ensureQueryData(templateQuery(params.id)),

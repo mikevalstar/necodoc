@@ -27,7 +27,8 @@ replaces.
 - **Create.** A user with `document: publish`
   ([Publishing and versions](publishing-and-versions.md)) creates a link for a
   published template, pinned to a version or following the latest one. Options:
-  - a label (e.g. "Acme onboarding")
+  - a label (e.g. "Acme onboarding"), the owner's internal name for the link;
+    fillers never see it
   - an expiry date
   - a maximum number of submissions (1 for a single-use request)
   - prefilled answers, which the filler can see and, per field, edit or not
@@ -39,7 +40,8 @@ replaces.
   it (its submissions stay as documents).
 - **Fill.** The link opens a public page with the template's
   [guided form](template-fields-and-guided-form.md), the same validation, and no app
-  chrome beyond the necodoc mark. Progress is kept in the browser until submit.
+  chrome beyond the necodoc mark. It shows the template's name and
+  description, not the link's label. Progress is kept in the browser until submit.
   Query parameters named after unlocked fields prefill them
   (`?client_name=Acme`), so one link can be personalised per recipient.
   Each load of the page counts as a view, for conversion (responses since the
@@ -75,6 +77,7 @@ replaces.
       request.
 - [x] Expired, revoked and used-up links refuse submissions.
 - [x] Invalid answers are rejected by the API, not only the form.
+- [x] The public page and its API response don't include the link's label.
 - [ ] A webhook fires on submission when one is configured.
 
 ## Known limitations

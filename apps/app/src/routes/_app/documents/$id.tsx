@@ -58,7 +58,9 @@ export const Route = createFileRoute("/_app/documents/$id")({
 
 type Doc = Awaited<ReturnType<NonNullable<ReturnType<typeof submissionQuery>["queryFn"]>>>;
 
-const isNotFound = (error: Error | null) => error instanceof ApiError && error.status === 404;
+// A malformed id (not a UUID) is a 400 from the API: just as missing as a 404.
+const isNotFound = (error: Error | null) =>
+  error instanceof ApiError && (error.status === 400 || error.status === 404);
 
 const rendering = (doc: Doc | undefined) =>
   doc?.status === "finished" &&

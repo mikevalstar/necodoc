@@ -267,9 +267,9 @@ export const publicShareRoutes = new Hono<AppEnv>()
       // A view isn't an edit: keep updatedAt.
       .set({ views: sql`${shareLink.views} + 1`, updatedAt: link.updatedAt })
       .where(eq(shareLink.id, link.id));
+    // Not the link's label: that's the owner's internal name for it.
     return c.json(
       {
-        label: link.label,
         name: version.name,
         description: version.description,
         sections: version.sections,

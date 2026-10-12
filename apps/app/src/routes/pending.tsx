@@ -1,6 +1,8 @@
+import { returnPathSchema } from "@necodoc/shared";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute, Link, redirect } from "@tanstack/react-router";
 import { toast } from "sonner";
+import { z } from "zod";
 import { AuthFrame } from "@/components/auth-frame";
 import { ErrorAlert } from "@/components/form";
 import { Badge } from "@/components/ui/badge";
@@ -8,11 +10,13 @@ import { Button } from "@/components/ui/button";
 import { meQuery, useSessionChange, useSignOut } from "@/lib/auth";
 
 // Users with no roles land here until an admin grants access (see the user-management spec).
+// ?redirect= is the page to go on to once granted a role (docs/features/app-shell-and-navigation.md).
 export const Route = createFileRoute("/pending")({
-  beforeLoad: async ({ context }) => {
+  validateSearch: z.object({ redirect: returnPathSchema }),
+  beforeLoad: async ({ context, search }) => {
     const me = await context.queryClient.ensureQueryData(meQuery);
-    if (!me) throw redirect({ to: "/login" });
-    if (me.user.roles.length > 0) throw redirect({ to: "/" });
+    if (!me) throw redirect({ to: "/login", search });
+    if (me.user.roles.length > 0) throw redirect({ href: search.redirect ?? "/" });
     return { me };
   },
   component: Pending,
@@ -20,6 +24,7 @@ export const Route = createFileRoute("/pending")({
 
 function Pending() {
   const { me } = Route.useRouteContext();
+  const search = Route.useSearch();
   const signOut = useSignOut();
   const queryClient = useQueryClient();
   const sessionChanged = useSessionChange();
@@ -27,7 +32,7 @@ function Pending() {
     mutationFn: () => queryClient.fetchQuery({ ...meQuery, staleTime: 0 }),
     onSuccess: (fresh) => {
       if (!fresh) return sessionChanged("/login");
-      if (fresh.user.roles.length > 0) return sessionChanged("/");
+      if (fresh.user.roles.length > 0) return sessionChanged(search.redirect ?? "/");
       toast("No access yet", { description: "An admin still needs to give you a role." });
     },
   });

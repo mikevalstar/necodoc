@@ -1,7 +1,6 @@
-import { hasPermission } from "@necodoc/shared";
 import { SealCheckIcon } from "@phosphor-icons/react";
 import { useQuery } from "@tanstack/react-query";
-import { createFileRoute, Link, redirect, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { z } from "zod";
 import { DensityToggle } from "@/components/data-table";
 import { ErrorAlert } from "@/components/form";
@@ -18,6 +17,7 @@ import {
 } from "@/components/ui/table";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { api, ok } from "@/lib/api";
+import { requireAccess } from "@/lib/auth";
 import { dayjs } from "@/lib/date";
 import { ReviewStatusBadge } from "../-review";
 
@@ -28,13 +28,7 @@ const searchSchema = z.object({ status: statusSchema.optional() });
 
 export const Route = createFileRoute("/_app/templates/reviews/")({
   validateSearch: searchSchema,
-  beforeLoad: ({ context }) => {
-    const roles = context.me.user.roles;
-    const seesDrafts = (["edit", "review", "publish"] as const).some((action) =>
-      hasPermission(roles, { document: [action] }),
-    );
-    if (!seesDrafts) throw redirect({ to: "/templates" });
-  },
+  beforeLoad: ({ context }) => requireAccess(context.me, ["edit", "review", "publish"]),
   component: Reviews,
 });
 

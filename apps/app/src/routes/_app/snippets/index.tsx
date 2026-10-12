@@ -1,7 +1,7 @@
 import { createSnippetSchema, hasPermission, snippetKeySchema } from "@necodoc/shared";
 import { MagnifyingGlassIcon, PlusIcon, PuzzlePieceIcon } from "@phosphor-icons/react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { createFileRoute, Link, redirect, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
 import { z } from "zod";
 import { activeFilter, DebouncedInput, DensityToggle, FilterSelect } from "@/components/data-table";
@@ -31,6 +31,7 @@ import {
 } from "@/components/ui/table";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { api, ok } from "@/lib/api";
+import { requireAccess } from "@/lib/auth";
 import { dayjs } from "@/lib/date";
 import { snippetsQuery } from "@/lib/queries";
 import { cn } from "@/lib/utils";
@@ -45,13 +46,7 @@ const searchSchema = z.object({
 
 export const Route = createFileRoute("/_app/snippets/")({
   validateSearch: searchSchema,
-  beforeLoad: ({ context }) => {
-    const roles = context.me.user.roles;
-    const sees = (["create", "edit", "review", "publish"] as const).some((action) =>
-      hasPermission(roles, { document: [action] }),
-    );
-    if (!sees) throw redirect({ to: "/" });
-  },
+  beforeLoad: ({ context }) => requireAccess(context.me, ["create", "edit", "review", "publish"]),
   component: Snippets,
 });
 

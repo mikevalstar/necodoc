@@ -40,7 +40,9 @@ both protocols work for each.
   the email and password form and registration are hidden, and the API refuses
   them.
 - **First sign-in creates the user** (JIT), named and addressed from the IdP's
-  claims or attributes. Sign-in is started from necodoc (SP-initiated).
+  claims or attributes. Sign-in is started from necodoc (SP-initiated) and
+  returns to the page the user asked for (`?redirect=` on the login page,
+  passed as Better Auth's callback URL, or to the header sign-in route).
 - **Roles from groups.** A provider's role map (`SSO_<ID>_ROLE_MAP`, JSON:
   group → roles) turns the IdP's groups claim or attribute into roles. A user
   in no mapped group gets the provider's default roles, which are none

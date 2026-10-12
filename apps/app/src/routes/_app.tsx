@@ -1,4 +1,4 @@
-import { hasPermission } from "@necodoc/shared";
+import { safeReturnPath } from "@necodoc/shared";
 import {
   BracketsCurlyIcon,
   CaretRightIcon,
@@ -38,7 +38,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { type Me, meQuery, useSignOut } from "@/lib/auth";
+import { type Access, canAccess, type Me, meQuery, useSignOut } from "@/lib/auth";
 import { useCurrentCrumb } from "@/lib/breadcrumb";
 import { shareLinksQuery } from "@/lib/queries";
 import { toggleTheme, useTheme } from "@/lib/theme";
@@ -49,9 +49,11 @@ import { cn } from "@/lib/utils";
 export const Route = createFileRoute("/_app")({
   beforeLoad: async ({ context, location }) => {
     const me = await context.queryClient.ensureQueryData(meQuery);
-    if (!me) throw redirect({ to: "/login" });
+    // Keep the page that was asked for, to come back to after signing in or being granted a role.
+    const search = { redirect: safeReturnPath(location.href) };
+    if (!me) throw redirect({ to: "/login", search });
     if (me.user.roles.length === 0 && location.pathname !== "/settings") {
-      throw redirect({ to: "/pending" });
+      throw redirect({ to: "/pending", search });
     }
     return { me };
   },
@@ -64,7 +66,8 @@ type NavItem = {
   label: string | ((roles: Roles) => string);
   /** Shows the count of unseen share-link responses. */
   unseen?: true;
-  show?: (roles: Roles) => boolean;
+  /** Who sees it; the page's own guard (`requireAccess`) uses the same rule. */
+  access?: Access;
 };
 type NavSection = {
   label: string;
@@ -72,11 +75,9 @@ type NavSection = {
   /** Path prefixes that belong to the section, so detail pages keep it highlighted. */
   paths: readonly string[];
   items: readonly NavItem[];
-  show?: (roles: Roles) => boolean;
+  /** Who sees the section. */
+  access?: Access;
 };
-
-const can = (roles: Roles, actions: readonly ("create" | "edit" | "review" | "publish")[]) =>
-  actions.some((action) => hasPermission(roles, { document: [action] }));
 
 // Grouped by who uses it: people filling documents, template designers, developers, admins.
 const sections: readonly NavSection[] = [
@@ -86,7 +87,7 @@ const sections: readonly NavSection[] = [
     paths: ["/", "/documents", "/share-links"],
     items: [
       { to: "/", label: "My documents" },
-      { to: "/share-links", label: "Share links", unseen: true, show: (r) => can(r, ["publish"]) },
+      { to: "/share-links", label: "Share links", unseen: true, access: ["publish"] },
     ],
   },
   {
@@ -98,12 +99,12 @@ const sections: readonly NavSection[] = [
       {
         to: "/templates/reviews",
         label: "Reviews",
-        show: (r) => can(r, ["edit", "review", "publish"]),
+        access: ["edit", "review", "publish"],
       },
       {
         to: "/snippets",
         label: "Snippets",
-        show: (r) => can(r, ["create", "edit", "review", "publish"]),
+        access: ["create", "edit", "review", "publish"],
       },
       { to: "/themes", label: "Themes" },
       { to: "/assets", label: "Assets" },
@@ -128,7 +129,7 @@ const sections: readonly NavSection[] = [
     label: "Admin",
     icon: ShieldCheckIcon,
     paths: ["/admin"],
-    show: (r) => r.includes("admin"),
+    access: "admin",
     items: [
       { to: "/admin/users", label: "Users" },
       { to: "/admin/service-accounts", label: "Service accounts" },
@@ -190,9 +191,11 @@ function AppShell() {
   const pageCrumb = useCurrentCrumb();
   const forced = narrow || routeWantsRail;
   const rail = collapsed || forced;
-  const visible = roles.length ? sections.filter((section) => section.show?.(roles) ?? true) : [];
+  const visible = roles.length
+    ? sections.filter((section) => !section.access || canAccess(roles, section.access))
+    : [];
   const itemsOf = (section: NavSection) =>
-    section.items.filter((item) => item.show?.(roles) ?? true);
+    section.items.filter((item) => !item.access || canAccess(roles, item.access));
   const labelOf = (item: NavItem) =>
     typeof item.label === "string" ? item.label : item.label(roles);
   const current = visible.find((section) => inSection(section, pathname));

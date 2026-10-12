@@ -38,7 +38,9 @@ an API restart replaced the page with an error.
     Generations, Batches.
   - **Admin** (admins only): Users, Service accounts, API keys, System, Queue,
     Analytics, Audit log, Data subjects, FAQ.
-  Items a role can't use are hidden; the pages still guard themselves.
+  Items a role can't use are hidden; the pages still guard themselves: opening
+  one anyway keeps the URL and shows "You don't have access to this"
+  ([auth.ts](../../apps/app/src/lib/auth.ts) `requireAccess`).
 - **Collapsing**: the sidebar collapses to an icon rail (remembered in this
   browser) and is always a rail below 1000 px. In the rail, a section's icon
   opens a menu of its pages, so every page stays reachable.
@@ -63,13 +65,20 @@ an API restart replaced the page with an error.
 - **Not found and errors**
   ([route-states.tsx](../../apps/app/src/components/route-states.tsx)):
   unknown paths, and records that don't exist (a bad or deleted id), show a
-  not-found page inside the shell with a way back. A 403 says you don't have
-  access and to ask an admin; an expired session offers Sign in. Loading your
+  not-found page inside the shell with a way back (a malformed id counts as
+  not found). A 403, from the API or a page your role can't open, says you
+  don't have access and to ask an admin; an expired session offers Sign in. Loading your
   account retries for about 15 seconds, so an API restart doesn't break the
   page, and a slow load says it's waiting for the server. If it still fails,
   the error page says necodoc isn't responding and offers Try again (it
   retries by itself when the browser comes back online). Before sign-in these
   screens stand alone on the cobalt frame.
+- **Deep links survive sign-in**: a signed-out visitor sent to the login page
+  carries the page they asked for in `?redirect=`, and signing in (password,
+  registration, SSO, or leaving the pending page once granted a role) returns
+  them there. Only same-origin relative paths are honoured, so the parameter
+  can't send anyone to another site
+  ([return-path.ts](../../packages/shared/src/return-path.ts)).
 - **First paint**: the page shows the neko mark on the canvas until the app
   loads ([index.html](../../apps/app/index.html)).
 - **Accessibility**: a skip-to-content link, labelled icon-only buttons,
@@ -84,6 +93,10 @@ an API restart replaced the page with an error.
 - [x] An admin named Admin sees one "Admin" in the header.
 - [x] `/documents` (no such page) shows a styled not-found page with the nav.
 - [ ] A detail page with a bogus id shows not found, not "Something went wrong".
+- [x] A viewer opening an admin URL sees "You don't have access to this" at
+      that URL, not the home page.
+- [x] Signing in from a deep link returns to it; `?redirect=//evil.example`
+      or an absolute URL goes home instead.
 - [ ] With the API unreachable, the page says so and Try again recovers.
 - [x] Restarting the API while a page loads doesn't show an error page.
 - [x] List and dashboard pages share one width; forms and editors use theirs.

@@ -1,5 +1,5 @@
 import { zValidator } from "@hono/zod-validator";
-import { type SignInOptions, signInMethodsQuerySchema } from "@necodoc/shared";
+import { type SignInOptions, safeReturnPath, signInMethodsQuerySchema } from "@necodoc/shared";
 import { APIError } from "better-auth/api";
 import { inArray } from "drizzle-orm";
 import { Hono } from "hono";
@@ -29,6 +29,10 @@ export const ssoRoutes = new Hono<AppEnv>()
   .get("/header/:id", async (c) => {
     const provider = ssoProviders.find((p) => p.id === c.req.param("id"));
     if (provider?.type !== "header") return c.json({ error: "Not found" }, 404);
+    // ?redirect=: the page the login page was asked for; same-origin paths only.
+    const returnTo = safeReturnPath(c.req.query("redirect"));
+    const loginWith = (error: string) =>
+      `/login?${new URLSearchParams({ error, ...(returnTo && { redirect: returnTo }) })}`;
     const peer = clientIp(c);
     const result = trustedHeaderIdentity(provider, peer, (name) => c.req.header(name));
     const via = { method: "trusted_header", provider: provider.id } as const;
@@ -44,7 +48,7 @@ export const ssoRoutes = new Hono<AppEnv>()
         `SSO ${provider.id}: refused header sign-in from ${peer} (${result.code})`,
       );
       await failed(null, result.code);
-      return c.redirect(`/login?error=${result.code}`);
+      return c.redirect(loginWith(result.code));
     }
     try {
       const { headers, response: signedIn } = await auth.api.trustedHeaderSignIn({
@@ -57,14 +61,14 @@ export const ssoRoutes = new Hono<AppEnv>()
         actor: { kind: "user", id: signedIn.userId, name: result.identity.name },
         details: via,
       });
-      const response = c.redirect("/");
+      const response = c.redirect(returnTo ?? "/");
       for (const cookie of headers.getSetCookie()) response.headers.append("Set-Cookie", cookie);
       return response;
     } catch (error) {
       if (!(error instanceof APIError)) throw error;
       const code = typeof error.body?.code === "string" ? error.body.code : "sign_in_failed";
       await failed(result.identity.email, code);
-      return c.redirect(`/login?error=${encodeURIComponent(code)}`);
+      return c.redirect(loginWith(code));
     }
   })
   // Admin › Users: how each listed user signs in.

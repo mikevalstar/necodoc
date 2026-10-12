@@ -13,7 +13,7 @@ import {
   useQuery,
   useQueryClient,
 } from "@tanstack/react-query";
-import { createFileRoute, redirect } from "@tanstack/react-router";
+import { createFileRoute } from "@tanstack/react-router";
 import type { InferResponseType } from "hono/client";
 import { type ReactNode, useState } from "react";
 import { toast } from "sonner";
@@ -39,6 +39,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { api, ok } from "@/lib/api";
+import { requireAccess } from "@/lib/auth";
 import { dayjs } from "@/lib/date";
 import { cn, plural } from "@/lib/utils";
 import { formatMs, sourceLabels } from "../generations/-generation-actions";
@@ -92,9 +93,7 @@ const windowLabels = {
 
 export const Route = createFileRoute("/_app/admin/system")({
   validateSearch: z.object({ window: metricsWindowSchema.default("1h") }),
-  beforeLoad: ({ context }) => {
-    if (!context.me.user.roles.includes("admin")) throw redirect({ to: "/" });
-  },
+  beforeLoad: ({ context }) => requireAccess(context.me, "admin"),
   component: System,
 });
 

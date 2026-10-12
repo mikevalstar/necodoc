@@ -1,7 +1,7 @@
-import { signUpSchema } from "@necodoc/shared";
+import { returnPathSchema, signUpSchema } from "@necodoc/shared";
 import { useMutation } from "@tanstack/react-query";
 import { createFileRoute, Link, redirect } from "@tanstack/react-router";
-import type { z } from "zod";
+import { z } from "zod";
 import { AuthFrame } from "@/components/auth-frame";
 import { ErrorAlert, useAppForm } from "@/components/form";
 import { Button } from "@/components/ui/button";
@@ -9,20 +9,26 @@ import { FieldGroup } from "@/components/ui/field";
 import { authClient, meQuery, signInOptionsQuery, unwrap, useSessionChange } from "@/lib/auth";
 
 export const Route = createFileRoute("/register")({
-  beforeLoad: async ({ context }) => {
-    if (await context.queryClient.ensureQueryData(meQuery)) throw redirect({ to: "/" });
+  // ?redirect= is the page to return to (docs/features/app-shell-and-navigation.md).
+  validateSearch: z.object({ redirect: returnPathSchema }),
+  beforeLoad: async ({ context, search }) => {
+    if (await context.queryClient.ensureQueryData(meQuery)) {
+      throw redirect({ href: search.redirect ?? "/" });
+    }
     // SSO-only installs (docs/features/single-sign-on.md) have no self-registration.
     const options = await context.queryClient.ensureQueryData(signInOptionsQuery);
-    if (!options.password) throw redirect({ to: "/login" });
+    if (!options.password) throw redirect({ to: "/login", search });
   },
   component: Register,
 });
 
 function Register() {
+  const search = Route.useSearch();
   const sessionChanged = useSessionChange();
   const signUp = useMutation({
     mutationFn: (value: z.infer<typeof signUpSchema>) => unwrap(authClient.signUp.email(value)),
-    onSuccess: () => sessionChanged("/"),
+    // A later sign-up has no role yet; the shell sends it on to /pending, keeping the path.
+    onSuccess: () => sessionChanged(search.redirect ?? "/"),
   });
   const form = useAppForm({
     defaultValues: { name: "", email: "", password: "" },
@@ -74,6 +80,7 @@ function Register() {
             Already have an account?{" "}
             <Link
               to="/login"
+              search={search}
               className="font-semibold text-brand-ink underline-offset-4 hover:underline"
             >
               Sign in

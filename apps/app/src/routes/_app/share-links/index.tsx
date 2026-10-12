@@ -1,7 +1,6 @@
-import { hasPermission } from "@necodoc/shared";
 import { DotsThreeIcon, LinkIcon, PlusIcon } from "@phosphor-icons/react";
 import { useQuery } from "@tanstack/react-query";
-import { createFileRoute, Link, redirect } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState } from "react";
 import { CopyButton } from "@/components/copy-button";
 import { DensityToggle } from "@/components/data-table";
@@ -25,6 +24,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { requireAccess } from "@/lib/auth";
 import { dayjs } from "@/lib/date";
 import { shareLinksQuery } from "@/lib/queries";
 import {
@@ -42,10 +42,7 @@ import {
 // Spec: docs/features/share-links-and-data-requests.md. A publisher's own links.
 
 export const Route = createFileRoute("/_app/share-links/")({
-  beforeLoad: ({ context }) => {
-    if (!hasPermission(context.me.user.roles, { document: ["publish"] }))
-      throw redirect({ to: "/" });
-  },
+  beforeLoad: ({ context }) => requireAccess(context.me, ["publish"]),
   component: ShareLinks,
 });
 

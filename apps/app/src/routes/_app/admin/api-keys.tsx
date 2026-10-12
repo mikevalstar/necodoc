@@ -1,7 +1,7 @@
 import { apiKeyStatusSchema } from "@necodoc/shared";
 import { FunnelXIcon, KeyIcon } from "@phosphor-icons/react";
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
-import { createFileRoute, Link, redirect, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { z } from "zod";
 import { ApiKeyTable, apiKeysQuery, ExpiryWarning } from "@/components/api-keys";
 import { DensityToggle, FilterSelect } from "@/components/data-table";
@@ -9,6 +9,7 @@ import { ErrorAlert } from "@/components/form";
 import { CardBar, EmptyState, FaqLink, ListSkeleton, Page, PageHeader } from "@/components/page";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { requireAccess } from "@/lib/auth";
 
 // Spec: docs/features/html-to-pdf-api.md (keys). Every key across people and service accounts.
 const ownerKindSchema = z.enum(["user", "service"]);
@@ -19,9 +20,7 @@ const searchSchema = z.object({
 
 export const Route = createFileRoute("/_app/admin/api-keys")({
   validateSearch: searchSchema,
-  beforeLoad: ({ context }) => {
-    if (!context.me.user.roles.includes("admin")) throw redirect({ to: "/" });
-  },
+  beforeLoad: ({ context }) => requireAccess(context.me, "admin"),
   component: AdminApiKeys,
 });
 

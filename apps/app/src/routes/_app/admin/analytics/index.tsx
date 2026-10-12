@@ -5,7 +5,7 @@ import {
 } from "@necodoc/shared";
 import { ChartBarIcon, ListMagnifyingGlassIcon } from "@phosphor-icons/react";
 import { keepPreviousData, queryOptions, useQuery } from "@tanstack/react-query";
-import { createFileRoute, Link, redirect, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { z } from "zod";
 import {
   AnalyticsHeader,
@@ -38,7 +38,7 @@ import { EmptyState, Page } from "@/components/page";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { api, ok } from "@/lib/api";
-import { authClient, unwrap } from "@/lib/auth";
+import { authClient, requireAccess, unwrap } from "@/lib/auth";
 import { dayjs } from "@/lib/date";
 import { templatesQuery } from "@/lib/queries";
 import { formatBytes } from "@/lib/utils";
@@ -106,9 +106,7 @@ const percentileSeries = (prefix: "queue" | "run") =>
 
 export const Route = createFileRoute("/_app/admin/analytics/")({
   validateSearch: searchSchema,
-  beforeLoad: ({ context }) => {
-    if (!context.me.user.roles.includes("admin")) throw redirect({ to: "/" });
-  },
+  beforeLoad: ({ context }) => requireAccess(context.me, "admin"),
   component: DocumentAnalytics,
 });
 

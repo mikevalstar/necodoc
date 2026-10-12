@@ -1,7 +1,7 @@
 import type { createServiceAccountSchema } from "@necodoc/shared";
 import { PlusIcon, RobotIcon } from "@phosphor-icons/react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { createFileRoute, Link, redirect, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
 import type { z } from "zod";
 import { DensityToggle } from "@/components/data-table";
@@ -29,6 +29,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { api, ok } from "@/lib/api";
+import { requireAccess } from "@/lib/auth";
 import { dayjs } from "@/lib/date";
 import { cn } from "@/lib/utils";
 import {
@@ -42,9 +43,7 @@ import {
 // outlive the people who set them up.
 
 export const Route = createFileRoute("/_app/admin/service-accounts/")({
-  beforeLoad: ({ context }) => {
-    if (!context.me.user.roles.includes("admin")) throw redirect({ to: "/" });
-  },
+  beforeLoad: ({ context }) => requireAccess(context.me, "admin"),
   component: ServiceAccounts,
 });
 

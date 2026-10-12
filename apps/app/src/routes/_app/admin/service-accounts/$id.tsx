@@ -1,7 +1,7 @@
 import type { updateServiceAccountSchema } from "@necodoc/shared";
 import { KeyIcon, PencilSimpleIcon, ProhibitIcon } from "@phosphor-icons/react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { createFileRoute, redirect } from "@tanstack/react-router";
+import { createFileRoute } from "@tanstack/react-router";
 import type { InferResponseType } from "hono/client";
 import { type ReactNode, useState } from "react";
 import { toast } from "sonner";
@@ -36,6 +36,7 @@ import {
 import { FieldGroup } from "@/components/ui/field";
 import { WebhookSection } from "@/components/webhooks";
 import { api, ok } from "@/lib/api";
+import { requireAccess } from "@/lib/auth";
 import { usePageCrumb } from "@/lib/breadcrumb";
 import { dayjs } from "@/lib/date";
 import {
@@ -48,9 +49,7 @@ import {
 // ADR 0029. One service account: its details, keys and webhooks.
 
 export const Route = createFileRoute("/_app/admin/service-accounts/$id")({
-  beforeLoad: ({ context }) => {
-    if (!context.me.user.roles.includes("admin")) throw redirect({ to: "/" });
-  },
+  beforeLoad: ({ context }) => requireAccess(context.me, "admin"),
   component: ServiceAccount,
 });
 
