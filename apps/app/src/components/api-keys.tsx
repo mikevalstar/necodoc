@@ -183,7 +183,7 @@ export function ApiKeyTable({
             <TableRow key={key.id}>
               {/* Capped below xl, so Status and the menu still fit a tablet. */}
               <TableCell className="max-w-40 xl:max-w-none [&>div]:truncate">
-                <div className="font-medium" title={key.name}>
+                <div className="font-medium" title={key.name ?? undefined}>
                   {key.name}
                 </div>
                 <div className="font-mono text-xs text-ink-3">{key.start}…</div>
