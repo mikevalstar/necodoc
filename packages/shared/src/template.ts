@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { fieldSectionsSchema } from "./fields";
+import { outputOptionsSchema, outputOverridesSchema } from "./output";
 import { overlayContentSchema } from "./overlay";
 import { bandSchema, pageOptionsSchema } from "./render";
 import { signersSchema } from "./signing";
@@ -24,6 +25,8 @@ export type VisualBand = z.infer<typeof visualBandSchema>;
 const templateCss = z.string().max(200_000).default("");
 /** Who signs (docs/features/signing-packages.md); in content too, so versions freeze them. */
 const signers = signersSchema.default([]);
+/** PDF/A, PDF/UA and certification (docs/features/archival-accessible-and-certified-output.md). */
+const output = outputOptionsSchema.default(outputOptionsSchema.parse({}));
 
 /**
  * Visual templates store TipTap JSON (compiled on render); code mode stores the compiled
@@ -37,6 +40,7 @@ export const designedContentSchema = z.discriminatedUnion("mode", [
     footer: visualBandSchema.nullable().default(null),
     css: templateCss,
     signers,
+    output,
   }),
   z.object({
     mode: z.literal("code"),
@@ -45,6 +49,7 @@ export const designedContentSchema = z.discriminatedUnion("mode", [
     footer: bandSchema.nullable().default(null),
     css: templateCss,
     signers,
+    output,
   }),
 ]);
 export type DesignedContent = z.infer<typeof designedContentSchema>;
@@ -56,6 +61,7 @@ export const emptyDesignedContent: DesignedContent = {
   footer: null,
   css: "",
   signers: [],
+  output: outputOptionsSchema.parse({}),
 };
 
 const templateName = z.string().trim().min(1, "Enter a name").max(200);
@@ -136,6 +142,8 @@ export const generateFromTemplateSchema = z.object({
   filename: z.string().trim().min(1).max(200).optional(),
   /** Answer 202 with the generation id at once instead of waiting for the PDF. */
   async: z.boolean().default(false),
+  /** Overrides the template's output settings for this PDF. */
+  output: outputOverridesSchema.optional(),
 });
 
 const timestamps = {

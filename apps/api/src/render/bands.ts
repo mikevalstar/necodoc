@@ -1,4 +1,4 @@
-import { PDFDocument } from "@cantoo/pdf-lib";
+import { beginMarkedContent, endMarkedContent, PDFDocument } from "@cantoo/pdf-lib";
 import type { Band } from "@necodoc/shared";
 import type { Liquid } from "liquidjs";
 import { MM_TO_PT } from "./page";
@@ -30,7 +30,7 @@ export const bandCss = (band: Band) =>
 
 /**
  * Draws band page N onto body page N, `offset` millimetres in from the page's top or bottom
- * edge. Positions come from each page's real size: Chromium rounds page sizes by up to a point.
+ * edge, as an artifact. Positions come from each page's real size: Chromium rounds page sizes by up to a point.
  */
 export async function stampBand(
   body: PDFDocument,
@@ -50,6 +50,10 @@ export async function stampBand(
       edge === "bottom"
         ? offset * MM_TO_PT
         : page.getHeight() - offset * MM_TO_PT - bandPage.height;
+    // Headers and footers are pagination artifacts: outside the structure tree, so a tagged
+    // body stays PDF/UA (ADR 0035). Untagged bodies ignore the marks.
+    page.pushOperators(beginMarkedContent("Artifact"));
     page.drawPage(bandPage, { x: 0, y });
+    page.pushOperators(endMarkedContent());
   });
 }

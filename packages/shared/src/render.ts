@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { outputOptionsSchema } from "./output";
 import { signersSchema, signingRenderOptionsSchema } from "./signing";
 import { themeInputSchema } from "./theme";
 
@@ -59,6 +60,8 @@ export const renderRequestSchema = z
     /** Who signs the `data-sign` boxes (docs/features/signing-packages.md). */
     signers: signersSchema.optional(),
     signing: signingRenderOptionsSchema.optional(),
+    /** PDF/A, PDF/UA and certification (docs/features/archival-accessible-and-certified-output.md). */
+    output: outputOptionsSchema.optional(),
   })
   .refine((r) => !(r.themeId && r.themeDraft), {
     message: "Send themeId or themeDraft, not both",

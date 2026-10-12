@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { outputOptionsSchema, outputProfileSchema } from "./output";
 import { overlayRenderRequestSchema } from "./overlay";
 import { renderRequestSchema } from "./render";
 import { signingPackageSchema } from "./signing";
@@ -128,6 +129,7 @@ export const combineRenderRequestSchema = z.object({
   parts: z.array(z.object({ fileId: z.uuid(), generationId: z.uuid().optional() })).min(1),
   filename: z.string().trim().min(1).max(200).optional(),
   preview: z.boolean().default(false),
+  output: outputOptionsSchema.optional(),
 });
 export type CombineRenderRequest = z.infer<typeof combineRenderRequestSchema>;
 
@@ -146,6 +148,8 @@ export const generationDetailSchema = generationSummarySchema.extend({
   requestId: z.string().nullable(),
   /** Signers and sign boxes (docs/features/signing-packages.md); null without any. */
   signing: signingPackageSchema.nullable(),
+  /** PDF/A, PDF/UA and certification as applied; null when none was asked for. */
+  outputProfile: outputProfileSchema.nullable(),
 });
 export type GenerationDetail = z.infer<typeof generationDetailSchema>;
 

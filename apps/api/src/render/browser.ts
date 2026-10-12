@@ -16,6 +16,8 @@ export type PrintOptions = {
   width: number;
   height: number;
   margins: { top: number; right: number; bottom: number; left: number };
+  /** A tagged PDF with an outline from the headings, for PDF/UA (ADR 0035). */
+  tagged?: boolean;
 };
 
 let browser: Promise<Browser> | null = null;
@@ -79,6 +81,8 @@ export function printPdf(html: string, options: PrintOptions, loadAsset: AssetLo
             left: mm(options.margins.left),
           },
           printBackground: true,
+          tagged: options.tagged ?? false,
+          outline: options.tagged ?? false,
         });
       };
       // Closing the context on timeout also unblocks whatever Chromium was stuck on.

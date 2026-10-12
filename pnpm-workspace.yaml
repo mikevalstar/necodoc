@@ -3,6 +3,7 @@ packages:
   - packages/*
 allowBuilds:
   esbuild: true
+  protobufjs: false
   vue-demi: false
 patchedDependencies:
   '@cantoo/pdf-lib@2.11.1': patches/@cantoo__pdf-lib@2.11.1.patch

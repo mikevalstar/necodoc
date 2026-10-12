@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { outputOptionsSchema } from "./output";
 import type { FieldProblem } from "./compile";
 import { type FieldSection, fieldKeySchema, RESERVED_FIELD_KEYS } from "./fields";
 import { signersSchema, signingKindSchema, signingRenderOptionsSchema } from "./signing";
@@ -128,6 +129,8 @@ export const overlayContentSchema = z.object({
   flatten: z.boolean().default(false),
   /** Who signs the boxes that name a signer (docs/features/signing-packages.md). */
   signers: signersSchema.default([]),
+  /** PDF/A and certification; in content so versions freeze them. */
+  output: outputOptionsSchema.default(outputOptionsSchema.parse({})),
 });
 export type OverlayContent = z.infer<typeof overlayContentSchema>;
 
@@ -198,6 +201,7 @@ export const overlayRenderRequestSchema = z.object({
   flatten: z.boolean(),
   signers: signersSchema.optional(),
   signing: signingRenderOptionsSchema.optional(),
+  output: outputOptionsSchema.optional(),
   data: z.record(z.string(), z.unknown()).default({}),
   filename: z.string().trim().min(1).max(200).optional(),
   preview: z.boolean().default(false),
@@ -207,7 +211,7 @@ export type OverlayRenderRequest = z.infer<typeof overlayRenderRequestSchema>;
 /** A published overlay version's render input, minus the data. */
 export type CompiledOverlay = Pick<
   OverlayRenderRequest,
-  "kind" | "sourceId" | "boxes" | "flatten" | "signers"
+  "kind" | "sourceId" | "boxes" | "flatten" | "signers" | "output"
 >;
 
 // ---------------------------------------------------------------------------------------------

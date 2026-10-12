@@ -1,4 +1,5 @@
 import type { Condition, Field, FieldSection } from "./fields";
+import type { OutputOptions } from "./output";
 import type { Band } from "./render";
 import type { Signer } from "./signing";
 import type { DesignedContent } from "./template";
@@ -278,6 +279,7 @@ export type CompiledTemplate = {
   css?: string;
   partials?: Record<string, string>;
   signers?: Signer[];
+  output?: OutputOptions;
 };
 
 /** Every HTML/Liquid source a compiled template renders: body, then each band's variants. */
@@ -313,6 +315,9 @@ export function compileDesignedContent(
 ): CompiledTemplate {
   const css = content.css ? { css: content.css } : {};
   const signers = content.signers.length ? { signers: content.signers } : {};
+  // Only when something is on, so templates that never set it keep their publish fingerprint.
+  const { pdfa, pdfua, certify } = content.output;
+  const output = pdfa || pdfua || certify ? { output: content.output } : {};
   if (content.mode === "code") {
     return {
       html: content.body,
@@ -320,6 +325,7 @@ export function compileDesignedContent(
       ...(content.footer ? { footer: content.footer } : {}),
       ...css,
       ...signers,
+      ...output,
     };
   }
   const band = (visual: typeof content.header): Band | undefined =>
@@ -338,6 +344,7 @@ export function compileDesignedContent(
     ...(footer ? { footer } : {}),
     ...css,
     ...signers,
+    ...output,
   };
 }
 
@@ -363,6 +370,7 @@ export function toCodeMode(
     footer: band(content.footer),
     css: content.css,
     signers: content.signers,
+    output: content.output,
   };
 }
 
