@@ -66,7 +66,11 @@ product. Users want to see what they've produced.
   - *Sign-in method*: SSO sign-ins are split into OIDC and SAML by the
     provider's configured type; a provider no longer configured shows as SSO.
   - *Share-link conversion*: finished submissions over views, both lifetime
-    per link. A view is a load of the public link page.
+    per link. A view is a load of the public link page. Only submissions
+    started since the link counted views are included, so links older than
+    view counting don't show over 100%.
+  - *API keys used in range*: keys that queued at least one generation in
+    the range, across all keys (the key table lists only the busiest).
 
 ## Acceptance criteria
 
@@ -82,5 +86,7 @@ product. Users want to see what they've produced.
 - API key request counts are lifetime totals from the key's policy row; per-day key use counts generations made with the key, not every call.
 - Sign-ins and failures are only as old as the audit log; active users can't count people who only read pages on a day without signing in.
 - Share-link views are page loads, not unique visitors, and aren't bucketed by time.
+- Links created before view counting shipped count views from then; their earlier responses are left out of conversion (`viewsSince` in [schema.ts](../../apps/api/src/db/schema.ts)). Submissions posted to the public API without loading the page still count, so a link can still pass 100%.
+- "API keys used" sees generations only; a key that only made other calls in the range isn't counted.
 - Role distribution is today's, not historical.
 - Top errors group by exact message, so messages containing ids don't group.

@@ -282,8 +282,10 @@ export const analyticsRoutes = new Hono<AppEnv>()
             ownerName: user.name,
             views: shareLink.views,
             responses: linkResponses(w),
+            // Only responses started once views were counting, so conversion can't pass 100%
+            // because of responses from before then (shareLink.viewsSince).
             lifetimeResponses:
-              sql<number>`count(${submission.id}) filter (where ${submission.status} = 'finished')`.mapWith(
+              sql<number>`count(${submission.id}) filter (where ${submission.status} = 'finished' and ${submission.createdAt} >= ${shareLink.viewsSince})`.mapWith(
                 Number,
               ),
           })
@@ -508,6 +510,8 @@ export const analyticsRoutes = new Hono<AppEnv>()
         role,
         users: roles.get(role) ?? 0,
       })),
+      /** Every key that queued a generation in the range, not just the busiest listed in `keys`. */
+      keysUsed: keyUse.length,
       keys: keys.map((key) => ({
         ...key,
         generations: use.get(key.id)?.generations ?? 0,

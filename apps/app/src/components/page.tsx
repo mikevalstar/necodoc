@@ -69,6 +69,46 @@ export function PageHeader({
   );
 }
 
+/**
+ * A card's title bar: the heading (and a line under it) on the left; a count or other `meta`
+ * and the card's controls on the right. Sits flush at the top of a `Card className="gap-0 py-0"`.
+ */
+export function CardBar({
+  title,
+  description,
+  meta,
+  children,
+  className,
+}: {
+  title: ReactNode;
+  description?: ReactNode;
+  /** Quiet text before the controls, e.g. "3 active of 5". */
+  meta?: ReactNode;
+  /** Filters and buttons; the primary action goes last. */
+  children?: ReactNode;
+  className?: string;
+}) {
+  return (
+    <div
+      className={cn(
+        "flex flex-wrap items-center gap-3 border-b border-hair px-4 py-3.5",
+        className,
+      )}
+    >
+      <div className="min-w-0">
+        <h2 className="font-heading text-[17px] font-bold tracking-tight">{title}</h2>
+        {description && <p className="text-sm text-ink-3">{description}</p>}
+      </div>
+      {(meta || children) && (
+        <div className="ml-auto flex flex-wrap items-center gap-3">
+          {meta && <span className="text-[13px] text-ink-3">{meta}</span>}
+          {children}
+        </div>
+      )}
+    </div>
+  );
+}
+
 function BackAnchor({ className, children, ...props }: ComponentProps<"a">) {
   return (
     <a

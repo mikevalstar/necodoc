@@ -164,7 +164,7 @@ function DocumentAnalytics() {
     <Page>
       <AnalyticsHeader current="documents" />
 
-      <div className="flex flex-wrap items-end gap-3">
+      <div className="flex flex-wrap items-center gap-3">
         <RangeControls
           search={search}
           onChange={(next) => navigate({ search: { ...filters, ...next } })}
@@ -413,7 +413,7 @@ function DocumentAnalytics() {
 
           <ChartCard
             title="Share links"
-            description="Responses in the range; views and conversion (finished responses over page views) are lifetime."
+            description="Responses in the range; views and conversion (finished responses over page views, since the link counted views) are lifetime."
             fetching={fetching}
             csv={{
               filename: "share-links",
@@ -423,7 +423,7 @@ function DocumentAnalytics() {
                 "Owner",
                 "Responses in range",
                 "Views",
-                "Finished responses",
+                "Finished responses since views counted",
                 "Conversion",
               ],
               rows: data.shareLinks.map((l) => [
@@ -497,19 +497,13 @@ function RankedCard({
       csv={{ filename, header, rows: rows.map((row) => row.cells) }}
     >
       <SimpleTable
-        header={[
-          // Sets the name column's minimum; the names inside truncate to whatever it gets.
-          <span key="name" className="inline-block min-w-28">
-            {header[0]}
-          </span>,
-          ...header.slice(1),
-        ]}
+        header={header}
         rows={rows.map(({ key, cells: [name, value, errorCount, ...rest], bar, link }) => [
           <Link
             key={key}
             to="/generations"
             search={{ ...logSearch, ...link }}
-            className="block w-0 min-w-full truncate hover:underline"
+            className="block truncate hover:underline"
             title={String(name)}
           >
             {name}

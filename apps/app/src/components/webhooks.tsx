@@ -13,7 +13,7 @@ import { z } from "zod";
 import { type ApiKeyRow, SecretDialog } from "@/components/api-keys";
 import { ConfirmDialog } from "@/components/confirm-dialog";
 import { ErrorAlert, useAppForm } from "@/components/form";
-import { EmptyState, ListSkeleton } from "@/components/page";
+import { CardBar, EmptyState, ListSkeleton } from "@/components/page";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -126,19 +126,16 @@ export function WebhookSection({
   });
   return (
     <Card className="gap-0 py-0">
-      <div className="flex flex-wrap items-center gap-3 border-b border-hair px-4 py-3.5">
-        <div>
-          <h2 className="font-heading text-[17px] font-bold tracking-tight">Webhooks</h2>
-          <p className="text-sm text-ink-3">
-            Signed HTTPS POSTs when generations and batches finish.
-          </p>
-        </div>
+      <CardBar
+        title="Webhooks"
+        description="Signed HTTPS POSTs when generations and batches finish."
+      >
         {hooks.data && hooks.data.length > 0 && (
-          <Button variant="outline" className="ml-auto" onClick={() => setCreating(true)}>
+          <Button variant="outline" onClick={() => setCreating(true)}>
             Add webhook
           </Button>
         )}
-      </div>
+      </CardBar>
       {(hooks.error ?? toggle.error ?? test.error) && (
         <div className="px-4 pt-4">
           <ErrorAlert error={hooks.error ?? toggle.error ?? test.error} />

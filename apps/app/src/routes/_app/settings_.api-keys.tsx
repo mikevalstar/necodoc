@@ -5,7 +5,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { ApiKeyTable, apiKeysQuery, CreateKeyButton, ExpiryWarning } from "@/components/api-keys";
 import { DensityToggle } from "@/components/data-table";
 import { ErrorAlert } from "@/components/form";
-import { EmptyState, FaqLink, ListSkeleton, Page, PageHeader } from "@/components/page";
+import { CardBar, EmptyState, FaqLink, ListSkeleton, Page, PageHeader } from "@/components/page";
 import { Card } from "@/components/ui/card";
 import { WebhookSection } from "@/components/webhooks";
 
@@ -55,19 +55,12 @@ function ApiKeys() {
       <ErrorAlert error={keys.error} />
       <ExpiryWarning keys={keys.data} />
       <Card className="gap-0 py-0">
-        <div className="flex flex-wrap items-center gap-3 border-b border-hair px-4 py-3.5">
-          <h2 className="font-heading text-[17px] font-bold tracking-tight">Your keys</h2>
-          <div className="ml-auto flex items-center gap-3">
-            {keys.isSuccess && keys.data.length > 0 && (
-              <>
-                <span className="text-[13px] text-ink-3">
-                  {active} active of {keys.data.length}
-                </span>
-                <DensityToggle />
-              </>
-            )}
-          </div>
-        </div>
+        <CardBar
+          title="Your keys"
+          meta={keys.isSuccess && keys.data.length > 0 && `${active} active of ${keys.data.length}`}
+        >
+          {keys.isSuccess && keys.data.length > 0 && <DensityToggle />}
+        </CardBar>
         {keys.isPending ? (
           <ListSkeleton className="p-4" rows={3} />
         ) : (

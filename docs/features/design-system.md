@@ -33,7 +33,9 @@ matches the brand helps self-serve users trust it, and one shared system keeps
 - **Page frame** ([page.tsx](../../apps/app/src/components/page.tsx)): display
   title, one line on the page's purpose, actions on the right; empty states and
   skeletons.
-- **Surfaces**: cards with shadows, not borders, on the lavender canvas.
+- **Surfaces**: cards with shadows, not borders, on the lavender canvas. A card
+  that holds a list opens with one title bar (title, a quiet count, its
+  controls), `CardBar` in page.tsx.
 - **Status**: pills on tinted washes with a dot (ok, warn, bad, running,
   muted), from the [badge](../../apps/app/src/components/ui/badge.tsx).
 - **Next step**: marigold marks the single thing to do next on a screen (the
@@ -50,6 +52,9 @@ matches the brand helps self-serve users trust it, and one shared system keeps
   comfortable rows by default; a compact toggle on the table makes every table
   denser and is remembered in this browser
   ([density.ts](../../apps/app/src/lib/density.ts)).
+  Toolbar filters are compact selects that name themselves ("Any API key"), no
+  stacked labels. A clickable row is a mouse shortcut for the link in its
+  first cell, which is the keyboard path; rows aren't tab stops.
 - **Type and icons**: Bricolage Grotesque for titles and figures, Figtree for
   everything else, Fragment Mono for IDs and code; Phosphor icons.
 - **Accessibility**: text pairs meet WCAG AA in light and dark; every

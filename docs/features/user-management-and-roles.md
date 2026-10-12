@@ -88,11 +88,17 @@ Definitions: [packages/shared/src/roles.ts](../../packages/shared/src/roles.ts),
 - **Admin > Users** ([users.tsx](../../apps/app/src/routes/_app/admin/users.tsx),
   [actions](../../apps/app/src/routes/_app/admin/-user-dialogs.tsx)), shown in the
   nav only to admins:
-  - list and search users (search is case-sensitive), with how each signs in
-    (password, SSO providers)
+  - list people (service accounts have their own page), search by part of
+    the name or email, filter by role and by status (active, pending,
+    banned), sort by name, email or created, and page, all on the server
+    ([admin-users.ts](../../apps/api/src/routes/admin-users.ts)); each row
+    shows how they sign in (password, SSO providers)
+  - a "Waiting for access" card above the list for pending sign-ups (no role
+    yet), oldest first, with Grant access and Delete, and a link to the
+    full pending list when there are more
   - assign and remove roles (several at once)
   - ban with a reason, and unban
-  - revoke a user's sessions
+  - revoke a user's sessions, after a confirm
   - create a user with roles and a password
   - edit another user's name and email. Nobody changes their own email, admins
     included: it is the sign-in identifier and can't be verified yet, so a typo
@@ -101,7 +107,7 @@ Definitions: [packages/shared/src/roles.ts](../../packages/shared/src/roles.ts),
   - set a user's password (form schemas in
     [user.ts](../../packages/shared/src/user.ts))
   - delete a user
-  - impersonate a user, with a visible banner and a way to stop
+  - impersonate a user, after a confirm, with a visible banner and a way to stop
     ([banner](../../apps/app/src/routes/__root.tsx))
   - every action confirms what it did
 - **Guards**, enforced by the API so they hold even against direct API calls

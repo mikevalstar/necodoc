@@ -6,7 +6,6 @@ import {
   setRolesSchema,
   updateUserDetailsSchema,
 } from "@necodoc/shared";
-import type { UserWithRole } from "better-auth/plugins";
 import type { ReactNode } from "react";
 import type { z } from "zod";
 import { ConfirmDialog } from "@/components/confirm-dialog";
@@ -27,7 +26,9 @@ import { authClient, unwrap, useUserMutation } from "@/lib/auth";
 // Admin > Users actions. Spec: docs/features/user-management-and-roles.md
 
 /** `onDone` closes the dialog with a message saying what happened. */
-type DialogProps = { user: UserWithRole; onClose: () => void; onDone: (message: string) => void };
+/** What the dialogs need of a user (the Admin › Users row has more). */
+type DialogUser = { id: string; name: string; email: string; role: string | null };
+type DialogProps = { user: DialogUser; onClose: () => void; onDone: (message: string) => void };
 
 function FormDialog({
   title,

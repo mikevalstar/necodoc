@@ -73,6 +73,7 @@ import { api, ok } from "@/lib/api";
 import { meQuery } from "@/lib/auth";
 import { dayjs } from "@/lib/date";
 import { templatesQuery } from "@/lib/queries";
+import { cn } from "@/lib/utils";
 
 // Spec: docs/features/html-to-pdf-api.md (keys). Shared by Settings › API keys (your own, Developers › API keys),
 // Admin › Service accounts (theirs) and Admin › API keys (everyone's). ADR 0029.
@@ -102,6 +103,26 @@ const expiresSoon = (key: ApiKeyRow) =>
   dayjs(key.expiresAt).diff(dayjs(), "day", true) < EXPIRY_WARNING_DAYS;
 
 type Action = { kind: "rotate" | "revoke"; key: ApiKeyRow };
+
+/** "+N" for the scopes past the first `shown`; the rest are in its title and for screen readers. */
+function MoreScopes({
+  scopes,
+  shown,
+  className,
+}: {
+  scopes: readonly string[];
+  shown: number;
+  className?: string;
+}) {
+  const rest = scopes.slice(shown);
+  if (!rest.length) return null;
+  return (
+    <Badge variant="secondary" className={cn("text-[0.7rem]", className)} title={rest.join(", ")}>
+      +{rest.length}
+      <span className="sr-only">: {rest.join(", ")}</span>
+    </Badge>
+  );
+}
 
 /**
  * The key list with rotate and revoke. `showOwner` for the admin list across owners. With no keys
@@ -146,7 +167,9 @@ export function ApiKeyTable({
             {showOwner && <TableHead className="hidden xl:table-cell">Owner</TableHead>}
             <TableHead>Scopes</TableHead>
             <TableHead className="hidden lg:table-cell">Created</TableHead>
-            <TableHead>Expires</TableHead>
+            <TableHead>
+              Expires<span className="lg:hidden"> · last used</span>
+            </TableHead>
             <TableHead className="hidden lg:table-cell">Last used</TableHead>
             <TableHead className="hidden text-right xl:table-cell">Requests</TableHead>
             <TableHead>Status</TableHead>
@@ -158,8 +181,11 @@ export function ApiKeyTable({
         <TableBody>
           {keys?.map((key) => (
             <TableRow key={key.id}>
-              <TableCell>
-                <div className="font-medium">{key.name}</div>
+              {/* Capped below xl, so Status and the menu still fit a tablet. */}
+              <TableCell className="max-w-40 xl:max-w-none [&>div]:truncate">
+                <div className="font-medium" title={key.name}>
+                  {key.name}
+                </div>
                 <div className="font-mono text-xs text-ink-3">{key.start}…</div>
                 {key.ipAllowlist.length > 0 && (
                   <div className="text-xs text-ink-3" title={key.ipAllowlist.join(", ")}>
@@ -170,7 +196,7 @@ export function ApiKeyTable({
                   // The Owner column is hidden below xl so Status and the menu fit a tablet.
                   <div className="text-xs text-ink-3 xl:hidden">
                     <OwnerName apiKey={key} />
-                    {key.ownerIsService && " (service account)"}
+                    {key.ownerIsService && " · service"}
                   </div>
                 )}
               </TableCell>
@@ -184,22 +210,27 @@ export function ApiKeyTable({
                 </TableCell>
               )}
               <TableCell>
-                <div className="flex max-w-64 flex-wrap gap-1">
-                  {key.scopes.slice(0, SCOPES_SHOWN).map((scope) => (
-                    <Badge key={scope} variant="secondary" className="font-mono text-[0.7rem]">
-                      {scope}
+                {/* One line: one pill below lg, SCOPES_SHOWN from lg, then "+N" for the rest. */}
+                <div className="flex flex-nowrap gap-1">
+                  {key.scopes.slice(0, SCOPES_SHOWN).map((scope, i) => (
+                    <Badge
+                      key={scope}
+                      variant="secondary"
+                      className={cn(
+                        "max-w-28 font-mono text-[0.7rem] lg:max-w-none",
+                        i > 0 && "hidden lg:inline-flex",
+                      )}
+                      title={scope}
+                    >
+                      <span className="truncate">{scope}</span>
                     </Badge>
                   ))}
-                  {key.scopes.length > SCOPES_SHOWN && (
-                    <Badge
-                      variant="secondary"
-                      className="text-[0.7rem]"
-                      title={key.scopes.slice(SCOPES_SHOWN).join(", ")}
-                    >
-                      +{key.scopes.length - SCOPES_SHOWN}
-                      <span className="sr-only">: {key.scopes.slice(SCOPES_SHOWN).join(", ")}</span>
-                    </Badge>
-                  )}
+                  <MoreScopes scopes={key.scopes} shown={1} className="lg:hidden" />
+                  <MoreScopes
+                    scopes={key.scopes}
+                    shown={SCOPES_SHOWN}
+                    className="hidden lg:inline-flex"
+                  />
                 </div>
                 {key.templateIds.length > 0 && (
                   <div className="text-xs text-ink-3">
@@ -224,6 +255,10 @@ export function ApiKeyTable({
                 ) : (
                   <span className="text-ink-3">Never</span>
                 )}
+                {/* Last used is its own column from lg; below that it folds in here. */}
+                <div className="text-xs whitespace-nowrap text-ink-3 lg:hidden">
+                  {key.lastUsedAt ? `Used ${dayjs(key.lastUsedAt).fromNow()}` : "Never used"}
+                </div>
               </TableCell>
               <TableCell className="hidden lg:table-cell">
                 {key.lastUsedAt ? (

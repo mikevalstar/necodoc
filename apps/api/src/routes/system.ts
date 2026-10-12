@@ -169,7 +169,7 @@ export const systemRoutes = new Hono<AppEnv>()
       sql` and `,
     );
     // pg-boss has no listing API, so this reads its job table (schema `pgboss`) directly.
-    const [items, [total], counts] = await Promise.all([
+    const [items, [total], counts, [oldest]] = await Promise.all([
       db.execute<QueueJobRow>(sql`
         select j.id, j.name as queue, j.priority, j.state::text as state,
           g.id as generation_id, g.batch_id, g.status as generation_status, g.filename,
@@ -185,6 +185,11 @@ export const systemRoutes = new Hono<AppEnv>()
       ),
       db.execute<{ queue: string; state: JobState; count: number }>(
         sql`select name as queue, state::text as state, count(*)::int as count from pgboss.job group by 1, 2 order by 1, 2`,
+      ),
+      // The longest wait, whatever page or state view is shown (the queue filter still applies).
+      db.execute<{ at: string | null }>(
+        sql`select ${iso(sql`min(j.created_on)`)} as at from pgboss.job j
+          where j.state in ('created', 'retry') and ${queue ? sql`j.name = ${queue}` : sql`true`}`,
       ),
     ]);
     return c.json({
@@ -205,6 +210,8 @@ export const systemRoutes = new Hono<AppEnv>()
         workerId: row.worker_id,
       })),
       total: total?.count ?? 0,
+      /** When the oldest waiting (created or retry) job was queued; null when nothing waits. */
+      oldestWaitingAt: oldest?.at ?? null,
       /** Every job pg-boss still keeps (completed ones for 7 days), by queue and state. */
       counts: [...counts],
     });

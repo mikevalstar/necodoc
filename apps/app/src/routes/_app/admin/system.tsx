@@ -14,13 +14,18 @@ import {
   useQueryClient,
 } from "@tanstack/react-query";
 import { createFileRoute, redirect } from "@tanstack/react-router";
+import type { InferResponseType } from "hono/client";
 import { type ReactNode, useState } from "react";
+import { toast } from "sonner";
 import { z } from "zod";
+import { StatTile } from "@/components/charts";
+import { ConfirmDialog } from "@/components/confirm-dialog";
 import { ErrorAlert } from "@/components/form";
-import { FaqLink, Page, PageHeader } from "@/components/page";
+import { FaqLink, ListSkeleton, Page, PageHeader } from "@/components/page";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Card, CardFooter } from "@/components/ui/card";
 import { Field, FieldDescription, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { NativeSelect, NativeSelectOption } from "@/components/ui/native-select";
@@ -35,6 +40,7 @@ import {
 } from "@/components/ui/table";
 import { api, ok } from "@/lib/api";
 import { dayjs } from "@/lib/date";
+import { cn, plural } from "@/lib/utils";
 import { formatMs, sourceLabels } from "../generations/-generation-actions";
 
 // Spec: docs/features/render-queue-batch-jobs-and-scaling.md (Admin > System), the retention
@@ -92,32 +98,27 @@ export const Route = createFileRoute("/_app/admin/system")({
   component: System,
 });
 
-const pct = (p: Percentiles) => `${formatMs(p.p50)} / ${formatMs(p.p95)} / ${formatMs(p.p99)}`;
+type SystemData = InferResponseType<typeof api.system.$get, 200>;
+type Process = SystemData["workers"][number];
+
+const tail = (p: Percentiles) => `p95 ${formatMs(p.p95)} · p99 ${formatMs(p.p99)}`;
 
 function System() {
   const { window } = Route.useSearch();
   const navigate = Route.useNavigate();
   const system = useQuery(systemQuery(window));
   const data = system.data;
-  const workersOnline = data?.workers.filter((w) => w.online && w.role !== "api") ?? [];
-  // Restarts leave offline rows behind for a day (the API prunes after 24h); old ones are noise.
-  const [showOld, setShowOld] = useState(false);
-  const recent = dayjs().subtract(STALE_MINUTES, "minute");
-  const isOld = (w: { online: boolean; lastSeen: string }) =>
-    !w.online && dayjs(w.lastSeen).isBefore(recent);
-  const oldCount = data?.workers.filter(isOld).length ?? 0;
-  const processes = data?.workers.filter((w) => showOld || !isOld(w)) ?? [];
 
   return (
     <Page>
       <PageHeader
         title="System"
-        description="Render workers, the queue and render times. Refreshes every 5 seconds."
+        description="Health of the render cluster, the queue and render times, plus cluster-wide settings. Status refreshes every 5 seconds."
         actions={
           <>
             <FaqLink feature="System metrics" />
             <NativeSelect
-              aria-label="Window"
+              aria-label="Metrics window"
               value={window}
               onChange={(e) =>
                 navigate({ search: { window: metricsWindowSchema.parse(e.target.value) } })
@@ -133,8 +134,30 @@ function System() {
         }
       />
       <ErrorAlert error={system.error} />
+      {system.isPending && <ListSkeleton rows={4} />}
+      {data && <Health data={data} window={window} />}
 
-      {data && workersOnline.length === 0 && (
+      <section aria-labelledby="settings-heading" className="space-y-3">
+        <h2 id="settings-heading" className="font-heading text-xl font-bold tracking-tight">
+          Settings
+        </h2>
+        <div className="grid items-start gap-4 lg:grid-cols-2">
+          <PublishingCard />
+          <RetentionCard />
+        </div>
+      </section>
+    </Page>
+  );
+}
+
+function Health({ data, window }: { data: SystemData; window: MetricsWindow }) {
+  const { queue, metrics } = data;
+  const renderers = data.workers.filter((w) => w.online && w.role !== "api");
+  const versions = [...new Set(data.workers.filter((w) => w.online).map((w) => w.version))];
+  const slots = renderers.reduce((sum, w) => sum + w.concurrency, 0);
+  return (
+    <>
+      {renderers.length === 0 && (
         <Alert variant="destructive">
           <AlertTitle>No render workers online</AlertTitle>
           <AlertDescription>
@@ -143,116 +166,242 @@ function System() {
         </Alert>
       )}
 
-      {data && (
-        <>
-          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-            <Stat label="Queued (interactive / batch)">
-              {data.queue.interactive.queued} / {data.queue.batch.queued}
-            </Stat>
-            <Stat label="Running (interactive / batch)">
-              {data.queue.interactive.running} / {data.queue.batch.running}
-            </Stat>
-            <Stat label="Renders per minute">{data.metrics.rendersPerMinute.toFixed(2)}</Stat>
-            <Stat label="Error rate">
-              {data.metrics.errorRate === null
-                ? "—"
-                : `${(data.metrics.errorRate * 100).toFixed(1)}% of ${data.metrics.renders}`}
-            </Stat>
-            <Stat label="Total time p50 / p95 / p99" wide>
-              {pct(data.metrics.totalMs)}
-            </Stat>
-            <Stat label="Queue wait p50 / p95 / p99" wide>
-              {pct(data.metrics.queueWaitMs)}
-            </Stat>
-            <Stat label={`Output storage: ${data.storage.target}`} wide>
-              {data.storage.driver}
-              {data.storage.redirect === "presigned" ? " (presigned redirects)" : ""}
-            </Stat>
-          </div>
-
-          <section className="space-y-2">
-            <h2 className="font-medium">Processes</h2>
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Process</TableHead>
-                  <TableHead>Role</TableHead>
-                  <TableHead>Version</TableHead>
-                  <TableHead>Running</TableHead>
-                  <TableHead>Event-loop lag</TableHead>
-                  <TableHead>Last seen</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {processes.map((w) => (
-                  <TableRow key={w.id} className={w.online ? undefined : "opacity-50"}>
-                    <TableCell className="font-mono text-xs">{w.id}</TableCell>
-                    <TableCell>
-                      <Badge variant={w.online ? "secondary" : "outline"}>
-                        {w.role}
-                        {!w.online && " (offline)"}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>{w.version}</TableCell>
-                    <TableCell>
-                      {w.role === "api" ? "—" : `${w.running} of ${w.concurrency}`}
-                    </TableCell>
-                    <TableCell>{w.eventLoopLagMs} ms</TableCell>
-                    <TableCell>{dayjs(w.lastSeen).fromNow()}</TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-            {oldCount > 0 && (
-              <Button variant="ghost" size="sm" onClick={() => setShowOld(!showOld)}>
-                {showOld
-                  ? "Hide older offline processes"
-                  : `Show ${oldCount} offline ${oldCount === 1 ? "process" : "processes"} last seen over ${STALE_MINUTES} minutes ago`}
-              </Button>
+      <Card size="sm" className="gap-0 py-0">
+        <dl className="grid divide-hair sm:grid-cols-3 sm:divide-x max-sm:divide-y">
+          <StatusItem label="Render workers">
+            {renderers.length ? (
+              <Badge variant="ok" dot>
+                {renderers.length} online
+              </Badge>
+            ) : (
+              <Badge variant="bad" dot>
+                None online
+              </Badge>
             )}
-          </section>
+            {slots > 0 && (
+              <span className="text-sm text-ink-3">{plural(slots, "render slot")}</span>
+            )}
+          </StatusItem>
+          <StatusItem label="Version">
+            {versions.length > 1 ? (
+              <Badge variant="warn" dot>
+                Mixed versions
+              </Badge>
+            ) : null}
+            {versions.map((v) => (
+              <Badge key={v} variant="secondary" className="font-mono">
+                {v}
+              </Badge>
+            ))}
+            {versions.length === 0 && <span className="text-sm text-ink-3">No process online</span>}
+          </StatusItem>
+          <StatusItem label="Output storage">
+            <Badge variant="secondary">{data.storage.driver}</Badge>
+            {data.storage.redirect === "presigned" && (
+              <Badge variant="secondary">Presigned redirects</Badge>
+            )}
+            <span
+              className="min-w-0 truncate font-mono text-xs text-ink-3"
+              title={data.storage.target}
+            >
+              {data.storage.target}
+            </span>
+          </StatusItem>
+        </dl>
+      </Card>
 
-          <div className="grid gap-6 lg:grid-cols-2">
-            <Breakdown
-              title="By source"
-              rows={data.bySource.map((row) => ({
-                ...row,
-                key: row.source,
-                label: sourceLabels[row.source],
-              }))}
-            />
-            <Breakdown
-              title="By template (top 20)"
-              rows={data.byTemplate.map((row) => ({
-                ...row,
-                key: row.templateId,
-                label: row.templateName ?? "Deleted template",
-              }))}
-            />
-          </div>
-        </>
-      )}
+      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+        <StatTile
+          label="Queued"
+          value={queue.interactive.queued + queue.batch.queued}
+          hint={`${queue.interactive.queued} interactive · ${queue.batch.queued} batch`}
+        />
+        <StatTile
+          label="Running"
+          value={queue.interactive.running + queue.batch.running}
+          hint={`${queue.interactive.running} interactive · ${queue.batch.running} batch`}
+        />
+        <StatTile
+          label="Renders per minute"
+          value={metrics.rendersPerMinute.toFixed(2)}
+          hint={`${plural(metrics.renders, "render")} in the ${windowLabels[window].toLowerCase()}`}
+        />
+        <StatTile
+          label="Error rate"
+          value={
+            metrics.errorRate === null ? (
+              "—"
+            ) : (
+              <span className={cn(metrics.errors > 0 && "text-bad")}>
+                {(metrics.errorRate * 100).toFixed(1)}%
+              </span>
+            )
+          }
+          hint={
+            metrics.errorRate === null
+              ? "Nothing finished in this window"
+              : `${plural(metrics.errors, "error")} of ${metrics.renders}`
+          }
+        />
+        <StatTile
+          label="Total time p50"
+          value={formatMs(metrics.totalMs.p50)}
+          hint={tail(metrics.totalMs)}
+        />
+        <StatTile
+          label="Queue wait p50"
+          value={formatMs(metrics.queueWaitMs.p50)}
+          hint={tail(metrics.queueWaitMs)}
+        />
+      </div>
 
-      <PublishingSection />
-      <RetentionSection />
-    </Page>
+      <Processes workers={data.workers} />
+
+      <div className="grid items-start gap-4 lg:grid-cols-2">
+        <Breakdown
+          title="By source"
+          first="Source"
+          rows={data.bySource.map((row) => ({
+            ...row,
+            key: row.source,
+            label: sourceLabels[row.source],
+          }))}
+        />
+        <Breakdown
+          title="By template"
+          description="Top 20 by renders"
+          first="Template"
+          rows={data.byTemplate.map((row) => ({
+            ...row,
+            key: row.templateId,
+            label: row.templateName ?? "Deleted template",
+          }))}
+        />
+      </div>
+    </>
   );
 }
 
-function Stat({ label, wide, children }: { label: string; wide?: boolean; children: ReactNode }) {
+function StatusItem({ label, children }: { label: string; children: ReactNode }) {
   return (
-    <div className={`rounded-lg border p-4 ${wide ? "lg:col-span-2" : ""}`}>
-      <div className="text-xs text-muted-foreground">{label}</div>
-      <div className="text-lg font-semibold">{children}</div>
+    <div className="min-w-0 space-y-1.5 px-4 py-3.5">
+      <dt className="text-[12.5px] font-semibold text-ink-3">{label}</dt>
+      <dd className="flex min-w-0 flex-wrap items-center gap-2">{children}</dd>
     </div>
+  );
+}
+
+/** A card's title row: the heading on the left, controls on the right. */
+function CardBar({
+  title,
+  description,
+  children,
+}: {
+  title: string;
+  description?: ReactNode;
+  children?: ReactNode;
+}) {
+  return (
+    <div className="flex flex-wrap items-center gap-3 border-b border-hair px-4 py-3.5">
+      <div>
+        <h3 className="font-heading text-[17px] font-bold tracking-tight">{title}</h3>
+        {description && <p className="text-sm text-ink-3">{description}</p>}
+      </div>
+      {children && <div className="ml-auto flex flex-wrap items-center gap-3">{children}</div>}
+    </div>
+  );
+}
+
+function Processes({ workers }: { workers: Process[] }) {
+  // Restarts leave offline rows behind for a day (the API prunes after 24h); old ones are noise.
+  const [showOld, setShowOld] = useState(false);
+  const recent = dayjs().subtract(STALE_MINUTES, "minute");
+  const isOld = (w: Process) => !w.online && dayjs(w.lastSeen).isBefore(recent);
+  const oldCount = workers.filter(isOld).length;
+  const shown = workers.filter((w) => showOld || !isOld(w));
+  return (
+    <Card className="gap-0 py-0">
+      <CardBar
+        title="Processes"
+        description="Every API and worker process that has sent a heartbeat."
+      >
+        {oldCount > 0 && (
+          <Button
+            variant="secondary"
+            size="sm"
+            aria-expanded={showOld}
+            onClick={() => setShowOld(!showOld)}
+          >
+            {showOld
+              ? "Hide older offline"
+              : `Show ${oldCount} offline over ${STALE_MINUTES} min ago`}
+          </Button>
+        )}
+      </CardBar>
+      {shown.length === 0 ? (
+        <p className="px-4 py-6 text-center text-sm text-ink-3">No process seen recently.</p>
+      ) : (
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Process</TableHead>
+              <TableHead>Status</TableHead>
+              <TableHead className="max-lg:hidden">Role</TableHead>
+              <TableHead className="max-lg:hidden">Version</TableHead>
+              <TableHead className="text-right">Running</TableHead>
+              <TableHead className="text-right">Event-loop lag</TableHead>
+              <TableHead>Last seen</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {shown.map((w) => (
+              <TableRow key={w.id} className={cn(!w.online && "text-ink-3")}>
+                <TableCell>
+                  <div className="font-mono text-xs">{w.id}</div>
+                  <div className="font-mono text-xs text-ink-3 lg:hidden">
+                    {w.role} · {w.version}
+                  </div>
+                </TableCell>
+                <TableCell>
+                  {w.online ? (
+                    <Badge variant="ok" dot>
+                      Online
+                    </Badge>
+                  ) : (
+                    <Badge variant="secondary" dot>
+                      Offline
+                    </Badge>
+                  )}
+                </TableCell>
+                <TableCell className="max-lg:hidden">
+                  <Badge variant="secondary">{w.role}</Badge>
+                </TableCell>
+                <TableCell className="font-mono text-xs max-lg:hidden">{w.version}</TableCell>
+                <TableCell className="text-right tabular-nums">
+                  {w.role === "api" ? "—" : `${w.running} of ${w.concurrency}`}
+                </TableCell>
+                <TableCell className="text-right tabular-nums">{w.eventLoopLagMs} ms</TableCell>
+                <TableCell title={dayjs(w.lastSeen).format("YYYY-MM-DD HH:mm:ss")}>
+                  {dayjs(w.lastSeen).fromNow()}
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      )}
+    </Card>
   );
 }
 
 function Breakdown({
   title,
+  description,
+  first,
   rows,
 }: {
   title: string;
+  description?: string;
+  first: string;
   rows: {
     key: string;
     label: string;
@@ -263,56 +412,117 @@ function Breakdown({
   }[];
 }) {
   return (
-    <section className="space-y-2">
-      <h2 className="font-medium">{title}</h2>
-      <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead />
-            <TableHead>Renders</TableHead>
-            <TableHead>Errors</TableHead>
-            <TableHead>p50 / p95 total</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {rows.map((row) => (
-            <TableRow key={row.key}>
-              <TableCell>{row.label}</TableCell>
-              <TableCell>{row.renders}</TableCell>
-              <TableCell>{row.errors}</TableCell>
-              <TableCell>
-                {formatMs(row.p50TotalMs)} / {formatMs(row.p95TotalMs)}
-              </TableCell>
-            </TableRow>
-          ))}
-          {rows.length === 0 && (
+    <Card className="gap-0 py-0">
+      <CardBar title={title} description={description} />
+      {rows.length === 0 ? (
+        <p className="px-4 py-6 text-center text-sm text-ink-3">Nothing rendered in this window.</p>
+      ) : (
+        <Table>
+          <TableHeader>
             <TableRow>
-              <TableCell colSpan={4} className="text-center text-muted-foreground">
-                Nothing rendered in this window.
-              </TableCell>
+              <TableHead>{first}</TableHead>
+              <TableHead className="text-right">Renders</TableHead>
+              <TableHead className="text-right">Errors</TableHead>
+              <TableHead className="text-right">p50 / p95</TableHead>
             </TableRow>
-          )}
-        </TableBody>
-      </Table>
-    </section>
+          </TableHeader>
+          <TableBody>
+            {rows.map((row) => (
+              <TableRow key={row.key}>
+                <TableCell className="max-w-0 w-full truncate" title={row.label}>
+                  {row.label}
+                </TableCell>
+                <TableCell className="text-right tabular-nums">{row.renders}</TableCell>
+                <TableCell className={cn("text-right tabular-nums", row.errors > 0 && "text-bad")}>
+                  {row.errors}
+                </TableCell>
+                <TableCell className="text-right whitespace-nowrap tabular-nums">
+                  {formatMs(row.p50TotalMs)} / {formatMs(row.p95TotalMs)}
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      )}
+    </Card>
+  );
+}
+
+/** Each switch saves on change. */
+function PublishingCard() {
+  const queryClient = useQueryClient();
+  const settings = useQuery(publishingQuery);
+  const save = useMutation({
+    mutationFn: async ({ json }: { json: PublishingSettings; key: keyof PublishingSettings }) =>
+      (await ok(api.system.publishing.$put({ json }))).json(),
+    onSuccess: (data, { key }) => {
+      queryClient.setQueryData(publishingQuery.queryKey, data);
+      toast.success(`${publishingLabels[key].label}: ${data[key] ? "on" : "off"}`);
+    },
+  });
+  const current = settings.data;
+  return (
+    <Card className="gap-0 py-0">
+      <CardBar
+        title="Publishing"
+        description="Review and test gates for publishing template versions. Changes save at once."
+      />
+      <div className="space-y-4 px-4 py-4">
+        <ErrorAlert error={settings.error ?? save.error} />
+        {settings.isPending && <ListSkeleton rows={3} />}
+        {current &&
+          publishingSettingsSchema.keyof().options.map((key) => (
+            <Field key={key} orientation="horizontal">
+              <Switch
+                id={`publishing-${key}`}
+                checked={current[key]}
+                disabled={save.isPending}
+                onCheckedChange={(checked) =>
+                  save.mutate({ json: { ...current, [key]: checked }, key })
+                }
+              />
+              <div className="space-y-0.5">
+                <FieldLabel htmlFor={`publishing-${key}`}>{publishingLabels[key].label}</FieldLabel>
+                <FieldDescription>{publishingLabels[key].description}</FieldDescription>
+              </div>
+            </Field>
+          ))}
+      </div>
+    </Card>
   );
 }
 
 const daysInput = (value: string) => (value.trim() === "" ? null : Number(value));
+const daysText = (days: number | null) => days?.toString() ?? "";
 
-function RetentionSection() {
+function RetentionCard() {
   const retention = useQuery(retentionQuery);
-  return retention.data ? (
-    <RetentionForm key={JSON.stringify(retention.data)} saved={retention.data} />
-  ) : (
-    <ErrorAlert error={retention.error} />
+  return (
+    <Card className="gap-0 py-0">
+      <CardBar
+        title="Retention"
+        description="Deletes generated PDFs, and optionally inputs, of generations that finished more than N days ago. Log entries stay. Runs daily at 03:17 UTC."
+      />
+      {retention.data ? (
+        <RetentionForm key={JSON.stringify(retention.data)} saved={retention.data} />
+      ) : (
+        <div className="px-4 py-4">
+          <ErrorAlert error={retention.error} />
+          {retention.isPending && <ListSkeleton rows={2} />}
+        </div>
+      )}
+    </Card>
   );
 }
 
 function RetentionForm({ saved }: { saved: RetentionSettings }) {
   const queryClient = useQueryClient();
-  const [outputDays, setOutputDays] = useState(saved.outputDays?.toString() ?? "");
-  const [inputDays, setInputDays] = useState(saved.inputDays?.toString() ?? "");
+  const [outputDays, setOutputDays] = useState(daysText(saved.outputDays));
+  const [inputDays, setInputDays] = useState(daysText(saved.inputDays));
+  const [confirmRun, setConfirmRun] = useState(false);
+  const dirty =
+    outputDays !== daysText(saved.outputDays) || inputDays !== daysText(saved.inputDays);
+  const nothingToDelete = saved.outputDays === null && saved.inputDays === null;
   const save = useMutation({
     mutationFn: async () =>
       (
@@ -322,96 +532,102 @@ function RetentionForm({ saved }: { saved: RetentionSettings }) {
           }),
         )
       ).json(),
-    onSuccess: (data) => queryClient.setQueryData(retentionQuery.queryKey, data),
+    onSuccess: (data) => {
+      queryClient.setQueryData(retentionQuery.queryKey, data);
+      toast.success("Retention saved");
+    },
   });
   const run = useMutation({
     mutationFn: async () => (await ok(api.system.retention.run.$post())).json(),
+    onSuccess: (data) => {
+      setConfirmRun(false);
+      toast.success(
+        `Deleted ${plural(data.outputsDeleted, "PDF")} and ${plural(data.inputsDeleted, "input")}`,
+      );
+    },
   });
+  const after = (days: number | null, what: string) =>
+    days === null ? null : `${what} older than ${plural(days, "day")}`;
+  const runScope = [after(saved.outputDays, "PDFs"), after(saved.inputDays, "inputs")]
+    .filter(Boolean)
+    .join(" and ");
   return (
-    <section className="space-y-3 rounded-lg border p-4">
-      <div className="space-y-1">
-        <h2 className="font-medium">Retention</h2>
-        <p className="text-sm text-muted-foreground">
-          Deletes generated PDFs, and optionally inputs, of generations that finished more than N
-          days ago. The log entries stay. Runs daily at 03:17 UTC; leave a box empty to keep
-          forever.
-        </p>
+    <form
+      onSubmit={(e) => {
+        e.preventDefault();
+        save.mutate();
+      }}
+    >
+      <div className="space-y-4 px-4 py-4">
+        <div className="grid gap-4 sm:grid-cols-2">
+          <Field>
+            <FieldLabel htmlFor="outputDays">Delete PDFs after (days)</FieldLabel>
+            <Input
+              id="outputDays"
+              type="number"
+              min={1}
+              step={1}
+              inputMode="numeric"
+              placeholder="Keep forever"
+              value={outputDays}
+              onChange={(e) => setOutputDays(e.target.value)}
+            />
+            <FieldDescription>Empty keeps PDFs forever.</FieldDescription>
+          </Field>
+          <Field>
+            <FieldLabel htmlFor="inputDays">Delete inputs after (days)</FieldLabel>
+            <Input
+              id="inputDays"
+              type="number"
+              min={1}
+              step={1}
+              inputMode="numeric"
+              placeholder="Keep forever"
+              value={inputDays}
+              onChange={(e) => setInputDays(e.target.value)}
+            />
+            <FieldDescription>Re-running a generation needs its input.</FieldDescription>
+          </Field>
+        </div>
+        <ErrorAlert error={save.error} />
       </div>
-      <div className="flex flex-wrap items-end gap-3">
-        <Field className="w-auto">
-          <FieldLabel htmlFor="outputDays">Delete PDFs after (days)</FieldLabel>
-          <Input
-            id="outputDays"
-            type="number"
-            min={1}
-            className="w-32"
-            value={outputDays}
-            onChange={(e) => setOutputDays(e.target.value)}
-          />
-        </Field>
-        <Field className="w-auto">
-          <FieldLabel htmlFor="inputDays">Delete inputs after (days)</FieldLabel>
-          <Input
-            id="inputDays"
-            type="number"
-            min={1}
-            className="w-32"
-            value={inputDays}
-            onChange={(e) => setInputDays(e.target.value)}
-          />
-          <FieldDescription>Re-run needs the input.</FieldDescription>
-        </Field>
-        <Button disabled={save.isPending} onClick={() => save.mutate()}>
-          Save
+      <CardFooter className="flex-wrap gap-3 px-4 py-3">
+        <Button type="submit" disabled={!dirty || save.isPending}>
+          {save.isPending ? "Saving…" : "Save"}
         </Button>
-        <Button variant="outline" disabled={run.isPending} onClick={() => run.mutate()}>
+        {dirty && (
+          <span className="text-sm text-ink-3" role="status">
+            Unsaved changes
+          </span>
+        )}
+        <Button
+          type="button"
+          variant="destructive"
+          className="ml-auto"
+          disabled={dirty || nothingToDelete}
+          title={
+            dirty
+              ? "Save first; a run uses the saved settings"
+              : nothingToDelete
+                ? "Nothing is set to expire"
+                : undefined
+          }
+          onClick={() => setConfirmRun(true)}
+        >
           Run now
         </Button>
-      </div>
-      <ErrorAlert error={save.error ?? run.error} />
-      {run.data && (
-        <p className="text-sm text-muted-foreground" role="status">
-          Deleted {run.data.outputsDeleted} PDFs and {run.data.inputsDeleted} inputs.
-        </p>
+      </CardFooter>
+      {confirmRun && (
+        <ConfirmDialog
+          title="Run retention now?"
+          description={`This permanently deletes ${runScope} (by finish time). The log entries stay. It can't be undone.`}
+          confirmLabel="Delete now"
+          pending={run.isPending}
+          error={run.error}
+          onConfirm={() => run.mutate()}
+          onClose={() => setConfirmRun(false)}
+        />
       )}
-    </section>
-  );
-}
-
-/** Each switch saves on change. */
-function PublishingSection() {
-  const queryClient = useQueryClient();
-  const settings = useQuery(publishingQuery);
-  const save = useMutation({
-    mutationFn: async (json: PublishingSettings) =>
-      (await ok(api.system.publishing.$put({ json }))).json(),
-    onSuccess: (data) => queryClient.setQueryData(publishingQuery.queryKey, data),
-  });
-  const current = settings.data;
-  return (
-    <section className="space-y-3 rounded-lg border p-4">
-      <div className="space-y-1">
-        <h2 className="font-medium">Publishing</h2>
-        <p className="text-sm text-muted-foreground">
-          Review and test gates for publishing template versions.
-        </p>
-      </div>
-      <ErrorAlert error={settings.error ?? save.error} />
-      {current &&
-        publishingSettingsSchema.keyof().options.map((key) => (
-          <Field key={key} orientation="horizontal">
-            <Switch
-              id={`publishing-${key}`}
-              checked={current[key]}
-              disabled={save.isPending}
-              onCheckedChange={(checked) => save.mutate({ ...current, [key]: checked })}
-            />
-            <div className="space-y-0.5">
-              <FieldLabel htmlFor={`publishing-${key}`}>{publishingLabels[key].label}</FieldLabel>
-              <FieldDescription>{publishingLabels[key].description}</FieldDescription>
-            </div>
-          </Field>
-        ))}
-    </section>
+    </form>
   );
 }

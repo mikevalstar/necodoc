@@ -193,7 +193,7 @@ Auth0 can sign people in with social logins whose emails nobody verified. Leave 
      "recipient": "https://necodoc.example.com/api/auth/sso/saml2/sp/acs/auth0-saml",
      "destination": "https://necodoc.example.com/api/auth/sso/saml2/sp/acs/auth0-saml",
      "nameIdentifierFormat": "urn:oasis:names:tc:SAML:1.1:nameid-format:emailAddress",
-     "nameIdentifierProbes": ["http://schemas.xmlsoap.org/ws/2005/05/identity/claims/emailaddress"],
+     "nameIdentifierProbes": ["email", "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/emailaddress"],
      "mappings": { "email": "email", "name": "displayName" },
      "passthroughClaimsWithNoMapping": false,
      "mapUnknownClaimsAsIs": false

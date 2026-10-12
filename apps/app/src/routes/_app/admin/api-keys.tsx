@@ -6,10 +6,9 @@ import { z } from "zod";
 import { ApiKeyTable, apiKeysQuery, ExpiryWarning } from "@/components/api-keys";
 import { DensityToggle, FilterSelect } from "@/components/data-table";
 import { ErrorAlert } from "@/components/form";
-import { EmptyState, FaqLink, ListSkeleton, Page, PageHeader } from "@/components/page";
+import { CardBar, EmptyState, FaqLink, ListSkeleton, Page, PageHeader } from "@/components/page";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { CardBar } from "./service-accounts/-shared";
 
 // Spec: docs/features/html-to-pdf-api.md (keys). Every key across people and service accounts.
 const ownerKindSchema = z.enum(["user", "service"]);
@@ -68,7 +67,10 @@ function AdminApiKeys() {
       <ErrorAlert error={keys.error} />
       <ExpiryWarning keys={keys.data} />
       <Card className="gap-0 py-0">
-        <CardBar title="Keys">
+        <CardBar
+          title="Keys"
+          meta={!!keys.data?.length && `${keys.data.length} key${keys.data.length > 1 ? "s" : ""}`}
+        >
           <FilterSelect
             label="Owner"
             any="Any owner"
@@ -86,14 +88,7 @@ function AdminApiKeys() {
               navigate({ search: { ...search, status: apiKeyStatusSchema.safeParse(value).data } })
             }
           />
-          {!!keys.data?.length && (
-            <>
-              <span className="text-[13px] text-ink-3">
-                {keys.data.length} key{keys.data.length > 1 && "s"}
-              </span>
-              <DensityToggle />
-            </>
-          )}
+          {!!keys.data?.length && <DensityToggle />}
         </CardBar>
         {keys.isPending ? (
           <ListSkeleton className="p-4" />

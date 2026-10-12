@@ -90,7 +90,8 @@ function ShareLinkResponses() {
   }
 
   const url = publicLinkUrl(link.token);
-  const conversion = link.views ? Math.round((link.submissions / link.views) * 100) : null;
+  // Over the responses since views started counting (older links have responses from before).
+  const conversion = link.views ? Math.round((link.viewedSubmissions / link.views) * 100) : null;
   const prefilled = Object.keys(link.prefill).length;
   const expired = link.expiresAt !== null && dayjs(link.expiresAt).isBefore(dayjs());
 

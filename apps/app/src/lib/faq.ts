@@ -1,4 +1,5 @@
 import type { Permissions } from "@necodoc/shared";
+import { ssoGuides, trustedHeaderGuides } from "./faq-sso";
 
 // Spec: docs/features/admin-faq.md. Rule: every change that ships, changes or removes a
 // user-visible feature updates its entry here, in the same change. Limitations mirror the
@@ -29,6 +30,23 @@ export type FaqEntry = {
   access: readonly { action: string; needs: Permissions | "admin" }[];
   /** The feature spec, for anyone who wants the detail. */
   spec: `docs/features/${string}.md`;
+  /** Step-by-step setup with copyable examples, for features set up outside the app. */
+  guides?: readonly FaqGuide[];
+};
+
+/** One provider × protocol. Guides with the same `provider` share a tab. */
+export type FaqGuide = {
+  provider: string;
+  protocol: string;
+  steps: readonly string[];
+  examples: readonly FaqExample[];
+};
+
+export type FaqExample = {
+  title: string;
+  lang: "env" | "sh" | "json" | "js";
+  code: string;
+  note?: string;
 };
 
 const view = { document: ["view"] } as const;
@@ -432,7 +450,8 @@ export const faq: readonly FaqEntry[] = [
     feature: "Users and roles",
     group: "Admin",
     what: "Admins create users, set their roles, reset passwords, ban, sign out and impersonate them. Roles add up: admin, publisher, reviewer, editor and viewer. A user with no roles is pending and can only see Settings. The Sign-in column shows whether each person uses a password, single sign-on or both.",
-    howTo: "Open Admin › Users. New sign-ups waiting for a role are listed at the top under Waiting for access; filter the list by role or status (active, pending, banned).",
+    howTo:
+      "Open Admin › Users. New sign-ups waiting for a role are listed at the top under Waiting for access; filter the list by role or status (active, pending, banned).",
     limitations: [
       "There are no invite, verification or password-reset emails; share passwords yourself.",
       "Roles are global; there are no organisations or teams.",
@@ -446,7 +465,7 @@ export const faq: readonly FaqEntry[] = [
     group: "Admin",
     what: "People sign in with their organisation's account over OIDC or SAML: Microsoft Entra ID, Auth0, SiteMinder or any other identity provider. The first sign-in creates their necodoc account. A role map turns IdP groups into necodoc roles and is re-applied at every sign-in; anyone in no mapped group is pending unless default roles are set. Email and password can be turned off. Admin › Users shows how each person signs in.",
     howTo:
-      "The operator sets it in env: SSO_PROVIDERS plus SSO_<ID>_* settings per provider, then restarts. Step-by-step guides with both OIDC and SAML examples for Entra ID, Auth0 and SiteMinder (callback and ACS URLs, claims, role mapping, env vars) are in the developer docs: /self-hosting/sso/ (apps/devdocs/src/content/docs/self-hosting/sso.md).",
+      "The operator sets it in env: SSO_PROVIDERS plus SSO_<ID>_* settings per provider, then restarts. Setup guides for Entra ID, Auth0 and SiteMinder, each over OIDC and SAML, are below: what to set up at the IdP (redirect or ACS URL, entity id, claims and groups), the env block, a role map and how to test. Every setting and the troubleshooting table are in the developer docs: /self-hosting/sso/ (apps/devdocs/src/content/docs/self-hosting/sso.md).",
     limitations: [
       "An existing account with the same email isn't taken over; sign-in is refused unless the provider is set to link existing users.",
       "With a role map, roles you set by hand are replaced at the person's next sign-in.",
@@ -457,13 +476,14 @@ export const faq: readonly FaqEntry[] = [
     ],
     access: [{ action: "Configure (env, by the operator)", needs: "admin" }],
     spec: "docs/features/single-sign-on.md",
+    guides: ssoGuides,
   },
   {
     feature: "Trusted-header sign-in (SiteMinder web agent)",
     group: "Admin",
     what: "For installs behind a SiteMinder web agent or similar proxy: necodoc believes a header such as SM_USER that names the signed-in user, but only on requests from the proxy's addresses. Accounts and roles work as for single sign-on. Off unless configured; the API logs a warning at every start while it's on.",
     howTo:
-      "The operator adds a provider with TYPE=header, the header names and TRUSTED_PROXIES. Guide and checklist: /self-hosting/sso/#trusted-header-mode in the developer docs.",
+      "The operator adds a provider with TYPE=header, the header names and TRUSTED_PROXIES. The SiteMinder setup, env block and a spoofing check are below; the full checklist is at /self-hosting/sso/#trusted-header-mode in the developer docs.",
     limitations: [
       "Anything that can reach necodoc from a trusted proxy address can sign in as anyone. Use SAML or OIDC where you can.",
       "The proxy must strip these headers from client requests, and necodoc must not be reachable around it.",
@@ -471,12 +491,14 @@ export const faq: readonly FaqEntry[] = [
     ],
     access: [{ action: "Configure (env, by the operator)", needs: "admin" }],
     spec: "docs/features/single-sign-on.md",
+    guides: trustedHeaderGuides,
   },
   {
     feature: "Admin FAQ",
     group: "Admin",
     what: "This page: every shipped feature, what it does, how to use it, its limits and who can use it.",
-    howTo: "Search for any word to filter the entries.",
+    howTo:
+      "Search for any word to filter the entries (press / to jump to the search box); matches are highlighted. The category list jumps to a section. The link button next to an entry copies a link that opens this page at it.",
     limitations: ["Kept current by review, not tooling, so it can lag a change."],
     access: [{ action: "Read", needs: "admin" }],
     spec: "docs/features/admin-faq.md",
@@ -579,7 +601,7 @@ export const faq: readonly FaqEntry[] = [
     group: "Admin",
     what: "Retention deletes stored PDFs, and optionally inputs, of entries that finished more than N days ago, keeping the entries themselves. The generation list exports as CSV (metadata only, no inputs or PDFs) with the current filters.",
     howTo:
-      "Set the days under Admin › System › Retention; it runs daily at 03:17 UTC, or press Run now. Export from Generations › Export CSV.",
+      "Set the days under Admin › System › Retention; it runs daily at 03:17 UTC, or press Run now (it asks first and uses the saved days, so save changes before running). Export from Generations › Export CSV.",
     limitations: [
       "Re-running an entry whose input was removed is refused.",
       "The export stops at 100,000 rows.",
@@ -593,14 +615,15 @@ export const faq: readonly FaqEntry[] = [
   {
     feature: "Render queue view",
     group: "Admin",
-    what: "A live list of the jobs in the render queue: what is waiting, running, retrying, or recently failed, with the file, batch, worker and timings for each. It refreshes every few seconds.",
+    what: "A live view of the render queue: how many jobs are waiting, running and failed, how long the oldest has waited, which workers are online and how many of their slots are busy, then the jobs themselves with the file, batch, worker and timings for each. It refreshes every few seconds.",
     howTo:
-      "Open Admin › Queue. Click a state to filter by it, or pick a queue. Pause refresh to read in peace. Cancel removes a waiting job, or drops the result of a running one.",
+      "Open Admin › Queue. Click a state above the list to filter by it, or pick a queue. Pause updates to read in peace. Cancel (it asks first) removes a waiting job, or drops the result of a running one. Re-run on a failed job renders the same input again as a new entry.",
     limitations: [
       "It reads the queue library's job table directly, so it may need a fix after a library upgrade.",
       "Cancelling a running job doesn't stop the browser: the render finishes, but its result is thrown away and the generation shows as cancelled.",
       "The list has a fixed order (running first, then by priority and age) and can't be sorted.",
       "Completed jobs are only kept by the queue for 7 days.",
+      "Oldest waiting is worked out from the jobs on the current page, so with more jobs than fit on a page it can miss older ones.",
     ],
     access: [{ action: "View and cancel jobs", needs: "admin" }],
     spec: "docs/features/render-queue-batch-jobs-and-scaling.md",
@@ -1088,7 +1111,7 @@ export const faq: readonly FaqEntry[] = [
     group: "Admin",
     what: "Finds everything necodoc stores about one person and deletes it on request: generations (their input and PDF, including the file in storage), packets built from them, webhook delivery logs, signed-link records, documents and share-link responses. Generations can carry a subject key (an email or customer number) given when they're generated; share-link responses use the respondent's email. You get an erasure report, and the audit log records the erasure with counts only.",
     howTo:
-      "Admin › Data subjects: search an email, name or identifier, untick anything that isn't this person, then Erase selected and confirm. Download the report as JSON for your records. API callers should send `subject` on render and generate calls so their documents can be found.",
+      "Admin › Data subjects: search an email, name or identifier, untick anything that isn't this person (packets built from a match are listed separately), then Erase selected and type erase to confirm. Download the report as JSON for your records. API callers should send `subject` on render and generate calls so their documents can be found.",
     limitations: [
       "Matches are exact whole values, ignoring case: misspellings and values inside longer text (such as an HTML API body) aren't found.",
       "The audit log and shipped server logs can't be erased; masking sensitive fields is what keeps personal data out of them.",

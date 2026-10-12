@@ -123,7 +123,7 @@ const GAP = 2;
 
 /** Rounded top corners, square at the baseline. */
 function columnPath(x: number, y: number, w: number, h: number) {
-  const r = Math.min(4, w / 2, h);
+  const r = Math.min(6, w / 2, h);
   return `M${x},${y + h}V${y + r}Q${x},${y} ${x + r},${y}H${x + w - r}Q${x + w},${y} ${x + w},${y + r}V${y + h}Z`;
 }
 
@@ -161,7 +161,8 @@ export function TimeChart<K extends string>({
   const top = ticks.at(-1) ?? 1;
   const y = (v: number) => MARGIN.top + PLOT_HEIGHT - (v / top) * PLOT_HEIGHT;
   const xCenter = (i: number) => MARGIN.left + band * (i + 0.5);
-  const columnWidth = Math.min(24, Math.max(band - GAP * 2, 1));
+  // A proportional gap (like the home "Renders today" bars) so 90 buckets still read as columns.
+  const columnWidth = Math.min(28, Math.max(band * 0.72, 2));
   const labelEvery = Math.max(
     1,
     Math.ceil(buckets.length / Math.max(1, Math.floor(plotWidth / 72))),
@@ -220,7 +221,7 @@ export function TimeChart<K extends string>({
                   y={y(tick)}
                   dy="0.32em"
                   textAnchor="end"
-                  className="fill-muted-foreground text-[10px] tabular-nums"
+                  className="fill-ink-3 text-[10px] tabular-nums"
                 >
                   {format(tick)}
                 </text>
@@ -233,7 +234,7 @@ export function TimeChart<K extends string>({
                   x={xCenter(i)}
                   y={MARGIN.top + PLOT_HEIGHT + 16}
                   textAnchor="middle"
-                  className="fill-muted-foreground text-[10px] tabular-nums"
+                  className="fill-ink-3 text-[10px] tabular-nums"
                 >
                   {dayjs(t).format(tickFormats[data.bucket])}
                 </text>
@@ -368,24 +369,24 @@ export function TimeChart<K extends string>({
                 : { left: xCenter(active ?? 0) + 12 }
             }
           >
-            <div className="mb-1 text-muted-foreground">{formatBucket(data.bucket, activeT)}</div>
+            <div className="mb-1 text-ink-3">{formatBucket(data.bucket, activeT)}</div>
             {[...series].reverse().map((s) => {
               const v = activeValues.get(s.key);
               return (
                 <div key={s.key} className="flex items-center gap-2">
                   <span className="h-0.5 w-3 rounded-full" style={{ background: s.color }} />
                   <span className="font-semibold tabular-nums">{v == null ? "—" : format(v)}</span>
-                  <span className="text-muted-foreground">{s.label}</span>
+                  <span className="text-ink-3">{s.label}</span>
                 </div>
               );
             })}
             {kind === "stacked" && series.length > 1 && active !== null && (
               <div className="mt-1 border-t border-hair pt-1 tabular-nums">
                 <span className="font-semibold">{format(stackTotal(active))}</span>{" "}
-                <span className="text-muted-foreground">total</span>
+                <span className="text-ink-3">total</span>
               </div>
             )}
-            {onSelect && <div className="mt-1 text-muted-foreground">Click to open the log</div>}
+            {onSelect && <div className="mt-1 text-ink-3">Click to open the log</div>}
           </div>
         )}
       </div>
@@ -401,7 +402,7 @@ function Legend<K extends string>({
   kind: "stacked" | "line";
 }) {
   return (
-    <ul className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground">
+    <ul className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-ink-3">
       {series.map((s) => (
         <li key={s.key} className="flex items-center gap-1.5">
           <span
@@ -471,24 +472,25 @@ export function ChartCard({
       <div className="flex items-start justify-between gap-2">
         <figcaption className="space-y-0.5">
           <div className="font-heading text-[17px] font-bold tracking-tight">{title}</div>
-          {description && <div className="text-xs text-muted-foreground">{description}</div>}
+          {description && <div className="text-xs text-ink-3">{description}</div>}
         </figcaption>
         <div className="flex shrink-0 gap-1">
-          {table && (
+          {table && table.rows.length > 0 && (
             <Button
               variant="ghost"
               size="sm"
-              aria-pressed={showTable}
+              aria-label={`Show ${title} as a ${showTable ? "chart" : "table"}`}
               onClick={() => setShowTable((value) => !value)}
             >
               <TableIcon />
               {showTable ? "Chart" : "Table"}
             </Button>
           )}
-          {csv && (
+          {csv && csv.rows.length > 0 && (
             <Button
               variant="ghost"
               size="sm"
+              aria-label={`Download ${title} as CSV`}
               onClick={() => downloadCsv(csv.filename, [csv.header, ...csv.rows])}
             >
               <DownloadSimpleIcon />
@@ -498,7 +500,7 @@ export function ChartCard({
         </div>
       </div>
       <div className={cn("transition-opacity", fetching && "opacity-60")}>
-        {showTable && table ? (
+        {showTable && table?.rows.length ? (
           <div className="max-h-80 overflow-auto">
             <SimpleTable header={table.header} rows={table.rows} />
           </div>
@@ -520,8 +522,7 @@ export function SimpleTable({
   rows: readonly (readonly ReactNode[])[];
   empty?: string;
 }) {
-  if (!rows.length)
-    return <p className="py-6 text-center text-sm text-muted-foreground">{empty}</p>;
+  if (!rows.length) return <p className="py-6 text-center text-sm text-ink-3">{empty}</p>;
   return (
     <Table>
       <TableHeader>
@@ -542,7 +543,12 @@ export function SimpleTable({
               <TableCell
                 // biome-ignore lint/suspicious/noArrayIndexKey: fixed columns
                 key={i}
-                className={cn(i > 0 && "text-right tabular-nums", i === 0 && "max-w-72 truncate")}
+                // The first column takes the slack and truncates, so ranked tables fit half cards.
+                className={cn(
+                  i > 0 && "text-right tabular-nums",
+                  i === 0 && "w-full max-w-0 truncate",
+                )}
+                title={i === 0 && typeof cell === "string" ? cell : undefined}
               >
                 {typeof cell === "number" ? cell.toLocaleString() : (cell ?? "—")}
               </TableCell>
@@ -584,7 +590,7 @@ export function StatTile({
       <div className="mt-1 font-heading text-[26px] leading-tight font-extrabold tracking-tight tabular-nums">
         {value}
       </div>
-      {hint && <div className="text-xs text-muted-foreground">{hint}</div>}
+      {hint && <div className="text-xs text-ink-3">{hint}</div>}
     </div>
   );
 }

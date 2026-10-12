@@ -39,6 +39,8 @@ const DOWNLOAD_SECONDS = 24 * 60 * 60;
 const submitLimit = tokenBucket({ capacity: 10, refillMs: 60_000 });
 
 const submissionCount = sql<number>`(select count(*) from ${submission} where ${submission.shareLinkId} = ${shareLink.id})`;
+/** Responses since views started counting (shareLink.viewsSince), for conversion. */
+const viewedCount = sql<number>`(select count(*) from ${submission} where ${submission.shareLinkId} = ${shareLink.id} and ${submission.createdAt} >= ${shareLink.viewsSince})`;
 const unseenCount = sql<number>`(select count(*) from ${submission} where ${submission.shareLinkId} = ${shareLink.id} and ${submission.createdAt} > ${shareLink.seenAt})`;
 
 const linkColumns = {
@@ -47,6 +49,7 @@ const linkColumns = {
   version: templateVersion.version,
   submissions: submissionCount.mapWith(Number),
   unseen: unseenCount.mapWith(Number),
+  viewedSubmissions: viewedCount.mapWith(Number),
 };
 
 const selectLinks = () =>

@@ -144,7 +144,7 @@ function AccessAnalytics() {
   return (
     <Page>
       <AnalyticsHeader current="access" />
-      <div className="flex flex-wrap items-end gap-3">
+      <div className="flex flex-wrap items-center gap-3">
         <RangeControls search={search} onChange={(next) => navigate({ search: next })} />
         <Button
           variant="outline"
@@ -184,8 +184,8 @@ function AccessAnalytics() {
             />
             <StatTile
               label="API keys used in range"
-              value={data.keys.filter((key) => key.generations > 0).length}
-              hint={`Among the ${data.keys.length} busiest keys`}
+              value={formatCount(data.keysUsed)}
+              hint="Queued at least one generation"
             />
           </div>
 
@@ -296,20 +296,14 @@ function AccessAnalytics() {
               }}
             >
               <SimpleTable
-                header={[
-                  <span key="email" className="inline-block min-w-32">
-                    Email
-                  </span>,
-                  "Failures",
-                  "Last",
-                ]}
+                header={["Email", "Failures", "Last"]}
                 rows={data.failures.emails.map((r) => [
                   r.email ? (
                     <Link
                       key="link"
                       to="/admin/audit"
                       search={{ action: "auth.sign_in_failed", q: r.email, ...days }}
-                      className="block w-0 min-w-full truncate hover:underline"
+                      className="block truncate hover:underline"
                       title={r.email}
                     >
                       {r.email}
@@ -468,21 +462,13 @@ function ApiKeysCard({
       }}
     >
       <SimpleTable
-        header={[
-          <span key="name" className="inline-block min-w-40">
-            Key · owner
-          </span>,
-          "Requests",
-          "Last used",
-          "Generations",
-          "Errors",
-        ]}
+        header={["Key · owner", "Requests", "Last used", "Generations", "Errors"]}
         rows={shown.map((k) => [
           <Link
             key="link"
             to="/generations"
             search={{ apiKeyId: k.id, ...days }}
-            className="block w-0 min-w-full truncate hover:underline"
+            className="block truncate hover:underline"
           >
             {k.name ?? k.id}{" "}
             <span className="text-ink-3">

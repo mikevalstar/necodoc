@@ -445,6 +445,11 @@ export const shareLink = pgTable("share_link", {
   disabledAt: timestamp({ withTimezone: true }),
   /** Loads of the public page, lifetime (docs/features/analytics-dashboards.md: conversion). */
   views: integer().default(0).notNull(),
+  /**
+   * When `views` started counting for this link: its creation, or when view counting shipped for
+   * older links. Conversion only counts responses from then on, so it isn't inflated.
+   */
+  viewsSince: timestamp({ withTimezone: true }).defaultNow().notNull(),
   /** When the owner last opened the responses; later ones count as unseen. */
   seenAt: timestamp({ withTimezone: true }).defaultNow().notNull(),
   createdAt,

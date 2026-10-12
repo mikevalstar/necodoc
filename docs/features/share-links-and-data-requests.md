@@ -42,7 +42,8 @@ replaces.
   chrome beyond the necodoc mark. Progress is kept in the browser until submit.
   Query parameters named after unlocked fields prefill them
   (`?client_name=Acme`), so one link can be personalised per recipient.
-  Each load of the page counts as a view, for conversion in the
+  Each load of the page counts as a view, for conversion (responses since the
+  link started counting views, over views) on the link page and in the
   [analytics dashboards](analytics-dashboards.md).
 - **Submit.** The API validates the answers, generates the PDF (logged with
   source "share link" in the [generation log](generation-log.md)), and stores

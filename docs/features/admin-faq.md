@@ -26,6 +26,9 @@ work. Admins need the shipped truth inside the app.
 - One entry per shipped feature: name, what it does (a few sentences), known
   limitations, and who can use it (roles).
 - Searchable, and grouped the same way the app's nav is.
+- Entries an operator has to set up outside the app (such as
+  [single sign-on](single-sign-on.md)) can carry setup guides: steps per
+  provider and protocol, with copyable config examples. Search covers them.
 - Pages show admins a Help link next to a feature with an entry; it opens the
   FAQ at that entry (`/admin/faq?entry=<feature>`), see
   [App shell and navigation](app-shell-and-navigation.md).

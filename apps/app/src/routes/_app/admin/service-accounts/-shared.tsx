@@ -1,6 +1,5 @@
 import { type Role, roleSchema, updateServiceAccountSchema } from "@necodoc/shared";
 import { queryOptions } from "@tanstack/react-query";
-import type { ReactNode } from "react";
 import { useFieldContext } from "@/components/form";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -64,26 +63,5 @@ export function AccountStatusBadge({ disabled }: { disabled: boolean }) {
     <Badge variant="ok" dot>
       Active
     </Badge>
-  );
-}
-
-/** A card's title row: the heading on the left, counts and controls on the right. */
-export function CardBar({
-  title,
-  description,
-  children,
-}: {
-  title: string;
-  description?: ReactNode;
-  children?: ReactNode;
-}) {
-  return (
-    <div className="flex flex-wrap items-center gap-3 border-b border-hair px-4 py-3.5">
-      <div>
-        <h2 className="font-heading text-[17px] font-bold tracking-tight">{title}</h2>
-        {description && <p className="text-sm text-ink-3">{description}</p>}
-      </div>
-      {children && <div className="ml-auto flex flex-wrap items-center gap-3">{children}</div>}
-    </div>
   );
 }

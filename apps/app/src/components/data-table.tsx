@@ -38,6 +38,8 @@ import { cn } from "@/lib/utils";
 // A server-side table: the server sorts, filters and pages; the URL holds the table state (so
 // views are shareable and back/forward work); TanStack Table only owns columns and visibility.
 // Filters are the page's own controls, passed in as `toolbar`.
+// Clickable rows: `onRowClick` is a mouse shortcut only. The keyboard and screen-reader path is a
+// link in the row's first cell to the same place (generations, audit), so rows aren't tab stops.
 
 export const dataTableFeatures = tableFeatures({
   columnVisibilityFeature,
@@ -113,7 +115,10 @@ export function DataTable<TData extends RowData, TSort extends string>({
   /** Filters, shown left of the Columns menu. */
   toolbar?: ReactNode;
   empty?: ReactNode;
-  /** Clicks on links, buttons and inputs inside the row don't count. */
+  /**
+   * A mouse shortcut for the link in the row's first cell, which must go to the same place (the
+   * keyboard path). Clicks on links, buttons and inputs inside the row don't count.
+   */
   onRowClick?: (row: TData) => void;
   /** A trailing cell per row, e.g. an actions menu. */
   rowActions?: (row: TData) => ReactNode;
@@ -261,13 +266,13 @@ export function DataTable<TData extends RowData, TSort extends string>({
               </TableRow>
             ))}
             {rows?.length === 0 && (
-              <StatusRow colSpan={colSpan} className="text-muted-foreground">
+              <StatusRow colSpan={colSpan} className="text-ink-3">
                 {empty}
               </StatusRow>
             )}
             {!rows &&
               (error ? (
-                <StatusRow colSpan={colSpan} className="text-destructive">
+                <StatusRow colSpan={colSpan} className="text-bad">
                   Couldn't load {noun}s: {error.message}
                 </StatusRow>
               ) : (
@@ -414,26 +419,34 @@ export function DebouncedInput({
 /** Marks a toolbar filter that's set, like the mockup's chips. Inputs use it too. */
 export const activeFilter = "border-transparent bg-sun-wash text-sun-ink";
 
+/** "Target type" → "target type", but "API key" stays "API key". */
+const lowerFirst = (label: string) =>
+  /^\p{Lu}{2}/u.test(label) ? label : label.charAt(0).toLowerCase() + label.slice(1);
+
 /**
  * A compact toolbar filter: "Any <label>" or one option. The first option names the filter, so
  * there's no visible label; a set filter is tinted.
  */
 export function FilterSelect({
   label,
-  any = `Any ${label.toLowerCase()}`,
+  any = `Any ${lowerFirst(label)}`,
+  size = "default",
   value,
   options,
   onChange,
 }: {
   label: string;
-  /** The empty option; defaults to "Any <label>". */
+  /** The empty option; defaults to "Any <label>" (first letter lowered unless it's an acronym). */
   any?: string;
+  /** "sm" (32px) beside other small toolbar controls. */
+  size?: "default" | "sm";
   value: string | undefined;
   options: { value: string; label: string }[];
   onChange: (value: string) => void;
 }) {
   return (
     <NativeSelect
+      size={size}
       aria-label={label}
       title={label}
       className={cn(

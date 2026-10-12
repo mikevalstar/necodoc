@@ -2,7 +2,6 @@ import type { AnalyticsBucket, AnalyticsRange } from "@necodoc/shared";
 import { Link } from "@tanstack/react-router";
 import { z } from "zod";
 import { FaqLink, PageHeader } from "@/components/page";
-import { Field, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { NativeSelect, NativeSelectOption } from "@/components/ui/native-select";
 import { dayjs } from "@/lib/date";
@@ -76,49 +75,47 @@ export function RangeControls({
 }) {
   const custom = search.range === "custom";
   const current = logDays(toRange(search).from, toRange(search).to);
+  // Compact like FilterSelect: the controls name themselves, no stacked labels.
   return (
     <>
-      <Field className="w-auto">
-        <FieldLabel htmlFor="range">Date range</FieldLabel>
-        <NativeSelect
-          id="range"
-          value={search.range}
-          onChange={(e) => {
-            const range = presetSchema.parse(e.target.value);
-            // Switching to custom starts from the range on screen.
-            onChange(range === "custom" ? { range, ...current } : { range });
-          }}
-        >
-          {presetSchema.options.map((value) => (
-            <NativeSelectOption key={value} value={value}>
-              {presets[value]}
-            </NativeSelectOption>
-          ))}
-        </NativeSelect>
-      </Field>
+      <NativeSelect
+        aria-label="Date range"
+        title="Date range"
+        value={search.range}
+        onChange={(e) => {
+          const range = presetSchema.parse(e.target.value);
+          // Switching to custom starts from the range on screen.
+          onChange(range === "custom" ? { range, ...current } : { range });
+        }}
+      >
+        {presetSchema.options.map((value) => (
+          <NativeSelectOption key={value} value={value}>
+            {presets[value]}
+          </NativeSelectOption>
+        ))}
+      </NativeSelect>
       {custom && (
-        <>
-          <Field className="w-auto">
-            <FieldLabel htmlFor="range-from">From</FieldLabel>
-            <Input
-              id="range-from"
-              type="date"
-              value={search.from ?? ""}
-              max={search.to}
-              onChange={(e) => onChange({ ...search, from: e.target.value || current.from })}
-            />
-          </Field>
-          <Field className="w-auto">
-            <FieldLabel htmlFor="range-to">To</FieldLabel>
-            <Input
-              id="range-to"
-              type="date"
-              value={search.to ?? ""}
-              min={search.from}
-              onChange={(e) => onChange({ ...search, to: e.target.value || current.to })}
-            />
-          </Field>
-        </>
+        <span className="flex items-center gap-2 text-sm text-ink-3">
+          <Input
+            aria-label="From"
+            title="From"
+            type="date"
+            className="w-auto"
+            value={search.from ?? ""}
+            max={search.to}
+            onChange={(e) => onChange({ ...search, from: e.target.value || current.from })}
+          />
+          to
+          <Input
+            aria-label="To"
+            title="To"
+            type="date"
+            className="w-auto"
+            value={search.to ?? ""}
+            min={search.from}
+            onChange={(e) => onChange({ ...search, to: e.target.value || current.to })}
+          />
+        </span>
       )}
     </>
   );
@@ -138,16 +135,19 @@ export function AnalyticsHeader({ current }: { current: (typeof tabs)[number]["k
         description="Counted from the generation log, the audit log, share links and users when the page loads."
         actions={<FaqLink feature="Analytics dashboards" />}
       />
-      <nav aria-label="Analytics" className="flex gap-4 border-b text-sm">
+      {/* The tint segmented look of ui/tabs, as links. */}
+      <nav aria-label="Analytics" className="inline-flex h-10 gap-0.5 rounded-xl bg-tint p-1">
         {tabs.map((tab) => (
           <Link
             key={tab.key}
             to={tab.to}
+            activeOptions={{ exact: true }}
+            aria-current={tab.key === current ? "page" : undefined}
             className={cn(
-              "-mb-px border-b-2 pb-2",
+              "inline-flex items-center rounded-[9px] px-3 text-[13px] font-semibold whitespace-nowrap",
               tab.key === current
-                ? "border-primary font-medium"
-                : "border-transparent text-muted-foreground hover:text-foreground",
+                ? "bg-surface text-foreground shadow-card"
+                : "text-ink-2 hover:text-foreground",
             )}
           >
             {tab.label}

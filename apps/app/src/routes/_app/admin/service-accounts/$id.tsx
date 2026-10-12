@@ -11,7 +11,15 @@ import { HistoryPanel } from "@/components/audit";
 import { ConfirmDialog } from "@/components/confirm-dialog";
 import { DensityToggle } from "@/components/data-table";
 import { ErrorAlert, useAppForm } from "@/components/form";
-import { BackLink, EmptyState, FaqLink, ListSkeleton, Page, PageHeader } from "@/components/page";
+import {
+  BackLink,
+  CardBar,
+  EmptyState,
+  FaqLink,
+  ListSkeleton,
+  Page,
+  PageHeader,
+} from "@/components/page";
 import { RoleBadges } from "@/components/role-badges";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
@@ -32,7 +40,6 @@ import { usePageCrumb } from "@/lib/breadcrumb";
 import { dayjs } from "@/lib/date";
 import {
   AccountStatusBadge,
-  CardBar,
   ServiceRolesField,
   serviceAccountFormSchema,
   serviceAccountsQuery,
@@ -151,15 +158,9 @@ function ServiceAccount() {
         <CardBar
           title="API keys"
           description="They act as this account, with scopes up to its roles."
+          meta={!!keys.data?.length && `${activeKeys} active of ${keys.data.length}`}
         >
-          {!!keys.data?.length && (
-            <>
-              <span className="text-[13px] text-ink-3">
-                {activeKeys} active of {keys.data.length}
-              </span>
-              <DensityToggle />
-            </>
-          )}
+          {!!keys.data?.length && <DensityToggle />}
           {data && !data.disabled && !!keys.data?.length && (
             <CreateKeyButton ownerId={id} ownerRoles={data.roles} />
           )}

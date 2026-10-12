@@ -1,5 +1,14 @@
-import { parseRoles, type Role, roleSchema } from "@necodoc/shared";
 import {
+  type AdminUserSort,
+  adminUserSortSchema,
+  parseRoles,
+  type Role,
+  roleSchema,
+  userStatusSchema,
+} from "@necodoc/shared";
+import {
+  ArrowDownIcon,
+  ArrowUpIcon,
   CaretLeftIcon,
   CaretRightIcon,
   DotsThreeIcon,
@@ -10,8 +19,8 @@ import {
 } from "@phosphor-icons/react";
 import { keepPreviousData, queryOptions, useMutation, useQuery } from "@tanstack/react-query";
 import { createFileRoute, redirect, useNavigate } from "@tanstack/react-router";
-import type { UserWithRole } from "better-auth/plugins";
-import { useState } from "react";
+import type { InferResponseType } from "hono/client";
+import { type ReactNode, useState } from "react";
 import { toast } from "sonner";
 import { z } from "zod";
 import { ConfirmDialog } from "@/components/confirm-dialog";
@@ -29,7 +38,6 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { NativeSelect, NativeSelectOption } from "@/components/ui/native-select";
 import {
   Table,
   TableBody,
@@ -51,103 +59,49 @@ import {
   SetPasswordDialog,
 } from "./-user-dialogs";
 
-// Spec: docs/features/user-management-and-roles.md
+// Spec: docs/features/user-management-and-roles.md. The list comes from GET /api/admin/users
+// (people only, filtered and paged in Postgres); changes go through Better Auth's admin client.
 const PAGE_SIZE = 20;
-/** Filtered views are refined in the browser (see usersQuery), over at most this many matches. */
-const FILTER_LIMIT = 1000;
 /** Pending users shown in the "Waiting for access" card before it links to the full list. */
 const PENDING_SHOWN = 5;
 
-const statusSchema = z.enum(["active", "pending", "banned"]);
-type Status = z.infer<typeof statusSchema>;
-
 const searchSchema = z.object({
   q: z.string().optional(),
-  field: z.enum(["name", "email"]).default("email"),
   role: roleSchema.optional(),
-  status: statusSchema.optional(),
+  status: userStatusSchema.optional(),
+  sort: adminUserSortSchema.default("createdAt"),
+  order: z.enum(["asc", "desc"]).default("desc"),
   page: z.number().int().min(1).default(1),
 });
 
 type UsersSearch = z.infer<typeof searchSchema>;
+type AdminUser = InferResponseType<(typeof api)["admin"]["users"]["$get"], 200>["users"][number];
 
-const statusOf = (user: UserWithRole): Status =>
-  user.banned ? "banned" : parseRoles(user.role).length === 0 ? "pending" : "active";
+const listUsers = async (query: Parameters<(typeof api)["admin"]["users"]["$get"]>[0]["query"]) =>
+  (await ok(api.admin.users.$get({ query }))).json();
 
-// Service accounts have their own page (ADR 0029). The API returns the flag; Better Auth's type doesn't know it.
-const isServiceAccount = (user: UserWithRole) =>
-  "serviceAccount" in user && user.serviceAccount === true;
-
-type ListQuery = NonNullable<Parameters<typeof authClient.admin.listUsers>[0]>["query"];
-type Filter = Pick<ListQuery, "filterField" | "filterValue" | "filterOperator">;
-
-async function listUsers(query: ListQuery) {
-  const result = await unwrap(authClient.admin.listUsers({ query }));
-  return { users: result?.users ?? [], total: result?.total ?? 0 };
-}
-
-/**
- * Better Auth's listUsers takes a single filter, and the unfiltered list spends it on hiding
- * service accounts. A role or status view spends it on the narrowest condition instead, then the
- * browser drops service accounts, applies the rest exactly (role "viewer" is a substring of
- * "reviewer") and pages the result.
- */
-function serverFilter({ role, status }: UsersSearch): Filter {
-  if (status === "pending") return { filterField: "role", filterValue: "", filterOperator: "eq" };
-  if (status === "banned")
-    return { filterField: "banned", filterValue: true, filterOperator: "eq" };
-  if (role) return { filterField: "role", filterValue: role, filterOperator: "contains" };
-  return { filterField: "banned", filterValue: false, filterOperator: "eq" };
-}
-
-function usersQuery(search: UsersSearch) {
-  const { q, field, role, status, page } = search;
-  const filtered = role !== undefined || status !== undefined;
+function usersQuery({ q, role, status, sort, order, page }: UsersSearch) {
   return queryOptions({
-    queryKey: ["admin", "users", { q, field, role, status, page: filtered ? 0 : page }],
-    queryFn: async () => {
-      const result = await listUsers({
-        searchValue: q || undefined,
-        searchField: field,
-        searchOperator: "contains",
-        ...(filtered
-          ? { ...serverFilter(search), limit: FILTER_LIMIT }
-          : {
-              filterField: "serviceAccount",
-              filterValue: false,
-              filterOperator: "eq",
-              limit: PAGE_SIZE,
-              offset: (page - 1) * PAGE_SIZE,
-            }),
-        sortBy: "createdAt",
-        sortDirection: "desc",
-      });
-      if (!filtered) return { ...result, truncated: false };
-      const matches = result.users.filter(
-        (user) =>
-          !isServiceAccount(user) &&
-          (role === undefined || parseRoles(user.role).includes(role)) &&
-          (status === undefined || statusOf(user) === status),
-      );
-      return { users: matches, total: matches.length, truncated: result.total > FILTER_LIMIT };
-    },
+    queryKey: ["admin", "users", { q, role, status, sort, order, page }],
+    queryFn: () =>
+      listUsers({
+        q: q || undefined,
+        role,
+        status,
+        sort,
+        order,
+        limit: String(PAGE_SIZE),
+        offset: String((page - 1) * PAGE_SIZE),
+      }),
     placeholderData: keepPreviousData,
   });
 }
 
+/** Oldest sign-ups first: they've waited longest. */
 const pendingQuery = queryOptions({
   queryKey: ["admin", "users", "pending"],
-  queryFn: async () => {
-    const { users } = await listUsers({
-      filterField: "role",
-      filterValue: "",
-      filterOperator: "eq",
-      limit: FILTER_LIMIT,
-      sortBy: "createdAt",
-      sortDirection: "asc",
-    });
-    return users.filter((user) => !isServiceAccount(user) && !user.banned);
-  },
+  queryFn: () =>
+    listUsers({ status: "pending", sort: "createdAt", order: "asc", limit: String(PENDING_SHOWN) }),
 });
 
 export const Route = createFileRoute("/_app/admin/users")({
@@ -162,7 +116,7 @@ type Dialog =
   | { kind: "create" }
   | {
       kind: "details" | "roles" | "ban" | "password" | "delete" | "revoke" | "impersonate";
-      user: UserWithRole;
+      user: AdminUser;
     };
 
 function Users() {
@@ -172,9 +126,7 @@ function Users() {
   const users = useQuery(usersQuery(search));
   const pending = useQuery(pendingQuery);
   const filtered = search.role !== undefined || search.status !== undefined;
-  const rows = filtered
-    ? users.data?.users.slice((search.page - 1) * PAGE_SIZE, search.page * PAGE_SIZE)
-    : users.data?.users;
+  const rows = users.data?.users;
   const ids = rows?.map((u) => u.id).join(",") ?? "";
   // How each user signs in: password and/or SSO providers (docs/features/single-sign-on.md).
   const methods = useQuery({
@@ -193,11 +145,11 @@ function Users() {
     navigate({ search: { ...search, ...next, page: 1 } });
 
   const unban = useUserMutation(
-    (user: UserWithRole) => unwrap(authClient.admin.unbanUser({ userId: user.id })),
+    (user: AdminUser) => unwrap(authClient.admin.unbanUser({ userId: user.id })),
     (user) => toast.success(`Unbanned ${user.name}.`),
   );
   const revokeSessions = useUserMutation(
-    (user: UserWithRole) => unwrap(authClient.admin.revokeUserSessions({ userId: user.id })),
+    (user: AdminUser) => unwrap(authClient.admin.revokeUserSessions({ userId: user.id })),
     (user) => done(`Signed ${user.name} out everywhere.`),
   );
   const sessionChanged = useSessionChange();
@@ -231,20 +183,20 @@ function Users() {
 
       <ErrorAlert error={pending.error ?? unban.error} />
 
-      {!!pending.data?.length && (
+      {!!pending.data?.total && (
         <Card className="gap-0 py-0" aria-labelledby="pending-title">
           <div className="flex flex-wrap items-center gap-3 border-b border-hair px-5 py-3.5">
             <UserCircleCheckIcon className="size-5 text-brand-ink" aria-hidden />
             <h2 id="pending-title" className="font-heading text-[17px] font-bold tracking-tight">
               Waiting for access
             </h2>
-            <Badge variant="sun">{pending.data.length}</Badge>
+            <Badge variant="sun">{pending.data.total}</Badge>
             <p className="text-sm text-ink-3">
               They signed up and see only a "waiting for access" page until you grant a role.
             </p>
           </div>
           <ul className="divide-y divide-hair">
-            {pending.data.slice(0, PENDING_SHOWN).map((user) => (
+            {pending.data.users.map((user) => (
               <li
                 key={user.id}
                 className="flex flex-wrap items-center gap-x-4 gap-y-2 px-5 py-3 compact:py-2"
@@ -277,10 +229,10 @@ function Users() {
               </li>
             ))}
           </ul>
-          {pending.data.length > PENDING_SHOWN && search.status !== "pending" && (
+          {pending.data.total > PENDING_SHOWN && search.status !== "pending" && (
             <div className="border-t border-hair px-5 py-2.5">
               <Button variant="ghost" size="sm" onClick={() => setFilter({ status: "pending" })}>
-                Show all {pending.data.length} pending users
+                Show all {pending.data.total} pending users
               </Button>
             </div>
           )}
@@ -296,23 +248,14 @@ function Users() {
             />
             <DebouncedInput
               type="search"
-              aria-label={`Search users by ${search.field}`}
-              className={cn("w-48 pl-9", search.q && activeFilter)}
-              placeholder={search.field === "email" ? "Search email…" : "Search name…"}
-              title="Matches part of the name or email. Case-sensitive."
+              aria-label="Search users"
+              className={cn("w-60 pl-9", search.q && activeFilter)}
+              placeholder="Search name or email…"
+              title="Matches part of the name or email."
               value={search.q ?? ""}
               onCommit={(q) => setFilter({ q: q.trim() || undefined })}
             />
           </div>
-          <NativeSelect
-            aria-label="Search by"
-            title="Search by"
-            value={search.field}
-            onChange={(e) => setFilter({ field: e.target.value === "name" ? "name" : "email" })}
-          >
-            <NativeSelectOption value="email">By email</NativeSelectOption>
-            <NativeSelectOption value="name">By name</NativeSelectOption>
-          </NativeSelect>
           <FilterSelect
             label="Role"
             value={search.role}
@@ -330,7 +273,7 @@ function Users() {
               { value: "pending", label: "Pending" },
               { value: "banned", label: "Banned" },
             ]}
-            onChange={(value) => setFilter({ status: statusSchema.safeParse(value).data })}
+            onChange={(value) => setFilter({ status: userStatusSchema.safeParse(value).data })}
           />
           <div className="ml-auto">
             <DensityToggle />
@@ -350,7 +293,7 @@ function Users() {
             title={search.q || filtered ? "No users match" : "No users yet"}
             description={
               search.q || filtered
-                ? "Nobody matches this search and these filters. Search is case-sensitive."
+                ? "Nobody matches this search and these filters."
                 : "Create an account for someone, or send them to the sign-up page."
             }
             action={
@@ -371,12 +314,28 @@ function Users() {
           <Table className={cn("transition-opacity", users.isPlaceholderData && "opacity-60")}>
             <TableHeader>
               <TableRow className="hover:bg-transparent">
-                <TableHead>Name</TableHead>
-                <TableHead className="hidden xl:table-cell">Email</TableHead>
+                <SortHead search={search} sort="name" onSort={setFilter}>
+                  Name
+                </SortHead>
+                <SortHead
+                  search={search}
+                  sort="email"
+                  onSort={setFilter}
+                  className="hidden xl:table-cell"
+                >
+                  Email
+                </SortHead>
                 <TableHead>Roles</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead className="hidden lg:table-cell">Sign-in</TableHead>
-                <TableHead className="hidden md:table-cell">Created</TableHead>
+                <SortHead
+                  search={search}
+                  sort="createdAt"
+                  onSort={setFilter}
+                  className="hidden md:table-cell"
+                >
+                  Created
+                </SortHead>
                 <TableHead className="w-0">
                   <span className="sr-only">Actions</span>
                 </TableHead>
@@ -441,12 +400,7 @@ function Users() {
 
         <div className="flex flex-wrap items-center justify-between gap-2 border-t border-hair px-4 py-3 text-[13px] text-ink-3">
           <span aria-live="polite">
-            {users.data &&
-              `${total.toLocaleString()} ${total === 1 ? "user" : "users"}${
-                users.data.truncated
-                  ? ` in the first ${FILTER_LIMIT.toLocaleString()} matches; search to narrow it`
-                  : ""
-              }`}
+            {users.data && `${total.toLocaleString()} ${total === 1 ? "user" : "users"}`}
           </span>
           <div className="flex items-center gap-1.5">
             <span className="px-2 font-semibold text-ink-2 tabular-nums">
@@ -517,6 +471,58 @@ function Users() {
   );
 }
 
+/** A header that sorts by its column; again flips the order. Same look as DataTable's. */
+function SortHead({
+  search,
+  sort,
+  onSort,
+  className,
+  children,
+}: {
+  search: UsersSearch;
+  sort: AdminUserSort;
+  onSort: (next: Partial<UsersSearch>) => void;
+  className?: string;
+  children: ReactNode;
+}) {
+  const sorted = search.sort === sort;
+  return (
+    <TableHead
+      className={className}
+      aria-sort={sorted ? (search.order === "asc" ? "ascending" : "descending") : undefined}
+    >
+      <button
+        type="button"
+        className={cn(
+          "inline-flex items-center gap-1 rounded hover:text-ink",
+          sorted && "text-ink",
+        )}
+        onClick={() =>
+          onSort({
+            sort,
+            // Names and emails read A to Z first; dates newest first.
+            order: sorted
+              ? search.order === "asc"
+                ? "desc"
+                : "asc"
+              : sort === "createdAt"
+                ? "desc"
+                : "asc",
+          })
+        }
+      >
+        {children}
+        {sorted &&
+          (search.order === "desc" ? (
+            <ArrowDownIcon weight="bold" className="size-3.5" />
+          ) : (
+            <ArrowUpIcon weight="bold" className="size-3.5" />
+          ))}
+      </button>
+    </TableHead>
+  );
+}
+
 function UserActions({
   user,
   roles,
@@ -524,7 +530,7 @@ function UserActions({
   open,
   unban,
 }: {
-  user: UserWithRole;
+  user: AdminUser;
   roles: Role[];
   isSelf: boolean;
   open: (kind: Exclude<Dialog["kind"], "create">) => void;
@@ -576,7 +582,7 @@ function UserActions({
   );
 }
 
-function UserStatus({ user, roles }: { user: UserWithRole; roles: Role[] }) {
+function UserStatus({ user, roles }: { user: AdminUser; roles: Role[] }) {
   if (user.banned) {
     return (
       <div className="space-y-1">

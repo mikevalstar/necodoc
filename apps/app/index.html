@@ -18,9 +18,29 @@
         if (localStorage.getItem("necodoc-density") === "compact") document.documentElement.dataset.density = "compact";
       } catch {}
     </script>
+    <!-- First paint until React replaces #root: the neko mark on the canvas, faded in late so
+         fast loads don't flash it. Colours mirror src/index.css, which hasn't loaded yet. -->
+    <style>
+      html { background: #f2f3fa; color: #0c1233; }
+      html.dark { background: #0a0d22; color: #eef0ff; }
+      .boot { min-height: 100svh; display: grid; place-items: center; opacity: 0; animation: boot-in 0.3s ease 0.4s forwards; }
+      .boot svg { width: 48px; height: 48px; }
+      .boot .a { fill: #2f6bff; }
+      html.dark .boot .a { fill: #5b8cff; }
+      @keyframes boot-in { to { opacity: 1; } }
+      @media (prefers-reduced-motion: reduce) { .boot { animation: none; opacity: 1; } }
+    </style>
   </head>
   <body>
-    <div id="root"></div>
+    <div id="root">
+      <div class="boot" role="status" aria-label="Loading necodoc">
+        <svg viewBox="0 0 64 64" aria-hidden="true">
+          <path fill="currentColor" fill-rule="evenodd" d="M8 12.5A2 2 0 0 1 11.3 11L22 20H42L52.7 11A2 2 0 0 1 56 12.5V56A4 4 0 0 1 52 60H12A4 4 0 0 1 8 56ZM16 32V36H48V32ZM16 40V44H48V40ZM16 48V52H32V48Z" />
+          <path class="a" d="M36 47H40V53H36Z" />
+        </svg>
+      </div>
+      <noscript>necodoc needs JavaScript turned on.</noscript>
+    </div>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

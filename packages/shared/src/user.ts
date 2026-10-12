@@ -59,3 +59,23 @@ export const changePasswordSchema = z
 export const deleteAccountSchema = z.object({
   password: z.string().min(1, "Enter your password"),
 });
+
+// Admin > Users list (GET /api/admin/users). People only; service accounts have their own page.
+export const userStatusSchema = z.enum(["active", "pending", "banned"]);
+export type UserStatus = z.infer<typeof userStatusSchema>;
+
+export const adminUserSortSchema = z.enum(["createdAt", "name", "email"]);
+export type AdminUserSort = z.infer<typeof adminUserSortSchema>;
+
+export const adminUserListQuerySchema = z.object({
+  /** Part of the name or email, case-insensitive. */
+  q: z.string().trim().max(200).optional(),
+  role: roleSchema.optional(),
+  /** Pending: no role yet; banned wins over both. */
+  status: userStatusSchema.optional(),
+  sort: adminUserSortSchema.default("createdAt"),
+  order: z.enum(["asc", "desc"]).default("desc"),
+  limit: z.coerce.number().int().min(1).max(100).default(20),
+  offset: z.coerce.number().int().min(0).default(0),
+});
+export type AdminUserListQuery = z.infer<typeof adminUserListQuerySchema>;

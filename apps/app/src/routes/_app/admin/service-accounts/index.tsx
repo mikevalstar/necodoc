@@ -6,7 +6,7 @@ import { useState } from "react";
 import type { z } from "zod";
 import { DensityToggle } from "@/components/data-table";
 import { ErrorAlert, useAppForm } from "@/components/form";
-import { EmptyState, FaqLink, ListSkeleton, Page, PageHeader } from "@/components/page";
+import { CardBar, EmptyState, FaqLink, ListSkeleton, Page, PageHeader } from "@/components/page";
 import { RoleBadges } from "@/components/role-badges";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -33,7 +33,6 @@ import { dayjs } from "@/lib/date";
 import { cn } from "@/lib/utils";
 import {
   AccountStatusBadge,
-  CardBar,
   ServiceRolesField,
   serviceAccountFormSchema,
   serviceAccountsQuery,
@@ -85,11 +84,10 @@ function ServiceAccounts() {
       )}
       {!!accounts.data?.length && (
         <Card className="gap-0 py-0">
-          <CardBar title="Accounts">
-            <span className="text-[13px] text-ink-3">
-              {accounts.data.filter((account) => !account.disabled).length} active of{" "}
-              {accounts.data.length}
-            </span>
+          <CardBar
+            title="Accounts"
+            meta={`${accounts.data.filter((account) => !account.disabled).length} active of ${accounts.data.length}`}
+          >
             <DensityToggle />
           </CardBar>
           <Table>

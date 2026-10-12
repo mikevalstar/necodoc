@@ -16,7 +16,10 @@ for each, and can hide email and password. The first sign-in creates the
 account. IdP groups map to necodoc roles. Mechanism and trade-offs:
 [ADR 0031](../adrs/0031-single-sign-on-with-the-better-auth-sso-plugin-configured-from-env.md).
 Setup guides for each IdP are in the developer docs,
-[self-hosting › Single sign-on](../../apps/devdocs/src/content/docs/self-hosting/sso.md).
+[self-hosting › Single sign-on](../../apps/devdocs/src/content/docs/self-hosting/sso.md);
+the [Admin FAQ](admin-faq.md) carries the same step-by-step examples in the
+app ([faq-sso.ts](../../apps/app/src/lib/faq-sso.ts)), so the two must change
+together.
 
 ## Motivation
 

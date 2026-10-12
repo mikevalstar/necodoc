@@ -113,7 +113,7 @@ function Usage() {
           </>
         }
       />
-      <div className="flex flex-wrap items-end gap-3">
+      <div className="flex flex-wrap items-center gap-3">
         <RangeControls search={search} onChange={(next) => navigate({ search: next })} />
       </div>
       <ErrorAlert error={result.error} />

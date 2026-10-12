@@ -1,7 +1,8 @@
 import type { AuditAction, AuditActorKind, AuditTargetType } from "@necodoc/shared";
 import { queryOptions, useQuery } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
-import { useState } from "react";
+import { type ReactNode, useState } from "react";
+import { CopyButton } from "@/components/copy-button";
 import { ErrorAlert } from "@/components/form";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
@@ -15,6 +16,7 @@ import {
 import { api, ok } from "@/lib/api";
 import { meQuery } from "@/lib/auth";
 import { dayjs } from "@/lib/date";
+import { cn } from "@/lib/utils";
 
 // Spec: docs/features/audit-log.md. The entry drawer and the History panel object pages show;
 // Admin › Audit log (routes/_app/admin/audit.tsx) uses both. Admins only, like the API.
@@ -66,11 +68,9 @@ export function ActorCell({
   return (
     <span>
       {name}
-      {entry.apiKeyId && (
-        <span className="text-muted-foreground"> · {actorKindLabels[entry.actorKind]}</span>
-      )}
+      {entry.apiKeyId && <span className="text-ink-3"> · {actorKindLabels[entry.actorKind]}</span>}
       {entry.impersonatorId && (
-        <span className="block text-xs text-muted-foreground">
+        <span className="block text-xs text-ink-3">
           impersonated by {entry.impersonatorName ?? entry.impersonatorId}
         </span>
       )}
@@ -85,52 +85,231 @@ const auditEntryQuery = (id: string) =>
   });
 
 function Value({ value }: { value: unknown }) {
-  if (value === undefined) return <span className="text-muted-foreground">—</span>;
-  if (value === null) return <span className="text-muted-foreground">empty</span>;
-  if (typeof value === "string" && value.length < 120 && !value.includes("\n")) {
-    return <span className="break-words">{value}</span>;
+  if (value === undefined) return <span className="text-ink-3">not set</span>;
+  if (value === null) return <span className="text-ink-3">empty</span>;
+  if (typeof value !== "object" && (typeof value !== "string" || isShort(value))) {
+    return <span className="break-words">{String(value)}</span>;
   }
   return (
-    <pre className="max-h-64 overflow-auto rounded bg-muted p-2 font-mono text-xs whitespace-pre-wrap break-all">
+    <pre className="max-h-64 overflow-auto rounded-lg bg-tint p-2 font-mono text-xs whitespace-pre-wrap break-all">
       {typeof value === "string" ? value : JSON.stringify(value, null, 2)}
     </pre>
   );
 }
 
+const isShort = (value: string) => value.length < 120 && !value.includes("\n");
+
 type Fields = Record<string, unknown> | null;
 
-/** One row per changed field: what it was, what it became. */
+const isPlainObject = (value: unknown): value is Record<string, unknown> =>
+  typeof value === "object" && value !== null && !Array.isArray(value);
+
+/** Nested objects become dotted paths ("settings.fontSize"); arrays and scalars are leaves. */
+function flatten(fields: Record<string, unknown>, prefix = "", into = new Map<string, unknown>()) {
+  for (const [key, value] of Object.entries(fields)) {
+    const path = prefix ? `${prefix}.${key}` : key;
+    if (isPlainObject(value) && Object.keys(value).length) flatten(value, path, into);
+    else into.set(path, value);
+  }
+  return into;
+}
+
+const same = (a: unknown, b: unknown) => JSON.stringify(a) === JSON.stringify(b);
+
+/**
+ * What changed. With both sides, only the paths that differ, before on a bad wash and after on an
+ * ok wash, and "Show full value" for the nested objects they sit in. With one side (a create, a
+ * delete or details), every field.
+ */
 export function AuditDiff({ before, after }: { before: Fields; after: Fields }) {
-  const keys = [...new Set([...Object.keys(before ?? {}), ...Object.keys(after ?? {})])];
-  if (!keys.length)
-    return <p className="text-sm text-muted-foreground">No field changes recorded.</p>;
+  if (before && after) return <ChangedFields before={before} after={after} />;
+  const fields = before ?? after ?? {};
+  const keys = Object.keys(fields);
+  if (!keys.length) return <p className="text-sm text-ink-3">No fields recorded.</p>;
+  return (
+    <dl className="grid grid-cols-[minmax(6rem,auto)_1fr] gap-x-4 gap-y-2 text-sm">
+      {keys.map((key) => (
+        <div key={key} className="contents">
+          <dt className="font-mono text-xs break-all text-ink-2">{key}</dt>
+          <dd className="min-w-0">
+            <Value value={fields[key]} />
+          </dd>
+        </div>
+      ))}
+    </dl>
+  );
+}
+
+function ChangedFields({
+  before,
+  after,
+}: {
+  before: Record<string, unknown>;
+  after: Record<string, unknown>;
+}) {
+  const [full, setFull] = useState<string | null>(null);
+  const old = flatten(before);
+  const now = flatten(after);
+  const changed = [...new Set([...old.keys(), ...now.keys()])].filter(
+    (path) => !same(old.get(path), now.get(path)),
+  );
+  if (!changed.length) return <p className="text-sm text-ink-3">No field changes recorded.</p>;
+  // Changed paths grouped under their top-level field, so a nested one can show the whole value.
+  const groups = new Map<string, string[]>();
+  for (const path of changed) {
+    const key = path.split(".")[0] ?? path;
+    groups.set(key, [...(groups.get(key) ?? []), path]);
+  }
   return (
     <table className="w-full table-fixed text-sm">
       <thead>
-        <tr className="text-left text-muted-foreground">
-          <th className="w-1/5 pb-1 font-medium">Field</th>
-          {before && <th className="pb-1 font-medium">Before</th>}
-          {after && <th className="pb-1 font-medium">After</th>}
+        <tr className="text-left text-xs text-ink-3">
+          <th className="w-[30%] pb-1.5 font-semibold">Field</th>
+          <th className="pb-1.5 font-semibold">Before</th>
+          <th className="pb-1.5 pl-2 font-semibold">After</th>
         </tr>
       </thead>
-      <tbody>
-        {keys.map((key) => (
-          <tr key={key} className="border-t align-top">
-            <td className="py-1.5 pr-2 font-mono text-xs break-all">{key}</td>
-            {before && (
-              <td className="py-1.5 pr-2">
-                <Value value={before[key]} />
-              </td>
+      {[...groups].map(([key, paths]) => {
+        const nested = isPlainObject(before[key]) || isPlainObject(after[key]);
+        return (
+          <tbody key={key} className="border-t border-hair">
+            {paths.map((path) => (
+              <tr key={path} className="align-top">
+                <td className="py-1.5 pr-2 font-mono text-xs break-all text-ink-2">{path}</td>
+                <td className="py-1.5">
+                  <Wash tone="bad" value={old.get(path)} />
+                </td>
+                <td className="py-1.5 pl-2">
+                  <Wash tone="ok" value={now.get(path)} />
+                </td>
+              </tr>
+            ))}
+            {nested && (
+              <tr>
+                <td colSpan={3} className="pb-2">
+                  <button
+                    type="button"
+                    aria-expanded={full === key}
+                    className="text-xs font-semibold text-brand-ink hover:underline"
+                    onClick={() => setFull(full === key ? null : key)}
+                  >
+                    {full === key ? "Hide full value" : `Show full value of ${key}`}
+                  </button>
+                </td>
+              </tr>
             )}
-            {after && (
-              <td className="py-1.5">
-                <Value value={after[key]} />
-              </td>
+            {nested && full === key && (
+              <tr className="align-top">
+                <td />
+                <td className="pb-2">
+                  <Value value={before[key]} />
+                </td>
+                <td className="pb-2 pl-2">
+                  <Value value={after[key]} />
+                </td>
+              </tr>
             )}
-          </tr>
-        ))}
-      </tbody>
+          </tbody>
+        );
+      })}
     </table>
+  );
+}
+
+/** A changed value on its wash: bad for what it was, ok for what it became. */
+function Wash({ tone, value }: { tone: "bad" | "ok"; value: unknown }) {
+  if (value === undefined) return <span className="text-xs text-ink-3">not set</span>;
+  return (
+    <div
+      className={cn(
+        "rounded-md px-1.5 py-0.5 break-words [&_pre]:bg-transparent [&_pre]:p-0",
+        tone === "bad" ? "bg-bad-wash" : "bg-ok-wash",
+      )}
+    >
+      <Value value={value} />
+    </div>
+  );
+}
+
+/** The target's own page, when it has one and still exists. */
+function TargetLink({
+  type,
+  id,
+  deleted,
+  children,
+}: {
+  type: AuditTargetType;
+  id: string | null;
+  deleted: boolean;
+  children: ReactNode;
+}) {
+  const className = "text-brand-ink hover:underline";
+  if (!id || deleted) return children;
+  const params = { id };
+  switch (type) {
+    case "template":
+      return (
+        <Link to="/templates/$id" params={params} className={className}>
+          {children}
+        </Link>
+      );
+    case "theme":
+      return (
+        <Link to="/themes/$id" params={params} className={className}>
+          {children}
+        </Link>
+      );
+    case "snippet":
+      return (
+        <Link to="/snippets/$id" params={params} className={className}>
+          {children}
+        </Link>
+      );
+    case "share_link":
+      return (
+        <Link to="/share-links/$id" params={params} className={className}>
+          {children}
+        </Link>
+      );
+    case "service_account":
+      return (
+        <Link to="/admin/service-accounts/$id" params={params} className={className}>
+          {children}
+        </Link>
+      );
+    case "batch":
+      return (
+        <Link to="/batches/$id" params={params} className={className}>
+          {children}
+        </Link>
+      );
+    case "generation":
+      return (
+        <Link to="/generations/$id" params={params} className={className}>
+          {children}
+        </Link>
+      );
+    default:
+      return children;
+  }
+}
+
+/** An id in mono with a copy button, for quoting in support tickets. */
+function CopyableId({ id, label }: { id: string | null; label: string }) {
+  if (!id) return <span className="text-ink-3">—</span>;
+  return (
+    <span className="flex items-start gap-2">
+      <span className="min-w-0 pt-1 font-mono text-xs break-all">{id}</span>
+      <CopyButton
+        text={id}
+        label=""
+        variant="ghost"
+        size="icon-sm"
+        aria-label={`Copy ${label}`}
+        title={`Copy ${label}`}
+        className="shrink-0"
+      />
+    </span>
   );
 }
 
@@ -140,12 +319,29 @@ export function AuditEntrySheet({ id, onClose }: { id: string | null; onClose: (
   return (
     <Sheet open={id !== null} onOpenChange={(open) => !open && onClose()}>
       <SheetContent className="w-full overflow-y-auto data-[side=right]:sm:max-w-2xl">
-        <SheetHeader>
-          <SheetTitle>{e ? actionLabel(e.action) : "Audit entry"}</SheetTitle>
+        <SheetHeader className="gap-2">
+          <SheetTitle className="text-xl">
+            {e ? (
+              <>
+                <span className="text-ink-3">{targetTypeLabel(e.targetType)}</span>{" "}
+                <TargetLink
+                  type={e.targetType}
+                  id={e.targetId}
+                  deleted={e.action.endsWith(".deleted")}
+                >
+                  {e.targetName ?? e.targetId ?? ""}
+                </TargetLink>
+              </>
+            ) : (
+              "Audit entry"
+            )}
+          </SheetTitle>
           {e && (
-            <SheetDescription>
-              {dayjs(e.createdAt).format("YYYY-MM-DD HH:mm:ss")} · {targetTypeLabel(e.targetType)}{" "}
-              {e.targetName ?? e.targetId ?? ""}
+            <SheetDescription render={<div />} className="flex flex-wrap items-center gap-2">
+              <Badge variant="secondary">{actionLabel(e.action)}</Badge>
+              <span className="font-mono text-xs text-ink-3 tabular-nums">
+                {dayjs(e.createdAt).format("YYYY-MM-DD HH:mm:ss")}
+              </span>
             </SheetDescription>
           )}
         </SheetHeader>
@@ -153,40 +349,42 @@ export function AuditEntrySheet({ id, onClose }: { id: string | null; onClose: (
           <ErrorAlert error={entry.error} />
           {e && (
             <>
-              <dl className="grid grid-cols-[8rem_1fr] gap-x-3 gap-y-1.5 text-sm">
-                <dt className="text-muted-foreground">Actor</dt>
-                <dd>
+              <dl className="grid grid-cols-[7rem_1fr] items-baseline gap-x-3 gap-y-2 text-sm">
+                <dt className="text-ink-3">Actor</dt>
+                <dd className="min-w-0">
                   <ActorCell entry={e} />
-                  {e.actorId && (
-                    <span className="block font-mono text-xs break-all text-muted-foreground">
-                      {e.actorId}
-                    </span>
-                  )}
+                  {e.actorId && <CopyableId id={e.actorId} label="actor ID" />}
                 </dd>
                 {e.apiKeyId && (
                   <>
-                    <dt className="text-muted-foreground">API key</dt>
-                    <dd className="font-mono text-xs">{e.apiKeyId}</dd>
+                    <dt className="text-ink-3">API key</dt>
+                    <dd className="min-w-0">
+                      <CopyableId id={e.apiKeyId} label="API key ID" />
+                    </dd>
                   </>
                 )}
-                <dt className="text-muted-foreground">Target id</dt>
-                <dd className="font-mono text-xs break-all">{e.targetId ?? "—"}</dd>
-                <dt className="text-muted-foreground">IP</dt>
-                <dd>{e.ip ?? "—"}</dd>
-                <dt className="text-muted-foreground">User agent</dt>
-                <dd className="text-xs break-all">{e.userAgent ?? "—"}</dd>
-                <dt className="text-muted-foreground">Request id</dt>
-                <dd className="font-mono text-xs break-all">{e.requestId ?? "—"}</dd>
+                <dt className="text-ink-3">Target ID</dt>
+                <dd className="min-w-0">
+                  <CopyableId id={e.targetId} label="target ID" />
+                </dd>
+                <dt className="text-ink-3">IP</dt>
+                <dd className="font-mono text-xs">{e.ip ?? "—"}</dd>
+                <dt className="text-ink-3">User agent</dt>
+                <dd className="text-xs break-all text-ink-2">{e.userAgent ?? "—"}</dd>
+                <dt className="text-ink-3">Request ID</dt>
+                <dd className="min-w-0">
+                  <CopyableId id={e.requestId} label="request ID" />
+                </dd>
               </dl>
               {(e.before || e.after) && (
                 <section className="space-y-2">
-                  <h3 className="font-medium">Changes</h3>
+                  <h3 className="font-heading text-[15.5px] font-bold">Changes</h3>
                   <AuditDiff before={e.before} after={e.after} />
                 </section>
               )}
               {e.details && (
                 <section className="space-y-2">
-                  <h3 className="font-medium">Details</h3>
+                  <h3 className="font-heading text-[15.5px] font-bold">Details</h3>
                   <AuditDiff before={null} after={e.details} />
                 </section>
               )}

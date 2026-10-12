@@ -62,9 +62,16 @@ an API restart replaced the page with an error.
   [Admin FAQ](admin-faq.md) entry, opening that entry.
 - **Not found and errors**
   ([route-states.tsx](../../apps/app/src/components/route-states.tsx)):
-  unknown paths show a not-found page inside the shell. Loading your account
-  retries for about 15 seconds, so an API restart doesn't break the page; if it
-  still fails, the error page offers Try again.
+  unknown paths, and records that don't exist (a bad or deleted id), show a
+  not-found page inside the shell with a way back. A 403 says you don't have
+  access and to ask an admin; an expired session offers Sign in. Loading your
+  account retries for about 15 seconds, so an API restart doesn't break the
+  page, and a slow load says it's waiting for the server. If it still fails,
+  the error page says necodoc isn't responding and offers Try again (it
+  retries by itself when the browser comes back online). Before sign-in these
+  screens stand alone on the cobalt frame.
+- **First paint**: the page shows the neko mark on the canvas until the app
+  loads ([index.html](../../apps/app/index.html)).
 - **Accessibility**: a skip-to-content link, labelled icon-only buttons,
   `aria-current` on the active section and page, a visible focus ring on every
   stop, and the shell works down to tablet width (about 768 px).
@@ -76,6 +83,8 @@ an API restart replaced the page with an error.
 - [ ] Collapsing the sidebar survives a reload.
 - [x] An admin named Admin sees one "Admin" in the header.
 - [x] `/documents` (no such page) shows a styled not-found page with the nav.
+- [ ] A detail page with a bogus id shows not found, not "Something went wrong".
+- [ ] With the API unreachable, the page says so and Try again recovers.
 - [x] Restarting the API while a page loads doesn't show an error page.
 - [x] List and dashboard pages share one width; forms and editors use theirs.
 - [x] Batch "Cancel remaining" and service account "Disable" ask for

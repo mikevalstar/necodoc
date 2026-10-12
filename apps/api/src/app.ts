@@ -7,6 +7,7 @@ import { auditScope } from "./audit";
 import { auth } from "./auth";
 import { type AppEnv, requestId } from "./middleware";
 import { observeRequests } from "./observability/http";
+import { adminUserRoutes } from "./routes/admin-users";
 import { analyticsRoutes } from "./routes/analytics";
 import { apiKeyRoutes } from "./routes/api-keys";
 import { assetRoutes } from "./routes/assets";
@@ -94,6 +95,7 @@ const routes = app
   .route("/api-keys", apiKeyRoutes)
   .route("/service-accounts", serviceAccountRoutes)
   .route("/webhooks", webhookRoutes)
+  .route("/admin/users", adminUserRoutes)
   .route("/audit", auditRoutes)
   .route("/privacy", privacyRoutes)
   .route("/analytics", analyticsRoutes)
