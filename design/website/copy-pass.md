@@ -149,3 +149,83 @@ The [Marketing site](../../docs/features/marketing-site.md) competitor table car
 - Checked: the hero rotor stays on the first audience under reduced motion; the reel poster has
   empty alt (it's decorative, and the chapter list is the text alternative); every other image has
   alt text; GoatCounter is on every page; no page overflows at 390 px.
+
+# Marketing pass
+
+A pass over every page to make the copy sell, not only inform: headlines that say what the
+buyer gets, shorter ledes, and nothing a visitor already knows. Mike's target density was the
+home lede: "Fill the PDF forms you already have, or design new documents from your data.
+necodoc runs in your own cloud." Explanations of basics went (what a queue does, why stateless
+scales, what PDF/UA is for, what a webhook saves you). Numbers, claims and limits are unchanged,
+and the W6b "left as is" list still holds.
+
+## Headlines
+
+| Page | Before | After |
+|---|---|---|
+| Home, pillars | Existing forms, month-end volume and insurance documents. | Built for the documents a carrier already issues. |
+| Home, architecture | What runs, and where the data lives. | It all runs inside your boundary. |
+| Home, Q&A | Six questions from an architecture review. | The six questions your review board will ask. |
+| Home, limits | What necodoc doesn't do. | Know the limits before you start. |
+| Home, evaluate | Everything you need to evaluate it is public. | Evaluate it on your own schedule. Everything is public. |
+| Product hero | Everything necodoc does, and where each part stops. | Everything necodoc does, with the limits up front. |
+| Insurance hero | The documents a carrier issues every day, on its own forms and in both languages. | Bonds, certificates and renewals, on your own forms and in both languages. |
+| Insurance, renewals | The month-end renewal run, behind the day's work. | The month-end renewal run, without holding up the day's work. |
+| Architecture, components | What runs, and what holds state. | Stateless processes. Your Postgres and bucket hold the rest. |
+| Architecture, scaling | Throughput by worker count. | Add workers, add throughput. |
+| Architecture, CTA | The architecture review pack: one PDF, made with necodoc. | Give your review board one PDF, made with necodoc. |
+| Compare, which fits | A short guide, by what you need most. | Pick by what you need most. |
+
+## Body copy
+
+| Page | Before | After |
+|---|---|---|
+| Home lede | necodoc fills the PDF forms you already have and renders designed documents from your data. It runs in your own cloud. Your systems call it through one versioned API, and you set the number of render workers. necodoc logs every template change and every PDF. | Fill the PDF forms you already have, or design new documents from your data. necodoc runs in your own cloud. |
+| Home, pillar 02 | Each render is a job in a queue, and worker processes take jobs from it. For month-end, raise the worker replica count. Each render records how long each step took. | Scale render workers up for month-end and back down after, with no licence per worker. Every render records its step timings. |
+| Home Q&A, month-end | The API and the workers are stateless, so you add replicas. Interactive renders go ahead of batch rows. If a worker stops, another worker retries its job. | Add replicas. Interactive renders go ahead of batch rows, and a stopped worker's job retries on another. |
+| Home Q&A, exit plan | MIT source you can fork, standard Postgres, and PDFs in your own storage. necodoc isn't a hosted service, so no vendor holds your data. | You already have one: MIT source you can fork, standard Postgres, and PDFs in your own storage. No vendor holds your data. |
+| Home, $0 stat | There is no licence fee. You pay for the machines the workers run on. | You pay for the machines. Nothing else. |
+| Product, fields | Each template declares typed fields with validation, help text, sections and show-if conditions. The same definition becomes the guided form a person fills, the validation the API applies, and a JSON Schema per published version. | Define typed fields once. They become the guided form, the API's validation and a JSON Schema per published version. |
+| Product, archival | Set per template or per request: PDF/A-2b or 2u for retention, tagged PDF/UA-1 for screen readers, and certification with your certificate (PAdES B-B or B-T). … | PDF/A-2b or 2u, tagged PDF/UA-1, and PAdES B-B or B-T certification with your certificate. … |
+| Product, CTA | There is no paid tier. | No paid tier, and nothing held back for an enterprise edition. |
+| Insurance, surety | Municipalities, provinces and states publish their own bond forms and expect them back unchanged. necodoc fills the form they published. | Obligees expect their own form back, unchanged. necodoc fills the form they published. |
+| Insurance, claims | Conditional sections and shared clauses mean one reviewed template covers the cases, instead of a folder of near-copies. | Conditional sections and shared clauses let one reviewed template cover the cases. Retire the folder of near-copies. |
+| Architecture, integration | There is no packaged connector. Your systems call a versioned REST API, described by OpenAPI 3.1. Each template version has a JSON Schema. Generated SDKs are available for … | There's no packaged connector. You get a versioned OpenAPI 3.1 REST API, a JSON Schema per template version, and SDKs for … |
+| Security, AI callout | Generation data, the policyholder data that fills real documents, isn't sent. | Generation data isn't sent. |
+| Security, controls | Each spec lists the control's known limits. Download the table as CSV for a vendor questionnaire. | Download it as CSV and paste it straight into a vendor questionnaire. Each spec lists that control's known limits. |
+| Open source, webhooks | Signed callbacks when generations and batches finish, so your systems pick up the PDF without polling. | Signed callbacks when generations and batches finish. |
+
+Meta descriptions for Home and Product now lead with what the buyer gets rather than a feature
+list.
+
+## Claim fixes
+
+- Insurance, certificates: "an expiring share link" became "a share link, which can expire".
+  Expiry is an option ([Share links](../../docs/features/share-links-and-data-requests.md)).
+- Architecture scaling and Performance throughput now say the figures above one worker are
+  modelled at one worker per server, as [bench.ts](../../apps/web/src/lib/bench.ts) computes them.
+  Before, Architecture read "expect about these figures" and Performance didn't say.
+
+## Cut
+
+- Home hero: the versioned API, the worker count and the change log sentences (all covered
+  further down the page).
+- Home pillar 01: "Nobody redraws the form." Home architecture: "at the bottom".
+- Product hero: "Each section links to its spec, which lists its limits." (the Proof links show it).
+- Product output and Security output: "for retention", "for screen readers", "for accessible
+  formats".
+- Product change control: "Your systems call a published version." Product SDKs: "the same
+  OpenAPI document as the API reference".
+- Architecture hero: the durable-state sentence (the headline already says it). Components: "Only
+  Postgres and object storage hold state." KEDA: how KEDA reads queue depth.
+- Insurance bilingual: "Since 2023" and "The template holds a translation for each language".
+- Security: "and inherits your controls" (twice), "Review and publishing are separate
+  permissions." in the change-control pillar (the checklist says it).
+- Open source: "like any service you host"; "Workers are a replica count; add them for month-end
+  and remove them after."
+
+## Left for the reel and review pack
+
+Neither was touched. Nothing in them now contradicts the site. The review pack's AI callout still
+has "Generation data, the policyholder data that fills real documents, is not sent", and it
+explains more than the site now does, which suits a review document.

@@ -16,7 +16,7 @@ const source = (path: string) => `${links.github}/blob/main/${path}`;
 const costs = [
   {
     item: "API and render workers",
-    what: "Containers on your Kubernetes cluster or VMs. Workers are a replica count; add them for month-end and remove them after.",
+    what: "Containers on your Kubernetes cluster or VMs, scaled to the load.",
     proof: { label: "Roles and scaling ↗", href: devdocs("self-hosting/roles-and-scaling") },
   },
   {
@@ -46,7 +46,7 @@ const costs = [
   },
   {
     item: "Your team's time",
-    what: "Running, patching, backing up and upgrading it, like any service you host.",
+    what: "Running, patching, backing up and upgrading it.",
     proof: { label: "Upgrades ↗", href: devdocs("self-hosting/upgrades") },
   },
 ];
@@ -76,7 +76,7 @@ const extend = [
   {
     icon: "webhooks-logo",
     title: "Webhooks",
-    body: "Signed callbacks when generations and batches finish, so your systems pick up the PDF without polling.",
+    body: "Signed callbacks when generations and batches finish.",
     href: spec("features/webhooks"),
     label: "Webhooks",
   },
@@ -114,8 +114,8 @@ const extend = [
       { href: "#support", label: "Support" },
     ]}
   >
-    necodoc is one codebase, and you run it on your own infrastructure. Every feature is in the same build. There is no
-    paid tier and no usage meter.
+    Every feature ships in one build, and you run it on your own infrastructure. There's no paid tier and no usage
+    meter.
   </PageHero>
 
   <section class="tight">

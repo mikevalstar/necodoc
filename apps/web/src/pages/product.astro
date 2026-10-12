@@ -35,7 +35,7 @@ const output: Feature[] = [
   {
     q: "Archival and accessible output",
     title: "PDF/A-2, PDF/UA-1, PAdES certification",
-    body: "Set per template or per request: PDF/A-2b or 2u for retention, tagged PDF/UA-1 for screen readers, and certification with your certificate (PAdES B-B or B-T). Each generation records the profiles it applied.",
+    body: "PDF/A-2b or 2u, tagged PDF/UA-1, and PAdES B-B or B-T certification with your certificate. Each generation records the profiles it applied.",
     limit:
       "PDF/A on an overlay depends on the uploaded form embedding its fonts. There is no built-in validator; use veraPDF to prove conformance.",
     proof: {
@@ -46,7 +46,7 @@ const output: Feature[] = [
   {
     q: "Localization",
     title: "EN and fr-CA from one template",
-    body: "Translations live in the template, so they are versioned and reviewed with it. The request picks the language, and dates, numbers and currency follow it. Right-to-left languages lay out right to left.",
+    body: "Translations live in the template and are reviewed with each version. The request picks the language, and dates, numbers and currency follow it. Right-to-left languages work too.",
     limit:
       "No plural forms in translations yet. Overlay text isn't shaped for right-to-left scripts.",
     proof: { label: "Document localization", href: spec("features/document-localization") },
@@ -93,21 +93,21 @@ const connect: Feature[] = [
   {
     q: "Share links",
     title: "A form for someone without an account",
-    body: "A published template gets a public link. A broker or applicant fills the guided form, and you get the submission and the PDF. A link can prefill and lock fields, and can expire.",
+    body: "A broker or applicant fills the guided form through a public link, and you get the submission and the PDF. Links can prefill and lock fields, and can expire.",
     limit: "No identity check on the filler and no email: you send the link yourself.",
     proof: { label: "Share links", href: spec("features/share-links-and-data-requests") },
   },
   {
     q: "Webhooks",
     title: "Signed callbacks when work finishes",
-    body: "Set a webhook on an API key, an account or a template. Each delivery is signed with HMAC-SHA256 over the timestamp and body, sent from the job queue with retries, and logged.",
+    body: "Set them per API key, account or template. Each delivery is HMAC-SHA256 signed over the timestamp and body, retried and logged.",
     limit: "Order isn't guaranteed, and an event can arrive twice. Deduplicate on the delivery id.",
     proof: { label: "Webhooks", href: spec("features/webhooks") },
   },
   {
     q: "SDKs",
     title: "TypeScript, Python, .NET and Java",
-    body: "Generated from the same OpenAPI document as the API reference. Every deployment serves its own document at <code>/api/v1/openapi.json</code>.",
+    body: "Generated from the OpenAPI document every deployment serves at <code>/api/v1/openapi.json</code>.",
     limit: "Not on npm, PyPI, NuGet or Maven Central yet; install from a checkout.",
     proof: { label: "SDK reference ↗", href: devdocs("reference/sdks") },
   },
@@ -148,13 +148,13 @@ const admin: Feature[] = [
 
 <Layout
   title="Product · necodoc"
-  description="Every necodoc capability with its limit: overlays on existing PDFs, designed templates, fields and guided forms, the HTML to PDF API, batches, signing packages, archival output, localization, change control, AI assistance, webhooks, SDKs and admin."
+  description="What necodoc does, and where each part stops: fill existing PDFs, design templates with guided forms, generate over a versioned API or in batches, and keep every change under review."
   page="product"
 >
   <PageHero
     crumb="Product"
     eyebrow="Product"
-    title="Everything necodoc does, and where each part stops."
+    title="Everything necodoc does, with the limits up front."
     toc={[
       { href: "#overlay", label: "Overlay" },
       { href: "#designed", label: "Designed templates" },
@@ -169,16 +169,14 @@ const admin: Feature[] = [
       { href: "#admin", label: "Admin" },
     ]}
   >
-    necodoc makes a document in two ways. It fills a PDF you already have, or it renders a document you design. Both
-    use the same fields, the same publishing steps and the same API. Each section links to its spec, which lists its
-    limits.
+    Fill a PDF you already have, or design one from scratch. Both share the same fields, publishing and API.
   </PageHero>
 
   <section>
     <h2 class="sr-only">Core capabilities</h2>
     <div class="wrap">
       <Pillar id="overlay" num="01" eyebrow="Overlay on existing PDFs" title="Put your data on the form the obligee published.">
-        <p>Upload a PDF, place typed boxes on its pages, and map each box to a field. The output is the original page with your data on it.</p>
+        <p>Place typed boxes on any PDF and map each to a field. The output is the original page with your data on it.</p>
         <Checks
           items={[
             "Box types: text, multiline, number, date, checkbox, image, signature, QR code and barcode",
@@ -193,7 +191,7 @@ const admin: Feature[] = [
       </Pillar>
 
       <Pillar id="designed" num="02" eyebrow="Designed templates" title="Design a document from scratch, with real headers and footers." flip>
-        <p>The forms team uses a rich-text editor, and developers can switch to code mode. The live preview uses the production renderer, so it matches the final PDF.</p>
+        <p>Forms staff write in a rich-text editor, and developers can switch to code mode. The preview runs the production renderer.</p>
         <Checks
           items={[
             "Header and footer bands with page numbers and a first-page variant for a letterhead",
@@ -215,7 +213,7 @@ const admin: Feature[] = [
       </Pillar>
 
       <Pillar id="fields" num="03" eyebrow="Fields, conditions, guided forms" title="One field list drives the form, the API and the schema.">
-        <p>Each template declares typed fields with validation, help text, sections and show-if conditions. The same definition becomes the guided form a person fills, the validation the API applies, and a JSON Schema per published version.</p>
+        <p>Define typed fields once. They become the guided form, the API's validation and a JSON Schema per published version.</p>
         <Checks
           items={[
             "Text, long text, number, date, boolean, choice, email, image, signature and repeating groups",
@@ -233,7 +231,7 @@ const admin: Feature[] = [
       </Pillar>
 
       <Pillar id="api" num="04" eyebrow="HTML to PDF API" title="A versioned API your core systems can depend on." flip>
-        <p>Post HTML and get a PDF, or generate from a published template by id and version. Everything is under <code>/api/v1</code>, described by OpenAPI.</p>
+        <p>Post HTML, or generate from a published template version. Everything is under <code>/api/v1</code>, described by OpenAPI.</p>
         <Checks
           items={[
             "Synchronous, asynchronous with a signed webhook, or batch",
@@ -253,7 +251,7 @@ const admin: Feature[] = [
       </Pillar>
 
       <Pillar id="batches" num="05" eyebrow="Batches and the queue" title="Ten thousand renewals behind the day's interactive work.">
-        <p>Every render is a queued job on a worker process. Workers are a replica count, with no licence per worker.</p>
+        <p>Scale render workers with the volume. None of them needs a licence.</p>
         <Checks
           items={[
             "Batches of up to 10,000 rows from JSON or CSV, with progress and cancel",
@@ -273,7 +271,7 @@ const admin: Feature[] = [
       </Pillar>
 
       <Pillar id="signing" num="06" eyebrow="Signing packages" title="E-signature ready: the envelope, built for your provider." flip>
-        <p>Templates declare signers and sign boxes. Every generation can return the PDF with where each box landed, and envelope JSON for DocuSign, Dropbox Sign or Adobe Acrobat Sign.</p>
+        <p>Templates declare signers and sign boxes. Each generation can return envelope JSON, with every box's position, for DocuSign, Dropbox Sign or Adobe Acrobat Sign.</p>
         <Checks
           items={[
             "Signature, initials, date signed, full name and signer text boxes",
@@ -291,7 +289,7 @@ const admin: Feature[] = [
   <section id="output" class="alt">
     <div class="wrap">
       <SectionHead eyebrow="Output" title="Archival, accessible and bilingual PDFs.">
-        You set the output on the template, and a request can override it.
+        Set the output profile on the template. A request can override it.
       </SectionHead>
       <div class="feats">
         {
@@ -312,8 +310,7 @@ const admin: Feature[] = [
   <section id="control">
     <div class="wrap">
       <SectionHead eyebrow="Change control" title="The business owns the wording. Your systems own the fields.">
-        Your systems call a published version. A wording change can't change what the API accepts until someone publishes
-        a new version.
+        A wording change can't change what the API accepts until someone publishes a new version.
       </SectionHead>
       <div class="feats">
         {
@@ -342,13 +339,13 @@ const admin: Feature[] = [
           <div>
             <p class="q">Template assistant</p>
             <h3>Describe the document; review each change</h3>
-            <p>A chat panel in the editor builds or edits fields, content, header and footer, page settings, theme and translations through tool calls the author accepts or rejects.</p>
+            <p>A chat panel that edits fields, content, header and footer, page settings, theme and translations. The author accepts or rejects each change.</p>
             <a class="tlink" href={spec("features/ai-template-assistant")}>AI template assistant →</a>
           </div>
           <div>
             <p class="q">Field detection</p>
             <h3>Boxes proposed on a flat form</h3>
-            <p>On an uploaded PDF, AI proposes where the blanks are and what they hold. Each proposal is a suggestion an editor accepts, moves or drops.</p>
+            <p>AI proposes where the blanks are and what they hold. An editor accepts, moves or drops each one.</p>
             <a class="tlink" href={spec("features/pdf-overlay-templates")}>PDF overlay templates →</a>
           </div>
         </div>
@@ -387,8 +384,7 @@ const admin: Feature[] = [
   <section id="admin" class="alt">
     <div class="wrap">
       <SectionHead eyebrow="Admin" title="Users, keys, logs and the queue in one place.">
-        Users and roles, service accounts, keys, the queue and system settings are in one admin area. Press ⌘K or Ctrl+K
-        to jump to any page.
+        Roles, service accounts and system settings live there too. Press ⌘K or Ctrl+K to jump to any page.
       </SectionHead>
       <div class="pair">
         <Screenshot src={generations} alt="Generation log with a render-time histogram and p50, p95 and p99" crop={{ height: 280, zoom: 150, x: "-26%", y: "-40px" }} />
@@ -421,8 +417,8 @@ const admin: Feature[] = [
     <div class="wrap band">
       <div>
         <p class="eyebrow">Try it</p>
-        <h2>Every feature on this page is in the MIT-licensed build.</h2>
-        <p class="lede">There is no paid tier.</p>
+        <h2>Every feature on this page ships in the MIT-licensed build.</h2>
+        <p class="lede">No paid tier, and nothing held back for an enterprise edition.</p>
       </div>
       <div class="cta-row"><a class="btn next" href={links.quickstart}>Run it in 10 minutes</a><a class="btn ghost" href="/compare/">Compare it</a></div>
     </div>

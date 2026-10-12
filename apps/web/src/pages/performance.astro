@@ -58,7 +58,7 @@ const environment: [string, string][] = e
     ]}
   >
     Every performance figure on this site comes from <code>pnpm bench</code>, which starts a throwaway necodoc stack and
-    measures it through the public API. The machine, date and commit are shown next to the numbers.
+    measures it through the public API. The machine, date and commit sit next to every number.
     <Fragment slot="after"><Provenance method={false} /></Fragment>
   </PageHero>
 
@@ -107,8 +107,7 @@ const environment: [string, string][] = e
   <section id="throughput" class="alt">
     <div class="wrap">
       <SectionHead eyebrow="Throughput" title="Batch documents per minute, by worker count.">
-        Each run is one JSON batch, timed from creation to its last row, so the time includes the queue. Workers are
-        stateless, so you add them to raise throughput: one worker per server.
+        One JSON batch, timed from creation to its last row, queue time included. One worker per server.
       </SectionHead>
       {
         scaleModel ? (

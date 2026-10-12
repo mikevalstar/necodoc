@@ -24,7 +24,7 @@ import { links, spec } from "../lib/links";
   <PageHero
     crumb="For carriers"
     eyebrow="For P&C and surety carriers"
-    title="The documents a carrier issues every day, on its own forms and in both languages."
+    title="Bonds, certificates and renewals, on your own forms and in both languages."
     toc={[
       { href: "#surety", label: "Surety bonds" },
       { href: "#coi", label: "Certificates of insurance" },
@@ -34,12 +34,12 @@ import { links, spec } from "../lib/links";
       { href: "#bilingual", label: "Bilingual EN/FR" },
     ]}
   >
-    Six jobs a carrier's document team does. Each one shows how necodoc does it, where it stops, and an example.
+    Six jobs your document team already does. Each comes with a worked example and its limits.
     <div slot="after" class="who">
       <div><b>Surety and underwriting</b><p>Issue bonds and certificates without waiting on IT for a wording change.</p></div>
       <div><b>Forms team</b><p>Owns templates, clauses and translations. With the review gate on, a reviewer approves each change before it goes live.</p></div>
-      <div><b>Integration team</b><p>Codes against a versioned API. Its JSON Schema changes only when someone publishes a new version.</p></div>
-      <div><b>Platform team</b><p>Runs two process roles on infrastructure it already operates.</p></div>
+      <div><b>Integration team</b><p>Codes against a versioned API whose JSON Schema changes only when someone publishes.</p></div>
+      <div><b>Platform team</b><p>Runs an API and render workers on infrastructure it already operates.</p></div>
     </div>
   </PageHero>
 
@@ -49,7 +49,7 @@ import { links, spec } from "../lib/links";
         <div>
           <p class="eyebrow"><span class="n">01</span>Surety bonds</p>
           <h2>Bonds on the obligee's own form.</h2>
-          <p class="lead">Municipalities, provinces and states publish their own bond forms and expect them back unchanged. necodoc fills the form they published.</p>
+          <p class="lead">Obligees expect their own form back, unchanged. necodoc fills the form they published.</p>
           <dl>
             <dt>How</dt><dd>Upload the obligee's PDF, place or import fields, publish. Each signer (principal, surety, attorney-in-fact) gets a box and a place in the routing order.</dd>
             <dt>Signing</dt><dd>Each generation can include a signing package for DocuSign, Dropbox Sign or Acrobat Sign. Your provider runs the signing.</dd>
@@ -67,11 +67,11 @@ import { links, spec } from "../lib/links";
         <div>
           <p class="eyebrow"><span class="n">02</span>Certificates of insurance</p>
           <h2>Certificates from the broker portal or the policy system.</h2>
-          <p class="lead">A designed template with typed fields. The same fields drive the guided form a person fills and the JSON your systems post.</p>
+          <p class="lead">Design the certificate once. The same typed fields drive the broker's guided form and the JSON your policy system posts.</p>
           <dl>
             <dt>How</dt><dd>Fields have types, formats (CAD, dates) and conditions. Each published version has a JSON Schema. Bad data gets a 422 that lists every field error.</dd>
-            <dt>Who</dt><dd>Brokers fill it through an expiring share link; systems call <code>/api/v1</code> with a scoped key.</dd>
-            <dt>Output</dt><dd>PDF/A-2 for your archive and PDF/UA-1 for accessible formats. PAdES certification lets a recipient detect an edited copy.</dd>
+            <dt>Who</dt><dd>Brokers fill it through a share link, which can expire; systems call <code>/api/v1</code> with a scoped key.</dd>
+            <dt>Output</dt><dd>PDF/A-2, PDF/UA-1, and PAdES certification so a recipient can spot an edited copy.</dd>
           </dl>
           <Proof links={[{ label: "Fields and guided form", href: spec("features/template-fields-and-guided-form") }, { label: "Share links", href: spec("features/share-links-and-data-requests") }]} />
         </div>
@@ -95,11 +95,11 @@ import { links, spec } from "../lib/links";
       <article class="job" id="renewals">
         <div>
           <p class="eyebrow"><span class="n">04</span>Bulk renewals</p>
-          <h2>The month-end renewal run, behind the day's work.</h2>
+          <h2>The month-end renewal run, without holding up the day's work.</h2>
           <p class="lead">A batch of up to 10,000 rows from JSON or CSV goes on the queue. Interactive renders jump ahead of it, so a broker issuing a certificate isn't kept waiting.</p>
           <dl>
             <dt>How</dt><dd>Watch progress or cancel the run. An invalid row fails alone. Download one ZIP or one combined packet.</dd>
-            <dt>Scale</dt><dd>Add workers for the run and remove them after. There is no licence fee per worker.</dd>
+            <dt>Scale</dt><dd>Add workers for the run, remove them after. No licence fee per worker.</dd>
             <dt>Throughput</dt><dd>About <BenchValue value={docsPerMinute(8)} /> documents per minute on 8 workers, one per server. One worker on <BenchValue value={env.cpu} /> does <BenchValue value={docsPerMinute(1)} />. <a class="tlink" href="/performance/">Method</a></dd>
           </dl>
           <Proof links={[{ label: "Render queue and batches", href: spec("features/render-queue-batch-jobs-and-scaling") }]} />
@@ -111,7 +111,7 @@ import { links, spec } from "../lib/links";
         <div>
           <p class="eyebrow"><span class="n">05</span>Claims letters</p>
           <h2>Claims letters from one reviewed template.</h2>
-          <p class="lead">Conditional sections and shared clauses mean one reviewed template covers the cases, instead of a folder of near-copies.</p>
+          <p class="lead">Conditional sections and shared clauses let one reviewed template cover the cases. Retire the folder of near-copies.</p>
           <dl>
             <dt>How</dt><dd>"Show only if" conditions on sections, repeating rows, snippets for shared clauses, themes for house style.</dd>
             <dt>Control</dt><dd>With the review gate on, a reviewer approves each clause change. Test cases and a visual diff run before publish.</dd>
@@ -126,9 +126,9 @@ import { links, spec } from "../lib/links";
         <div>
           <p class="eyebrow"><span class="n">06</span>Bilingual output</p>
           <h2>French first in Québec, English elsewhere, from one template.</h2>
-          <p class="lead">Since 2023, contracts of adhesion in Québec must be offered in French first. With two templates, the French and English copies drift apart. necodoc uses one template with a translation per language.</p>
+          <p class="lead">Québec contracts of adhesion must be offered in French first. Two templates drift apart. necodoc keeps one, with a translation per language.</p>
           <dl>
-            <dt>How</dt><dd>The template holds a translation for each language, fr-CA included, and the request picks one. Dates, numbers and currency follow the locale.</dd>
+            <dt>How</dt><dd>The request picks the language. Dates, numbers and currency follow the locale.</dd>
             <dt>Accessible</dt><dd>PDF/UA-1 output carries the document language for screen readers.</dd>
             <dt>Yours</dt><dd>Translation quality and legal review stay with your forms team. A string without a translation prints in the source language.</dd>
           </dl>

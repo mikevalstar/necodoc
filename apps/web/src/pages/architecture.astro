@@ -39,7 +39,7 @@ const deploy = [
   {
     icon: "arrows-out-line-horizontal",
     title: "Autoscaled workers",
-    body: "KEDA reads the queue depth from Postgres and scales the worker deployment. Without KEDA, use a CPU autoscaler on both deployments.",
+    body: "KEDA scales workers on queue depth. Without it, use a CPU autoscaler.",
     code: "worker:\n  keda:\n    enabled: true\n    jobsPerReplica: 4",
     foot: "values.yaml · KEDA",
   },
@@ -50,7 +50,7 @@ const patterns = [
     tag: "A",
     eyebrow: "Synchronous",
     title: "Wait for the PDF",
-    body: "Use it when a broker waits for a certificate. The response is the PDF, with an <code>X-Generation-Id</code> header.",
+    body: "For a broker waiting on a certificate. The response is the PDF, with an <code>X-Generation-Id</code> header.",
     out: "POST …/generate",
     back: [{ y: 90, label: "200 application/pdf", tone: "brand" }],
   },
@@ -58,7 +58,7 @@ const patterns = [
     tag: "B",
     eyebrow: "Asynchronous",
     title: "Get a signed webhook",
-    body: "Use it for bind and issue events. With <code>async: true</code> the call returns 202. A signed webhook then delivers a <code>downloadUrl</code>.",
+    body: "For bind and issue events. With <code>async: true</code> the call returns 202, then a signed webhook delivers a <code>downloadUrl</code>.",
     out: "POST …/generate async",
     back: [
       { y: 62, label: "202 { id }", tone: "ink" },
@@ -69,7 +69,7 @@ const patterns = [
     tag: "C",
     eyebrow: "Batch",
     title: "Renewal runs",
-    body: "Send up to 10,000 rows per batch. Poll for progress, or cancel. At the end, download one ZIP or one combined packet.",
+    body: "Up to 10,000 rows per batch. Poll or cancel, then download one ZIP or one combined packet.",
     out: "POST …/batch [rows]",
     poll: "GET /batches/:id",
     back: [{ y: 102, label: "…/zip · …/packet", tone: "brand" }],
@@ -98,8 +98,7 @@ const tone = { brand: "#2f6bff", ink: "#3f4668", warn: "#b07a12" } as const;
       { href: "#limits", label: "Known limits" },
     ]}
   >
-    The API and the render workers run from one container image, and <code>ROLE</code> picks which. A static image serves
-    the web app. All durable state is in a Postgres database and a bucket that you operate.
+    One container image, with <code>ROLE</code> choosing API or render worker. A static image serves the web app.
   </PageHero>
 
   <section id="reference" class="tight">
@@ -116,8 +115,8 @@ const tone = { brand: "#2f6bff", ink: "#3f4668", warn: "#b07a12" } as const;
     <div class="wrap split">
       <aside>
         <p class="eyebrow">Components</p>
-        <h2>What runs, and what holds state.</h2>
-        <p>Only Postgres and object storage hold state. You can stop and replace any necodoc process.</p>
+        <h2>Stateless processes. Your Postgres and bucket hold the rest.</h2>
+        <p>You can stop and replace any necodoc process.</p>
       </aside>
       <table class="spec">
         <thead><tr><th>Component</th><th>Does</th><th>Scales by</th><th>State</th></tr></thead>
@@ -136,8 +135,7 @@ const tone = { brand: "#2f6bff", ink: "#3f4668", warn: "#b07a12" } as const;
   <section id="deploy">
     <div class="wrap">
       <SectionHead eyebrow="Deployment" title="Start on one host. Split the roles when you need to.">
-        Every option uses the same image and the same environment variables. necodoc doesn't call home, so it runs without
-        outbound internet access.
+        Same image, same environment variables. necodoc doesn't call home, so it runs without outbound internet access.
       </SectionHead>
       <div class="cards">
         {
@@ -162,8 +160,8 @@ const tone = { brand: "#2f6bff", ink: "#3f4668", warn: "#b07a12" } as const;
   <section id="integrate" class="alt">
     <div class="wrap">
       <SectionHead eyebrow="Integration patterns" title="Your core system posts data and gets a PDF or a webhook.">
-        There is no packaged connector. Your systems call a versioned REST API, described by OpenAPI 3.1. Each template
-        version has a JSON Schema. Generated SDKs are available for TypeScript, Python, .NET and Java.
+        There's no packaged connector. You get a versioned OpenAPI 3.1 REST API, a JSON Schema per template version, and
+        SDKs for TypeScript, Python, .NET and Java.
       </SectionHead>
       <div class="cards">
         {
@@ -242,7 +240,7 @@ curl https://necodoc.internal.example/api/v1/templates/$TEMPLATE/versions/3/gene
       <aside>
         <p class="eyebrow">Data flows</p>
         <h2>What goes where.</h2>
-        <p>Data stays in your account unless you configure it to go out. The only third party is Anthropic, for the AI features, and AI is off by default.</p>
+        <p>Data stays in your account unless you send it out. The only third party is Anthropic, for the AI features, and AI is off by default.</p>
       </aside>
       <table class="spec">
         <thead><tr><th>Data</th><th>Stored in</th><th>Leaves your boundary</th></tr></thead>
@@ -261,9 +259,9 @@ curl https://necodoc.internal.example/api/v1/templates/$TEMPLATE/versions/3/gene
 
   <section id="scaling" class="alt">
     <div class="wrap">
-      <SectionHead eyebrow="Scaling and availability" title="Throughput by worker count.">
-        The <a class="tlink" href="/performance/">benchmark</a> measured one worker. With one worker per server, expect
-        about these figures. Your results depend on your Postgres and your nodes, so rerun the benchmark on them.
+      <SectionHead eyebrow="Scaling and availability" title="Add workers, add throughput.">
+        Workers are stateless: add one per server. Rerun the <a class="tlink" href="/performance/">benchmark</a> on your
+        own Postgres and nodes.
       </SectionHead>
       <Stats>
         {
@@ -328,7 +326,7 @@ curl https://necodoc.internal.example/api/v1/templates/$TEMPLATE/versions/3/gene
     <div class="wrap band">
       <div>
         <p class="eyebrow">Take it to your review board</p>
-        <h2>The architecture review pack: one PDF, made with necodoc.</h2>
+        <h2>Give your review board one PDF, made with necodoc.</h2>
       </div>
       <div class="cta-row"><a class="btn next" href={links.quickstart}>Run it in 10 minutes</a><a class="btn ghost" href={links.reviewPack}>Review pack</a></div>
     </div>

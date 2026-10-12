@@ -76,7 +76,7 @@ const [audience, ...moreAudiences] = [
   "banks and credit unions",
   "legal teams",
   "government agencies",
-  "HR and payroll",
+  "HR and payroll teams",
   "developers who need a PDF API",
   "teams still filling PDFs by hand",
 ];
@@ -85,37 +85,37 @@ const questions = [
   {
     q: "Deployment fit",
     title: "Does it run where we run things?",
-    body: "Containers: a Helm chart for Kubernetes, or Docker Compose on one VM. One Postgres, managed or not, in your account.",
+    body: "Yes. A Helm chart for Kubernetes, or Docker Compose on one VM, plus one Postgres, managed or not, in your account.",
     link: { label: "Self-hosting", href: spec("features/self-hosting") },
   },
   {
     q: "Identity",
     title: "Does it use our IdP?",
-    body: "Entra ID, Auth0 or SiteMinder over OIDC, SAML 2.0 or a trusted header, with IdP groups mapped to roles. Systems use scoped keys, with optional expiry and IP allowlists.",
+    body: "Yes. Entra ID, Auth0 or SiteMinder over OIDC, SAML 2.0 or a trusted header, with IdP groups mapped to roles. Systems use scoped keys, with optional expiry and IP allowlists.",
     link: { label: "Single sign-on", href: spec("features/single-sign-on") },
   },
   {
     q: "Data residency",
     title: "Where does policyholder data go?",
-    body: "Into your Postgres and your bucket, blob container or disk, in your region. AI is off by default. With AI off, nothing leaves except the webhooks you configure.",
+    body: "Into your Postgres and your storage, in your region. AI is off by default, and with it off nothing leaves except your webhooks.",
     link: { label: "Data flows", href: "/architecture/#data" },
   },
   {
     q: "Change control",
     title: "Who changed the bond wording?",
-    body: "Nobody can edit a published version. Review needs its own permission. The append-only audit log keeps a before and after diff of each change.",
+    body: "The append-only audit log records who, when, and a before and after diff. Published versions can't be edited, and review is a separate permission.",
     link: { label: "Audit and review", href: "/security/#audit" },
   },
   {
     q: "Scale and availability",
     title: "What happens at month-end?",
-    body: "The API and the workers are stateless, so you add replicas. Interactive renders go ahead of batch rows. If a worker stops, another worker retries its job.",
+    body: "Add replicas. Interactive renders go ahead of batch rows, and a stopped worker's job retries on another.",
     link: { label: "Scaling and HA", href: "/architecture/#scaling" },
   },
   {
     q: "Vendor risk · OSFI B-10",
     title: "What's our exit plan?",
-    body: "MIT source you can fork, standard Postgres, and PDFs in your own storage. necodoc isn't a hosted service, so no vendor holds your data.",
+    body: "You already have one: MIT source you can fork, standard Postgres, and PDFs in your own storage. No vendor holds your data.",
     link: { label: "Source on GitHub", href: links.github },
   },
 ];
@@ -123,7 +123,7 @@ const questions = [
 
 <Layout
   title="necodoc · Self-hosted document generation and PDF API"
-  description="necodoc fills the PDF forms you already have and renders designed documents from your data. It runs in your own cloud, behind a versioned API."
+  description="Fill the PDF forms you already have and generate designed documents from your data, in your own cloud. A versioned API, an audit log, and no licence fee per worker."
   page="home"
 >
   <div class="hero on-night grid-bg">
@@ -138,9 +138,7 @@ const questions = [
           >
         </h1>
         <p class="lede">
-          necodoc fills the PDF forms you already have and renders designed documents from your data. It runs in your own
-          cloud. Your systems call it through one versioned API, and you set the number of render workers. necodoc logs
-          every template change and every PDF.
+          Fill the PDF forms you already have, or design new documents from your data. necodoc runs in your own cloud.
         </p>
         <div class="cta-row">
           <a class="btn next" href={links.quickstart}><Icon name="terminal-window" weight="bold" />Run it in 10 minutes</a>
@@ -193,7 +191,7 @@ const questions = [
           JSON batch on 8 workers, one per server; <BenchValue value={docsPerMinute(1)} /> on one
         </Stat>
         <Stat value={{ text: "$0" }} label="Licence fee per worker" big>
-          There is no licence fee. You pay for the machines the workers run on.
+          You pay for the machines. Nothing else.
         </Stat>
       </Stats>
       <Provenance />
@@ -202,12 +200,11 @@ const questions = [
 
   <section class="alt">
     <div class="wrap">
-      <SectionHead eyebrow="What it does" title="Existing forms, month-end volume and insurance documents." />
+      <SectionHead eyebrow="What it does" title="Built for the documents a carrier already issues." />
 
       <Pillar num="01" eyebrow="Overlay" title="Fill the forms you already have.">
         <p>
-          Upload the obligee's bond form or the regulator's PDF and place fields on it. The output is the original page,
-          with your data on it.
+          Place fields on the obligee's bond form or the regulator's PDF. The output is their page, with your data on it.
         </p>
         <Checks
           items={[
@@ -223,8 +220,8 @@ const questions = [
 
       <Pillar num="02" eyebrow="Speed and scale-out" title="Add workers for month-end. Remove them after." flip>
         <p>
-          Each render is a job in a queue, and worker processes take jobs from it. For month-end, raise the worker replica
-          count. Each render records how long each step took.
+          Scale render workers up for month-end and back down after, with no licence per worker. Every render records its
+          step timings.
         </p>
         <Checks
           items={[
@@ -233,7 +230,7 @@ const questions = [
             "Every PDF logged with input, version and a timing breakdown, and re-runnable",
           ]}
         />
-        <Limit>Postgres holds the job queue as well as the data, so Postgres sets the upper limit on throughput.</Limit>
+        <Limit>Postgres holds the queue, so it sets the throughput ceiling.</Limit>
         <Proof
           links={[
             { label: "Render queue and scaling", href: spec("features/render-queue-batch-jobs-and-scaling") },
@@ -244,7 +241,7 @@ const questions = [
       </Pillar>
 
       <Pillar num="03" eyebrow="Insurance fit" title="Built around bonds, certificates and policy packets.">
-        <p>necodoc uses the terms on your forms: principal, surety, obligee, attorney-in-fact, declarations page, renewal run.</p>
+        <p>necodoc speaks the language on your forms: principal, surety, obligee, attorney-in-fact, declarations page, renewal run.</p>
         <Checks
           items={[
             "Signing packages with principal, surety and attorney-in-fact signers",
@@ -270,9 +267,9 @@ const questions = [
 
   <section>
     <div class="wrap">
-      <SectionHead eyebrow="Reference architecture" title="What runs, and where the data lives.">
-        One image runs as the API or as a render worker. State lives in your Postgres and your bucket. The dashed arrows at
-        the bottom are optional outbound calls, and each one is off until you configure it.
+      <SectionHead eyebrow="Reference architecture" title="It all runs inside your boundary.">
+        One image runs as the API or a render worker. State lives in your Postgres and bucket. Dashed arrows are optional
+        outbound calls, off until you configure them.
       </SectionHead>
       <ReferenceArchitecture />
       <p class="cta-row" style="margin-top:28px"><a class="tlink" href="/architecture/">Deployment options, integration patterns and data flows →</a></p>
@@ -281,9 +278,9 @@ const questions = [
 
   <section class="alt">
     <div class="wrap">
-      <SectionHead eyebrow="Before the architecture review" title="Six questions from an architecture review.">
-        <a class="tlink" href="/security/">Security and governance</a> has the full controls list, with a CSV download for
-        vendor questionnaires.
+      <SectionHead eyebrow="Before the architecture review" title="The six questions your review board will ask.">
+        The full controls list, with a questionnaire CSV, is on
+        <a class="tlink" href="/security/">Security and governance</a>.
       </SectionHead>
       <div class="qa">
         {
@@ -303,7 +300,7 @@ const questions = [
   <section>
     <div class="wrap">
       <SectionHead eyebrow="For carriers" title="The documents you issue every day.">
-        The Insurance page has a worked example of each one.
+        Each one has a worked example on the Insurance page.
       </SectionHead>
       <div class="cards">
         {
@@ -322,13 +319,13 @@ const questions = [
 
   <section class="alt tight">
     <div class="wrap">
-      <SectionHead eyebrow="Where necodoc stops" title="What necodoc doesn't do.">
-        If you need print, email and SMS channels or Word-native authoring, an enterprise CCM suite is the better fit.
+      <SectionHead eyebrow="Where necodoc stops" title="Know the limits before you start.">
+        Need print, email and SMS channels, or authoring in Word? An enterprise CCM suite is the better fit.
       </SectionHead>
       <Stops
         items={[
-          { icon: "plugs", title: "No packaged core-system connectors.", body: "Your core system calls a versioned REST API with OpenAPI and a JSON Schema per template. The Architecture page shows the pattern." },
-          { icon: "seal", title: "No vendor SOC 2 or ISO 27001 report.", body: "There is no hosted service to attest. necodoc runs inside your SOC 2 and B-13 boundary and inherits your controls." },
+          { icon: "plugs", title: "No packaged core-system connectors.", body: "Your core system calls a versioned REST API, with OpenAPI and a JSON Schema per template. The Architecture page shows a bond issued this way." },
+          { icon: "seal", title: "No vendor SOC 2 or ISO 27001 report.", body: "There's no hosted service to attest. It runs inside your SOC 2 and B-13 boundary." },
           { icon: "file-doc", title: "PDF only.", body: "No Word or DOCX output, and no print, email or SMS channels." },
           { icon: "books", title: "No ISO or AAIS bureau form library.", body: "You upload or design your own forms." },
           { icon: "signature", title: "Not an e-signature service.", body: "It prepares signing packages. Your provider runs the legally binding signing." },
@@ -340,12 +337,12 @@ const questions = [
 
   <section class="night grid-bg on-night">
     <div class="wrap">
-      <SectionHead eyebrow="Evaluate it" title="Everything you need to evaluate it is public." stack />
+      <SectionHead eyebrow="Evaluate it" title="Evaluate it on your own schedule. Everything is public." stack />
       <div class="steps">
         <a class="first" href={links.quickstart}><b>Run it</b><p>Docker Compose on a laptop or one VM: Postgres, API, a worker and the app.</p><span class="go">Quick start →</span></a>
         <a href={links.docs}><b>Read the docs</b><p>Self-hosting, roles and scaling, and the OpenAPI reference.</p><span class="go">Developer docs ↗</span></a>
         <a href={links.reviewPack}><b>Take the review pack</b><p>One PDF with the architecture, data flows, controls and known limits.</p><span class="go">Review pack →</span></a>
-        <a href={links.github}><b>Read the source</b><p>MIT licence. Read the code your review needs, or fork it and add a storage driver.</p><span class="go">GitHub ↗</span></a>
+        <a href={links.github}><b>Read the source</b><p>MIT licence. Audit it, or fork it.</p><span class="go">GitHub ↗</span></a>
       </div>
       <p class="demo">
         <a href={links.demo} rel="noopener">Try the demo ↗</a> A shared public demo. It resets every night at midnight

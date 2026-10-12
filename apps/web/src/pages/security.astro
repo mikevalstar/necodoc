@@ -180,8 +180,8 @@ const csvHref = `data:text/csv;charset=utf-8,${encodeURIComponent(csv)}`;
       { href: "#not", label: "What we don't claim" },
     ]}
   >
-    necodoc runs in your account. People sign in through your IdP, and necodoc writes its records to your Postgres.
-    Each control below says how it works and where it stops.
+    necodoc runs in your account, signs people in through your IdP and writes to your Postgres. Each control says where
+    it stops.
   </PageHero>
 
   <section class="tight" id="data" style="padding-bottom:0">
@@ -191,8 +191,7 @@ const csvHref = `data:text/csv;charset=utf-8,${encodeURIComponent(csv)}`;
         <div>
           <b>The one thing that can leave your environment is AI, and it's off by default.</b> If an admin sets
           <code>ANTHROPIC_KEY</code>, the template assistant sends the draft template (fields, content, sample data) and AI
-          field detection sends page images of the uploaded form to Anthropic's API. Generation data, the policyholder data
-          that fills real documents, isn't sent. The audit log records each AI request. Without the key, nothing leaves your
+          field detection sends page images of the uploaded form to Anthropic's API. Generation data isn't sent. The audit log records each AI request. Without the key, nothing leaves your
           boundary except the webhooks you configure.
           <a class="tlink" href={spec("features/ai-template-assistant")}>AI template assistant spec</a>
         </div>
@@ -203,7 +202,7 @@ const csvHref = `data:text/csv;charset=utf-8,${encodeURIComponent(csv)}`;
   <section id="controls">
     <div class="wrap">
       <SectionHead eyebrow="Controls list" title="Every control, and the spec that defines it.">
-        Each spec lists the control's known limits. Download the table as CSV for a vendor questionnaire.
+        Download it as CSV and paste it straight into a vendor questionnaire. Each spec lists that control's known limits.
         <span class="cta-row" style="margin-top:20px;display:flex">
           <a class="btn ghost sm" href={csvHref} download="necodoc-controls.csv"><Icon name="download-simple" />Download as CSV</a>
         </span>
@@ -255,8 +254,7 @@ const csvHref = `data:text/csv;charset=utf-8,${encodeURIComponent(csv)}`;
     <div class="wrap">
       <Pillar eyebrow="Change control" title="Forms staff change the wording. Your systems code against the fields." flip>
         <p>
-          Fields are the contract between a template and your systems. Each published version has its own JSON Schema.
-          Review and publishing are separate permissions.
+          Fields are the contract with your systems, with a JSON Schema per published version.
         </p>
         <Checks
           items={[
@@ -275,7 +273,7 @@ const csvHref = `data:text/csv;charset=utf-8,${encodeURIComponent(csv)}`;
   <section id="output" class="alt tight">
     <div class="wrap">
       <div class="qa">
-        <div><p class="q">Output integrity</p><h3>Archival, accessible and certified PDFs</h3><p>PDF/A-2b or 2u for retention, tagged PDF/UA-1 for screen readers, and PAdES certification that shows a recipient if a copy was edited. necodoc doesn't mark a file with a profile it can't meet.</p><a class="tlink" href={spec("features/archival-accessible-and-certified-output")}>Archival output →</a></div>
+        <div><p class="q">Output integrity</p><h3>Archival, accessible and certified PDFs</h3><p>PDF/A-2b or 2u, tagged PDF/UA-1, and PAdES certification that shows a recipient if a copy was edited. necodoc doesn't mark a file with a profile it can't meet.</p><a class="tlink" href={spec("features/archival-accessible-and-certified-output")}>Archival output →</a></div>
         <div><p class="q">Privacy</p><h3>Masking and erasure</h3><p>necodoc masks sensitive fields in diffs and in other people's log entries. Admins find and erase a data subject's records, and get a report for the request.</p><a class="tlink" href={spec("features/personal-data-masking-and-erasure")}>Personal data →</a></div>
         <div><p class="q">Signatures</p><h3>E-signature ready</h3><p>Signing packages list signers, routing order and box positions as envelope JSON. Your provider runs the legally binding signing.</p><a class="tlink" href={spec("features/signing-packages")}>Signing packages →</a></div>
       </div>
@@ -287,7 +285,7 @@ const csvHref = `data:text/csv;charset=utf-8,${encodeURIComponent(csv)}`;
       <aside>
         <p class="eyebrow">Canadian requirements</p>
         <h2>What helps, and what stays your job.</h2>
-        <p>necodoc doesn't make a carrier compliant with anything. These are the features that help you meet each requirement.</p>
+        <p>necodoc doesn't make you compliant. These features help you meet each requirement.</p>
       </aside>
       <table class="spec">
         <thead><tr><th>Requirement</th><th>How necodoc helps</th><th>Still yours</th></tr></thead>
@@ -305,8 +303,7 @@ const csvHref = `data:text/csv;charset=utf-8,${encodeURIComponent(csv)}`;
   <section id="not" class="alt tight">
     <div class="wrap">
       <SectionHead eyebrow="What we don't claim" title="Attestations and claims we don't make.">
-        There is no hosted service, so there is nothing for an auditor to attest. necodoc runs inside your SOC 2 and B-13
-        boundary and inherits your controls.
+        There's no hosted service to attest. necodoc runs inside your SOC 2 and B-13 boundary.
       </SectionHead>
       <Stops
         items={[
