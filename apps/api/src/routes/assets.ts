@@ -1,5 +1,10 @@
 import { zValidator } from "@hono/zod-validator";
-import { assetKind, assetListQuerySchema, renameAssetSchema } from "@necodoc/shared";
+import {
+  assetKind,
+  assetListQuerySchema,
+  blockingTemplates,
+  renameAssetSchema,
+} from "@necodoc/shared";
 import { and, desc, eq, ilike, like, type SQL } from "drizzle-orm";
 import { Hono } from "hono";
 import { z } from "zod";
@@ -9,6 +14,7 @@ import { db } from "../db";
 import { asset, file, user } from "../db/schema";
 import { deleteFiles, FileTooLargeError, fileBytes, storeFile } from "../files";
 import { type AppEnv, demo, requirePermission } from "../middleware";
+import { assetUsages } from "../usage";
 import { fileHeaders } from "./http";
 
 // Spec: docs/features/assets.md. Assets are global and immutable; only the name changes.
@@ -25,15 +31,19 @@ const assetColumns = {
   createdAt: asset.createdAt,
 };
 
+/** Assets with where each is used (src/usage.ts). */
 async function assetList(where?: SQL) {
-  const rows = await db
-    .select(assetColumns)
-    .from(asset)
-    .innerJoin(file, eq(file.id, asset.fileId))
-    .leftJoin(user, eq(user.id, asset.uploadedBy))
-    .where(where)
-    .orderBy(desc(asset.createdAt));
-  return rows.map((row) => ({ ...row, kind: assetKind(row.mimeType) }));
+  const [rows, usages] = await Promise.all([
+    db
+      .select(assetColumns)
+      .from(asset)
+      .innerJoin(file, eq(file.id, asset.fileId))
+      .leftJoin(user, eq(user.id, asset.uploadedBy))
+      .where(where)
+      .orderBy(desc(asset.createdAt)),
+    assetUsages(),
+  ]);
+  return rows.map((row) => ({ ...row, kind: assetKind(row.mimeType), usage: usages.get(row.id) }));
 }
 
 const escapeLike = (text: string) => text.replace(/[\\%_]/g, "\\$&");
@@ -135,18 +145,23 @@ export const assetRoutes = new Hono<AppEnv>()
       return c.json(renamed, 200);
     },
   )
-  // No published versions exist yet, so nothing blocks deletion (docs/features/assets.md).
+  // Refused while a live template's published version uses it; drafts and themes only warn in
+  // the app, since they can still be edited (docs/features/assets.md).
   .delete("/:id", requirePermission({ document: ["edit"] }), idParam, async (c) => {
+    const { id } = c.req.valid("param");
+    const usage = (await assetUsages()).get(id);
+    const blocking = blockingTemplates(usage);
+    if (blocking.length) {
+      const names = blocking.map((t) => t.name).join(", ");
+      return c.json({ error: `Published versions of ${names} use this asset`, usage }, 409);
+    }
     const deleted = await db.transaction(async (tx) => {
-      const [row] = await tx
-        .delete(asset)
-        .where(eq(asset.id, c.req.valid("param").id))
-        .returning({
-          id: asset.id,
-          name: asset.name,
-          mimeType: asset.mimeType,
-          fileId: asset.fileId,
-        });
+      const [row] = await tx.delete(asset).where(eq(asset.id, id)).returning({
+        id: asset.id,
+        name: asset.name,
+        mimeType: asset.mimeType,
+        fileId: asset.fileId,
+      });
       if (!row) return false;
       // Assets keep their bytes in the row (ADR 0014), so there are no objects to delete.
       await deleteFiles(tx, eq(file.id, row.fileId));

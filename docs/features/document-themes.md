@@ -44,6 +44,12 @@ template carries its own CSS and they drift apart.
 - Publishing a template snapshots its theme's CSS
   ([Publishing and versions](publishing-and-versions.md)). Editing a theme
   shows which published templates use an older copy.
+- **Where it's used.** The theme editor lists the templates whose draft uses
+  the theme and those whose latest published version froze a copy of it, marking
+  copies older than the current settings
+  ([usage.ts](../../apps/api/src/usage.ts)). The themes list shows the count.
+- **Deleting** a theme isn't refused: published versions keep their copy. Drafts
+  using it lose their theme, so the delete dialog lists them first.
 - Creating and editing themes needs `document: create` / `document: edit`
   ([roles](user-management-and-roles.md)).
 
@@ -56,6 +62,8 @@ template carries its own CSS and they drift apart.
 - [ ] An API render with a theme id applies that theme.
 - [ ] Editing a theme doesn't change an already published version.
 - [x] A theme using an uploaded font renders that font in the PDF.
+- [x] The theme editor lists the templates using the theme, flagging published
+      versions on an older copy.
 
 ## Known limitations
 

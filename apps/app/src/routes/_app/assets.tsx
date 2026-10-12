@@ -1,11 +1,14 @@
 import {
   ASSET_ORIGIN,
-  type Asset,
+  type AssetListItem as Asset,
   type AssetMime,
+  type AssetUsage,
   assetKindSchema,
+  blockingTemplates,
   hasPermission,
   MAX_FILE_BYTES,
   renameAssetSchema,
+  usageCount,
 } from "@necodoc/shared";
 import {
   DotsThreeIcon,
@@ -14,7 +17,7 @@ import {
   UploadSimpleIcon,
 } from "@phosphor-icons/react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { type DragEvent, useRef, useState } from "react";
 import { toast } from "sonner";
 import { z } from "zod";
@@ -32,6 +35,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import {
@@ -67,7 +71,7 @@ export const Route = createFileRoute("/_app/assets")({
   component: Assets,
 });
 
-type AssetDialog = { kind: "use" | "rename" | "delete"; asset: Asset };
+type AssetDialog = { kind: "use" | "usage" | "rename" | "delete"; asset: Asset };
 
 const formatLabels: Record<AssetMime, string> = {
   "image/png": "PNG",
@@ -223,6 +227,7 @@ function Assets() {
       )}
 
       {dialog?.kind === "use" && <UseAssetDialog asset={dialog.asset} onClose={close} />}
+      {dialog?.kind === "usage" && <UsageDialog asset={dialog.asset} onClose={close} />}
       {dialog?.kind === "rename" && <RenameAssetDialog asset={dialog.asset} onClose={close} />}
       {dialog?.kind === "delete" && <DeleteAssetDialog asset={dialog.asset} onClose={close} />}
     </Page>
@@ -270,6 +275,15 @@ function AssetTile({
           </time>
           {asset.uploaderName && ` · ${asset.uploaderName}`}
         </p>
+        <button
+          type="button"
+          className="text-xs text-ink-3 underline-offset-4 hover:text-ink hover:underline"
+          onClick={() => onAction("usage")}
+        >
+          {usageCount(asset.usage)
+            ? `Used in ${plural(usageCount(asset.usage), "place")}`
+            : "Not used"}
+        </button>
       </div>
       <div className="flex items-center gap-1">
         <Button
@@ -420,6 +434,75 @@ function UseAssetDialog({ asset, onClose }: { asset: Asset; onClose: () => void 
   );
 }
 
+/** Where an asset is used, with links (src/usage.ts in the API finds it). */
+function UsageList({ usage }: { usage: AssetUsage }) {
+  const link = "font-medium text-brand-ink underline-offset-4 hover:underline";
+  return (
+    <ul
+      aria-label="Where it's used"
+      className="divide-y divide-hair rounded-lg border border-hair text-sm"
+    >
+      {usage.templates.map((t) => (
+        <li key={t.id} className="flex flex-wrap items-center gap-2 px-3 py-2">
+          <Link to="/templates/$id" params={{ id: t.id }} className={link}>
+            {t.name}
+          </Link>
+          <span className="text-ink-3">Template</span>
+          <span className="ml-auto flex flex-wrap gap-1">
+            {t.draft && <Badge variant="secondary">Draft</Badge>}
+            {t.versions.length > 0 && (
+              <Badge
+                variant={t.archived ? "secondary" : "default"}
+                title={t.versions.map((v) => `v${v}`).join(", ")}
+              >
+                {plural(t.versions.length, "published version")}
+              </Badge>
+            )}
+            {t.archived && <Badge variant="secondary">Archived</Badge>}
+          </span>
+        </li>
+      ))}
+      {usage.themes.map((t) => (
+        <li key={t.id} className="flex items-center gap-2 px-3 py-2">
+          <Link to="/themes/$id" params={{ id: t.id }} className={link}>
+            {t.name}
+          </Link>
+          <span className="text-ink-3">Theme</span>
+        </li>
+      ))}
+      {usage.snippets.map((s) => (
+        <li key={s.id} className="flex items-center gap-2 px-3 py-2">
+          <Link to="/snippets/$id" params={{ id: s.id }} className={link}>
+            {s.name}
+          </Link>
+          <span className="text-ink-3">Snippet</span>
+        </li>
+      ))}
+    </ul>
+  );
+}
+
+function UsageDialog({ asset, onClose }: { asset: Asset; onClose: () => void }) {
+  return (
+    <Dialog open onOpenChange={(open) => !open && onClose()}>
+      <DialogContent className="sm:max-w-xl">
+        <DialogHeader>
+          <DialogTitle>Where {asset.name} is used</DialogTitle>
+          <DialogDescription>
+            Templates, themes and snippets whose content or CSS names this asset. Published versions
+            count through the theme copy they froze too.
+          </DialogDescription>
+        </DialogHeader>
+        {usageCount(asset.usage) ? (
+          <UsageList usage={asset.usage} />
+        ) : (
+          <p className="text-sm text-ink-3">Nothing references it.</p>
+        )}
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 function useAssetMutation<T>(
   mutationFn: (value: T) => Promise<unknown>,
   onDone: () => void,
@@ -486,27 +569,38 @@ function DeleteAssetDialog({ asset, onClose }: { asset: Asset; onClose: () => vo
     onClose,
     `Deleted ${asset.name}`,
   );
+  const blocked = blockingTemplates(asset.usage).length > 0;
+  const used = usageCount(asset.usage) > 0;
   return (
     <AlertDialog open onOpenChange={(open) => !open && onClose()}>
-      <AlertDialogContent>
+      <AlertDialogContent className="data-[size=default]:sm:max-w-lg">
         <AlertDialogHeader>
-          <AlertDialogTitle>Delete {asset.name}?</AlertDialogTitle>
+          <AlertDialogTitle>
+            {blocked ? `${asset.name} can't be deleted` : `Delete ${asset.name}?`}
+          </AlertDialogTitle>
           <AlertDialogDescription>
-            Renders that still reference it, including re-runs of old generations, will fail.
-            {asset.kind === "font" && " Themes using this font fall back to Noto Sans."} It can't be
-            undone.
+            {blocked
+              ? "Published versions of these templates use it, and any published version can still be rendered. Archive the templates first."
+              : used
+                ? "These drafts, themes or snippets reference it and will render without it until they're edited."
+                : "Nothing references it."}
+            {!blocked && asset.kind === "font" && " Themes using this font fall back to Noto Sans."}
+            {!blocked && " It can't be undone."}
           </AlertDialogDescription>
         </AlertDialogHeader>
+        {used && <UsageList usage={asset.usage} />}
         <ErrorAlert error={remove.error} />
         <AlertDialogFooter>
-          <AlertDialogCancel>Cancel</AlertDialogCancel>
-          <AlertDialogAction
-            variant="destructive"
-            disabled={remove.isPending}
-            onClick={() => remove.mutate()}
-          >
-            Delete asset
-          </AlertDialogAction>
+          <AlertDialogCancel>{blocked ? "Close" : "Cancel"}</AlertDialogCancel>
+          {!blocked && (
+            <AlertDialogAction
+              variant="destructive"
+              disabled={remove.isPending}
+              onClick={() => remove.mutate()}
+            >
+              Delete asset
+            </AlertDialogAction>
+          )}
         </AlertDialogFooter>
       </AlertDialogContent>
     </AlertDialog>

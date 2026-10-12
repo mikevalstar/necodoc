@@ -62,6 +62,11 @@ export const themeSchema = createThemeSchema.extend({
   updatedAt: z.iso.datetime(),
 });
 export type Theme = z.infer<typeof themeSchema>;
+export const themeListItemSchema = themeSchema.extend({
+  /** Templates whose draft or published versions use it. */
+  templateCount: z.number().int(),
+});
+export type ThemeListItem = z.infer<typeof themeListItemSchema>;
 
 /** Asset ids of the uploaded fonts a theme uses. */
 export function themeFontAssetIds(settings: ThemeSettings): string[] {
@@ -69,3 +74,22 @@ export function themeFontAssetIds(settings: ThemeSettings): string[] {
     typeof font === "string" ? [] : [font.assetId],
   );
 }
+
+/**
+ * The templates using a theme (docs/features/document-themes.md): through the draft, or through
+ * published versions that froze a copy of it. `current` is false for a copy older than the
+ * theme's settings and CSS now.
+ */
+export const themeUsageSchema = z.object({
+  templates: z.array(
+    z.object({
+      id: z.uuid(),
+      name: z.string(),
+      archived: z.boolean(),
+      draft: z.boolean(),
+      /** Newest first. */
+      versions: z.array(z.object({ version: z.number().int(), current: z.boolean() })),
+    }),
+  ),
+});
+export type ThemeUsage = z.infer<typeof themeUsageSchema>;

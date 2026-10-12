@@ -12,6 +12,7 @@ import { recordAudit } from "../audit";
 import { db } from "../db";
 import { asset, theme } from "../db/schema";
 import { type AppEnv, requirePermission } from "../middleware";
+import { themeUsages } from "../usage";
 
 // Spec: docs/features/document-themes.md. Built-in starters are read-only.
 
@@ -32,9 +33,22 @@ async function fontAssetError(settings: ThemeSettings | undefined) {
 }
 
 export const themeRoutes = new Hono<AppEnv>()
-  .get("/", requirePermission({ document: ["view"] }), async (c) =>
-    c.json(await db.select().from(theme).orderBy(desc(theme.builtIn), asc(theme.name))),
-  )
+  .get("/", requirePermission({ document: ["view"] }), async (c) => {
+    const [rows, usages] = await Promise.all([
+      db.select().from(theme).orderBy(desc(theme.builtIn), asc(theme.name)),
+      themeUsages(),
+    ]);
+    return c.json(
+      rows.map((row) => ({ ...row, templateCount: usages.get(row.id).templates.length })),
+    );
+  })
+  // Templates using it, with published versions on an older copy marked (src/usage.ts).
+  .get("/:id/usage", requirePermission({ document: ["view"] }), idParam, async (c) => {
+    const { id } = c.req.valid("param");
+    const [row] = await db.select({ id: theme.id }).from(theme).where(eq(theme.id, id));
+    if (!row) return c.json({ error: "Theme not found" }, 404);
+    return c.json((await themeUsages()).get(id), 200);
+  })
   .get("/:id", requirePermission({ document: ["view"] }), idParam, async (c) => {
     const [row] = await db
       .select()
@@ -99,6 +113,7 @@ export const themeRoutes = new Hono<AppEnv>()
       return c.json(row, 200);
     },
   )
+  // Not refused when templates use it: published versions keep their copy, drafts lose the theme.
   .delete("/:id", requirePermission({ document: ["edit"] }), idParam, async (c) => {
     const { id } = c.req.valid("param");
     const [existing] = await db.select().from(theme).where(eq(theme.id, id));

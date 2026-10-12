@@ -39,3 +39,31 @@ export const assetSchema = z.object({
   createdAt: z.iso.datetime(),
 });
 export type Asset = z.infer<typeof assetSchema>;
+
+/** What references an asset (docs/features/assets.md). Names are the drafts'. */
+export const assetUsageSchema = z.object({
+  templates: z.array(
+    z.object({
+      id: z.uuid(),
+      name: z.string(),
+      archived: z.boolean(),
+      /** The working draft references it. */
+      draft: z.boolean(),
+      /** Published versions that reference it, newest first. */
+      versions: z.array(z.number().int()),
+    }),
+  ),
+  themes: z.array(z.object({ id: z.uuid(), name: z.string() })),
+  snippets: z.array(z.object({ id: z.uuid(), name: z.string() })),
+});
+export type AssetUsage = z.infer<typeof assetUsageSchema>;
+
+export const assetListItemSchema = assetSchema.extend({ usage: assetUsageSchema });
+export type AssetListItem = z.infer<typeof assetListItemSchema>;
+
+export const usageCount = (usage: AssetUsage) =>
+  usage.templates.length + usage.themes.length + usage.snippets.length;
+
+/** Templates whose published versions need the asset: deleting it is refused while any exist. */
+export const blockingTemplates = (usage: AssetUsage) =>
+  usage.templates.filter((t) => !t.archived && t.versions.length > 0);

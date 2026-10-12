@@ -1,7 +1,7 @@
 import {
   bundledFonts,
   hasPermission,
-  type Theme,
+  type ThemeListItem as Theme,
   type ThemeFont,
   type ThemeSettings,
 } from "@necodoc/shared";
@@ -24,6 +24,7 @@ import {
 import { Skeleton } from "@/components/ui/skeleton";
 import { dayjs } from "@/lib/date";
 import { assetsQuery, themesQuery } from "@/lib/queries";
+import { plural } from "@/lib/utils";
 import { DeleteThemeDialog, fontStack, useDuplicateTheme } from "./-theme-actions";
 
 // Spec: docs/features/document-themes.md
@@ -75,6 +76,9 @@ function Themes() {
       <CardContent className="flex-1 space-y-3">
         <Specimen settings={theme.settings} />
         <Swatches settings={theme.settings} />
+        <p className="text-xs text-ink-3">
+          {theme.templateCount ? `Used by ${plural(theme.templateCount, "template")}` : "Not used"}
+        </p>
       </CardContent>
       <CardFooter className="gap-2">
         <Button

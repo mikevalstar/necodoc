@@ -48,7 +48,13 @@ import { usePageCrumb } from "@/lib/breadcrumb";
 import { assetsQuery, themesQuery } from "@/lib/queries";
 import { useSaveShortcut } from "@/lib/save-shortcut";
 import { cn } from "@/lib/utils";
-import { DeleteThemeDialog, useDuplicateTheme } from "./-theme-actions";
+import {
+  DeleteThemeDialog,
+  ThemeUsageBadge,
+  ThemeUsageCard,
+  themeUsageQuery,
+  useDuplicateTheme,
+} from "./-theme-actions";
 
 // Spec: docs/features/document-themes.md
 const themeQuery = (id: string) =>
@@ -110,7 +116,10 @@ function ThemeEditor({ theme }: { theme: Theme }) {
       (await ok(api.themes[":id"].$patch({ param: { id: theme.id }, json }))).json(),
     onSuccess: (saved) => {
       queryClient.setQueryData(themeQuery(theme.id).queryKey, saved);
-      return queryClient.invalidateQueries({ queryKey: themesQuery.queryKey, exact: true });
+      return Promise.all([
+        queryClient.invalidateQueries({ queryKey: themesQuery.queryKey, exact: true }),
+        queryClient.invalidateQueries({ queryKey: themeUsageQuery(theme.id).queryKey }),
+      ]);
     },
   });
   const defaultValues: ThemeValues = {
@@ -202,6 +211,7 @@ function ThemeEditor({ theme }: { theme: Theme }) {
         }
       >
         {theme.builtIn && <Badge variant="secondary">Built-in starter</Badge>}
+        <ThemeUsageBadge themeId={theme.id} />
         {canEdit && (
           <span role="status">
             {unsaved ? (
@@ -356,6 +366,9 @@ function ThemeEditor({ theme }: { theme: Theme }) {
               </CardContent>
             </Card>
           </fieldset>
+          <div className="mt-4">
+            <ThemeUsageCard themeId={theme.id} />
+          </div>
         </form>
       </div>
 

@@ -43,8 +43,15 @@ same logo.
   [API renders](html-to-pdf-api.md).
 - Assets are immutable. "Replace" uploads a new asset and points the current
   draft at it; published versions keep the old one.
-- An asset used by a published version can't be deleted. The app lists where
-  it's used.
+- **Where it's used** ([usage.ts](../../apps/api/src/usage.ts)). Each asset
+  lists the templates (draft and published versions), themes and snippets that
+  reference it; the library shows the count on each asset and lists them with links.
+  Published versions count through their frozen theme copy too.
+- **Deleting.** An asset used by a published version of a template that isn't
+  archived can't be deleted, since any published version can still be rendered.
+  The API answers 409 with the list. Drafts, themes, snippets and archived
+  templates only get a warning: they can be edited, and archiving is the
+  editor's statement that the old versions are retired.
 - Uploading needs `document: create`; every user with `document: view` can
   use assets in API renders.
 
@@ -53,8 +60,9 @@ same logo.
 - [ ] An editor can upload an image and a font and use both in a template.
 - [x] A file whose content doesn't match an allowed type is rejected.
 - [ ] Renaming an asset doesn't break templates using it.
-- [ ] Deleting an asset used by a published version is refused, with the list
+- [x] Deleting an asset used by a published version is refused, with the list
       of users of it.
+- [x] The library shows where each asset is used, with links.
 - [ ] An API render can reference an asset uploaded through the API.
 
 ## Known limitations
@@ -63,3 +71,6 @@ same logo.
 - SVGs render in designed templates only, not overlays.
 - No image editing (crop, resize) in the app.
 - Deleting a font asset a theme uses isn't refused; the theme falls back to Noto Sans.
+- Usage is found by looking for the asset's id in stored content, CSS and theme
+  settings. An id built at render time (for example from form data) or sent only
+  in API render requests isn't seen.
