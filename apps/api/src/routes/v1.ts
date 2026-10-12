@@ -746,6 +746,7 @@ const specOptions: Partial<GenerateSpecOptions> = {
     info: {
       title: "necodoc API",
       version: "1.0.0",
+      license: { name: "MIT", identifier: "MIT" },
       description:
         "Render HTML to PDF, generate from published templates (singly or in batches), and combine PDFs. Authenticate with an API key in the `x-api-key` header. Every response carries `X-Request-Id`.",
     },

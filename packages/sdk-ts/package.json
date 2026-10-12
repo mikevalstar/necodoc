@@ -1,5 +1,6 @@
 {
   "name": "@necodoc/sdk",
+  "license": "MIT",
   "version": "0.1.0",
   "private": true,
   "description": "TypeScript client for the necodoc /api/v1 API, generated from its OpenAPI document.",

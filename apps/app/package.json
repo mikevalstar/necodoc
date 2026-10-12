@@ -1,5 +1,6 @@
 {
   "name": "@necodoc/app",
+  "license": "MIT",
   "private": true,
   "type": "module",
   "scripts": {

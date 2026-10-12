@@ -36,6 +36,7 @@ const sdks: Sdk[] = [
       packageName: "Necodoc.Sdk",
       packageVersion: SDK_VERSION,
       targetFramework: "net8.0",
+      licenseId: "MIT",
     },
   },
   {
@@ -49,6 +50,8 @@ const sdks: Sdk[] = [
       invokerPackage: "dev.necodoc.sdk",
       apiPackage: "dev.necodoc.sdk.api",
       modelPackage: "dev.necodoc.sdk.model",
+      licenseName: "MIT",
+      licenseUrl: "https://opensource.org/license/mit",
     },
   },
 ];

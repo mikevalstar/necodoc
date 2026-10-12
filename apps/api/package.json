@@ -1,5 +1,6 @@
 {
   "name": "@necodoc/api",
+  "license": "MIT",
   "private": true,
   "type": "module",
   "exports": {

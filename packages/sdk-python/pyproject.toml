@@ -5,6 +5,7 @@ description = "necodoc API"
 authors = [
   {name = "OpenAPI Generator Community",email = "team@openapitools.org"},
 ]
+license = { text = "MIT" }
 readme = "README.md"
 keywords = ["OpenAPI", "OpenAPI-Generator", "necodoc API"]
 requires-python = ">=3.10"

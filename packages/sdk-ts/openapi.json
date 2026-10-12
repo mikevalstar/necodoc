@@ -3,7 +3,11 @@
   "info": {
     "title": "necodoc API",
     "description": "Render HTML to PDF, generate from published templates (singly or in batches), and combine PDFs. Authenticate with an API key in the `x-api-key` header. Every response carries `X-Request-Id`.",
-    "version": "1.0.0"
+    "version": "1.0.0",
+    "license": {
+      "name": "MIT",
+      "identifier": "MIT"
+    }
   },
   "servers": [
     {
