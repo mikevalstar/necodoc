@@ -12,7 +12,7 @@ git checkout.
 ## Create a client
 
 ```ts
-import { createNecodocClient } from "@necodoc/sdk";
+import { createNecodocClient, type Schema } from "@necodoc/sdk";
 
 const necodoc = createNecodocClient({
   baseUrl: "https://necodoc.example.com",
@@ -26,14 +26,13 @@ Every call returns `{ data, error, response }`. `error` is the API's error body
 ## Render HTML to a PDF
 
 ```ts
-const { data: pdf, error } = await necodoc.POST("/render", {
-  body: {
-    html: "<h1>Invoice {{ number }}</h1>",
-    data: { number: "A-1001" },
-    footer: { html: "<p>{{ page }} / {{ pages }}</p>", height: 12 },
-  },
-  parseAs: "arrayBuffer",
-});
+// Typing the body keeps `pdf` an ArrayBuffer once it uses optional fields like `page.size`.
+const body: Schema<"RenderRequest"> = {
+  html: "<h1>Invoice {{ number }}</h1>",
+  data: { number: "A-1001" },
+  footer: { html: "<p>{{ page }} / {{ pages }}</p>", height: 12 },
+};
+const { data: pdf, error } = await necodoc.POST("/render", { body, parseAs: "arrayBuffer" });
 if (error) throw new Error(`${error.code}: ${error.error}`);
 await writeFile("invoice.pdf", new Uint8Array(pdf));
 ```
