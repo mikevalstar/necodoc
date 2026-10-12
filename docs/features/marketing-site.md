@@ -66,6 +66,10 @@ brought the request.
 - Search engines get a sitemap built from every page
   ([astro.config.mjs](../../apps/web/astro.config.mjs)) and a
   [robots.txt](../../apps/web/public/robots.txt) that points at it.
+- AI tools get an [llms.txt](../../apps/web/public/llms.txt) that points at the
+  developer docs' own llms.txt (built by
+  [astro.config.mjs](../../apps/devdocs/astro.config.mjs)), so an assistant can
+  find how to run and call necodoc.
 
 **Decisions taken** (Mike, 2026-10-12, on NECO-ffyuqsdh and NECO-lfuwmnui):
 

@@ -1,0 +1,34 @@
+# necodoc
+
+> Self-hosted document generation and PDF API. necodoc fills the PDF forms you already have and renders designed HTML templates to PDF from your data, behind a versioned REST API (/api/v1). It runs in your own cloud (Docker Compose or Helm, with Postgres and S3-compatible, Azure Blob or disk storage). MIT licensed.
+
+The developer docs have their own llms.txt with the full documentation: https://docs.necodoc.com/llms.txt
+
+## Get it running
+
+- [Quick start](https://docs.necodoc.com/getting-started/quickstart/): run necodoc with Docker Compose
+- [Configuration](https://docs.necodoc.com/self-hosting/configuration/): environment variables
+- [Kubernetes with Helm](https://docs.necodoc.com/self-hosting/kubernetes-helm/)
+- [Source on GitHub](https://github.com/mikevalstar/necodoc)
+
+## Use the API
+
+- [API keys](https://docs.necodoc.com/guides/api-keys/): send the `x-api-key` header to `/api/v1`; every deployment serves its OpenAPI 3.1 document at `/api/v1/openapi.json`
+- [HTML to PDF](https://docs.necodoc.com/guides/html-to-pdf/)
+- [Templates and Liquid](https://docs.necodoc.com/guides/templates-and-liquid/)
+- [API reference](https://docs.necodoc.com/reference/api/)
+- [SDKs](https://docs.necodoc.com/reference/sdks/): TypeScript, Python, .NET and Java
+
+## Product
+
+- [Product](https://necodoc.com/product/): features and limits
+- [Architecture](https://necodoc.com/architecture/): reference architecture, scaling and data flows
+- [Security](https://necodoc.com/security/): access control, review and the audit log
+- [Performance](https://necodoc.com/performance/): benchmark results
+- [Compare](https://necodoc.com/compare/): necodoc against GhostDraft, DocSpring and Anvil
+
+## Optional
+
+- [Insurance](https://necodoc.com/insurance/): surety bonds, certificates and renewals
+- [Open source](https://necodoc.com/open-source/): licence and contributing
+- [Live demo](https://demo.necodoc.com): a shared public demo that resets every night

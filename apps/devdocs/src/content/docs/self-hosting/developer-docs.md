@@ -16,7 +16,7 @@ pnpm install
 DEVDOCS_SITE=https://docs.necodoc.example.com pnpm --filter @necodoc/devdocs build
 ```
 
-The output is in `apps/devdocs/dist`. The build writes the API reference from the API's code; it doesn't need a database or a running API. `DEVDOCS_SITE` is optional: the public URL, for the sitemap and canonical links.
+The output is in `apps/devdocs/dist`. The build writes the API reference from the API's code; it doesn't need a database or a running API. `DEVDOCS_SITE` is optional: the public URL, for the sitemap, canonical links and `llms.txt` (plus `llms-full.txt` and `llms-small.txt`, the docs as plain text for AI coding tools). Without it, those files aren't built.
 
 ## Serve
 
