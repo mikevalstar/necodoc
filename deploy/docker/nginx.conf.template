@@ -9,6 +9,9 @@ server {
   # ignores DNS search domains: on Kubernetes, API_URL must be the Service's full name.
   resolver ${NGINX_LOCAL_RESOLVERS} valid=10s;
 
+  # The app is never indexed. A location's own add_header replaces this, so it's repeated there.
+  add_header X-Robots-Tag "noindex, nofollow" always;
+
   location /api/ {
     set $api ${API_URL};
     proxy_pass $api;
@@ -27,12 +30,14 @@ server {
   # Hashed build assets never change.
   location /assets/ {
     add_header Cache-Control "public, max-age=31536000, immutable";
+    add_header X-Robots-Tag "noindex, nofollow" always;
     try_files $uri =404;
   }
 
   # Client-side routes fall back to the SPA shell, which must not be cached.
   location / {
     add_header Cache-Control "no-cache";
+    add_header X-Robots-Tag "noindex, nofollow" always;
     try_files $uri $uri/ /index.html;
   }
 }

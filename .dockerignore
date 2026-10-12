@@ -14,3 +14,16 @@ packages/sdk-java/target
 packages/sdk-dotnet/**/bin
 packages/sdk-dotnet/**/obj
 packages/sdk-python/build
+.demo
+# Not used by any image: design mockups, the reel, test fixtures, the docs bundle and the
+# scripts the images don't build. The Dockerfile's install is filtered to match.
+design
+brand
+fixtures
+docs
+apps/reel
+scripts/demo
+scripts/review-pack
+# The site reads only latest.json.
+scripts/bench/results/*
+!scripts/bench/results/latest.json

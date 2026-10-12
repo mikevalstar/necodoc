@@ -8,7 +8,11 @@ mode. Screenshots are in `<slug>/shots/`: 1440×900 light and dark for every scr
 so only the design system changes between them. Every text/background pair listed below
 passes WCAG AA (4.5:1 or better), and every direction has a visible `:focus-visible` ring.
 
-## A. Ledger: paper and ink (`ledger/`)
+[ADR 0042](../../docs/adrs/0042-cobalt-design-system-with-bricolage-figtree-and-phosphor.md)
+picked Cobalt. Only `cobalt/` and `shared/` are kept; the Ledger and Drafting mockups are in
+git history. Their write-ups stay below as the record of what was compared.
+
+## A. Ledger: paper and ink (removed)
 
 The product makes legal documents, so the app looks like the desk they're made on: warm
 paper, black ink, ruled ledgers, rubber stamps. Pages open like a document, with an eyebrow,
@@ -39,7 +43,7 @@ underline-only filter inputs give a weaker affordance than boxed inputs, so keep
 inputs in guided forms. The serif can read as "law firm", which is the intent for surety
 and legal buyers but less so for developers. The tablet layout collapses to an icon rail.
 
-## B. Drafting: precise console (`drafting/`)
+## B. Drafting: precise console (removed)
 
 Dark-first and built for people who spend all day in tables: ops, developers, high-volume
 publishers. The UI is cyanotype blue-black and IBM Plex. Every number is mono, rows are

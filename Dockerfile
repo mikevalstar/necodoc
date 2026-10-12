@@ -13,14 +13,16 @@ ENV PNPM_HOME=/pnpm PATH=/pnpm:$PATH CI=true
 RUN npm install --global --allow-scripts=pnpm pnpm@12.5.1
 WORKDIR /repo
 
-# Every workspace dependency, fetched from the lockfile alone so this layer survives source edits.
+# Dependencies fetched from the lockfile alone so this layer survives source edits; the install
+# is filtered to the four apps built below and their workspace dependencies.
 FROM pnpm AS deps
 COPY pnpm-lock.yaml pnpm-workspace.yaml ./
 # pnpm patchedDependencies (pnpm-workspace.yaml) are part of the lockfile's inputs.
 COPY patches ./patches
 RUN --mount=type=cache,id=pnpm-store,target=/pnpm/store pnpm fetch
 COPY . .
-RUN --mount=type=cache,id=pnpm-store,target=/pnpm/store pnpm install --frozen-lockfile --offline
+RUN --mount=type=cache,id=pnpm-store,target=/pnpm/store pnpm install --frozen-lockfile --offline \
+  --filter "@necodoc/api..." --filter "@necodoc/app..." --filter "@necodoc/web..." --filter "@necodoc/devdocs..."
 
 FROM deps AS api-build
 RUN pnpm --filter @necodoc/api build \

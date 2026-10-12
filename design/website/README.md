@@ -97,7 +97,4 @@ and stay as they are.
 
 1. **Benchmark.** Rerun on a clean commit so the dirty-tree warning goes away.
 
-Copy pass (W6b) and the launch review (W7): [copy-pass.md](copy-pass.md) logs the notable
-before/after changes.
-
 Docs links default to `https://docs.necodoc.com`; set `DOCS_URL` to point a build at a local devdocs.
