@@ -1,6 +1,5 @@
 import { zValidator } from "@hono/zod-validator";
 import {
-  type GenerationSource,
   type JobState,
   metricsWindows,
   type Percentiles,
@@ -127,7 +126,7 @@ export const systemRoutes = new Hono<AppEnv>()
         totalMs: toPercentiles(overall?.totalMs ?? null),
         queueWaitMs: toPercentiles(overall?.queueWaitMs ?? null),
       },
-      bySource: bySource.map((row) => ({ ...row, source: row.source as GenerationSource })),
+      bySource,
       byTemplate,
       /** This API node's APP_VERSION (workers report theirs in heartbeats). */
       version: env.APP_VERSION,

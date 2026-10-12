@@ -98,7 +98,7 @@ of it is gated on `DEMO_MODE`; other installations behave as before.
   description, version note, field detection) counts against a daily allowance per client
   address (`DEMO_AI_PER_IP_PER_DAY`, 20) and for the whole demo (`DEMO_AI_PER_DAY`, 300), days in
   `DEMO_RESET_TZ`. Over either, the API answers 429 saying so.
-- **Rate limits per client address** (the proxy's address with `TRUST_PROXY`), as 429 with
+- **Rate limits per client address** (from `X-Forwarded-For` with `TRUST_PROXY`), as 429 with
   `Retry-After`: renders, previews, test runs, re-runs and submission PDFs
   (`DEMO_RENDERS_PER_MINUTE`, 30); asset and PDF uploads (`DEMO_UPLOADS_PER_HOUR`, 30); batches
   (`DEMO_BATCHES_PER_HOUR`, 10). Each is a burst of that many, refilled evenly.

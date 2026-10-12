@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { hostOf, ipAllowed, isAllowedAddress } from "./addresses";
+import { forwardedClient, hostOf, ipAllowed, isAllowedAddress } from "./addresses";
 
 describe("ipAllowed (API key allowlists)", () => {
   it("allows any address with an empty list", () => {
@@ -65,5 +65,25 @@ describe("hostOf", () => {
     expect(hostOf(undefined)).toBeNull();
     expect(hostOf("")).toBeNull();
     expect(hostOf("not a url")).toBeNull();
+  });
+});
+
+describe("forwardedClient (TRUST_PROXY)", () => {
+  it("reads nothing with no trusted proxies or no header", () => {
+    expect(forwardedClient("203.0.113.7", 0)).toBeUndefined();
+    expect(forwardedClient(undefined, 1)).toBeUndefined();
+  });
+
+  it("takes the hop added by the one proxy", () => {
+    expect(forwardedClient("198.51.100.1, 203.0.113.7", 1)).toBe("203.0.113.7");
+  });
+
+  it("skips the TLS proxy nginx adds behind a second proxy", () => {
+    // Client 203.0.113.7 -> TLS proxy 10.0.0.2 -> nginx -> API; the client forged the first hop.
+    expect(forwardedClient("198.51.100.1, 203.0.113.7, 10.0.0.2", 2)).toBe("203.0.113.7");
+  });
+
+  it("takes the first hop when there are fewer than the trusted count", () => {
+    expect(forwardedClient("203.0.113.7", 2)).toBe("203.0.113.7");
   });
 });

@@ -49,6 +49,7 @@ import {
   integer,
   jsonb,
   pgTable,
+  primaryKey,
   text,
   timestamp,
   unique,
@@ -381,6 +382,21 @@ export const apiKeyPolicy = pgTable("api_key_policy", {
   lastUsedIp: text(),
   createdAt,
 });
+
+// ADR 0048: each key's requests per minute, summed over the last hour for its rate limit. Rows
+// older than the hour are dropped as the key is used (src/api-key-rate-limit.ts).
+export const apiKeyMinute = pgTable(
+  "api_key_minute",
+  {
+    apiKeyId: text()
+      .notNull()
+      .references(() => apikey.id, { onDelete: "cascade" }),
+    /** Minutes since the Unix epoch. */
+    minute: integer().notNull(),
+    count: integer().notNull(),
+  },
+  (t) => [primaryKey({ columns: [t.apiKeyId, t.minute] })],
+);
 
 // Spec: docs/features/webhooks.md. Fires for its owner's API generations, narrowed to one key
 // and/or one template; a template webhook alone fires for every generation of the template.

@@ -5,7 +5,7 @@ import { eq, type SQL } from "drizzle-orm";
 import type { db } from "./db";
 import { type FileStorage, file } from "./db/schema";
 import { log } from "./log";
-import { type ByteRange, storage } from "./storage";
+import { type ByteRange, type PresignOptions, storage } from "./storage";
 import { objectKey, type StorageDriverName } from "./storage/config";
 
 // The one module that touches file bytes. Base data (assets, uploaded PDFs) keeps them in the row
@@ -166,6 +166,12 @@ export async function openFile(tx: Executor, stored: StoredFile, range?: ByteRan
   } catch (error) {
     throw new StorageError("read the file", error);
   }
+}
+
+/** ADR 0023: a short-lived URL to the object itself, or null if the file or driver can't have one. */
+export async function presignFile(stored: StoredFile, options: PresignOptions) {
+  if (stored.storage === "db" || stored.storage !== storage.name || !storage.presign) return null;
+  return storage.presign(stored.key, options);
 }
 
 type ObjectRef = { storage: FileStorage; key: string | null };

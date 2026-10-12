@@ -66,13 +66,14 @@ export const auth = betterAuth({
       bannedUserMessage:
         "Your account has been banned. Ask an admin if you think this is a mistake.",
     }),
-    // ADR 0019/0029: hashing, lookup and the per-key rate limit. Expiry, scopes and revocation
-    // live in api_key_policy (the plugin deletes expired keys; we keep them listed).
+    // ADR 0019/0029: hashing and lookup. Expiry, scopes and revocation live in api_key_policy
+    // (the plugin deletes expired keys; we keep them listed). Its rate limiter is off: it never
+    // resets for a steady caller, so ours counts the hour instead (ADR 0048).
     apiKey({
       defaultPrefix: API_KEY_PREFIX,
       startingCharactersConfig: { charactersLength: API_KEY_PREFIX.length + 6 },
       maximumNameLength: 100,
-      rateLimit: { enabled: true, timeWindow: 60_000, maxRequests: 120 },
+      rateLimit: { enabled: false },
       enableSessionForAPIKeys: false,
     }),
     ...ssoPlugins,

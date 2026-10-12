@@ -8,7 +8,7 @@ import { withSpan } from "./tracing";
 const modeOf = (request: RenderInput) => ("kind" in request ? request.kind : "html");
 
 /** Text with the request's field values and signers masked: logs and spans never carry them. */
-export const scrubRequest = (text: string, request: RenderInput | null) =>
+const scrubRequest = (text: string, request: RenderInput | null) =>
   request && "data" in request ? scrubValues(text, [request.data, request.signers]) : text;
 
 /** Runs one render in a span and times it into `necodoc_render_duration_seconds`. */

@@ -1,8 +1,11 @@
 import { randomUUID } from "node:crypto";
 import { getConnInfo } from "@hono/node-server/conninfo";
+import { zValidator } from "@hono/zod-validator";
 import { hasPermission, type Permissions, parseRoles, type Role } from "@necodoc/shared";
 import type { Context } from "hono";
 import { createMiddleware } from "hono/factory";
+import { z } from "zod";
+import { forwardedClient } from "./addresses";
 import type { auth } from "./auth";
 import { demoGuards } from "./demo";
 import { env } from "./env";
@@ -42,6 +45,28 @@ export const requirePermission = (permissions: Permissions) =>
 export const requireAnyPermission = (...options: Permissions[]) =>
   requireRoles((roles) => options.some((permissions) => hasPermission(roles, permissions)));
 
+export const isAdmin = (actor: { role?: string | null }) =>
+  parseRoles(actor.role).includes("admin");
+
+/** Drafts are for editors, reviewers and publishers (docs/features/document-templates.md). */
+const draftAccess: Permissions[] = [
+  { document: ["edit"] },
+  { document: ["review"] },
+  { document: ["publish"] },
+];
+export const seesDrafts = (actor: { role?: string | null }) =>
+  draftAccess.some((permissions) => hasPermission(parseRoles(actor.role), permissions));
+
+export const canView = requirePermission({ document: ["view"] });
+export const canEdit = requirePermission({ document: ["edit"] });
+export const canPublish = requirePermission({ document: ["publish"] });
+export const canSeeDrafts = requireAnyPermission(...draftAccess);
+
+/** A uuid `:id` route param. */
+export const idParam = zValidator("param", z.object({ id: z.uuid() }));
+/** An `:id` route param holding a Better Auth id (users, API keys), which isn't a uuid. */
+export const authIdParam = zValidator("param", z.object({ id: z.string().min(1) }));
+
 /** Accepts a sane incoming X-Request-Id (for tracing across services) or generates one. */
 export const requestId = createMiddleware<AppEnv>(async (c, next) => {
   const incoming = c.req.header("X-Request-Id");
@@ -51,10 +76,13 @@ export const requestId = createMiddleware<AppEnv>(async (c, next) => {
   await next();
 });
 
-/** The socket's address, or the last X-Forwarded-For hop (added by our proxy) with TRUST_PROXY. */
+/** The X-Forwarded-For client behind TRUST_PROXY proxies, else the socket's address. */
 export function clientIp(c: Context) {
-  const hops = env.TRUST_PROXY ? c.req.header("X-Forwarded-For")?.split(",") : undefined;
-  return hops?.at(-1)?.trim() || getConnInfo(c).remote.address || "unknown";
+  return (
+    forwardedClient(c.req.header("X-Forwarded-For"), env.TRUST_PROXY) ||
+    getConnInfo(c).remote.address ||
+    "unknown"
+  );
 }
 
 /**

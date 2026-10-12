@@ -4,27 +4,11 @@ import { db } from "../db";
 import { worker } from "../db/schema";
 import { env } from "../env";
 import { queueStatus } from "../queue";
-import { storage } from "../storage";
+import { storage, storageReachable } from "../storage";
 import { onlineSince } from "../worker";
 
 // Spec: docs/features/render-queue-batch-jobs-and-scaling.md (health). Unauthenticated, for load
 // balancers and orchestrators; served by every role.
-
-/** A hung mount or endpoint must fail the probe, not hang it. */
-export async function storageReachable() {
-  let timer: NodeJS.Timeout | undefined;
-  const timeout = new Promise<never>((_, reject) => {
-    timer = setTimeout(() => reject(new Error("timed out after 5 s")), 5000);
-  });
-  try {
-    await Promise.race([storage.check(), timeout]);
-    return { ok: true as const };
-  } catch (error) {
-    return { ok: false as const, error: error instanceof Error ? error.message : String(error) };
-  } finally {
-    clearTimeout(timer);
-  }
-}
 
 export const healthRoutes = new Hono()
   /** Liveness: the process answers. */

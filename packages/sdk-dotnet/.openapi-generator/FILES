@@ -55,6 +55,7 @@ src/Necodoc.Sdk/Model/OutputOptionsPdfa.cs
 src/Necodoc.Sdk/Model/PendingGeneration.cs
 src/Necodoc.Sdk/Model/PendingGenerationStatus.cs
 src/Necodoc.Sdk/Model/PostGenerationsByIdLink201Response.cs
+src/Necodoc.Sdk/Model/PostGenerationsByIdLinkRequest.cs
 src/Necodoc.Sdk/Model/PostRender200Response.cs
 src/Necodoc.Sdk/Model/RenderRequest.cs
 src/Necodoc.Sdk/Model/RenderRequestHeader.cs

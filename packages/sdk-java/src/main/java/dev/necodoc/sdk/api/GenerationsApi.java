@@ -25,6 +25,7 @@ import dev.necodoc.sdk.model.GetGenerationsByIdSigningPackageEmbedPdfParameter;
 import dev.necodoc.sdk.model.GetGenerationsByIdSigningPackageFormatsParameterInner;
 import dev.necodoc.sdk.model.GetGenerationsByIdSigningPackagePlacementParameter;
 import dev.necodoc.sdk.model.PostGenerationsByIdLink201Response;
+import dev.necodoc.sdk.model.PostGenerationsByIdLinkRequest;
 import dev.necodoc.sdk.model.SigningPackage;
 import java.util.UUID;
 
@@ -556,49 +557,53 @@ public class GenerationsApi {
 
   /**
    * Mint a signed download link
-   * A URL to the PDF that works without a key for an hour.
+   * A URL to the PDF that works without a key until it expires: &#x60;expiresInSeconds&#x60; after minting, from a minute to 7 days (default an hour).
    * @param id  (required)
+   * @param postGenerationsByIdLinkRequest  (optional)
    * @return PostGenerationsByIdLink201Response
    * @throws ApiException if fails to make API call
    */
-  public PostGenerationsByIdLink201Response postGenerationsByIdLink(@javax.annotation.Nonnull UUID id) throws ApiException {
-    return postGenerationsByIdLink(id, null);
+  public PostGenerationsByIdLink201Response postGenerationsByIdLink(@javax.annotation.Nonnull UUID id, @javax.annotation.Nullable PostGenerationsByIdLinkRequest postGenerationsByIdLinkRequest) throws ApiException {
+    return postGenerationsByIdLink(id, postGenerationsByIdLinkRequest, null);
   }
 
   /**
    * Mint a signed download link
-   * A URL to the PDF that works without a key for an hour.
+   * A URL to the PDF that works without a key until it expires: &#x60;expiresInSeconds&#x60; after minting, from a minute to 7 days (default an hour).
    * @param id  (required)
+   * @param postGenerationsByIdLinkRequest  (optional)
    * @param headers Optional headers to include in the request
    * @return PostGenerationsByIdLink201Response
    * @throws ApiException if fails to make API call
    */
-  public PostGenerationsByIdLink201Response postGenerationsByIdLink(@javax.annotation.Nonnull UUID id, Map<String, String> headers) throws ApiException {
-    ApiResponse<PostGenerationsByIdLink201Response> localVarResponse = postGenerationsByIdLinkWithHttpInfo(id, headers);
+  public PostGenerationsByIdLink201Response postGenerationsByIdLink(@javax.annotation.Nonnull UUID id, @javax.annotation.Nullable PostGenerationsByIdLinkRequest postGenerationsByIdLinkRequest, Map<String, String> headers) throws ApiException {
+    ApiResponse<PostGenerationsByIdLink201Response> localVarResponse = postGenerationsByIdLinkWithHttpInfo(id, postGenerationsByIdLinkRequest, headers);
     return localVarResponse.getData();
   }
 
   /**
    * Mint a signed download link
-   * A URL to the PDF that works without a key for an hour.
+   * A URL to the PDF that works without a key until it expires: &#x60;expiresInSeconds&#x60; after minting, from a minute to 7 days (default an hour).
    * @param id  (required)
+   * @param postGenerationsByIdLinkRequest  (optional)
    * @return ApiResponse&lt;PostGenerationsByIdLink201Response&gt;
    * @throws ApiException if fails to make API call
    */
-  public ApiResponse<PostGenerationsByIdLink201Response> postGenerationsByIdLinkWithHttpInfo(@javax.annotation.Nonnull UUID id) throws ApiException {
-    return postGenerationsByIdLinkWithHttpInfo(id, null);
+  public ApiResponse<PostGenerationsByIdLink201Response> postGenerationsByIdLinkWithHttpInfo(@javax.annotation.Nonnull UUID id, @javax.annotation.Nullable PostGenerationsByIdLinkRequest postGenerationsByIdLinkRequest) throws ApiException {
+    return postGenerationsByIdLinkWithHttpInfo(id, postGenerationsByIdLinkRequest, null);
   }
 
   /**
    * Mint a signed download link
-   * A URL to the PDF that works without a key for an hour.
+   * A URL to the PDF that works without a key until it expires: &#x60;expiresInSeconds&#x60; after minting, from a minute to 7 days (default an hour).
    * @param id  (required)
+   * @param postGenerationsByIdLinkRequest  (optional)
    * @param headers Optional headers to include in the request
    * @return ApiResponse&lt;PostGenerationsByIdLink201Response&gt;
    * @throws ApiException if fails to make API call
    */
-  public ApiResponse<PostGenerationsByIdLink201Response> postGenerationsByIdLinkWithHttpInfo(@javax.annotation.Nonnull UUID id, Map<String, String> headers) throws ApiException {
-    HttpRequest.Builder localVarRequestBuilder = postGenerationsByIdLinkRequestBuilder(id, headers);
+  public ApiResponse<PostGenerationsByIdLink201Response> postGenerationsByIdLinkWithHttpInfo(@javax.annotation.Nonnull UUID id, @javax.annotation.Nullable PostGenerationsByIdLinkRequest postGenerationsByIdLinkRequest, Map<String, String> headers) throws ApiException {
+    HttpRequest.Builder localVarRequestBuilder = postGenerationsByIdLinkRequestBuilder(id, postGenerationsByIdLinkRequest, headers);
     try {
       HttpResponse<InputStream> localVarResponse = memberVarHttpClient.send(
           localVarRequestBuilder.build(),
@@ -645,7 +650,7 @@ public class GenerationsApi {
     }
   }
 
-  private HttpRequest.Builder postGenerationsByIdLinkRequestBuilder(@javax.annotation.Nonnull UUID id, Map<String, String> headers) throws ApiException {
+  private HttpRequest.Builder postGenerationsByIdLinkRequestBuilder(@javax.annotation.Nonnull UUID id, @javax.annotation.Nullable PostGenerationsByIdLinkRequest postGenerationsByIdLinkRequest, Map<String, String> headers) throws ApiException {
     // verify the required parameter 'id' is set
     if (id == null) {
       throw new ApiException(400, "Missing the required parameter 'id' when calling postGenerationsByIdLink");
@@ -658,9 +663,15 @@ public class GenerationsApi {
 
     localVarRequestBuilder.uri(URI.create(memberVarBaseUri + localVarPath));
 
+    localVarRequestBuilder.header("Content-Type", "application/json");
     localVarRequestBuilder.header("Accept", "application/json");
 
-    localVarRequestBuilder.method("POST", HttpRequest.BodyPublishers.noBody());
+    try {
+      byte[] localVarPostBody = memberVarObjectMapper.writeValueAsBytes(postGenerationsByIdLinkRequest);
+      localVarRequestBuilder.method("POST", HttpRequest.BodyPublishers.ofByteArray(localVarPostBody));
+    } catch (IOException e) {
+      throw new ApiException(e);
+    }
     if (memberVarReadTimeout != null) {
       localVarRequestBuilder.timeout(memberVarReadTimeout);
     }

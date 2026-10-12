@@ -77,6 +77,7 @@ namespace Necodoc.Sdk.Client
             _jsonOptions.Converters.Add(new PendingGenerationStatusJsonConverter());
             _jsonOptions.Converters.Add(new PendingGenerationStatusNullableJsonConverter());
             _jsonOptions.Converters.Add(new PostGenerationsByIdLink201ResponseJsonConverter());
+            _jsonOptions.Converters.Add(new PostGenerationsByIdLinkRequestJsonConverter());
             _jsonOptions.Converters.Add(new PostRender200ResponseJsonConverter());
             _jsonOptions.Converters.Add(new RenderRequestJsonConverter());
             _jsonOptions.Converters.Add(new RenderRequestHeaderJsonConverter());

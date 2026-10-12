@@ -44,7 +44,9 @@ export const ipAllowEntrySchema = z
   .trim()
   .pipe(z.union([z.ipv4(), z.ipv6(), z.cidrv4(), z.cidrv6()], "Not an IP address or CIDR range"));
 
-export const MAX_RATE_LIMIT_PER_MINUTE = 6000;
+/** Requests a key may make over the last hour (ADR 0048). */
+export const DEFAULT_RATE_LIMIT_PER_HOUR = 7200;
+export const MAX_RATE_LIMIT_PER_HOUR = 360_000;
 
 /** The settings a key is made with; rotation copies them. */
 export const apiKeySettingsSchema = z.object({
@@ -53,7 +55,11 @@ export const apiKeySettingsSchema = z.object({
   templateIds: z.array(z.uuid()).max(100).default([]),
   /** Empty: any address. */
   ipAllowlist: z.array(ipAllowEntrySchema).max(50).default([]),
-  rateLimitPerMinute: z.int().min(1).max(MAX_RATE_LIMIT_PER_MINUTE).default(120),
+  rateLimitPerHour: z
+    .int()
+    .min(1)
+    .max(MAX_RATE_LIMIT_PER_HOUR)
+    .default(DEFAULT_RATE_LIMIT_PER_HOUR),
 });
 
 export const createApiKeySchema = apiKeySettingsSchema.extend({

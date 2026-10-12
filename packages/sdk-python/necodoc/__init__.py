@@ -57,6 +57,7 @@ __all__ = [
     "PendingGeneration",
     "PendingGenerationStatus",
     "PostGenerationsByIdLink201Response",
+    "PostGenerationsByIdLinkRequest",
     "PostRender200Response",
     "RenderRequest",
     "RenderRequestHeader",
@@ -128,6 +129,7 @@ from necodoc.models.output_options_pdfa import OutputOptionsPdfa as OutputOption
 from necodoc.models.pending_generation import PendingGeneration as PendingGeneration
 from necodoc.models.pending_generation_status import PendingGenerationStatus as PendingGenerationStatus
 from necodoc.models.post_generations_by_id_link201_response import PostGenerationsByIdLink201Response as PostGenerationsByIdLink201Response
+from necodoc.models.post_generations_by_id_link_request import PostGenerationsByIdLinkRequest as PostGenerationsByIdLinkRequest
 from necodoc.models.post_render200_response import PostRender200Response as PostRender200Response
 from necodoc.models.render_request import RenderRequest as RenderRequest
 from necodoc.models.render_request_header import RenderRequestHeader as RenderRequestHeader

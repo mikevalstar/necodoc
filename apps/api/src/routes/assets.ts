@@ -10,16 +10,14 @@ import { Hono } from "hono";
 import { z } from "zod";
 import { sniffAssetMime } from "../asset-type";
 import { recordAudit } from "../audit";
-import { db } from "../db";
+import { db, escapeLike } from "../db";
 import { asset, file, user } from "../db/schema";
 import { deleteFiles, FileTooLargeError, fileBytes, storeFile } from "../files";
-import { type AppEnv, demo, requirePermission } from "../middleware";
+import { fileHeaders } from "../http";
+import { type AppEnv, demo, idParam, requirePermission } from "../middleware";
 import { assetUsages } from "../usage";
-import { fileHeaders } from "./http";
 
 // Spec: docs/features/assets.md. Assets are global and immutable; only the name changes.
-
-const idParam = zValidator("param", z.object({ id: z.uuid() }));
 
 const assetColumns = {
   id: asset.id,
@@ -45,8 +43,6 @@ async function assetList(where?: SQL) {
   ]);
   return rows.map((row) => ({ ...row, kind: assetKind(row.mimeType), usage: usages.get(row.id) }));
 }
-
-const escapeLike = (text: string) => text.replace(/[\\%_]/g, "\\$&");
 
 export const assetRoutes = new Hono<AppEnv>()
   .get(

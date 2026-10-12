@@ -5,14 +5,12 @@ import { alias, type SelectedFields } from "drizzle-orm/pg-core";
 import { Hono } from "hono";
 import { stream } from "hono/streaming";
 import { z } from "zod";
-import { db } from "../db";
+import { db, escapeLike } from "../db";
 import { auditEvent, user } from "../db/schema";
 import { type AppEnv, requireRole } from "../middleware";
 
 // Spec: docs/features/audit-log.md, ADR 0032. Admins only, read only: nothing here (or anywhere)
 // edits or deletes entries. Object pages ask for their own history with targetType + targetId.
-
-const escapeLike = (text: string) => text.replace(/[\\%_]/g, "\\$&");
 
 /** An id or address matches exactly; anything else is a substring of a name or request id. */
 function textMatch(q: string) {

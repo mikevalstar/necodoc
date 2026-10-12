@@ -6,8 +6,7 @@ import { tracingEnabled } from "./observability/tracing";
 import { chromiumVersion } from "./render/browser";
 import { certificateInfo } from "./render/certify";
 import { retentionSettings } from "./retention";
-import { storageReachable } from "./routes/health";
-import { storage } from "./storage";
+import { storage, storageReachable } from "./storage";
 
 // Spec: docs/features/render-queue-batch-jobs-and-scaling.md (Configuration). What this process is
 // configured with, for Admin > System. Nothing secret leaves here: URLs go out as their host only

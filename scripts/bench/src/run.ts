@@ -167,7 +167,7 @@ async function seed(stack: Stack): Promise<Seeded> {
   };
   const scopes: ApiScope[] = apiScopeSchema.options;
   const { key } = await app<{ key: string }>("/api-keys", {
-    json: { name: "bench", scopes, rateLimitPerMinute: 6000 },
+    json: { name: "bench", scopes, rateLimitPerHour: 360_000 },
   });
   return { key, templates };
 }

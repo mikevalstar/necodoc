@@ -38,6 +38,7 @@ from necodoc.models.output_options_pdfa import OutputOptionsPdfa
 from necodoc.models.pending_generation import PendingGeneration
 from necodoc.models.pending_generation_status import PendingGenerationStatus
 from necodoc.models.post_generations_by_id_link201_response import PostGenerationsByIdLink201Response
+from necodoc.models.post_generations_by_id_link_request import PostGenerationsByIdLinkRequest
 from necodoc.models.post_render200_response import PostRender200Response
 from necodoc.models.render_request import RenderRequest
 from necodoc.models.render_request_header import RenderRequestHeader

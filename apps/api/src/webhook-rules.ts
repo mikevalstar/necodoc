@@ -6,7 +6,7 @@ import { createHmac, randomBytes } from "node:crypto";
 export const newWebhookSecret = () => `whsec_${randomBytes(24).toString("base64url")}`;
 
 /** Hex HMAC-SHA256 of `${timestamp}.${body}`, as receivers recompute it. */
-export const webhookSignature = (secret: string, timestamp: number, body: string) =>
+const webhookSignature = (secret: string, timestamp: number, body: string) =>
   createHmac("sha256", secret).update(`${timestamp}.${body}`).digest("hex");
 
 export const signatureHeader = (secret: string, body: string, now = Date.now()) => {

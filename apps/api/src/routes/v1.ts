@@ -1,4 +1,6 @@
 import {
+  downloadLinkRequestSchema,
+  downloadLinkSchema,
   fieldErrors,
   jsonSchemaDocumentSchema,
   type SigningOptions,
@@ -37,16 +39,16 @@ import {
 } from "hono-openapi";
 import { z } from "zod";
 import { type ApiKeyEnv, requireScope, templateAllowed, v1Error } from "../api-keys";
+import { batchPacket, batchSummaries, batchZip, createBatch } from "../batches";
 import { db } from "../db";
 import { batch, generation, template, templateVersion, theme, user } from "../db/schema";
 import { mintLink, serveFile } from "../download";
 import { storeFile } from "../files";
 import { type GenerationResult, generate } from "../generate";
+import { selectSummaries } from "../generations";
 import type { AppEnv } from "../middleware";
 import { signingQueryOptions, signingResponse } from "../signing-package";
-import { batchPacket, batchSummaries, batchZip, createBatch } from "./batches";
-import { selectSummaries } from "./generations";
-import { findVersion, latest, versionRequest } from "./templates";
+import { findVersion, latest, versionRequest } from "../templates";
 
 // Spec: docs/features/html-to-pdf-api.md. The public API: API keys only (ADR 0019, ADR 0029),
 // described for OpenAPI by hono-openapi (ADR 0030). Every route has a describeRoute; the
@@ -419,7 +421,7 @@ const keyed = new Hono<AppEnv>()
         return v1Error(c, 403, "template_not_allowed", "This key can't use that template");
       }
       const row = await findVersion(key.owner, id, version);
-      if (!row || row.archivedAt) return v1Error(c, 404, "not_found", "Version not found");
+      if (!row || row.archivedAt) return v1Error(c, 404, "not_found", "Template version not found");
       return c.json(templateJsonSchema(row.version.sections), 200);
     },
   )
@@ -457,7 +459,7 @@ const keyed = new Hono<AppEnv>()
         return v1Error(c, 403, "template_not_allowed", "This key can't use that template");
       }
       const row = await findVersion(key.owner, id, version);
-      if (!row) return v1Error(c, 404, "not_found", "Version not found");
+      if (!row) return v1Error(c, 404, "not_found", "Template version not found");
       if (row.archivedAt) return v1Error(c, 409, "template_archived", "This template is archived");
       const v = row.version;
       const parsed = templateDataSchema(v.sections).safeParse(data);
@@ -641,9 +643,10 @@ const keyed = new Hono<AppEnv>()
     describeRoute({
       tags: ["Generations"],
       summary: "Mint a signed download link",
-      description: "A URL to the PDF that works without a key for an hour.",
+      description:
+        "A URL to the PDF that works without a key until it expires: `expiresInSeconds` after minting, from a minute to 7 days (default an hour).",
       responses: {
-        201: jsonBody("The link.", z.object({ url: z.url(), expiresAt: z.iso.datetime() })),
+        201: jsonBody("The link.", downloadLinkSchema),
         ...notFound,
         ...invalidRequest,
         ...keyErrors,
@@ -651,6 +654,10 @@ const keyed = new Hono<AppEnv>()
     }),
     requireScope("generations:read"),
     params(idParams),
+    json(downloadLinkRequestSchema),
+    // The body is optional (without one the link lasts an hour). After the validator, which
+    // documents its body as required, so this wins.
+    describeRoute({ requestBody: { required: false, content: {} } }),
     async (c) => {
       const { id } = c.req.valid("param");
       const output = await ownOutput(c, id);
@@ -659,7 +666,7 @@ const keyed = new Hono<AppEnv>()
         fileId: output.fileId,
         generationId: id,
         userId: c.get("apiKey").owner.id,
-        expiresInSeconds: 3600,
+        expiresInSeconds: c.req.valid("json").expiresInSeconds,
       });
       return c.json(link, 201);
     },

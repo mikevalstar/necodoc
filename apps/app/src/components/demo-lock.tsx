@@ -1,3 +1,4 @@
+import { DEMO_DISABLED } from "@necodoc/shared";
 import { useQuery } from "@tanstack/react-query";
 import type { ReactNode } from "react";
 import { instanceQuery } from "@/components/instance";
@@ -6,8 +7,6 @@ import { cn } from "@/lib/utils";
 // docs/features/public-demo.md (Hardening), ADR 0046: what the public demo refuses shows
 // disabled, with the reason as its tooltip. The API refuses the same actions with 403
 // `demo_disabled` and the same words (apps/api/src/demo.ts).
-
-export const DEMO_DISABLED = "Turned off in the public demo.";
 
 /** Whether this installation is the public demo. */
 export function useDemoMode() {

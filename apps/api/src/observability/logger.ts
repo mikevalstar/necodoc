@@ -9,7 +9,7 @@ import pino, { type DestinationStream, type LevelWithSilent } from "pino";
  * Replaced with "[Redacted]" wherever they appear (top level or one object down). Field values are
  * never logged (ADR 0039); `data`, `input` and `fields` are a backstop for anything that tries.
  */
-export const redactPaths = [
+const redactPaths = [
   "data",
   "*.data",
   "input",
@@ -37,7 +37,7 @@ export const withoutQueryParams = (text: string) =>
   text.replace(queryParams, "\nparams: [Redacted]");
 
 /** pino's error serializer, without the query parameters a failed database call carries. */
-export function serializeError(error: Error) {
+function serializeError(error: Error) {
   const { params: _params, ...serialized } = pino.stdSerializers.err(error);
   return {
     ...serialized,
@@ -76,5 +76,3 @@ export function createLogger(
     destination ?? pino.destination(1),
   );
 }
-
-export type Logger = ReturnType<typeof createLogger>;

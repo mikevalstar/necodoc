@@ -43,8 +43,8 @@ import { type FileLoader, renderCombine } from "./render/combine";
 import { isInfrastructureError } from "./render/errors";
 import { finishPdf } from "./render/finish";
 import { renderOverlay, type SourceLoader } from "./render/overlay";
-import { loadPartials } from "./render/partials";
 import { type RenderJob, renderPdf } from "./render/render";
+import { loadPartials } from "./snippets";
 import { completeBatch, queueGenerationEvents } from "./webhooks";
 
 // Specs: docs/features/generation-log.md, docs/features/render-queue-batch-jobs-and-scaling.md.
@@ -55,7 +55,7 @@ import { completeBatch, queueGenerationEvents } from "./webhooks";
 export const processId = `${hostname()}:${process.pid}`;
 
 /** Assets are global: anyone who can render can use any asset (docs/features/assets.md). */
-export const loadStoredAsset: AssetLoader = async (id) => {
+const loadStoredAsset: AssetLoader = async (id) => {
   if (!z.uuid().safeParse(id).success) return null;
   const [row] = await db
     .select({ bytes: file.bytes, mimeType: file.mimeType })

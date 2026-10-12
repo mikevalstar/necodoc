@@ -59,8 +59,8 @@ Code: [webhooks.ts](../../apps/api/src/webhooks.ts),
 - **Delivery.** POST with a 10 second timeout, from a pg-boss queue
   ([ADR 0020](../adrs/0020-pg-boss-job-queue-and-separate-render-worker-processes.md)),
   so retries survive restarts. Non-2xx or a timeout retries 5 times with
-  exponential backoff, from about half a minute up to ten, so a delivery
-  gives up 10 to 20 minutes after the first attempt. Each delivery shows its status, attempts, last
+  exponential backoff, waiting 10 to 20 seconds at first and 160 to 320 at
+  the last, so a delivery gives up 5 to 10 minutes after the first attempt. Each delivery shows its status, attempts, last
   response code and time, and every attempt, on the webhook's delivery log.
 - **Public demo.** With `DEMO_MODE` deliveries are logged as `skipped` and nothing is sent,
   and saving a webhook doesn't look its host up ([Public demo](public-demo.md)).

@@ -77,8 +77,13 @@ export const env = z
     AI_MODEL: z.string().min(1).default("claude-sonnet-5-5"),
     /** Signs download links; falls back to BETTER_AUTH_SECRET. Changing it voids live links. */
     DOWNLOAD_SIGNING_SECRET: z.string().min(32).optional(),
-    /** Behind a reverse proxy: take the client address from the last X-Forwarded-For hop. */
-    TRUST_PROXY: z.stringbool().default(false),
+    /**
+     * Behind reverse proxies: how many there are (`true` = 1, `false` = 0, the app image's nginx
+     * counts as one); the client address is the X-Forwarded-For hop that many from the end.
+     */
+    TRUST_PROXY: z
+      .union([z.stringbool().transform(Number), z.coerce.number().int().min(0)])
+      .default(0),
     /**
      * Development only (docs/features/webhooks.md): lets webhooks use http:// and loopback
      * addresses, for a receiver on this machine. Never set it in production.

@@ -35,7 +35,7 @@ import {
 export type AssistantMessage = UIMessage<unknown, UIDataTypes, AssistantTools>;
 
 /** The tool set the model sees: shared input schemas, no execute. */
-export const assistantTools = Object.fromEntries(
+const assistantTools = Object.fromEntries(
   Object.entries(assistantToolInputs).map(([name, inputSchema]) => [
     name,
     {

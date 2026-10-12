@@ -39,7 +39,7 @@ export function dayjsLocale(lang: string) {
 }
 
 /**
- * Partials from memory: snippets loaded by render/partials.ts (or frozen in a published version).
+ * Partials from memory: snippets loaded by src/snippets.ts (or frozen in a published version).
  * Nothing is read from disk.
  */
 export function partialsFs(partials: Readonly<Record<string, string>> = {}): FS {

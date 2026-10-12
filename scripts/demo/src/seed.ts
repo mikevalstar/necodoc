@@ -739,7 +739,7 @@ export async function seed(demo: Demo) {
           scopes,
           expiresInDays: extra.expiresInDays ?? null,
           ipAllowlist: extra.ipAllowlist ?? [],
-          rateLimitPerMinute: 600,
+          rateLimitPerHour: 36_000,
         },
       }),
       `key ${name}`,

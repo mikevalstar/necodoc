@@ -167,8 +167,8 @@ export async function startQueue() {
   });
   await boss.createQueue(queues.webhook, {
     notify: true,
-    // 5 retries, each wait doubling from 20 to 40 s (pg-boss jitters within each step): about
-    // 10 to 20 minutes from the first attempt to the last.
+    // 5 retries, each wait doubling from 10-20 s to 160-320 s (pg-boss jitters within each
+    // step): about 5 to 10 minutes from the first attempt to the last.
     retryLimit: 5,
     retryDelay: 10,
     retryBackoff: true,

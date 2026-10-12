@@ -2568,7 +2568,7 @@
         "operationId": "postGenerationsByIdLink",
         "tags": ["Generations"],
         "summary": "Mint a signed download link",
-        "description": "A URL to the PDF that works without a key for an hour.",
+        "description": "A URL to the PDF that works without a key until it expires: `expiresInSeconds` after minting, from a minute to 7 days (default an hour).",
         "responses": {
           "201": {
             "description": "The link.",
@@ -2662,7 +2662,25 @@
             },
             "required": true
           }
-        ]
+        ],
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "expiresInSeconds": {
+                    "default": 3600,
+                    "type": "integer",
+                    "minimum": 60,
+                    "maximum": 604800
+                  }
+                }
+              }
+            }
+          }
+        }
       }
     },
     "/generations/{id}/signing-package": {

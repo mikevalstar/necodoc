@@ -302,7 +302,7 @@ function ordered(roles: Iterable<Role>): Role[] {
   return roleSchema.options.filter((role) => set.has(role));
 }
 
-export function emailAllowed(provider: Pick<Common, "emailDomains">, email: string) {
+function emailAllowed(provider: Pick<Common, "emailDomains">, email: string) {
   if (!provider.emailDomains.length) return true;
   const domain = email.toLowerCase().split("@").at(-1) ?? "";
   return email.includes("@") && provider.emailDomains.includes(domain);

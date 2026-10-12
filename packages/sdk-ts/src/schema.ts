@@ -232,7 +232,7 @@ export interface paths {
     put?: never;
     /**
      * Mint a signed download link
-     * @description A URL to the PDF that works without a key for an hour.
+     * @description A URL to the PDF that works without a key until it expires: `expiresInSeconds` after minting, from a minute to 7 days (default an hour).
      */
     post: operations["postGenerationsByIdLink"];
     delete?: never;
@@ -1546,7 +1546,14 @@ export interface operations {
       };
       cookie?: never;
     };
-    requestBody?: never;
+    requestBody?: {
+      content: {
+        "application/json": {
+          /** @default 3600 */
+          expiresInSeconds?: number;
+        };
+      };
+    };
     responses: {
       /** @description The link. */
       201: {

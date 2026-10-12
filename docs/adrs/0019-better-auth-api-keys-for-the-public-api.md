@@ -18,7 +18,8 @@ in [HTML to PDF API](../features/html-to-pdf-api.md). Extended by
 calls can also run async or past a wait timeout (`202` with a generation id).
 Amended by [ADR 0029](0029-service-accounts-and-scoped-api-keys.md): keys can
 belong to service accounts and carry scopes; the OpenAPI document is
-[ADR 0030](0030-openapi-for-the-public-api-with-hono-openapi.md).
+[ADR 0030](0030-openapi-for-the-public-api-with-hono-openapi.md). Rate limiting is
+[ADR 0048](0048-api-key-rate-limit-counted-per-hour-in-postgres.md).
 
 ## Context
 

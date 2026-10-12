@@ -19,7 +19,8 @@ import { LiquidError } from "liquidjs";
 import { db } from "./db";
 import { type template, type templateVersion, theme } from "./db/schema";
 import { liquid, plainLiquid } from "./render/liquid";
-import { loadPartials, PartialError } from "./render/partials";
+import { PartialError } from "./render/partials";
+import { loadPartials } from "./snippets";
 
 // Specs: docs/features/publishing-and-versions.md, docs/features/review-and-approval.md. What
 // publishing a draft freezes, and its fingerprint: a review approves a fingerprint, and publish
@@ -64,7 +65,7 @@ function compileOverlay(content: OverlayContent) {
 }
 
 /** Compiles the body and bands, checking the Liquid parses, so publish fails early. */
-export function compileOrError(...args: Parameters<typeof compileDesignedContent>) {
+function compileOrError(...args: Parameters<typeof compileDesignedContent>) {
   try {
     const compiled = compileDesignedContent(...args);
     for (const part of compiledSources(compiled)) liquid.parse(part);

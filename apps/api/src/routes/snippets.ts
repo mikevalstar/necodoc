@@ -13,13 +13,19 @@ import {
 } from "@necodoc/shared";
 import { and, asc, eq } from "drizzle-orm";
 import { Hono } from "hono";
-import { z } from "zod";
 import { recordAudit } from "../audit";
 import { db } from "../db";
 import { snippet, template, templateVersion } from "../db/schema";
-import { type AppEnv, requireAnyPermission, requirePermission } from "../middleware";
-import { loadPartials, PartialError } from "../render/partials";
-import { latest } from "./templates";
+import {
+  type AppEnv,
+  canEdit,
+  idParam,
+  requireAnyPermission,
+  requirePermission,
+} from "../middleware";
+import { PartialError } from "../render/partials";
+import { loadPartials } from "../snippets";
+import { latest } from "../templates";
 
 // Spec: docs/features/snippet-library.md. Same permissions as templates: create to add, edit to
 // change, archive and delete; anyone who opens drafts can read them.
@@ -31,9 +37,6 @@ const canSee = requireAnyPermission(
   { document: ["create"] },
 );
 const canCreate = requirePermission({ document: ["create"] });
-const canEdit = requirePermission({ document: ["edit"] });
-
-const idParam = zValidator("param", z.object({ id: z.uuid() }));
 
 type SnippetRow = typeof snippet.$inferSelect;
 

@@ -39,7 +39,8 @@ accounts, scopes), [ADR 0030](../adrs/0030-openapi-for-the-public-api-with-hono-
   contact and roles. They can't sign in. Admins create, edit and disable them;
   a disabled account's keys stop working. Admin › Users doesn't list them.
 - A key has a name, **scopes**, an optional expiry, an optional list of
-  templates it may use, an optional **IP/CIDR allowlist**, and a rate limit.
+  templates it may use, an optional **IP/CIDR allowlist**, and a rate limit
+  (requests per hour).
   Scopes:
   - `render:html`: render HTML
   - `templates:read`: list templates, read versions and their JSON Schema
@@ -90,7 +91,8 @@ GDPR erasure can find it
   `POST /generations/:id/link` (`generations:read`): the key owner's own
   generations; downloads stream from storage with ETag and range support like
   the app's ([generation log](generation-log.md)); the link works without a
-  key until it expires.
+  key until it expires (`expiresInSeconds`, 1 minute to 7 days, default an
+  hour).
 - `POST /combine` (`combine:write`): see
   [Combining PDFs into packets](combining-pdfs-into-packets.md).
 - `GET /openapi.json`: the OpenAPI 3.1 document, no key needed.
@@ -113,13 +115,15 @@ GDPR erasure can find it
 - Errors are JSON `{ error, code }`, plus `fieldErrors` for invalid data.
   401: missing, unknown, revoked or expired key, or a banned owner. 403: scope
   missing, owner's roles don't allow it, template not allowed, or IP not
-  allowed. 429: rate limit, with `Retry-After` in seconds.
+  allowed. 400: malformed JSON or form body. 413: body too large. 429: rate
+  limit, with `Retry-After` in seconds.
 - Every response carries `X-Request-Id` (an incoming one is kept).
 
 ### Limits and logging
 
 - Request bodies up to 20 MB, a render timeout, a per-key rate limit
-  (requests per minute, set at creation, default 120). Remote URLs in the HTML
+  (requests over the last hour, set at creation, default 7,200), shared by
+  every API node ([ADR 0048](../adrs/0048-api-key-rate-limit-counted-per-hour-in-postgres.md)). Remote URLs in the HTML
   don't load; use [assets](assets.md) or `data:` URLs.
 - Every call that renders is logged in the [generation log](generation-log.md)
   with source "API" and the key; the log shows the key's name and filters by
@@ -165,6 +169,7 @@ GDPR erasure can find it
       failing field.
 - [x] `response: "json"` returns a generation id whose PDF downloads.
 - [x] Exceeding the rate limit returns 429 with `Retry-After`.
+- [x] A key called at a steady pace below its hourly limit is never refused.
 - [x] A request that references `http://169.254.169.254/` renders without
       fetching it.
 - [x] The docs page lists every `/api/v1` endpoint.
@@ -182,15 +187,17 @@ GDPR erasure can find it
 - No JavaScript in submitted HTML, and no URL-to-PDF.
 - Scopes, allowlist and templates are set when a key is made; to change them,
   rotate or make a new key.
-- The rate limit is a fixed count per window per key; after it's used up the
-  key waits out the window from its last allowed request.
+- The rate limit counts whole minutes: a 429's `Retry-After` is the time until
+  the oldest counted minute leaves the hour.
 - The IP allowlist sees the reverse proxy's address unless `TRUST_PROXY` is
-  set.
+  set to the number of proxies in front of the API (a TLS proxy plus the app
+  image's nginx is 2).
 - Service accounts can't be deleted, only disabled.
 - PDFs uploaded to `/combine` are stored as files of their own and aren't
   removed with the packet's generation.
 - Every call that passes the secret check counts toward the rate limit and
-  usage, including calls refused afterwards (scope, IP).
+  usage, including calls refused afterwards (scope, IP). Calls refused by the
+  rate limit itself don't count toward it.
 - Chromium rounds page sizes given in millimetres up by under a point (A4 comes out
   595.9 × 841.9 pt rather than 595.3 × 841.9). Bands are positioned from each
   page's real size, so they still line up.

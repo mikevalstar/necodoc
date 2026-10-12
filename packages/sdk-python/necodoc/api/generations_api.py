@@ -24,6 +24,7 @@ from necodoc.models.get_generations_by_id_signing_package_embed_pdf_parameter im
 from necodoc.models.get_generations_by_id_signing_package_formats_parameter_inner import GetGenerationsByIdSigningPackageFormatsParameterInner
 from necodoc.models.get_generations_by_id_signing_package_placement_parameter import GetGenerationsByIdSigningPackagePlacementParameter
 from necodoc.models.post_generations_by_id_link201_response import PostGenerationsByIdLink201Response
+from necodoc.models.post_generations_by_id_link_request import PostGenerationsByIdLinkRequest
 from necodoc.models.signing_package import SigningPackage
 
 from necodoc.api_client import ApiClient, RequestSerialized
@@ -929,6 +930,7 @@ class GenerationsApi:
     def post_generations_by_id_link(
         self,
         id: UUID,
+        post_generations_by_id_link_request: Optional[PostGenerationsByIdLinkRequest] = None,
         _request_timeout: Union[
             None,
             Annotated[StrictFloat, Field(gt=0)],
@@ -944,10 +946,12 @@ class GenerationsApi:
     ) -> PostGenerationsByIdLink201Response:
         """Mint a signed download link
 
-        A URL to the PDF that works without a key for an hour.
+        A URL to the PDF that works without a key until it expires: `expiresInSeconds` after minting, from a minute to 7 days (default an hour).
 
         :param id: (required)
         :type id: UUID
+        :param post_generations_by_id_link_request:
+        :type post_generations_by_id_link_request: PostGenerationsByIdLinkRequest
         :param _request_timeout: timeout setting for this request. If one
                                  number provided, it will be total request
                                  timeout. It can also be a pair (tuple) of
@@ -972,6 +976,7 @@ class GenerationsApi:
 
         _param = self._post_generations_by_id_link_serialize(
             id=id,
+            post_generations_by_id_link_request=post_generations_by_id_link_request,
             _request_auth=_request_auth,
             _content_type=_content_type,
             _headers=_headers,
@@ -1001,6 +1006,7 @@ class GenerationsApi:
     def post_generations_by_id_link_with_http_info(
         self,
         id: UUID,
+        post_generations_by_id_link_request: Optional[PostGenerationsByIdLinkRequest] = None,
         _request_timeout: Union[
             None,
             Annotated[StrictFloat, Field(gt=0)],
@@ -1016,10 +1022,12 @@ class GenerationsApi:
     ) -> ApiResponse[PostGenerationsByIdLink201Response]:
         """Mint a signed download link
 
-        A URL to the PDF that works without a key for an hour.
+        A URL to the PDF that works without a key until it expires: `expiresInSeconds` after minting, from a minute to 7 days (default an hour).
 
         :param id: (required)
         :type id: UUID
+        :param post_generations_by_id_link_request:
+        :type post_generations_by_id_link_request: PostGenerationsByIdLinkRequest
         :param _request_timeout: timeout setting for this request. If one
                                  number provided, it will be total request
                                  timeout. It can also be a pair (tuple) of
@@ -1044,6 +1052,7 @@ class GenerationsApi:
 
         _param = self._post_generations_by_id_link_serialize(
             id=id,
+            post_generations_by_id_link_request=post_generations_by_id_link_request,
             _request_auth=_request_auth,
             _content_type=_content_type,
             _headers=_headers,
@@ -1073,6 +1082,7 @@ class GenerationsApi:
     def post_generations_by_id_link_without_preload_content(
         self,
         id: UUID,
+        post_generations_by_id_link_request: Optional[PostGenerationsByIdLinkRequest] = None,
         _request_timeout: Union[
             None,
             Annotated[StrictFloat, Field(gt=0)],
@@ -1088,10 +1098,12 @@ class GenerationsApi:
     ) -> RESTResponseType:
         """Mint a signed download link
 
-        A URL to the PDF that works without a key for an hour.
+        A URL to the PDF that works without a key until it expires: `expiresInSeconds` after minting, from a minute to 7 days (default an hour).
 
         :param id: (required)
         :type id: UUID
+        :param post_generations_by_id_link_request:
+        :type post_generations_by_id_link_request: PostGenerationsByIdLinkRequest
         :param _request_timeout: timeout setting for this request. If one
                                  number provided, it will be total request
                                  timeout. It can also be a pair (tuple) of
@@ -1116,6 +1128,7 @@ class GenerationsApi:
 
         _param = self._post_generations_by_id_link_serialize(
             id=id,
+            post_generations_by_id_link_request=post_generations_by_id_link_request,
             _request_auth=_request_auth,
             _content_type=_content_type,
             _headers=_headers,
@@ -1140,6 +1153,7 @@ class GenerationsApi:
     def _post_generations_by_id_link_serialize(
         self,
         id,
+        post_generations_by_id_link_request,
         _request_auth,
         _content_type,
         _headers,
@@ -1167,6 +1181,8 @@ class GenerationsApi:
         # process the header parameters
         # process the form parameters
         # process the body parameter
+        if post_generations_by_id_link_request is not None:
+            _body_params = post_generations_by_id_link_request
 
 
         # set the HTTP header `Accept`
@@ -1177,6 +1193,19 @@ class GenerationsApi:
                 ]
             )
 
+        # set the HTTP header `Content-Type`
+        if _content_type:
+            _header_params['Content-Type'] = _content_type
+        else:
+            _default_content_type = (
+                self.api_client.select_header_content_type(
+                    [
+                        'application/json'
+                    ]
+                )
+            )
+            if _default_content_type is not None:
+                _header_params['Content-Type'] = _default_content_type
 
         # authentication setting
         _auth_settings: List[str] = [

@@ -13,16 +13,12 @@ import { assistantResponse, suggestDescription, suggestNote } from "../assistant
 import { recordAudit } from "../audit";
 import { db } from "../db";
 import { templateVersion, theme } from "../db/schema";
-import { type AppEnv, requirePermission } from "../middleware";
+import { type AppEnv, canEdit, canPublish, idParam } from "../middleware";
 import { diffableDraft, diffableVersion } from "../publish";
-import { findDraft, findVersion } from "./templates";
+import { findDraft, findVersion } from "../templates";
 
 // Spec: docs/features/ai-template-assistant.md, ADRs 0022 and 0035. Every route here is AI: 404
 // without ANTHROPIC_KEY (requireAi runs first), then the permission check (403).
-
-const canEdit = requirePermission({ document: ["edit"] });
-const canPublish = requirePermission({ document: ["publish"] });
-const idParam = zValidator("param", z.object({ id: z.uuid() }));
 
 const off = { error: "Not found" } as const;
 const lastRole = z.object({ role: z.string() });
@@ -106,7 +102,7 @@ export const assistantRoutes = new Hono<AppEnv>()
         baseVersion = latest?.version.version ?? null;
       } else {
         const row = await findVersion(c.get("user"), id, version);
-        if (!row) return c.json({ error: "Version not found" }, 404);
+        if (!row) return c.json({ error: "Template version not found" }, 404);
         after = diffableVersion(row.version);
         baseVersion = version > 1 ? version - 1 : null;
       }

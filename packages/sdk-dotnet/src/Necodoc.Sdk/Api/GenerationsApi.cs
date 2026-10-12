@@ -117,24 +117,26 @@ namespace Necodoc.Sdk.Api
         /// Mint a signed download link
         /// </summary>
         /// <remarks>
-        /// A URL to the PDF that works without a key for an hour.
+        /// A URL to the PDF that works without a key until it expires: &#x60;expiresInSeconds&#x60; after minting, from a minute to 7 days (default an hour).
         /// </remarks>
         /// <exception cref="ApiException">Thrown when fails to make API call</exception>
         /// <param name="id"></param>
+        /// <param name="postGenerationsByIdLinkRequest"> (optional)</param>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
         /// <returns><see cref="Task"/>&lt;<see cref="IPostGenerationsByIdLinkApiResponse"/>&gt;</returns>
-        Task<IPostGenerationsByIdLinkApiResponse> PostGenerationsByIdLinkAsync(Guid id, System.Threading.CancellationToken cancellationToken = default);
+        Task<IPostGenerationsByIdLinkApiResponse> PostGenerationsByIdLinkAsync(Guid id, Option<PostGenerationsByIdLinkRequest> postGenerationsByIdLinkRequest = default, System.Threading.CancellationToken cancellationToken = default);
 
         /// <summary>
         /// Mint a signed download link
         /// </summary>
         /// <remarks>
-        /// A URL to the PDF that works without a key for an hour.
+        /// A URL to the PDF that works without a key until it expires: &#x60;expiresInSeconds&#x60; after minting, from a minute to 7 days (default an hour).
         /// </remarks>
         /// <param name="id"></param>
+        /// <param name="postGenerationsByIdLinkRequest"> (optional)</param>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
         /// <returns><see cref="Task"/>&lt;<see cref="IPostGenerationsByIdLinkApiResponse"/>?&gt;</returns>
-        Task<IPostGenerationsByIdLinkApiResponse?> PostGenerationsByIdLinkOrDefaultAsync(Guid id, System.Threading.CancellationToken cancellationToken = default);
+        Task<IPostGenerationsByIdLinkApiResponse?> PostGenerationsByIdLinkOrDefaultAsync(Guid id, Option<PostGenerationsByIdLinkRequest> postGenerationsByIdLinkRequest = default, System.Threading.CancellationToken cancellationToken = default);
     }
 
     /// <summary>
@@ -1982,17 +1984,29 @@ namespace Necodoc.Sdk.Api
             partial void OnDeserializationError(ref bool suppressDefaultLog, Exception exception, HttpStatusCode httpStatusCode);
         }
 
-        partial void FormatPostGenerationsByIdLink(ref Guid id);
+        partial void FormatPostGenerationsByIdLink(ref Guid id, Option<PostGenerationsByIdLinkRequest> postGenerationsByIdLinkRequest);
+
+        /// <summary>
+        /// Validates the request parameters
+        /// </summary>
+        /// <param name="postGenerationsByIdLinkRequest"></param>
+        /// <returns></returns>
+        private void ValidatePostGenerationsByIdLink(Option<PostGenerationsByIdLinkRequest> postGenerationsByIdLinkRequest)
+        {
+            if (postGenerationsByIdLinkRequest.IsSet && postGenerationsByIdLinkRequest.Value == null)
+                throw new ArgumentNullException(nameof(postGenerationsByIdLinkRequest));
+        }
 
         /// <summary>
         /// Processes the server response
         /// </summary>
         /// <param name="apiResponseLocalVar"></param>
         /// <param name="id"></param>
-        private void AfterPostGenerationsByIdLinkDefaultImplementation(IPostGenerationsByIdLinkApiResponse apiResponseLocalVar, Guid id)
+        /// <param name="postGenerationsByIdLinkRequest"></param>
+        private void AfterPostGenerationsByIdLinkDefaultImplementation(IPostGenerationsByIdLinkApiResponse apiResponseLocalVar, Guid id, Option<PostGenerationsByIdLinkRequest> postGenerationsByIdLinkRequest)
         {
             bool suppressDefaultLog = false;
-            AfterPostGenerationsByIdLink(ref suppressDefaultLog, apiResponseLocalVar, id);
+            AfterPostGenerationsByIdLink(ref suppressDefaultLog, apiResponseLocalVar, id, postGenerationsByIdLinkRequest);
             if (!suppressDefaultLog)
                 Logger.LogInformation(RestLogEvents.ApiRequestCompleted, "{0,-9} | {1} | {2}", (apiResponseLocalVar.DownloadedAt - apiResponseLocalVar.RequestedAt).TotalSeconds, apiResponseLocalVar.StatusCode, apiResponseLocalVar.Path);
         }
@@ -2003,7 +2017,8 @@ namespace Necodoc.Sdk.Api
         /// <param name="suppressDefaultLog"></param>
         /// <param name="apiResponseLocalVar"></param>
         /// <param name="id"></param>
-        partial void AfterPostGenerationsByIdLink(ref bool suppressDefaultLog, IPostGenerationsByIdLinkApiResponse apiResponseLocalVar, Guid id);
+        /// <param name="postGenerationsByIdLinkRequest"></param>
+        partial void AfterPostGenerationsByIdLink(ref bool suppressDefaultLog, IPostGenerationsByIdLinkApiResponse apiResponseLocalVar, Guid id, Option<PostGenerationsByIdLinkRequest> postGenerationsByIdLinkRequest);
 
         /// <summary>
         /// Logs exceptions that occur while retrieving the server response
@@ -2012,10 +2027,11 @@ namespace Necodoc.Sdk.Api
         /// <param name="pathFormatLocalVar"></param>
         /// <param name="pathLocalVar"></param>
         /// <param name="id"></param>
-        private void OnErrorPostGenerationsByIdLinkDefaultImplementation(Exception exceptionLocalVar, string pathFormatLocalVar, string pathLocalVar, Guid id)
+        /// <param name="postGenerationsByIdLinkRequest"></param>
+        private void OnErrorPostGenerationsByIdLinkDefaultImplementation(Exception exceptionLocalVar, string pathFormatLocalVar, string pathLocalVar, Guid id, Option<PostGenerationsByIdLinkRequest> postGenerationsByIdLinkRequest)
         {
             bool suppressDefaultLogLocalVar = false;
-            OnErrorPostGenerationsByIdLink(ref suppressDefaultLogLocalVar, exceptionLocalVar, pathFormatLocalVar, pathLocalVar, id);
+            OnErrorPostGenerationsByIdLink(ref suppressDefaultLogLocalVar, exceptionLocalVar, pathFormatLocalVar, pathLocalVar, id, postGenerationsByIdLinkRequest);
             if (!suppressDefaultLogLocalVar)
                 Logger.LogError(RestLogEvents.ApiRequestFailed, exceptionLocalVar, "An error occurred while sending the request to the server.");
         }
@@ -2028,19 +2044,21 @@ namespace Necodoc.Sdk.Api
         /// <param name="pathFormatLocalVar"></param>
         /// <param name="pathLocalVar"></param>
         /// <param name="id"></param>
-        partial void OnErrorPostGenerationsByIdLink(ref bool suppressDefaultLogLocalVar, Exception exceptionLocalVar, string pathFormatLocalVar, string pathLocalVar, Guid id);
+        /// <param name="postGenerationsByIdLinkRequest"></param>
+        partial void OnErrorPostGenerationsByIdLink(ref bool suppressDefaultLogLocalVar, Exception exceptionLocalVar, string pathFormatLocalVar, string pathLocalVar, Guid id, Option<PostGenerationsByIdLinkRequest> postGenerationsByIdLinkRequest);
 
         /// <summary>
-        /// Mint a signed download link A URL to the PDF that works without a key for an hour.
+        /// Mint a signed download link A URL to the PDF that works without a key until it expires: &#x60;expiresInSeconds&#x60; after minting, from a minute to 7 days (default an hour).
         /// </summary>
         /// <param name="id"></param>
+        /// <param name="postGenerationsByIdLinkRequest"> (optional)</param>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
         /// <returns><see cref="Task"/>&lt;<see cref="IPostGenerationsByIdLinkApiResponse"/>&gt;</returns>
-        public async Task<IPostGenerationsByIdLinkApiResponse?> PostGenerationsByIdLinkOrDefaultAsync(Guid id, System.Threading.CancellationToken cancellationToken = default)
+        public async Task<IPostGenerationsByIdLinkApiResponse?> PostGenerationsByIdLinkOrDefaultAsync(Guid id, Option<PostGenerationsByIdLinkRequest> postGenerationsByIdLinkRequest = default, System.Threading.CancellationToken cancellationToken = default)
         {
             try
             {
-                return await PostGenerationsByIdLinkAsync(id, cancellationToken).ConfigureAwait(false);
+                return await PostGenerationsByIdLinkAsync(id, postGenerationsByIdLinkRequest, cancellationToken).ConfigureAwait(false);
             }
             catch (Exception)
             {
@@ -2049,19 +2067,22 @@ namespace Necodoc.Sdk.Api
         }
 
         /// <summary>
-        /// Mint a signed download link A URL to the PDF that works without a key for an hour.
+        /// Mint a signed download link A URL to the PDF that works without a key until it expires: &#x60;expiresInSeconds&#x60; after minting, from a minute to 7 days (default an hour).
         /// </summary>
         /// <exception cref="ApiException">Thrown when fails to make API call</exception>
         /// <param name="id"></param>
+        /// <param name="postGenerationsByIdLinkRequest"> (optional)</param>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
         /// <returns><see cref="Task"/>&lt;<see cref="IPostGenerationsByIdLinkApiResponse"/>&gt;</returns>
-        public async Task<IPostGenerationsByIdLinkApiResponse> PostGenerationsByIdLinkAsync(Guid id, System.Threading.CancellationToken cancellationToken = default)
+        public async Task<IPostGenerationsByIdLinkApiResponse> PostGenerationsByIdLinkAsync(Guid id, Option<PostGenerationsByIdLinkRequest> postGenerationsByIdLinkRequest = default, System.Threading.CancellationToken cancellationToken = default)
         {
             UriBuilder uriBuilderLocalVar = new UriBuilder();
 
             try
             {
-                FormatPostGenerationsByIdLink(ref id);
+                ValidatePostGenerationsByIdLink(postGenerationsByIdLinkRequest);
+
+                FormatPostGenerationsByIdLink(ref id, postGenerationsByIdLinkRequest);
 
                 using (HttpRequestMessage httpRequestMessageLocalVar = new HttpRequestMessage())
                 {
@@ -2073,12 +2094,28 @@ namespace Necodoc.Sdk.Api
                         : string.Concat(HttpClient.BaseAddress.AbsolutePath.TrimEnd('/'), "/generations/{id}/link");
                     uriBuilderLocalVar.Path = uriBuilderLocalVar.Path.Replace("%7Bid%7D", Uri.EscapeDataString(id.ToString()));
 
+                    if (postGenerationsByIdLinkRequest.IsSet)
+                    {
+                      httpRequestMessageLocalVar.Content = (postGenerationsByIdLinkRequest.Value as object) is Necodoc.Sdk.Client.FileParameter fileParameterLocalVar
+                        ? httpRequestMessageLocalVar.Content = new StreamContent(fileParameterLocalVar.Content)
+                        : httpRequestMessageLocalVar.Content = new StringContent(JsonSerializer.Serialize(postGenerationsByIdLinkRequest.Value, _jsonSerializerOptions));
+                    }
+
                     List<TokenBase> tokenBaseLocalVars = new List<TokenBase>();
                     ApiKeyToken apiKeyTokenLocalVar1 = (ApiKeyToken) await ApiKeyProvider.GetAsync("x-api-key", cancellationToken).ConfigureAwait(false);
                     tokenBaseLocalVars.Add(apiKeyTokenLocalVar1);
                     apiKeyTokenLocalVar1.UseInHeader(httpRequestMessageLocalVar);
 
                     httpRequestMessageLocalVar.RequestUri = uriBuilderLocalVar.Uri;
+
+                    string[] contentTypes = new string[] {
+                        "application/json"
+                    };
+
+                    string? contentTypeLocalVar = ClientUtils.SelectHeaderContentType(contentTypes);
+
+                    if (contentTypeLocalVar != null && httpRequestMessageLocalVar.Content != null)
+                        httpRequestMessageLocalVar.Content.Headers.ContentType = new MediaTypeHeaderValue(contentTypeLocalVar);
 
                     string[] acceptLocalVars = new string[] {
                         "application/json"
@@ -2106,7 +2143,7 @@ namespace Necodoc.Sdk.Api
                             }
                         }
 
-                        AfterPostGenerationsByIdLinkDefaultImplementation(apiResponseLocalVar, id);
+                        AfterPostGenerationsByIdLinkDefaultImplementation(apiResponseLocalVar, id, postGenerationsByIdLinkRequest);
 
                         Events.ExecuteOnPostGenerationsByIdLink(apiResponseLocalVar);
 
@@ -2120,7 +2157,7 @@ namespace Necodoc.Sdk.Api
             }
             catch(Exception e)
             {
-                OnErrorPostGenerationsByIdLinkDefaultImplementation(e, "/generations/{id}/link", uriBuilderLocalVar.Path, id);
+                OnErrorPostGenerationsByIdLinkDefaultImplementation(e, "/generations/{id}/link", uriBuilderLocalVar.Path, id, postGenerationsByIdLinkRequest);
                 Events.ExecuteOnErrorPostGenerationsByIdLink(e);
                 throw;
             }

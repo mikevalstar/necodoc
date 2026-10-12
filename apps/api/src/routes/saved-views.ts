@@ -10,11 +10,10 @@ import {
 } from "@necodoc/shared";
 import { and, asc, desc, eq, ne, or } from "drizzle-orm";
 import { Hono } from "hono";
-import { z } from "zod";
 import { recordAudit } from "../audit";
 import { db } from "../db";
 import { savedView, user } from "../db/schema";
-import { type AppEnv, requireRole, type SignedInEnv } from "../middleware";
+import { type AppEnv, idParam, isAdmin, requireRole, type SignedInEnv } from "../middleware";
 
 // Spec: docs/features/saved-views.md. Private views are the owner's alone; shared ones are listed
 // for everyone who can open the table, and only admins share or change them. Only changes to
@@ -28,8 +27,6 @@ const canOpen = (table: SavedViewTable, actor: Actor) => {
   const roles = parseRoles(actor.role);
   return table === "audit" ? roles.includes("admin") : hasPermission(roles, { document: ["view"] });
 };
-
-const isAdmin = (actor: Actor) => parseRoles(actor.role).includes("admin");
 
 const canEdit = (row: Pick<Row, "ownerId" | "shared">, actor: Actor) =>
   row.ownerId === actor.id || (row.shared && isAdmin(actor));
@@ -49,7 +46,6 @@ const audited = (row: Pick<Row, "name" | "search" | "shared" | "table">) => ({
   shared: row.shared,
 });
 
-const idParam = zValidator("param", z.object({ id: z.uuid() }));
 // Any signed-in user; which tables they may use is checked per request.
 const signedIn = requireRole("admin", "publisher", "reviewer", "editor", "viewer");
 

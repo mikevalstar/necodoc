@@ -1,17 +1,11 @@
 import { zValidator } from "@hono/zod-validator";
 import {
   createTemplateSchema,
-  defaultOutputOptions,
   fieldErrors,
   generateFromTemplateSchema,
-  hasPermission,
-  type OutputOverrides,
-  type Permissions,
   pageOptionsSchema,
-  parseRoles,
   previewTemplateSchema,
   publishTemplateSchema,
-  type RenderInput,
   templateDataSchema,
   templateDiff,
   templateJsonSchema,
@@ -25,12 +19,17 @@ import { recordAudit } from "../audit";
 import { db } from "../db";
 import { pdfSource, template, templateTestCase, templateVersion, theme, user } from "../db/schema";
 import { generate, renderPreview } from "../generate";
+import { generationResponse, pdfHeaders } from "../http";
 import {
   type AppEnv,
+  canEdit,
+  canPublish,
+  canSeeDrafts,
+  canView,
   demo,
-  requireAnyPermission,
+  idParam,
   requirePermission,
-  type SignedInEnv,
+  seesDrafts,
 } from "../middleware";
 import {
   diffableDraft,
@@ -41,61 +40,16 @@ import {
 } from "../publish";
 import { approvedReview, closeReviewAsPublished, publishingSettings } from "../review";
 import { runTests } from "../template-tests";
+import { findDraft, findVersion, latest, versionRequest } from "../templates";
 import { cachedThumbnail, thumbnailSource } from "../thumbnail";
-import { generationResponse, pdfHeaders } from "./http";
 
 // Specs: docs/features/document-templates.md, docs/features/publishing-and-versions.md,
 // docs/features/template-fields-and-guided-form.md. Drafts are for editors, reviewers and
 // publishers; everyone with `document: view` sees and fills published, non-archived versions.
 
-type SignedInUser = SignedInEnv["Variables"]["user"];
-
-export const draftAccess: Permissions[] = [
-  { document: ["edit"] },
-  { document: ["review"] },
-  { document: ["publish"] },
-];
-const seesDrafts = (actor: SignedInUser) =>
-  draftAccess.some((permissions) => hasPermission(parseRoles(actor.role), permissions));
-
-const canView = requirePermission({ document: ["view"] });
-const canSeeDrafts = requireAnyPermission(...draftAccess);
 const canCreate = requirePermission({ document: ["create"] });
-const canEdit = requirePermission({ document: ["edit"] });
-const canPublish = requirePermission({ document: ["publish"] });
 
-const idParam = zValidator("param", z.object({ id: z.uuid() }));
 const versionParam = zValidator("param", z.object({ id: z.uuid(), version: versionParamSchema }));
-
-export const latest = db
-  .select({
-    templateId: templateVersion.templateId,
-    version: max(templateVersion.version).as("latest_version"),
-  })
-  .from(templateVersion)
-  .groupBy(templateVersion.templateId)
-  .as("latest");
-
-export async function findDraft(id: string) {
-  const [row] = await db.select().from(template).where(eq(template.id, id));
-  return row ?? null;
-}
-
-/** A version the actor may see: archived templates are hidden from non-draft users. */
-export async function findVersion(actor: SignedInUser, id: string, version: "latest" | number) {
-  const number =
-    version === "latest"
-      ? sql`(select max(${templateVersion.version}) from ${templateVersion} where ${templateVersion.templateId} = ${id})`
-      : version;
-  const [row] = await db
-    .select({ version: templateVersion, archivedAt: template.archivedAt, publisherName: user.name })
-    .from(templateVersion)
-    .innerJoin(template, eq(template.id, templateVersion.templateId))
-    .leftJoin(user, eq(user.id, templateVersion.publishedBy))
-    .where(and(eq(templateVersion.templateId, id), eq(templateVersion.version, number)));
-  if (!row || (row.archivedAt && !seesDrafts(actor))) return null;
-  return row;
-}
 
 async function themeError(themeId: string | null | undefined) {
   if (!themeId) return null;
@@ -484,7 +438,7 @@ export const templateRoutes = new Hono<AppEnv>()
   .get("/:id/versions/:version", canView, versionParam, async (c) => {
     const { id, version } = c.req.valid("param");
     const row = await findVersion(c.get("user"), id, version);
-    if (!row) return c.json({ error: "Version not found" }, 404);
+    if (!row) return c.json({ error: "Template version not found" }, 404);
     const { compiled: _compiled, ...rest } = row.version;
     return c.json({ ...rest, publisherName: row.publisherName }, 200);
   })
@@ -498,7 +452,7 @@ export const templateRoutes = new Hono<AppEnv>()
     async (c) => {
       const { id, version } = c.req.valid("param");
       const row = await findVersion(c.get("user"), id, version);
-      if (!row) return c.json({ error: "Version not found" }, 404);
+      if (!row) return c.json({ error: "Template version not found" }, 404);
       const note = c.req.valid("json").note || null;
       await db.transaction(async (tx) => {
         await tx
@@ -525,13 +479,13 @@ export const templateRoutes = new Hono<AppEnv>()
   .get("/:id/versions/:version/schema", canView, versionParam, async (c) => {
     const { id, version } = c.req.valid("param");
     const row = await findVersion(c.get("user"), id, version);
-    if (!row) return c.json({ error: "Version not found" }, 404);
+    if (!row) return c.json({ error: "Template version not found" }, 404);
     return c.json(templateJsonSchema(row.version.sections), 200);
   })
   .post("/:id/versions/:version/draft", canEdit, versionParam, async (c) => {
     const { id, version } = c.req.valid("param");
     const row = await findVersion(c.get("user"), id, version);
-    if (!row) return c.json({ error: "Version not found" }, 404);
+    if (!row) return c.json({ error: "Template version not found" }, 404);
     const { name, description, sections, sampleData, themeId, page, content } = row.version;
     const before = await findDraft(id);
     const draft = await db.transaction(async (tx) => {
@@ -564,7 +518,7 @@ export const templateRoutes = new Hono<AppEnv>()
       const { id, version } = c.req.valid("param");
       const body = c.req.valid("json");
       const row = await findVersion(c.get("user"), id, version);
-      if (!row) return c.json({ error: "Version not found" }, 404);
+      if (!row) return c.json({ error: "Template version not found" }, 404);
       if (row.archivedAt) return c.json({ error: "This template is archived" }, 409);
       const v = row.version;
       const parsed = templateDataSchema(v.sections).safeParse(body.data);
@@ -583,33 +537,6 @@ export const templateRoutes = new Hono<AppEnv>()
       return generationResponse(c, result);
     },
   );
-
-/**
- * What a published version renders with this data. Self-contained (theme included, or the
- * overlay's source id), so a re-run from the log renders the same PDF.
- */
-export function versionRequest(
-  v: typeof templateVersion.$inferSelect,
-  data: Record<string, unknown>,
-  filename: string,
-  /** Per-request output settings over the version's (docs/features/archival-accessible-and-certified-output.md). */
-  overrides?: OutputOverrides,
-): RenderInput {
-  const { compiled } = v;
-  const output = overrides
-    ? { output: { ...defaultOutputOptions, ...compiled.output, ...overrides } }
-    : {};
-  if ("kind" in compiled) return { ...compiled, ...output, data, filename, preview: false };
-  return {
-    ...compiled,
-    ...output,
-    ...(v.theme ? { themeDraft: v.theme } : {}),
-    page: v.page,
-    data,
-    filename,
-    preview: false,
-  };
-}
 
 function selectVersionSummaries() {
   return db

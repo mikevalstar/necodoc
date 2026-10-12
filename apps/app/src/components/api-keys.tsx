@@ -5,10 +5,11 @@ import {
   apiScopes,
   type CreateApiKeyInput,
   createApiKeySchema,
+  DEFAULT_RATE_LIMIT_PER_HOUR,
   EXPIRY_WARNING_DAYS,
   hasPermission,
   ipAllowEntrySchema,
-  MAX_RATE_LIMIT_PER_MINUTE,
+  MAX_RATE_LIMIT_PER_HOUR,
   type Role,
 } from "@necodoc/shared";
 import { CheckIcon, CopyIcon, DotsThreeIcon, KeyIcon, WarningIcon } from "@phosphor-icons/react";
@@ -594,7 +595,7 @@ const keyFormSchema = z.object({
       (text) => lines(text).every((entry) => ipAllowEntrySchema.safeParse(entry).success),
       "One address or CIDR range per line, like 203.0.113.7 or 10.0.0.0/8",
     ),
-  rateLimitPerMinute: z.number().int().min(1).max(MAX_RATE_LIMIT_PER_MINUTE),
+  rateLimitPerHour: z.number().int().min(1).max(MAX_RATE_LIMIT_PER_HOUR),
 });
 type KeyForm = z.infer<typeof keyFormSchema>;
 
@@ -602,7 +603,7 @@ type KeyForm = z.infer<typeof keyFormSchema>;
  * Creates a key for you, or for a service account (`ownerId`). Scopes the owner's roles don't
  * allow are shown disabled; the API refuses them too.
  */
-export function CreateKeyDialog({
+function CreateKeyDialog({
   ownerId,
   ownerRoles,
   onClose,
@@ -629,7 +630,7 @@ export function CreateKeyDialog({
     scopes: [],
     templateIds: [],
     ipAllowlist: "",
-    rateLimitPerMinute: 120,
+    rateLimitPerHour: DEFAULT_RATE_LIMIT_PER_HOUR,
   };
   const form = useAppForm({
     defaultValues,
@@ -640,7 +641,7 @@ export function CreateKeyDialog({
         scopes: value.scopes,
         templateIds: value.templateIds,
         ipAllowlist: lines(value.ipAllowlist),
-        rateLimitPerMinute: value.rateLimitPerMinute,
+        rateLimitPerHour: value.rateLimitPerHour,
         expiresInDays: value.expires ? Number(value.expires) : null,
         ...(ownerId ? { ownerId } : {}),
       }),
@@ -767,8 +768,8 @@ export function CreateKeyDialog({
                 );
               }}
             </form.Field>
-            <form.AppField name="rateLimitPerMinute">
-              {(field) => <field.NumberField label="Rate limit (requests per minute)" step={1} />}
+            <form.AppField name="rateLimitPerHour">
+              {(field) => <field.NumberField label="Rate limit (requests per hour)" step={1} />}
             </form.AppField>
             <ErrorAlert error={create.error} />
           </FieldGroup>

@@ -9,12 +9,12 @@ import { openPdfjs, type PdfjsDocument } from "./render/pdfjs";
 /** 108 dpi: enough to read the text in the images, small enough to send a few pages as PNGs. */
 const SCALE = 1.5;
 /** Larger documents are compared on their first pages only. */
-export const MAX_DIFF_PAGES = 20;
+const MAX_DIFF_PAGES = 20;
 /** pixelmatch's default: squared YIQ distance above 10% of the maximum counts as changed. */
 const MAX_DELTA = 35215 * 0.1 * 0.1;
 
 /** Each page's text, lines joined as pdf.js reports them. */
-export async function pageTexts(doc: PdfjsDocument, pages = doc.numPages) {
+async function pageTexts(doc: PdfjsDocument, pages = doc.numPages) {
   const texts: string[] = [];
   for (let n = 1; n <= Math.min(pages, doc.numPages); n++) {
     const content = await (await doc.getPage(n)).getTextContent();

@@ -12,7 +12,7 @@ import { recordAudit } from "../audit";
 import { db } from "../db";
 import { apikey, template, user, webhook, webhookDelivery } from "../db/schema";
 import { env } from "../env";
-import { type AppEnv, requirePermission, type SignedInEnv } from "../middleware";
+import { type AppEnv, idParam, isAdmin, requirePermission, type SignedInEnv } from "../middleware";
 import { newWebhookSecret } from "../webhook-rules";
 import { checkWebhookUrl, queueTestDelivery, resolveWebhookUrl } from "../webhooks";
 
@@ -21,9 +21,7 @@ import { checkWebhookUrl, queueTestDelivery, resolveWebhookUrl } from "../webhoo
 
 type SignedInUser = SignedInEnv["Variables"]["user"];
 
-const isAdmin = (actor: SignedInUser) => parseRoles(actor.role).includes("admin");
 const canUseApi = requirePermission({ document: ["view"] });
-const idParam = zValidator("param", z.object({ id: z.uuid() }));
 
 const selectWebhooks = () =>
   db

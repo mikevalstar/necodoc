@@ -7,16 +7,13 @@ import {
 } from "@necodoc/shared";
 import { and, count, eq, isNull, sql } from "drizzle-orm";
 import { Hono } from "hono";
-import { z } from "zod";
 import { recordAudit } from "../audit";
 import { db } from "../db";
 import { apiKeyPolicy, apikey, serviceAccount, session, user } from "../db/schema";
-import { type AppEnv, requireRole } from "../middleware";
+import { type AppEnv, authIdParam, requireRole } from "../middleware";
 
 // ADR 0029; spec: docs/features/html-to-pdf-api.md (keys). A service account is a user row that
 // can't sign in (auth.ts refuses its sessions) plus its service_account details. Admins only.
-
-const idParam = zValidator("param", z.object({ id: z.string().min(1) }));
 
 /** Never delivered: `.invalid` can't resolve (RFC 2606). Unique, because user.email is. */
 const placeholderEmail = (id: string) => `${id}@service-accounts.necodoc.invalid`;
@@ -91,14 +88,14 @@ export const serviceAccountRoutes = new Hono<AppEnv>()
     const [row] = await selectAccounts().where(eq(user.id, id));
     return row ? c.json(shape(row), 201) : c.json({ error: "Not created" }, 500);
   })
-  .get("/:id", requireRole("admin"), idParam, async (c) => {
+  .get("/:id", requireRole("admin"), authIdParam, async (c) => {
     const [row] = await selectAccounts().where(eq(user.id, c.req.valid("param").id));
     return row ? c.json(shape(row), 200) : c.json({ error: "Service account not found" }, 404);
   })
   .patch(
     "/:id",
     requireRole("admin"),
-    idParam,
+    authIdParam,
     zValidator("json", updateServiceAccountSchema),
     async (c) => {
       const { id } = c.req.valid("param");

@@ -7,16 +7,13 @@ import {
 } from "@necodoc/shared";
 import { asc, desc, eq, inArray } from "drizzle-orm";
 import { Hono } from "hono";
-import { z } from "zod";
 import { recordAudit } from "../audit";
 import { db } from "../db";
 import { asset, theme } from "../db/schema";
-import { type AppEnv, requirePermission } from "../middleware";
+import { type AppEnv, idParam, requirePermission } from "../middleware";
 import { themeUsages } from "../usage";
 
 // Spec: docs/features/document-themes.md. Built-in starters are read-only.
-
-const idParam = zValidator("param", z.object({ id: z.uuid() }));
 
 /** Every font asset a theme names must exist and be a font. */
 async function fontAssetError(settings: ThemeSettings | undefined) {

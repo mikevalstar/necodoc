@@ -45,3 +45,19 @@ async function createDriver(config: StorageConfig): Promise<StorageDriver> {
 }
 
 export const storage = await createDriver(storageConfig);
+
+/** Readiness and Admin › System: storage round-trips. A hung mount or endpoint fails, not hangs. */
+export async function storageReachable() {
+  let timer: NodeJS.Timeout | undefined;
+  const timeout = new Promise<never>((_, reject) => {
+    timer = setTimeout(() => reject(new Error("timed out after 5 s")), 5000);
+  });
+  try {
+    await Promise.race([storage.check(), timeout]);
+    return { ok: true as const };
+  } catch (error) {
+    return { ok: false as const, error: error instanceof Error ? error.message : String(error) };
+  } finally {
+    clearTimeout(timer);
+  }
+}

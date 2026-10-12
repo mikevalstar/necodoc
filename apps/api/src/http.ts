@@ -1,6 +1,6 @@
 import type { Context } from "hono";
-import { serveFile } from "../download";
-import type { GenerationResult } from "../generate";
+import { serveFile } from "./download";
+import type { GenerationResult } from "./generate";
 
 /** Headers for serving a preview PDF inline, with a filename for "save as". */
 export const pdfHeaders = (filename: string) => ({

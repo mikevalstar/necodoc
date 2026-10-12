@@ -1,75 +1,17 @@
 import { compileSnippet, partialNames, TemplateCompileError } from "@necodoc/shared";
-import { inArray, or } from "drizzle-orm";
 import { LiquidError } from "liquidjs";
-import { z } from "zod";
-import { db } from "../db";
-import { snippet } from "../db/schema";
 import { liquid } from "./liquid";
 
-// ADR 0015: `{% render 'name' %}` reads snippets from Postgres (docs/features/snippet-library.md).
-// They're loaded up front, every included snippet transitively, so the render itself reads from
-// memory and a publish can store exactly what it rendered with.
+// ADR 0015: the checks on snippets loaded for `{% render 'name' %}` (docs/features/snippet-library.md).
+// Loading them from Postgres is src/snippets.ts; this stays DB-free.
 
 /** A snippet that's missing, doesn't compile, or includes itself. */
 export class PartialError extends Error {}
 
-/** A snippet being saved: its new content stands in for the stored one. */
-export type PendingSnippet = { id?: string; key: string; html: string };
+export type LoadedSnippet = { id: string; key: string; html: string };
 
-type Loaded = { id: string; key: string; html: string };
-
-const isId = (name: string) => z.uuid().safeParse(name).success;
-
-/**
- * HTML by name for every partial the sources include, directly or through other snippets. Names
- * are snippet keys or ids (visual snippet blocks). Throws PartialError for a missing snippet, a
- * snippet whose Liquid doesn't parse, or a cycle, with the cycle spelled out.
- */
-export async function loadPartials(
-  sources: readonly string[],
-  pending?: PendingSnippet,
-): Promise<Record<string, string>> {
-  const byName = new Map<string, Loaded>();
-  const ownSnippet = pending ? { ...pending, id: pending.id ?? "" } : null;
-  const own = (name: string) =>
-    ownSnippet && (name === ownSnippet.key || name === ownSnippet.id) ? ownSnippet : null;
-  let wanted = [...new Set(sources.flatMap(partialNames))];
-  while (wanted.length) {
-    const rows = await findSnippets(wanted.filter((name) => !own(name)));
-    const added = wanted.map((name) => {
-      const row = rows.find((r) => r.id === name || r.key === name);
-      const loaded =
-        own(name) ?? (row && { id: row.id, key: row.key, html: snippetHtml(row.key, row.content) });
-      if (!loaded) throw new PartialError(`Snippet "${name}" doesn't exist`);
-      byName.set(name, loaded);
-      return loaded;
-    });
-    wanted = [...new Set(added.flatMap((s) => partialNames(s.html)))].filter(
-      (name) => !byName.has(name),
-    );
-  }
-
-  for (const loaded of new Set(byName.values())) parseOrThrow(loaded);
-  throwOnCycle(byName);
-  return Object.fromEntries([...byName].map(([name, loaded]) => [name, loaded.html]));
-}
-
-async function findSnippets(names: readonly string[]) {
-  if (!names.length) return [];
-  const ids = names.filter(isId);
-  const keys = names.filter((name) => !isId(name));
-  return db
-    .select({ id: snippet.id, key: snippet.key, content: snippet.content })
-    .from(snippet)
-    .where(
-      or(
-        ids.length ? inArray(snippet.id, ids) : undefined,
-        keys.length ? inArray(snippet.key, keys) : undefined,
-      ),
-    );
-}
-
-function snippetHtml(key: string, content: Parameters<typeof compileSnippet>[0]) {
+/** A stored snippet's HTML, or PartialError naming the snippet when it doesn't compile. */
+export function snippetHtml(key: string, content: Parameters<typeof compileSnippet>[0]) {
   try {
     return compileSnippet(content);
   } catch (error) {
@@ -80,7 +22,16 @@ function snippetHtml(key: string, content: Parameters<typeof compileSnippet>[0])
   }
 }
 
-function parseOrThrow({ key, html }: Loaded) {
+/**
+ * Throws PartialError for a loaded snippet whose Liquid doesn't parse, or for snippets that
+ * include each other, with the cycle spelled out. `byName` maps every included name to its snippet.
+ */
+export function checkPartials(byName: ReadonlyMap<string, LoadedSnippet>) {
+  for (const loaded of new Set(byName.values())) parseOrThrow(loaded);
+  throwOnCycle(byName);
+}
+
+function parseOrThrow({ key, html }: LoadedSnippet) {
   try {
     liquid.parse(html);
   } catch (error) {
@@ -90,9 +41,9 @@ function parseOrThrow({ key, html }: Loaded) {
 }
 
 /** Depth-first over snippet → included snippets; any back edge is a cycle. */
-function throwOnCycle(byName: ReadonlyMap<string, Loaded>) {
-  const done = new Set<Loaded>();
-  const visit = (node: Loaded, path: Loaded[]) => {
+function throwOnCycle(byName: ReadonlyMap<string, LoadedSnippet>) {
+  const done = new Set<LoadedSnippet>();
+  const visit = (node: LoadedSnippet, path: LoadedSnippet[]) => {
     if (done.has(node)) return;
     const at = path.indexOf(node);
     if (at !== -1) {

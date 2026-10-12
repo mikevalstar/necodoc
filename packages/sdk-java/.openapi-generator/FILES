@@ -42,6 +42,7 @@ src/main/java/dev/necodoc/sdk/model/OutputOptionsPdfa.java
 src/main/java/dev/necodoc/sdk/model/PendingGeneration.java
 src/main/java/dev/necodoc/sdk/model/PendingGenerationStatus.java
 src/main/java/dev/necodoc/sdk/model/PostGenerationsByIdLink201Response.java
+src/main/java/dev/necodoc/sdk/model/PostGenerationsByIdLinkRequest.java
 src/main/java/dev/necodoc/sdk/model/PostRender200Response.java
 src/main/java/dev/necodoc/sdk/model/RenderRequest.java
 src/main/java/dev/necodoc/sdk/model/RenderRequestHeader.java

@@ -3,6 +3,7 @@ import { Hono } from "hono";
 import { bodyLimit } from "hono/body-limit";
 import { HTTPException } from "hono/http-exception";
 import { aiModel } from "./ai";
+import { v1Error } from "./api-keys";
 import { auditScope } from "./audit";
 import { auth } from "./auth";
 import { demoResetting } from "./demo-reset";
@@ -42,9 +43,18 @@ const app = new Hono<AppEnv>().basePath("/api");
 app.use(requestId);
 // ADR 0036: request log line, metrics and server span. It logs unhandled errors, so onError only answers.
 app.use(observeRequests);
-app.onError((error, c) =>
-  error instanceof HTTPException ? error.getResponse() : c.text("Internal Server Error", 500),
-);
+app.onError((error, c) => {
+  // The public API answers every error as `{ error, code }` (docs/features/html-to-pdf-api.md);
+  // the HTTPExceptions are the validators' 400s for malformed JSON or form bodies.
+  if (c.req.path.startsWith("/api/v1/")) {
+    return error instanceof HTTPException
+      ? v1Error(c, error.status, "malformed_body", error.message)
+      : v1Error(c, 500, "internal_error", "Internal Server Error");
+  }
+  return error instanceof HTTPException
+    ? error.getResponse()
+    : c.text("Internal Server Error", 500);
+});
 
 // ADR 0045: while `pnpm demo:reset` rebuilds the database, say so without touching it. Health
 // and the instance label (which reports `resetting`) still answer.
@@ -78,7 +88,9 @@ const maxBodyMb = env.DEMO_MODE ? env.DEMO_UPLOAD_MAX_MB : MAX_FILE_BYTES / MB;
 app.use(
   bodyLimit({
     maxSize: env.DEMO_MODE ? env.DEMO_UPLOAD_MAX_MB * MB : MAX_FILE_BYTES + MB,
-    onError: (c) => c.json({ error: `Request body is over ${maxBodyMb} MB` }, 413),
+    // With a code, as /api/v1 promises for every error.
+    onError: (c) =>
+      c.json({ error: `Request body is over ${maxBodyMb} MB`, code: "body_too_large" }, 413),
   }),
 );
 

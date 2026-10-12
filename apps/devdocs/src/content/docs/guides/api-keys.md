@@ -82,15 +82,16 @@ Invalid input adds `fieldErrors` (field path → messages). A failed render adds
 | 403 | `missing_scope` | The key lacks the scope this call needs. |
 | 403 | `owner_forbidden` | The owner no longer has a role that allows it. |
 | 403 | `template_not_allowed` | The key is limited to other templates. |
+| 400 | `malformed_body` | The body isn't valid JSON or form data. |
 | 404 | `not_found` | No such template, version, batch or generation, or it isn't the owner's. |
 | 409 | `template_archived` | The template is archived. |
+| 413 | `body_too_large` | The body is over 20 MB. |
 | 422 | `invalid_request` | The body or path doesn't match the schema. |
 | 422 | `invalid_data` | Template data fails the version's fields; see `fieldErrors`. |
 | 422 | `invalid_input` | A combine input isn't a PDF or a generation with one. |
 | 422 | `render_failed` | The render failed (Liquid error, timeout); see `generationId`. |
 | 429 | `rate_limited` | Over the key's rate limit; see `Retry-After`. |
-
-A body over 20 MB answers `413` and malformed JSON answers `400`, in the same `{ error, code }` shape.
+| 500 | `internal_error` | Unexpected server error. |
 
 ## Behind a proxy
 

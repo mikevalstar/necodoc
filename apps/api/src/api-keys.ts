@@ -2,6 +2,7 @@ import {
   type ApiScope,
   apiKeyStatus,
   apiScopes,
+  DEFAULT_RATE_LIMIT_PER_HOUR,
   hasPermission,
   parseRoles,
   type V1Error,
@@ -10,8 +11,8 @@ import { eq, sql } from "drizzle-orm";
 import type { Context } from "hono";
 import { createMiddleware } from "hono/factory";
 import type { ContentfulStatusCode } from "hono/utils/http-status";
-import { z } from "zod";
 import { ipAllowed } from "./addresses";
+import { countKeyRequest } from "./api-key-rate-limit";
 import { actAsKey } from "./audit";
 import { auth } from "./auth";
 import { db } from "./db";
@@ -19,7 +20,8 @@ import { apiKeyPolicy, apikey, user } from "./db/schema";
 import { type AppEnv, clientIp, type SignedInEnv } from "./middleware";
 
 // ADR 0019, ADR 0029; spec: docs/features/html-to-pdf-api.md (keys). The plugin checks the
-// secret and the rate limit; api_key_policy decides whether the key may be used, and for what.
+// secret; api_key_policy decides whether the key may be used, and for what; the rate limit is
+// ours (ADR 0048), with each key's hourly limit in the plugin's rateLimitMax.
 
 export type KeyCaller = {
   id: string;
@@ -44,11 +46,6 @@ export function v1Error(
   return c.json({ error, code, ...extra } satisfies V1Error, status);
 }
 
-const rateLimitedSchema = z.object({
-  code: z.literal("RATE_LIMITED"),
-  details: z.object({ tryAgainIn: z.number() }),
-});
-
 /**
  * Authenticates an x-api-key and checks it holds `scope`, in that order, so an unknown key gets
  * 401 before a bad body gets 422. Every authenticated call counts toward the key's usage.
@@ -59,18 +56,18 @@ export const requireScope = (scope: ApiScope) =>
     if (!secret) return v1Error(c, 401, "missing_key", "Send your API key in the x-api-key header");
     const verified = await auth.api.verifyApiKey({ body: { key: secret } });
     if (!verified.valid || !verified.key) {
-      const limited = rateLimitedSchema.safeParse(verified.error);
-      if (limited.success) {
-        c.header(
-          "Retry-After",
-          String(Math.max(1, Math.ceil(limited.data.details.tryAgainIn / 1000))),
-        );
-        return v1Error(c, 429, "rate_limited", "Rate limit exceeded; retry after the wait");
-      }
       // Revoking also disables the plugin's key, so it's refused before the policy is read.
       return verified.error?.code === "KEY_DISABLED"
         ? v1Error(c, 401, "key_revoked", "This API key has been revoked")
         : v1Error(c, 401, "invalid_key", "This API key isn't valid or has been revoked");
+    }
+    const limited = await countKeyRequest(
+      verified.key.id,
+      verified.key.rateLimitMax ?? DEFAULT_RATE_LIMIT_PER_HOUR,
+    );
+    if (!limited.ok) {
+      c.header("Retry-After", String(limited.retryAfterSeconds));
+      return v1Error(c, 429, "rate_limited", "Rate limit exceeded; retry after the wait");
     }
     const [row] = await db
       .select({ policy: apiKeyPolicy, owner: user })
@@ -132,7 +129,7 @@ export type KeySettings = {
   scopes: ApiScope[];
   templateIds: string[];
   ipAllowlist: string[];
-  rateLimitPerMinute: number;
+  rateLimitPerHour: number;
   expiresAt: Date | null;
 };
 
@@ -146,9 +143,10 @@ export async function createKey(
     body: {
       name: settings.name,
       userId: ownerId,
-      rateLimitEnabled: true,
-      rateLimitTimeWindow: 60_000,
-      rateLimitMax: settings.rateLimitPerMinute,
+      // ADR 0048: our limiter counts the hour; the plugin's stays off and only stores the limit.
+      rateLimitEnabled: false,
+      rateLimitTimeWindow: 3_600_000,
+      rateLimitMax: settings.rateLimitPerHour,
     },
   });
   await db.insert(apiKeyPolicy).values({

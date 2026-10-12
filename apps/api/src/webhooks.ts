@@ -295,7 +295,7 @@ function post(target: WebhookTarget, headers: Record<string, string>, body: stri
 }
 
 /** Why a POST counted as failed, for the next retry. */
-export class DeliveryFailed extends Error {}
+class DeliveryFailed extends Error {}
 
 /**
  * Sends one delivery once and records the attempt. Throws `DeliveryFailed` when it should be

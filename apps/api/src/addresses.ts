@@ -87,3 +87,14 @@ export function hostOf(url: string | undefined) {
     return null;
   }
 }
+
+/**
+ * The client in an X-Forwarded-For header behind `trustedProxies` proxies, each of which appends
+ * the address it was called from: the hop that many from the end. Hops a client wrote itself sit
+ * further left and are never read. A shorter header than expected yields its first hop.
+ */
+export function forwardedClient(header: string | undefined, trustedProxies: number) {
+  if (!header || trustedProxies < 1) return undefined;
+  const hops = header.split(",");
+  return hops[Math.max(hops.length - trustedProxies, 0)]?.trim() || undefined;
+}

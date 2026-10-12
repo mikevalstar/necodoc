@@ -90,7 +90,8 @@ replaces.
 - A filler can't save and come back on another device.
 - The rate limit lives in each API process's memory: with several API nodes a
   filler gets that many submissions per node, and a restart resets it. Behind
-  a reverse proxy, set `TRUST_PROXY=true` so the client address comes from
+  reverse proxies, set `TRUST_PROXY` to how many there are (`true` means one;
+  the app image's nginx counts as one) so the client address comes from
   `X-Forwarded-For`; otherwise every filler shares the proxy's address.
 - If the PDF takes longer than the API's wait to render, the filler gets the
   confirmation without a download; the owner still gets the PDF.

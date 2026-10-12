@@ -24,6 +24,9 @@ export const instanceSchema = z.object({
 });
 export type Instance = z.infer<typeof instanceSchema>;
 
+/** Why a control is off in the public demo: the API's 403 and the app's tooltip (ADR 0046). */
+export const DEMO_DISABLED = "Turned off in the public demo.";
+
 export const metricsWindows = { "15m": 15, "1h": 60, "24h": 1440, "7d": 10080 } as const;
 export const metricsWindowSchema = z.enum(["15m", "1h", "24h", "7d"]);
 export type MetricsWindow = z.infer<typeof metricsWindowSchema>;

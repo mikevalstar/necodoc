@@ -49,7 +49,7 @@ GhostDraft's clause library is a core reason legal and insurance teams buy it.
 - Needs `document: create` to create, `document: edit` to change, archive and
   delete; anyone who can open drafts can list and view snippets.
 - API: [routes/snippets.ts](../../apps/api/src/routes/snippets.ts); render
-  loading: [render/partials.ts](../../apps/api/src/render/partials.ts); schemas:
+  loading: [snippets.ts](../../apps/api/src/snippets.ts) (checks in [render/partials.ts](../../apps/api/src/render/partials.ts)); schemas:
   [snippet.ts](../../packages/shared/src/snippet.ts).
 
 ## Acceptance criteria

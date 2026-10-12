@@ -36,6 +36,7 @@ necodoc/models/output_options_pdfa.py
 necodoc/models/pending_generation.py
 necodoc/models/pending_generation_status.py
 necodoc/models/post_generations_by_id_link201_response.py
+necodoc/models/post_generations_by_id_link_request.py
 necodoc/models/post_render200_response.py
 necodoc/models/render_request.py
 necodoc/models/render_request_header.py

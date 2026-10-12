@@ -15,7 +15,8 @@ Accepted. Amends [ADR 0019](0019-better-auth-api-keys-for-the-public-api.md)
 ("keys belong to a user") and builds on
 [ADR 0011](0011-role-based-access-with-the-better-auth-admin-plugin.md).
 Behaviour is in [HTML to PDF API](../features/html-to-pdf-api.md) and
-[User management and roles](../features/user-management-and-roles.md).
+[User management and roles](../features/user-management-and-roles.md). Rate limiting is
+[ADR 0048](0048-api-key-rate-limit-counted-per-hour-in-postgres.md).
 
 ## Context
 

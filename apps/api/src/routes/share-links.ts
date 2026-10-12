@@ -1,5 +1,4 @@
 import { randomBytes } from "node:crypto";
-import { getConnInfo } from "@hono/node-server/conninfo";
 import { zValidator } from "@hono/zod-validator";
 import {
   createShareLinkSchema,
@@ -17,19 +16,16 @@ import { recordAudit } from "../audit";
 import { db } from "../db";
 import { shareLink, submission, template, templateVersion } from "../db/schema";
 import { mintLink } from "../download";
-import { env } from "../env";
-import { type AppEnv, requirePermission } from "../middleware";
+import { type AppEnv, canPublish, clientIp, idParam } from "../middleware";
 import { tokenBucket } from "../rate-limit";
-import { finishSubmission, selectSubmissions, versionLocalization } from "./submissions";
-import { findVersion } from "./templates";
+import { finishSubmission, selectSubmissions, versionLocalization } from "../submissions";
+import { findVersion } from "../templates";
 
 // Spec: docs/features/share-links-and-data-requests.md. Owners (document: publish) manage their
 // links under /share-links; anyone with a token opens and submits under /share, no session.
 
 type Tx = Parameters<Parameters<typeof db.transaction>[0]>[0] | typeof db;
 
-const canPublish = requirePermission({ document: ["publish"] });
-const idParam = zValidator("param", z.object({ id: z.uuid() }));
 const tokenParam = zValidator("param", z.object({ token: z.string().min(20).max(100) }));
 
 /** How long a filler's download link lasts. */
@@ -250,12 +246,6 @@ async function openLink(tx: Tx, token: string, lock: boolean) {
 const unavailableResponse = (c: Context, reason: ShareLinkUnavailable) =>
   c.json({ error: "This link is no longer available", reason }, 410);
 
-/** The socket's address, or the last X-Forwarded-For hop (the proxy's own) with TRUST_PROXY. */
-function clientAddress(c: Context) {
-  const hops = env.TRUST_PROXY ? c.req.header("X-Forwarded-For")?.split(",") : undefined;
-  return hops?.at(-1)?.trim() || getConnInfo(c).remote.address || "unknown";
-}
-
 export const publicShareRoutes = new Hono<AppEnv>()
   .get("/:token", tokenParam, async (c) => {
     const opened = await openLink(db, c.req.valid("param").token, false);
@@ -283,7 +273,7 @@ export const publicShareRoutes = new Hono<AppEnv>()
     );
   })
   .post("/:token", tokenParam, zValidator("json", shareSubmitSchema), async (c) => {
-    const limited = submitLimit.take(clientAddress(c));
+    const limited = submitLimit.take(clientIp(c));
     if (!limited.ok) {
       c.header("Retry-After", String(Math.ceil(limited.retryAfterMs / 1000)));
       return c.json({ error: "Too many submissions; try again in a minute" }, 429);

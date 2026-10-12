@@ -5,9 +5,8 @@ import { db } from "./db";
 import { downloadLink } from "./db/schema";
 import { contentDisposition, etagMatches, parseRange } from "./download-headers";
 import { env } from "./env";
-import { findFile, openFile } from "./files";
+import { findFile, openFile, presignFile } from "./files";
 import { signLink } from "./signed-link";
-import { storage } from "./storage";
 
 // ADR 0023: the one download path for stored outputs, session or signed link. Streams from the
 // driver with ETag revalidation and single-range requests. Callers check permission first.
@@ -55,19 +54,15 @@ export async function serveFile(
     c.req.query("download") === "1" ? "attachment" : "inline",
     filename,
   );
-  if (
-    redirect &&
-    env.STORAGE_REDIRECT === "presigned" &&
-    storage.presign &&
-    stored.storage === storage.name
-  ) {
-    const url = await storage.presign(stored.key, {
-      expiresInSeconds: PRESIGNED_SECONDS,
-      contentType: stored.mimeType,
-      contentDisposition: disposition,
-    });
-    return c.redirect(url, 302);
-  }
+  const url =
+    redirect && env.STORAGE_REDIRECT === "presigned"
+      ? await presignFile(stored, {
+          expiresInSeconds: PRESIGNED_SECONDS,
+          contentType: stored.mimeType,
+          contentDisposition: disposition,
+        })
+      : null;
+  if (url) return c.redirect(url, 302);
   const etag = `"${stored.sha256}"`;
   const headers = {
     "Content-Type": stored.mimeType,

@@ -13,19 +13,16 @@ import { z } from "zod";
 import { recordAudit } from "../audit";
 import { db } from "../db";
 import { template, templateReview, templateReviewEvent, templateVersion, user } from "../db/schema";
-import { type AppEnv, requireAnyPermission, requirePermission } from "../middleware";
+import { type AppEnv, canEdit, canSeeDrafts, idParam, requirePermission } from "../middleware";
 import { publishSnapshot } from "../publish";
 import { notify, publishingSettings, usersWith } from "../review";
-import { draftAccess, findDraft } from "./templates";
+import { findDraft } from "../templates";
 
 // Spec: docs/features/review-and-approval.md. Editors submit; reviewers approve or request
 // changes; publishers publish (routes/templates.ts checks the approval when it's required).
 
-const canSeeDrafts = requireAnyPermission(...draftAccess);
-const canEdit = requirePermission({ document: ["edit"] });
 const canReview = requirePermission({ document: ["review"] });
 
-const idParam = zValidator("param", z.object({ id: z.uuid() }));
 const templateParam = zValidator("param", z.object({ templateId: z.uuid() }));
 
 const submitter = alias(user, "submitter");

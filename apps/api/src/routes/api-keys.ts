@@ -5,27 +5,32 @@ import {
   apiKeyStatus,
   apiScopes,
   createApiKeySchema,
+  DEFAULT_RATE_LIMIT_PER_HOUR,
   hasPermission,
   parseRoles,
   rotateApiKeySchema,
 } from "@necodoc/shared";
 import { and, desc, eq, gt, isNotNull, isNull, lte, or, type SQL, sql } from "drizzle-orm";
 import { Hono } from "hono";
-import { z } from "zod";
 import { createKey, revokeKey } from "../api-keys";
 import { recordAudit } from "../audit";
 import { db } from "../db";
 import { apiKeyPolicy, apikey, user } from "../db/schema";
-import { type AppEnv, demo, requirePermission, type SignedInEnv } from "../middleware";
+import {
+  type AppEnv,
+  authIdParam,
+  demo,
+  isAdmin,
+  requirePermission,
+  type SignedInEnv,
+} from "../middleware";
 
 // Spec: docs/features/html-to-pdf-api.md (keys). ADR 0029: people manage their own keys; admins
 // manage service accounts' keys, and see and revoke everyone's.
 
 type SignedInUser = SignedInEnv["Variables"]["user"];
 
-const isAdmin = (actor: SignedInUser) => parseRoles(actor.role).includes("admin");
 const canUseApi = requirePermission({ document: ["view"] });
-const idParam = zValidator("param", z.object({ id: z.string().min(1) }));
 
 const statusWhere = (status: ApiKeyStatus, now = new Date()): SQL | undefined => {
   switch (status) {
@@ -48,7 +53,7 @@ const selectKeys = (where: SQL | undefined) =>
       name: apikey.name,
       start: apikey.start,
       createdAt: apikey.createdAt,
-      rateLimitPerMinute: apikey.rateLimitMax,
+      rateLimitPerHour: apikey.rateLimitMax,
       ownerId: apikey.referenceId,
       ownerName: user.name,
       ownerIsService: user.serviceAccount,
@@ -142,7 +147,7 @@ export const apiKeyRoutes = new Hono<AppEnv>()
     "/:id/rotate",
     canUseApi,
     demo.off,
-    idParam,
+    authIdParam,
     zValidator("json", rotateApiKeySchema),
     async (c) => {
       const actor = c.get("user");
@@ -164,7 +169,7 @@ export const apiKeyRoutes = new Hono<AppEnv>()
           scopes: found.scopes,
           templateIds: found.templateIds,
           ipAllowlist: found.ipAllowlist,
-          rateLimitPerMinute: found.rateLimitPerMinute ?? 120,
+          rateLimitPerHour: found.rateLimitPerHour ?? DEFAULT_RATE_LIMIT_PER_HOUR,
           expiresAt: lifetime ? new Date(now + lifetime) : null,
         },
         { createdBy: actor.id, rotatedFromId: found.id },
@@ -186,7 +191,7 @@ export const apiKeyRoutes = new Hono<AppEnv>()
       return c.json({ ...created, oldKeyExpiresAt: overlapEnd.toISOString() }, 201);
     },
   )
-  .post("/:id/revoke", canUseApi, idParam, async (c) => {
+  .post("/:id/revoke", canUseApi, authIdParam, async (c) => {
     const actor = c.get("user");
     const [found] = await selectKeys(eq(apikey.id, c.req.valid("param").id));
     if (!found || (found.ownerId !== actor.id && !isAdmin(actor))) {

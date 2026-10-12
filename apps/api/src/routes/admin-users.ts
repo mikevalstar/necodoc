@@ -2,7 +2,7 @@ import { zValidator } from "@hono/zod-validator";
 import { type AdminUserListQuery, adminUserListQuerySchema, roleSchema } from "@necodoc/shared";
 import { and, asc, count, desc, eq, ilike, isNull, or, type SQL, sql } from "drizzle-orm";
 import { Hono } from "hono";
-import { db } from "../db";
+import { db, escapeLike } from "../db";
 import { user } from "../db/schema";
 import { type AppEnv, requireRole } from "../middleware";
 
@@ -10,8 +10,6 @@ import { type AppEnv, requireRole } from "../middleware";
 // one filter, so the list is read here: people only (service accounts have their own page,
 // ADR 0029), with search, role, status, sort and paging done in Postgres. Changes still go through
 // Better Auth's admin endpoints.
-
-const escapeLike = (text: string) => text.replace(/[\\%_]/g, "\\$&");
 
 /** The roles column split the way parseRoles reads it ("admin, editor"). */
 const roleList = sql`regexp_split_to_array(coalesce(${user.role}, ''), '\\s*,\\s*')`;

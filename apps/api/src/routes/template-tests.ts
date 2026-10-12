@@ -1,7 +1,6 @@
 import { zValidator } from "@hono/zod-validator";
 import {
   createTestCaseSchema,
-  parseRoles,
   runTestsSchema,
   type TestCaseFrom,
   templateDataSchema,
@@ -17,23 +16,21 @@ import { generation, submission, template, templateTestCase } from "../db/schema
 import { renderPreview, type Tx } from "../generate";
 import {
   type AppEnv,
+  canEdit,
+  canSeeDrafts,
   demo,
-  requireAnyPermission,
-  requirePermission,
+  idParam,
+  isAdmin,
   type SignedInEnv,
 } from "../middleware";
 import { draftRenderInput, savedDraft } from "../publish";
 import { runTests } from "../template-tests";
+import { findDraft, findVersion, versionRequest } from "../templates";
 import { visualDiff } from "../visual-diff";
-import { draftAccess, findDraft, findVersion, versionRequest } from "./templates";
 
 // Spec: docs/features/template-test-cases-and-visual-diff.md. Mounted under /templates. Cases
 // are for editors to change and every drafts user to run; nothing here is logged.
 
-const canSeeDrafts = requireAnyPermission(...draftAccess);
-const canEdit = requirePermission({ document: ["edit"] });
-
-const idParam = zValidator("param", z.object({ id: z.uuid() }));
 const caseParam = zValidator("param", z.object({ id: z.uuid(), caseId: z.uuid() }));
 
 type SignedInUser = SignedInEnv["Variables"]["user"];
@@ -43,7 +40,6 @@ async function dataFrom(actor: SignedInUser, templateId: string, from: TestCaseF
   if (from.kind === "data") return from.data;
   if (from.kind === "sample") return (await findDraft(templateId))?.sampleData ?? null;
   if (from.kind === "generation") {
-    const admin = parseRoles(actor.role).includes("admin");
     const [row] = await db
       .select({ input: generation.input })
       .from(generation)
@@ -51,7 +47,7 @@ async function dataFrom(actor: SignedInUser, templateId: string, from: TestCaseF
         and(
           eq(generation.id, from.id),
           eq(generation.templateId, templateId),
-          admin ? undefined : eq(generation.userId, actor.id),
+          isAdmin(actor) ? undefined : eq(generation.userId, actor.id),
         ),
       );
     return row?.input && "data" in row.input ? row.input.data : null;
@@ -112,7 +108,6 @@ export const templateTestRoutes = new Hono<AppEnv>()
   .get("/:id/tests/sources", canEdit, idParam, async (c) => {
     const { id } = c.req.valid("param");
     const actor = c.get("user");
-    const admin = parseRoles(actor.role).includes("admin");
     const [generations, documents] = await Promise.all([
       db
         .select({
@@ -126,7 +121,7 @@ export const templateTestRoutes = new Hono<AppEnv>()
           and(
             eq(generation.templateId, id),
             isNotNull(generation.input),
-            admin ? undefined : eq(generation.userId, actor.id),
+            isAdmin(actor) ? undefined : eq(generation.userId, actor.id),
           ),
         )
         .orderBy(desc(generation.queuedAt))

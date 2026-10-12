@@ -1,3 +1,4 @@
+import { DEMO_DISABLED } from "@necodoc/shared";
 import type { BetterAuthPlugin } from "better-auth";
 import { createAuthEndpoint } from "better-auth/api";
 import { setSessionCookie } from "better-auth/cookies";
@@ -63,9 +64,6 @@ export const demoSession = () =>
 
 // ---------------------------------------------------------------------------------------------
 // Hardening (ADR 0046)
-
-/** Why a control is off; the app shows the same words (components/demo-lock.tsx). */
-export const DEMO_DISABLED = "Turned off in the public demo.";
 
 /** From env (DEMO_*); null when DEMO_MODE is off and every guard lets everything through. */
 export type DemoLimits = {

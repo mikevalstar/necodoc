@@ -4,7 +4,6 @@ import {
   type GenerationFilter,
   generationFilterSchema,
   generationListQuerySchema,
-  parseRoles,
   RENDER_TIME_EDGES_MS,
   type RenderTimeHistogram,
   signingPackageQuerySchema,
@@ -26,16 +25,24 @@ import {
   type SQL,
   sql,
 } from "drizzle-orm";
-import type { SelectedFields } from "drizzle-orm/pg-core";
 import { Hono } from "hono";
 import { z } from "zod";
 import { recordAudit } from "../audit";
-import { db } from "../db";
-import { apikey, file, generation, template, user } from "../db/schema";
+import { db, escapeLike } from "../db";
+import { file, generation, template } from "../db/schema";
 import { mintLink, serveFile } from "../download";
 import { deleteFiles, deleteObjects } from "../files";
 import { generate } from "../generate";
-import { type AppEnv, demo, requirePermission, requireRole, type SignedInEnv } from "../middleware";
+import { selectSummaries, type summaryColumns } from "../generations";
+import {
+  type AppEnv,
+  canView,
+  demo,
+  idParam,
+  isAdmin,
+  requireRole,
+  type SignedInEnv,
+} from "../middleware";
 import { maskedInput } from "../privacy";
 import { signingQueryOptions, signingResponse } from "../signing-package";
 
@@ -43,8 +50,6 @@ import { signingQueryOptions, signingResponse } from "../signing-package";
 // Rows are written by src/generate.ts (queued) and the worker that renders them.
 
 type SignedInUser = SignedInEnv["Variables"]["user"];
-
-const isAdmin = (actor: SignedInUser) => parseRoles(actor.role).includes("admin");
 
 function filterWhere(actor: SignedInUser, filter: GenerationFilter) {
   const userId = isAdmin(actor) ? filter.userId : actor.id;
@@ -65,8 +70,6 @@ function filterWhere(actor: SignedInUser, filter: GenerationFilter) {
       : undefined,
   );
 }
-
-const escapeLike = (text: string) => text.replace(/[\\%_]/g, "\\$&");
 
 /** Substring over filename, error, request id and template name (trigram-indexed), or an id. */
 function textMatch(q: string) {
@@ -90,36 +93,6 @@ const visible = (actor: SignedInUser, id: string) =>
   isAdmin(actor)
     ? eq(generation.id, id)
     : and(eq(generation.id, id), eq(generation.userId, actor.id));
-
-export const summaryColumns = {
-  id: generation.id,
-  source: generation.source,
-  status: generation.status,
-  userId: generation.userId,
-  userName: user.name,
-  apiKeyId: generation.apiKeyId,
-  apiKeyName: apikey.name,
-  templateId: generation.templateId,
-  templateVersionId: generation.templateVersionId,
-  templateName: template.name,
-  rerunOfId: generation.rerunOfId,
-  batchId: generation.batchId,
-  batchRow: generation.batchRow,
-  filename: generation.filename,
-  error: generation.error,
-  warnings: generation.warnings,
-  queuedAt: generation.queuedAt,
-  startedAt: generation.startedAt,
-  finishedAt: generation.finishedAt,
-  durationMs: generation.durationMs,
-  queueWaitMs: generation.queueWaitMs,
-  totalMs: generation.totalMs,
-  attempts: generation.attempts,
-  workerId: generation.workerId,
-  pageCount: generation.pageCount,
-  size: generation.size,
-  hasOutput: isNotNull(generation.outputFileId).mapWith(Boolean),
-};
 
 /** Metadata only: the export never includes inputs or PDFs. */
 const exportColumns = [
@@ -152,18 +125,6 @@ const exportColumns = [
 ] as const satisfies readonly (keyof typeof summaryColumns)[];
 
 const EXPORT_LIMIT = 100_000;
-
-/** Generations with their user, key and template names; `extra` adds columns (detail views). */
-export const selectSummaries = <T extends SelectedFields>(extra: T = {} as T) =>
-  db
-    .select({ ...summaryColumns, ...extra })
-    .from(generation)
-    .leftJoin(user, eq(user.id, generation.userId))
-    .leftJoin(apikey, eq(apikey.id, generation.apiKeyId))
-    .leftJoin(template, eq(template.id, generation.templateId));
-
-const idParam = zValidator("param", z.object({ id: z.uuid() }));
-const canView = requirePermission({ document: ["view"] });
 
 /** Deletes entries and their stored PDFs: rows first, then the objects once that commits. */
 async function deleteGenerations(where: SQL | undefined) {
@@ -198,7 +159,7 @@ export const generationRoutes = new Hono<AppEnv>()
     const column = generation[sort];
     const primary = order === "asc" ? asc(column) : sql`${column} desc nulls last`;
     const [items, [total]] = await Promise.all([
-      selectSummaries()
+      selectSummaries({})
         .where(where)
         .orderBy(primary, direction(generation.id))
         .limit(limit)
@@ -208,7 +169,7 @@ export const generationRoutes = new Hono<AppEnv>()
     return c.json({ items, total: total?.count ?? 0 });
   })
   .get("/export.csv", canView, zValidator("query", generationFilterSchema), async (c) => {
-    const rows = await selectSummaries()
+    const rows = await selectSummaries({})
       .where(filterWhere(c.get("user"), c.req.valid("query")))
       .orderBy(desc(generation.queuedAt))
       .limit(EXPORT_LIMIT);
@@ -377,7 +338,7 @@ export const generationRoutes = new Hono<AppEnv>()
         : {}),
       wait: true,
     });
-    const [rerun] = await selectSummaries().where(eq(generation.id, result.generationId));
+    const [rerun] = await selectSummaries({}).where(eq(generation.id, result.generationId));
     return c.json(rerun, 201);
   })
   .delete("/:id", canView, idParam, async (c) => {

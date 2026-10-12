@@ -960,7 +960,7 @@ export const faq: readonly FaqEntry[] = [
     limitations: [
       "No email: necodoc doesn't send the link or tell you about responses; watch the count in the app.",
       "Anyone with the link can submit; there's no identity check or CAPTCHA, only a per-address rate limit (10 at once, then one a minute).",
-      "The rate limit is kept per API server and resets on restart. Behind a reverse proxy, TRUST_PROXY=true must be set or every filler shares one limit.",
+      "The rate limit is kept per API server and resets on restart. Behind a reverse proxy, TRUST_PROXY must be set to the number of proxies in front of the API, or every filler shares one limit.",
       "Progress is kept in the filler's browser only; they can't continue on another device.",
       "The filler's download link lasts 24 hours. If the PDF takes too long, they get the confirmation without a download.",
       "Prefill and locking cover top-level questions, not questions inside a repeating group.",
@@ -1033,7 +1033,7 @@ export const faq: readonly FaqEntry[] = [
     group: "API",
     what: "A key can be limited to the addresses its system calls from. Calls from anywhere else get 403 (ip_not_allowed), even with the right key.",
     howTo:
-      "When creating a key, list one address or CIDR range per line under IP allowlist, like 203.0.113.7 or 10.0.0.0/8 (IPv6 works too). Leave it empty to allow any address. Behind a reverse proxy, set TRUST_PROXY=true on the API so it reads the client address from X-Forwarded-For.",
+      "When creating a key, list one address or CIDR range per line under IP allowlist, like 203.0.113.7 or 10.0.0.0/8 (IPv6 works too). Leave it empty to allow any address. Behind a reverse proxy, set TRUST_PROXY on the API to the number of proxies in front of it (the app container's nginx counts as one) so it reads the client address from X-Forwarded-For.",
     limitations: [
       "Without TRUST_PROXY behind a proxy, every call seems to come from the proxy.",
       "The list is set when the key is made; rotate or make a new key to change it.",
@@ -1044,7 +1044,7 @@ export const faq: readonly FaqEntry[] = [
   {
     feature: "API rate limits",
     group: "API",
-    what: "Each key has its own limit, in requests per minute (120 unless set otherwise, up to 6,000). Past it, calls get 429 with a Retry-After header in seconds.",
+    what: "Each key has its own limit, in requests per hour (7,200 unless set otherwise, up to 360,000), counted over the last 60 minutes across every API server. Past it, calls get 429 with a Retry-After header in seconds.",
     howTo:
       "Set the limit when creating the key. If a system keeps hitting 429, rotate to a new key with a higher limit, or spread its calls out; batches are one call for thousands of documents.",
     limitations: [

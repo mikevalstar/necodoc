@@ -7,22 +7,22 @@ import { requireAi } from "../ai";
 import { db } from "../db";
 import { file, pdfSource } from "../db/schema";
 import { FileTooLargeError, fileBytes, storeFile } from "../files";
-import { type AppEnv, demo, requireAnyPermission, requirePermission } from "../middleware";
+import { fileHeaders } from "../http";
+import {
+  type AppEnv,
+  canEdit,
+  canSeeDrafts,
+  demo,
+  idParam,
+  requireAnyPermission,
+} from "../middleware";
 import { boss, type DetectJobData, queues } from "../queue";
 import { inspectUpload, PdfUploadError } from "../render/pdf-source";
-import { fileHeaders } from "./http";
 
 // Spec: docs/features/pdf-overlay-templates.md (upload, AI auto-detect). An upload is checked and
 // read once (ADR 0028), kept in Postgres (ADR 0014), and referenced by overlay templates.
 
-const idParam = zValidator("param", z.object({ id: z.uuid() }));
 const canUpload = requireAnyPermission({ document: ["create"] }, { document: ["edit"] });
-const canSeeDrafts = requireAnyPermission(
-  { document: ["edit"] },
-  { document: ["review"] },
-  { document: ["publish"] },
-);
-const canEdit = requirePermission({ document: ["edit"] });
 
 const columns = {
   id: pdfSource.id,
