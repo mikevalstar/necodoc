@@ -3,8 +3,8 @@
 
 const repo = "https://github.com/mikevalstar/necodoc";
 
-/** Developer docs origin. Set DOCS_URL at build time once the docs domain is decided. */
-const docsUrl = (import.meta.env.DOCS_URL as string | undefined) ?? "http://localhost:4322";
+/** Developer docs origin. Set DOCS_URL (e.g. http://localhost:4322) to point at a local devdocs. */
+const docsUrl = (import.meta.env.DOCS_URL as string | undefined) ?? "https://docs.necodoc.com";
 
 export const links = {
   github: repo,

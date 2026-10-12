@@ -95,7 +95,9 @@ and stay as they are.
 
 ## Open questions
 
-1. **Docs domain.** Docs links use `DOCS_URL` (default the local devdocs port).
-2. **Benchmark.** Rerun on a clean commit so the dirty-tree warning goes away.
+1. **Benchmark.** Rerun on a clean commit so the dirty-tree warning goes away.
 
-Copy pass (W6b): [copy-pass.md](copy-pass.md) logs the notable before/after changes.
+Copy pass (W6b) and the launch review (W7): [copy-pass.md](copy-pass.md) logs the notable
+before/after changes.
+
+Docs links default to `https://docs.necodoc.com`; set `DOCS_URL` to point a build at a local devdocs.

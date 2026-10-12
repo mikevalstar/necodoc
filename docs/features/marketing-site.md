@@ -46,6 +46,8 @@ brought the request.
   Write for P&C and surety carriers with details that resonate: Canadian,
   bilingual EN/FR, Entra ID sign-in, accessibility, self-hosted.
 - E-signature is "e-signature ready", never "e-signature".
+- Signing packages name three providers: DocuSign, Dropbox Sign and Adobe
+  Acrobat Sign (confirmed in the launch review, NECO-cpnsebim).
 
 **Decisions taken** (Mike, 2026-10-12, on NECO-dimhbgii):
 
@@ -85,7 +87,7 @@ proves it.
 | Architecture and deployment fit | Does it run where we run things? | Containers, Compose or Helm, one Postgres, any Kubernetes or VM, in their own cloud or data centre ([Self-hosting](self-hosting.md)) |
 | Integration patterns | How does our policy admin system call it? | No packaged connector. A versioned REST API with OpenAPI and a JSON Schema per template; sync, async + signed webhook, batch; SDKs for TypeScript, Python, .NET, Java. The Architecture page shows the pattern: core system posts data, gets a PDF or a webhook ([HTML to PDF API](html-to-pdf-api.md), [Webhooks](webhooks.md)) |
 | Separation of duties | Can the business own wording while IT owns data and integration? | Editors change content; fields are the data contract; publishing and review are separate permissions ([User management and roles](user-management-and-roles.md)) |
-| Security and identity | Does it use our IdP? How are systems authenticated? | Entra ID, Auth0, SiteMinder over OIDC or SAML, group-to-role mapping; service accounts with scoped, expiring, IP-restricted keys ([Single sign-on](single-sign-on.md), [ADR 0029](../adrs/0029-service-accounts-and-scoped-api-keys.md)) |
+| Security and identity | Does it use our IdP? How are systems authenticated? | Entra ID, Auth0, SiteMinder over OIDC or SAML, group-to-role mapping; service accounts with scoped keys, optionally expiring and IP-restricted ([Single sign-on](single-sign-on.md), [ADR 0029](../adrs/0029-service-accounts-and-scoped-api-keys.md)) |
 | Data residency | Where does policyholder data go? | Nowhere they didn't put it: their Postgres, their bucket or blob container or disk, in their region; downloads through signed links. AI is off unless they add a key ([ADR 0023](../adrs/0023-generated-outputs-in-object-storage.md)) |
 | Scalability and HA | Month-end renewals, peak hours, node loss? | Stateless API and workers scale out; queued jobs with priorities; a killed worker's job retries elsewhere ([Render queue](render-queue-batch-jobs-and-scaling.md)) |
 | Observability | Does it plug into our monitoring? | JSON logs, Prometheus, OpenTelemetry traces, request ids end to end, health endpoints ([Observability](observability.md)) |
@@ -227,18 +229,19 @@ recheck before publishing.
 | | necodoc | GhostDraft | DocSpring / Anvil | Enterprise CCM (Smart Communications, Quadient Inspire, OpenText Exstream, Messagepoint) |
 |---|---|---|---|---|
 | Deployment | Self-hosted only, in your cloud or data centre | SaaS on Azure | SaaS (DocSpring: on-prem on request) | SaaS; Quadient Inspire Flex also on-prem or containers |
-| Core-system integration | REST API, webhooks, SDKs; no packaged connectors | Packaged core-system integrations | REST API | Core-system accelerators |
+| Core-system integration | REST API, webhooks, SDKs; no packaged connectors | Packaged core-system integrations | REST API (Anvil also GraphQL) | Core-system accelerators |
 | Authoring | In-app editor, HTML, or fields on an existing PDF | Microsoft Word | HTML or fields on a PDF | Vendor designer tools |
-| Fill existing PDFs | Yes, with AI field proposals | Not a stated focus | Yes | Varies |
+| Fill existing PDFs | Yes, with AI field proposals | Not stated on its site | Yes | Varies |
 | Bureau forms (ISO/AAIS) | No | Yes | No | Varies |
-| Bulk generation | Queued batches, workers scale out | Interactive, batch, on-demand | Async and batch APIs | Core strength |
-| Licensing | MIT, no licence fee | Annual subscription | Per document | Commercial enterprise |
+| Bulk generation | Queued batches, workers scale out | Interactive, batch, on-demand | DocSpring: async and batch APIs; Anvil: one PDF per call | Core strength |
+| Licensing | MIT, no licence fee | Annual subscription | Monthly plans; per-PDF overage (DocSpring) or pay as you go per PDF and e-sign packet (Anvil) | Commercial enterprise |
 | Vendor attestations | None (you run it; it inherits your controls) | SOC 2 Type II | SOC 2 Type II | SOC 2, ISO 27001 and others |
-| E-signature | Handoff packages to DocuSign, Dropbox Sign, Adobe Sign | Integrations | Own e-sign | Integrations |
-| Channels | PDF only | Documents and communications | PDF | Print, email, SMS, web |
+| E-signature | Handoff packages to DocuSign, Dropbox Sign, Adobe Acrobat Sign | E-signature support | Own e-sign (DocSpring Data Requests, Anvil Etch) | Integrations |
+| Channels | PDF only | Print, email, portals and other channels | PDF | Print, email, SMS, web |
 
-Rows from vendor sites, checked 2026-10-12 ([Research](#research)); recheck
-before publishing.
+Rows from vendor sites, checked 2026-10-12 and rechecked for launch the same
+day (NECO-cpnsebim), with the vendor page for each fact linked from the
+Compare page ([Research](#research)); recheck before changing a row.
 
 Where a competitor is the better fit (multi-channel CCM, Word-native
 authoring, a vendor SLA), the site may say so in one line. It costs little and
@@ -424,8 +427,6 @@ them.
 
 - **Support.** The site says "coming soon". What gets offered (paid
   support, partner, none) is still open.
-- **E-sign provider.** Mike mentioned "Accusign"; confirm whether that's a
-  fourth provider or one of DocuSign, Dropbox Sign, Adobe Acrobat Sign.
 - **Image registry.** Publishing signed images (GHCR) before launch would
   remove "build it yourself" from the quick start.
 - **Domain** (W3). A French site and its URL scheme are deferred.

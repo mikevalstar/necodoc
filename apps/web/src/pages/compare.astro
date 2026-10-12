@@ -31,7 +31,7 @@ const rows: Row[] = [
       necodoc: "REST API, webhooks, SDKs; no packaged connectors",
       GhostDraft: "Packaged core-system integrations",
       DocSpring: "REST API",
-      Anvil: "REST API",
+      Anvil: "REST and GraphQL APIs",
       "Enterprise CCM suites": "Core-system accelerators",
     },
   },
@@ -49,7 +49,7 @@ const rows: Row[] = [
     label: "Fill existing PDFs",
     cells: {
       necodoc: "Yes, with AI field proposals",
-      GhostDraft: "Not a stated focus",
+      GhostDraft: "Not stated on its site",
       DocSpring: "Yes",
       Anvil: "Yes",
       "Enterprise CCM suites": "Varies",
@@ -71,7 +71,7 @@ const rows: Row[] = [
       necodoc: "Queued batches; workers scale out",
       GhostDraft: "Interactive, batch and on-demand",
       DocSpring: "Async and batch APIs",
-      Anvil: "Async and batch APIs",
+      Anvil: "One PDF per API call",
       "Enterprise CCM suites": "Core strength",
     },
   },
@@ -80,8 +80,8 @@ const rows: Row[] = [
     cells: {
       necodoc: "MIT; no licence fee",
       GhostDraft: "Annual subscription, unlimited users and templates",
-      DocSpring: "Per document",
-      Anvil: "Per document",
+      DocSpring: "Monthly plan with a PDF allowance, then a fee per PDF",
+      Anvil: "Monthly plan or pay as you go, per PDF and per e-signature packet",
       "Enterprise CCM suites": "Commercial enterprise licence",
     },
   },
@@ -99,9 +99,9 @@ const rows: Row[] = [
     label: "E-signature",
     cells: {
       necodoc: "E-signature ready: packages for DocuSign, Dropbox Sign, Adobe Acrobat Sign",
-      GhostDraft: "Integrations",
-      DocSpring: "Own e-signature",
-      Anvil: "Own e-signature",
+      GhostDraft: "E-signature support",
+      DocSpring: "Own e-signature (Data Requests)",
+      Anvil: "Own e-signature (Etch)",
       "Enterprise CCM suites": "Integrations",
     },
   },
@@ -109,7 +109,7 @@ const rows: Row[] = [
     label: "Channels",
     cells: {
       necodoc: "PDF only",
-      GhostDraft: "Documents and communications",
+      GhostDraft: "Print, email, portals and other channels",
       DocSpring: "PDF",
       Anvil: "PDF",
       "Enterprise CCM suites": "Print, email, SMS, web",
@@ -119,18 +119,31 @@ const rows: Row[] = [
 
 const sources = [
   { label: "GhostDraft: why GhostDraft", href: "https://www.ghostdraft.com/why-ghostdraft" },
-  { label: "GhostDraft: benefits", href: "https://ghostdraft.com/ghostdraft-benefits" },
+  { label: "GhostDraft 360", href: "https://www.ghostdraft.com/products/ghostdraft-360" },
+  {
+    label: "GhostDraft: bureau content",
+    href: "https://www.ghostdraft.com/products/bureau-content",
+  },
+  { label: "GhostDraft: Originate (Word)", href: "https://www.ghostdraft.com/products/originate" },
   { label: "GhostDraft: SOC 2", href: "https://www.ghostdraft.com/soc-2-compliance" },
   { label: "DocSpring: pricing", href: "https://docspring.com/pricing/" },
-  { label: "Anvil: pricing", href: "https://www.useanvil.com/pricing" },
-  { label: "Smart Communications: trust", href: "https://www.smartcommunications.com/trust/" },
+  { label: "DocSpring: security", href: "https://docspring.com/security" },
+  { label: "DocSpring: FAQ (e-signature)", href: "https://docspring.com/faq" },
   {
-    label: "Quadient on Insurance-Canada",
-    href: "https://insurance-canada.ca/insurtech-spotlight/quadient/",
+    label: "DocSpring: batch API",
+    href: "https://docspring.com/docs/api-guide/generate-pdfs/batch-generate-pdfs/",
+  },
+  { label: "Anvil: pricing", href: "https://www.useanvil.com/pricing" },
+  { label: "Anvil: API", href: "https://www.useanvil.com/docs/api/getting-started/" },
+  { label: "Anvil: security", href: "https://www.useanvil.com/features/security-and-compliance/" },
+  { label: "Anvil: Etch e-signature", href: "https://www.useanvil.com/products/etch/" },
+  {
+    label: "Smart Communications: security and trust",
+    href: "https://www.smartcommunications.com/security-and-trust/",
   },
   {
-    label: "OpenText Exstream for insurance",
-    href: "https://www.opentext.com/assets/documents/en-US/pdf/opentext-ao-exstream-for-insurance-en.pdf",
+    label: "Quadient Inspire: what's new",
+    href: "https://www.quadient.com/en-int/inspire-whats-new",
   },
   {
     label: "Messagepoint for insurance",
@@ -195,14 +208,14 @@ const sources = [
       </SectionHead>
       <Stops
         items={[
-          { icon: "seal", title: "Vendor attestations.", body: "GhostDraft, DocSpring and Anvil publish SOC 2 Type II reports; the CCM suites list SOC 2, ISO 27001 and more. necodoc has no hosted service to attest. It runs inside your controls." },
+          { icon: "seal", title: "Vendor attestations.", body: "GhostDraft, DocSpring and Anvil state that they have SOC 2 Type II reports. The CCM suites list SOC 2, ISO 27001 and more. necodoc has no hosted service to attest. It runs inside your controls." },
           { icon: "users-three", title: "Named customers and analyst coverage.", body: "GhostDraft cites insurer customers and analyst placements, and the CCM suites cite analyst rankings. necodoc has neither, so this site uses labelled worked examples." },
           { icon: "plugs", title: "Packaged core-system integrations.", body: "GhostDraft and the CCM suites ship integrations for policy admin systems. necodoc integrates over its REST API, and you write the call." },
           { icon: "books", title: "Bureau form content.", body: "GhostDraft offers ISO and AAIS forms. necodoc has no form library. You upload or design your own forms." },
-          { icon: "cloud", title: "Managed SaaS.", body: "The others run the service for you. necodoc is self-hosted only, so you run it, patch it and back it up." },
-          { icon: "lifebuoy", title: "Support.", body: "Each of them sells support. necodoc support is coming soon." },
-          { icon: "file-doc", title: "Word authoring and other channels.", body: "GhostDraft authors in Word; CCM suites send print, email, SMS and web. necodoc produces PDF only, and has no Word authoring." },
-          { icon: "signature", title: "Built-in e-signature.", body: "DocSpring and Anvil run signing themselves. necodoc prepares the package for your provider." },
+          { icon: "cloud", title: "Managed SaaS.", body: "The others offer a managed service. necodoc is self-hosted only, so you run it, patch it and back it up." },
+          { icon: "lifebuoy", title: "Support.", body: "Each of them offers support as a vendor. necodoc support is coming soon." },
+          { icon: "file-doc", title: "Word authoring and other channels.", body: "GhostDraft authors in Word. GhostDraft and the CCM suites send documents to print, email and other channels. necodoc produces PDF only, and has no Word authoring." },
+          { icon: "signature", title: "Built-in e-signature.", body: "DocSpring and Anvil have their own e-signature products. necodoc prepares the package for your provider." },
         ]}
       />
     </div>
@@ -218,7 +231,7 @@ const sources = [
           <tr><td>Your own obligee and regulator PDFs filled as-is</td><td>necodoc, DocSpring, Anvil</td><td>All three place fields on an existing PDF. <a href={spec("features/pdf-overlay-templates")}>Overlay spec</a></td></tr>
           <tr><td>EN and fr-CA from one template</td><td>necodoc</td><td>Translations live in the template and are reviewed with it. <a href={spec("features/document-localization")}>Localization</a></td></tr>
           <tr><td>Word authoring and bureau content</td><td>GhostDraft</td><td>Its authoring is Word, and it offers ISO and AAIS forms.</td></tr>
-          <tr><td>Print, email and SMS from one design</td><td>An enterprise CCM suite</td><td>necodoc is PDF only.</td></tr>
+          <tr><td>Print, email and other channels from one design</td><td>GhostDraft or an enterprise CCM suite</td><td>necodoc is PDF only.</td></tr>
           <tr><td>A hosted service with a vendor SOC 2 report</td><td>GhostDraft, DocSpring, Anvil</td><td>necodoc has no hosted service.</td></tr>
         </tbody>
       </table>
@@ -256,6 +269,7 @@ const sources = [
   @media (max-width: 640px) {
     .cmp { min-width: 0; }
     .cmp td.us { padding-left: 0; background: none; }
+    .cmp td.us + td { padding-left: 0; }
     .cmp td[data-col]::before { content: attr(data-col) ": "; font-weight: 600; color: var(--ink); }
   }
 </style>

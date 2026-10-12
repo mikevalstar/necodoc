@@ -21,7 +21,7 @@ import Mark from "./Mark.astro";
       {
         footerNav.map((group) => (
           <div>
-            <h4>{group.title}</h4>
+            <h2 class="col">{group.title}</h2>
             <ul>
               {group.items.map((item) => (
                 <li>
@@ -45,7 +45,7 @@ import Mark from "./Mark.astro";
 <style>
   footer { background: var(--night-deep); color: var(--night-fg-2); padding: 72px 0 40px; font-size: 14.5px; border-top: 1px solid var(--night-hair); }
   .cols { display: grid; grid-template-columns: 1.6fr repeat(3, 1fr); gap: 40px; }
-  h4 { font: 500 12px var(--mono); text-transform: uppercase; letter-spacing: .08em; color: #8f9bd6; margin: 0 0 14px; }
+  .col { font: 500 12px var(--mono); text-transform: uppercase; letter-spacing: .08em; color: #8f9bd6; margin: 0 0 14px; }
   ul { list-style: none; padding: 0; margin: 0; display: grid; gap: 9px; }
   a { text-decoration: none; color: var(--night-fg); }
   a:hover { text-decoration: underline; }

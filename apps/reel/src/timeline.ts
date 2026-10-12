@@ -48,7 +48,7 @@ export const scenes: Scene[] = [
     burnIn: true,
     captions: [
       { at: 0, text: "Start from the bond form exactly as the obligee publishes it." },
-      { at: 95, text: "AI proposes a box for every blank, with a name and a type." },
+      { at: 95, text: "AI proposes a box for each blank it finds, with a name and a type." },
       { at: 205, text: "An editor confirms each box in the overlay editor, with a live preview." },
     ],
   },

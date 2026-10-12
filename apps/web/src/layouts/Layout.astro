@@ -5,6 +5,8 @@ import Header from "../components/Header.astro";
 
 type Props = { title: string; description: string; page?: string };
 const { title, description, page } = Astro.props;
+const url = new URL(Astro.url.pathname, Astro.site).href;
+const image = new URL("/og.png", Astro.site).href;
 ---
 
 <html lang="en-CA">
@@ -18,6 +20,17 @@ const { title, description, page } = Astro.props;
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
     <link rel="manifest" href="/site.webmanifest" />
     <title>{title}</title>
+    <link rel="canonical" href={url} />
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="necodoc" />
+    <meta property="og:title" content={title} />
+    <meta property="og:description" content={description} />
+    <meta property="og:url" content={url} />
+    <meta property="og:image" content={image} />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="necodoc: self-hosted document generation for P&C and surety carriers" />
+    <meta name="twitter:card" content="summary_large_image" />
     <!-- GoatCounter: cookieless page counts. is:inline keeps Astro from bundling it. -->
     <script is:inline data-goatcounter="https://necodocs.goatcounter.com/count" async src="https://gc.zgo.at/count.js"></script>
   </head>

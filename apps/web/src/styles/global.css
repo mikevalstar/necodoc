@@ -98,6 +98,14 @@ a {
 .skip:focus {
   top: 12px;
 }
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
 
 /* Phosphor icons from Icon.astro: inline, text-sized unless a component sizes them. */
 .icon {

@@ -98,8 +98,8 @@ const tone = { brand: "#2f6bff", ink: "#3f4668", warn: "#b07a12" } as const;
       { href: "#limits", label: "Known limits" },
     ]}
   >
-    necodoc is one container image. It runs as a stateless API or as a render worker. All durable state is in a
-    Postgres database and a bucket that you operate.
+    The API and the render workers run from one container image, and <code>ROLE</code> picks which. A static image serves
+    the web app. All durable state is in a Postgres database and a bucket that you operate.
   </PageHero>
 
   <section id="reference" class="tight">
@@ -122,7 +122,7 @@ const tone = { brand: "#2f6bff", ink: "#3f4668", warn: "#b07a12" } as const;
       <table class="spec">
         <thead><tr><th>Component</th><th>Does</th><th>Scales by</th><th>State</th></tr></thead>
         <tbody>
-          <tr><td>API<br /><span class="k">ROLE=api</span></td><td>Serves <code>/api/v1</code> and the web app; authenticates keys and sessions; validates data against the template's fields; enqueues renders; issues signed download links.</td><td>Replicas behind your load balancer</td><td>None</td></tr>
+          <tr><td>API<br /><span class="k">ROLE=api</span></td><td>Serves <code>/api/v1</code> and the web app's API; renders live previews; authenticates keys and sessions; validates data against the template's fields; enqueues renders; issues signed download links.</td><td>Replicas behind your load balancer</td><td>None</td></tr>
           <tr><td>Render worker<br /><span class="k">ROLE=worker</span></td><td>Claims render jobs, runs headless Chromium for designed and HTML documents, stamps overlays with pdf-lib, applies PDF/A, PDF/UA and certification, writes the PDF.</td><td>Replicas; <span class="k">RENDER_CONCURRENCY</span> slots each; KEDA on queue depth</td><td>None. If a worker stops, another worker retries its job.</td></tr>
           <tr><td>Postgres</td><td>Templates and immutable versions, users and keys, generation log, append-only audit log, and the job queue (pg-boss).</td><td>Your database tier. This is the throughput ceiling.</td><td>All durable records</td></tr>
           <tr><td>Object storage</td><td>Generated PDFs. Templates, themes and uploaded assets stay in Postgres. Any S3-compatible bucket (AWS S3, MinIO, Wasabi, Cloudflare R2), Azure Blob, or a shared disk.</td><td>Your storage service</td><td>PDF bytes</td></tr>

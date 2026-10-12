@@ -109,7 +109,8 @@ const environment: [string, string][] = e
     <div class="wrap">
       <SectionHead eyebrow="Throughput" title="Batch documents per minute, by worker count.">
         Each run is one JSON batch, timed from creation to its last row, so the time includes the queue. All workers run
-        on one machine. Above its core count, more workers don't add throughput.
+        on one machine, so from two workers up they compete for its CPU and the curve levels off. More cores or more
+        machines add throughput.
       </SectionHead>
       {
         throughput.length > 0 ? (
@@ -121,7 +122,7 @@ const environment: [string, string][] = e
                 label: `${t.workers} worker${t.workers > 1 ? "s" : ""}`,
                 value: t.docsPerMinute,
                 text: n(Math.round(t.docsPerMinute)),
-                tip: `${t.workers} workers × ${t.concurrency} slots: ${n(Math.round(t.docsPerMinute))} docs/min, ${n(t.rows)} rows, ${t.failed} failed`,
+                tip: `${t.workers} worker${t.workers > 1 ? "s" : ""} × ${t.concurrency} slots: ${n(Math.round(t.docsPerMinute))} docs/min, ${n(t.rows)} rows, ${t.failed} failed`,
               }))}
             />
             <table class="spec">
@@ -164,7 +165,7 @@ const environment: [string, string][] = e
       <Pillar eyebrow="In production" title="Your own numbers, on every render.">
         <p>
           In production, the generation log records the queue wait, run time and a per-step breakdown for every PDF. Admin ›
-          System shows p50, p95 and p99 for any time window.
+          System shows p50, p95 and p99 over a window you select.
         </p>
         <Proof links={[{ label: "Generation log", href: spec("features/generation-log") }]} />
         <Screenshot slot="media" src={generations} alt="Generation log with a render-time histogram and p50, p95 and p99" />
@@ -185,7 +186,7 @@ const environment: [string, string][] = e
             { icon: "laptop", title: "The numbers are for this machine.", body: "A laptop shares its CPU and throttles under sustained load. A server can be faster or slower." },
             { icon: "plug", title: "Everything is local.", body: "Postgres on the same machine with default settings, local disk storage, calls over loopback. No network, S3 or Azure round trips, TLS or proxy." },
             { icon: "files", title: "The test documents are ours.", body: "Render time grows with pages, images, fonts and table size. The test set is typical insurance documents. It isn't a worst case." },
-            { icon: "queue", title: "Throughput includes the queue.", body: "Each worker slot waits up to 0.5 s between jobs. That gap and <code>RENDER_CONCURRENCY</code> limit per-worker throughput more than render time does." },
+            { icon: "queue", title: "Throughput includes the queue.", body: "Each run is timed from the batch's creation to its last row, so it includes the time a job waits for a worker slot. <code>RENDER_CONCURRENCY</code> sets the slots per worker." },
             { icon: "snowflake", title: "Cold start means a new process.", body: "It measures a new worker launching Chromium for its first job. It doesn't measure a container or node cold start." },
             { icon: "arrow-right", title: "Latency is sequential.", body: "One request at a time. It says nothing about latency under concurrent load." },
           ]}
@@ -215,7 +216,7 @@ const environment: [string, string][] = e
       <pre class="code"><span class="c"># once: the Chromium build the API pins</span>
 pnpm --filter @necodoc/api chromium:install
 
-<span class="c"># the full run (about fifteen minutes on a laptop)</span>
+<span class="c"># the full run (under fifteen minutes on a laptop)</span>
 pnpm bench
 
 <span class="c"># samples, batch rows, worker counts, concurrency</span>

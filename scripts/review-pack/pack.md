@@ -67,7 +67,7 @@ Only Postgres and object storage hold state. Every necodoc process can be killed
 
 | Component | Does | Scales by | State |
 | --- | --- | --- | --- |
-| API (`ROLE=api`) | Serves `/api/v1` and the web app; authenticates keys and sessions; validates data against the template's fields; queues renders; issues signed download links | Replicas behind your load balancer | None |
+| API (`ROLE=api`) | Serves `/api/v1` and the web app's API; renders live previews; authenticates keys and sessions; validates data against the template's fields; queues renders; issues signed download links | Replicas behind your load balancer | None |
 | Render worker (`ROLE=worker`) | Claims render jobs; runs Chromium for designed and HTML documents; stamps overlays; applies PDF/A, PDF/UA and certification; writes the PDF | Replicas, each with `RENDER_CONCURRENCY` slots; KEDA on queue depth | None; a job on a lost worker retries |
 | Postgres | Users, templates and versions, themes, assets and uploaded PDFs, the generation log, the audit log, settings and the job queue (pg-boss) | Your database tier; this is the throughput ceiling | All durable records |
 | Object storage | Generated PDFs: an S3-compatible bucket, an Azure Blob container, or a shared disk | Your storage service | PDF bytes |
@@ -157,7 +157,7 @@ per-field errors: 401 bad key, 403 scope or IP, 422 invalid data, 429 rate limit
 
 - A key belongs to a person or to a service account. Service accounts can never sign in.
 - Each key has scopes no wider than its owner's roles, an optional template allowlist, an
-  optional IP allowlist, an expiry date and a rate limit, and shows its usage. To change a key,
+  optional IP allowlist, an optional expiry date and a rate limit, and shows its usage. To change a key,
   revoke or rotate it. Keys can't be edited.
 
 <p class="limit"><b>Limit</b> No SAML single logout, no IdP-initiated sign-in, no signed AuthnRequests or encrypted assertions. Providers are configured by environment variables and a restart. The IP allowlist sees the reverse proxy's address unless <code>TRUST_PROXY</code> is set.</p>
@@ -231,7 +231,7 @@ each requirement, and what remains the carrier's work.
 | --- | --- | --- |
 | OSFI B-10, third-party risk | Self-hosted MIT software: audit and access rights are yours, and the exit plan is your own Postgres and storage | Your third-party assessment and exit testing |
 | OSFI B-13, technology and cyber risk | Runs inside your controls: your IdP, network, keys, logging and patch cycle | Operating and patching it |
-| Bill 96, French first in Québec | English and fr-CA documents from one template, so the copies can't drift | Translation quality and legal review |
+| Bill 96, French first in Québec | English and fr-CA documents from one template, with the same fields and layout; translations are reviewed with each version | Translation quality and legal review; an untranslated string prints in the source language |
 | Law 25 and PIPEDA, privacy | You choose the region; sensitive-field masking; erasure per data subject with a report | Privacy assessments, retention policy |
 | AODA, accessible formats | Tagged PDF/UA-1 output from designed and HTML documents | Accessible content and alt text in templates |
 | Records retention | PDF/A-2b or 2u output; retention settings for outputs and inputs | Your retention schedule |

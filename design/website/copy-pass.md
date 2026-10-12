@@ -94,3 +94,58 @@ them" closer cut.
 - The demo line ("A shared public demo. It resets every night at midnight Eastern.") is fixed by
   the spec.
 - Headlines that already name concrete things ("Bonds on the obligee's own form.").
+
+# W7 review (NECO-cpnsebim)
+
+A launch review of claims, competitor rows, links and accessibility, with fresh eyes. Copy that
+already met the W6b rules stayed as it was.
+
+## Claim fixes
+
+| Page | Before | After | Backed by |
+|---|---|---|---|
+| Home Q&A, Security controls, review pack | "scoped, expiring, IP-restricted keys" / "an expiry date" | "scoped keys, with optional expiry and IP allowlists" / "an optional … expiry date" | [HTML to PDF API](../../docs/features/html-to-pdf-api.md): expiry and allowlist are optional |
+| Home pillar 03, Security (Bill 96), review pack | "from one template, so the two copies can't drift" | "with one set of fields and one layout"; Security and Insurance add "An untranslated string prints in the source language." | [Document localization](../../docs/features/document-localization.md): untranslated strings fall back to the source text |
+| Insurance (forms team, claims letters), Home card | "A reviewer approves each change" / "the wording an adjuster sends is the wording legal approved" | "With the review gate on, a reviewer approves…" / "Claims letters from one reviewed template." / "so one reviewed template covers each case" | [Review and approval](../../docs/features/review-and-approval.md): the gate is an admin setting |
+| Architecture hero and components, review pack | "necodoc is one container image" / API "Serves /api/v1 and the web app" | "The API and the render workers run from one container image… A static image serves the web app." / "the web app's API; renders live previews" | [Self-hosting](../../docs/features/self-hosting.md) (app is its own Deployment), [roles and scaling](../../apps/devdocs/src/content/docs/self-hosting/roles-and-scaling.md) (previews on API nodes) |
+| Performance, throughput | "Above its core count, more workers don't add throughput." | "…from two workers up they compete for its CPU and the curve levels off. More cores or more machines add throughput." | [Performance benchmark](../../docs/features/performance-benchmark.md) findings; the run never went above the core count |
+| Performance, caveats | "Each worker slot waits up to 0.5 s between jobs…" | "Each run is timed from the batch's creation to its last row, so it includes the time a job waits for a worker slot." | The 0.5 s wait was fixed (benchmark spec, "The fetch loop capped batches (fixed)") |
+| Performance, rerun | "about fifteen minutes on a laptop" | "under fifteen minutes on a laptop" | Benchmark spec acceptance; the published run took about five minutes |
+| Performance, in production | "p50, p95 and p99 for any time window" | "over a window you select" | [Render queue](../../docs/features/render-queue-batch-jobs-and-scaling.md): selectable windows |
+| Reel caption ([timeline.ts](../../apps/reel/src/timeline.ts)), re-rendered | "AI proposes a box for every blank" | "AI proposes a box for each blank it finds" | [PDF overlay templates](../../docs/features/pdf-overlay-templates.md): recall 0.97, suggestions only |
+| Home reel chapter fallback | "Read the audit trail" | "Read the audit log" | W6b one-term rule |
+
+## Compare page
+
+Rechecked on the vendors' sites on 2026-10-12. Each row now has a vendor page in the sources
+list. The OpenText PDF was removed because it names core systems (and refuses browsers);
+`ghostdraft-benefits` and Smart Communications `/trust/` redirect, so the targets are linked.
+
+| Row | Before | After | Source |
+|---|---|---|---|
+| Anvil, integration | REST API | REST and GraphQL APIs | useanvil.com/docs/api/getting-started |
+| Anvil, bulk | Async and batch APIs | One PDF per API call | No batch endpoint in Anvil's docs; its bulk guide loops one call per PDF |
+| DocSpring, licensing | Per document | Monthly plan with a PDF allowance, then a fee per PDF | docspring.com/pricing |
+| Anvil, licensing | Per document | Monthly plan or pay as you go, per PDF and per e-signature packet | useanvil.com/pricing |
+| GhostDraft, e-signature | Integrations | E-signature support | why-ghostdraft lists "E-Signature Support", no providers |
+| DocSpring / Anvil, e-signature | Own e-signature | Own e-signature (Data Requests) / (Etch) | docspring.com/faq, useanvil.com/products/etch |
+| GhostDraft, channels | Documents and communications | Print, email, portals and other channels | why-ghostdraft ("10+ digital channels") |
+| GhostDraft, fill existing PDFs | Not a stated focus | Not stated on its site | Absence only, so say only that |
+| Stronger: attestations | "publish SOC 2 Type II reports" | "state that they have SOC 2 Type II reports" | SOC 2 reports aren't public |
+| Stronger: support, SaaS | "Each of them sells support." / "The others run the service for you." | "offers support as a vendor" / "offer a managed service" | DocSpring offers on-premises on request |
+| Stronger: channels; Which fits | CCM suites only | GhostDraft and the CCM suites | as above |
+
+The [Marketing site](../../docs/features/marketing-site.md) competitor table carries the same rows.
+
+## Links, meta and accessibility
+
+- Docs links default to `https://docs.necodoc.com` ([links.ts](../../apps/web/src/lib/links.ts)), so
+  a build without `DOCS_URL` no longer ships `localhost` links.
+- Every page has a canonical URL, Open Graph and Twitter card tags, and `og.png` (1200×630, rendered
+  from the hero copy and the overlay screenshot) ([Layout.astro](../../apps/web/src/layouts/Layout.astro)).
+- Headings: footer column titles were `h4` under `h2` (now `h2`); the Insurance certificate
+  examples were `h4` (now `h3`); Product jumped from `h1` to `h3` (a visually hidden `h2`).
+- Compare at 390 px: the GhostDraft cell was indented. Throughput tooltip said "1 workers".
+- Checked: the hero rotor stays on the first audience under reduced motion; the reel poster has
+  empty alt (it's decorative, and the chapter list is the text alternative); every other image has
+  alt text; GoatCounter is on every page; no page overflows at 390 px.

@@ -37,7 +37,7 @@ import { links, spec } from "../lib/links";
     Six jobs a carrier's document team does. Each one shows how necodoc does it, where it stops, and an example.
     <div slot="after" class="who">
       <div><b>Surety and underwriting</b><p>Issue bonds and certificates without waiting on IT for a wording change.</p></div>
-      <div><b>Forms team</b><p>Owns templates, clauses and translations. A reviewer approves each change before it goes live.</p></div>
+      <div><b>Forms team</b><p>Owns templates, clauses and translations. With the review gate on, a reviewer approves each change before it goes live.</p></div>
       <div><b>Integration team</b><p>Codes against a versioned API. Its JSON Schema changes only when someone publishes a new version.</p></div>
       <div><b>Platform team</b><p>Runs two process roles on infrastructure it already operates.</p></div>
     </div>
@@ -110,11 +110,11 @@ import { links, spec } from "../lib/links";
       <article class="job" id="claims">
         <div>
           <p class="eyebrow"><span class="n">05</span>Claims letters</p>
-          <h2>The wording an adjuster sends is the wording legal approved.</h2>
+          <h2>Claims letters from one reviewed template.</h2>
           <p class="lead">Conditional sections and shared clauses mean one reviewed template covers the cases, instead of a folder of near-copies.</p>
           <dl>
             <dt>How</dt><dd>"Show only if" conditions on sections, repeating rows, snippets for shared clauses, themes for house style.</dd>
-            <dt>Control</dt><dd>A reviewer approves each clause change. Test cases and a visual diff run before publish.</dd>
+            <dt>Control</dt><dd>With the review gate on, a reviewer approves each clause change. Test cases and a visual diff run before publish.</dd>
             <dt>Limit</dt><dd>PDF only: no Word output, and no email or print channels.</dd>
           </dl>
           <Proof links={[{ label: "Snippet library", href: spec("features/snippet-library") }, { label: "Review and approval", href: spec("features/review-and-approval") }]} />
@@ -130,7 +130,7 @@ import { links, spec } from "../lib/links";
           <dl>
             <dt>How</dt><dd>The template holds a translation for each language, fr-CA included, and the request picks one. Dates, numbers and currency follow the locale.</dd>
             <dt>Accessible</dt><dd>PDF/UA-1 output carries the document language for screen readers.</dd>
-            <dt>Yours</dt><dd>Translation quality and legal review stay with your forms team.</dd>
+            <dt>Yours</dt><dd>Translation quality and legal review stay with your forms team. A string without a translation prints in the source language.</dd>
           </dl>
           <Proof links={[{ label: "Document localization", href: spec("features/document-localization") }]} />
         </div>
@@ -139,7 +139,7 @@ import { links, spec } from "../lib/links";
           <div class="pair">
             <div class="paper" lang="fr-CA">
               <span class="tag">fr-CA</span>
-              <h4>CERTIFICAT D'ASSURANCE</h4><p class="sub">N° de police <span class="f">CP-2026-118204</span></p>
+              <h3>CERTIFICAT D'ASSURANCE</h3><p class="sub">N° de police <span class="f">CP-2026-118204</span></p>
               <table><tbody>
                 <tr><td>Assuré désigné</td><td><span class="f">Boulangerie Saint-Roch inc.</span></td></tr>
                 <tr><td>Période d'assurance</td><td>Du <span class="f">1<sup>er</sup> déc. 2026</span> au <span class="f">1<sup>er</sup> déc. 2027</span></td></tr>
@@ -149,7 +149,7 @@ import { links, spec } from "../lib/links";
             </div>
             <div class="paper" lang="en-CA">
               <span class="tag">en-CA</span>
-              <h4>CERTIFICATE OF INSURANCE</h4><p class="sub">Policy no. <span class="f">CP-2026-118204</span></p>
+              <h3>CERTIFICATE OF INSURANCE</h3><p class="sub">Policy no. <span class="f">CP-2026-118204</span></p>
               <table><tbody>
                 <tr><td>Named insured</td><td><span class="f">Boulangerie Saint-Roch inc.</span></td></tr>
                 <tr><td>Policy period</td><td><span class="f">Dec 1, 2026</span> to <span class="f">Dec 1, 2027</span></td></tr>
@@ -195,7 +195,7 @@ import { links, spec } from "../lib/links";
   .pair { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; margin-top: 8px; }
   .paper { position: relative; background: #fff; border-radius: 6px; box-shadow: var(--shadow-lg); padding: 30px 28px; font: 12.5px/1.55 Georgia, "Times New Roman", serif; color: #1a1a1a; outline: 1px solid rgba(12,18,51,.06); }
   .paper .tag { position: absolute; top: -11px; left: 14px; font: 600 11px var(--mono); background: var(--night); color: #fff; padding: 3px 8px; border-radius: 6px; }
-  .paper h4 { font: 700 15px Georgia, serif; text-align: center; margin: 0 0 4px; letter-spacing: .02em; }
+  .paper h3 { font: 700 15px Georgia, serif; text-align: center; margin: 0 0 4px; letter-spacing: .02em; }
   .paper .sub { text-align: center; font-size: 11px; color: #555; margin-bottom: 14px; }
   .paper table { width: 100%; border-collapse: collapse; font-size: 11.5px; }
   .paper td { border: 1px solid #c8c8c8; padding: 5px 7px; vertical-align: top; }
