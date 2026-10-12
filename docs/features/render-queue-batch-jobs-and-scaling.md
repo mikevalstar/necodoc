@@ -54,8 +54,8 @@ A month-end run of 10,000 statements must not time out or slow down someone fill
 - [x] An interactive render submitted during a running batch starts before the remaining batch rows.
 - [x] Every generation shows its timing breakdown; the log sorts by total and by queue wait.
 - [x] Admin > System shows workers, queue depth and p50/p95 render times.
-- [ ] Pausing `render` with a small batch running lets the running rows finish and starts no more until it's resumed, on every worker and across a restart.
-- [ ] Retrying a failed render job reuses its generation entry (no new entry) and shows the extra attempt.
+- [x] Pausing `render` with a small batch running lets the running rows finish and starts no more until it's resumed, on every worker and across a restart. (A 20-row batch on two workers: the 4 running rows finished, 12 waited; a worker started while paused consumed everything but `render`.)
+- [x] Retrying a failed render job reuses its generation entry (no new entry) and shows the extra attempt.
 - [ ] Admin > System shows the configuration with no secret in the response, and warns about a certificate expiring within 30 days.
 
 ## Known limitations

@@ -22,7 +22,7 @@ import {
 } from "@phosphor-icons/react";
 import { useQuery } from "@tanstack/react-query";
 import { useRouter } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { setStatusBar, useStatusBar } from "@/components/ops-status-bar";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { api, ok } from "@/lib/api";
@@ -117,6 +117,7 @@ export function CommandPalette({
   const [query, setQuery] = useState("");
   const [recent, setRecent] = useState(readRecent);
   const router = useRouter();
+  const input = useRef<HTMLInputElement>(null);
   const groups = usePaletteGroups(me, open, query, recent);
 
   const pick = (entry: Entry) => {
@@ -148,6 +149,8 @@ export function CommandPalette({
     >
       <DialogContent
         showCloseButton={false}
+        // Always the search box: with nothing to return focus to, the default can land on <body>.
+        initialFocus={input}
         aria-label="Command palette"
         className="top-[12svh] flex max-h-[min(36rem,80svh)] translate-y-0 flex-col gap-0 overflow-hidden p-0 sm:max-w-xl data-open:slide-in-from-top-2"
       >
@@ -166,6 +169,7 @@ export function CommandPalette({
           <div className="flex items-center gap-2.5 border-b border-hair px-4">
             <MagnifyingGlassIcon aria-hidden="true" className="size-[18px] shrink-0 text-ink-3" />
             <Autocomplete.Input
+              ref={input}
               aria-label="Search pages, records and actions"
               placeholder="Search or jump to…"
               // The ring drawn inside: the popup clips anything outside it.

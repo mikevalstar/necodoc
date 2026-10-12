@@ -8,7 +8,7 @@ import { formatMs } from "./-generation-actions";
 
 // Spec: docs/features/generation-log.md (Render-time histogram). End-to-end times of the filtered
 // entries in log-ish buckets. Each bar is a button: pick one, drag across several, or Shift-pick
-// to extend, and the table filters to that range. Buckets at or past p95 are tinted as slow.
+// to extend, and the table filters to that range. Buckets wholly past p95 are tinted as slow.
 
 export type TimeRange = { slowerThan?: number; fasterThan?: number };
 type Bucket = Histogram["buckets"][number];
@@ -76,10 +76,8 @@ export function RenderTimeHistogram({
 
   const max = Math.max(1, ...data.buckets.map((b) => b.count));
   const p95 = data.p95Ms;
-  const slowFrom =
-    p95 === null
-      ? data.buckets.length
-      : data.buckets.findIndex((b) => b.maxMs === null || p95 < b.maxMs);
+  /** Buckets wholly past p95 read as slow. */
+  const slow = (bucket: Bucket) => p95 !== null && bucket.minMs > p95;
   const preview = drag ? rangeOf(data.buckets, drag.from, drag.to) : null;
   const shownRange = preview ?? range;
   const showsRange = preview !== null || hasRange;
@@ -161,7 +159,7 @@ export function RenderTimeHistogram({
                 <span
                   className={cn(
                     "block w-full rounded-t-[3px] transition-opacity group-hover:opacity-100",
-                    i >= slowFrom ? "bg-sun" : "bg-brand",
+                    slow(bucket) ? "bg-sun" : "bg-brand",
                     showsRange && !selected && "opacity-35",
                     bucket.count === 0 && "bg-hair",
                   )}
