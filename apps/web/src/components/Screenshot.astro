@@ -36,7 +36,7 @@ const imgStyle = crop
       src={src}
       alt={alt}
       widths={[720, 1440, 2160, 2880]}
-      sizes={crop ? `${Math.round(((crop.zoom ?? 100) / 100) * 700)}px` : "(max-width: 1100px) 100vw, 1200px"}
+      sizes={`(max-width: 1100px) ${crop?.zoom ?? 100}vw, ${Math.round(((crop?.zoom ?? 100) / 100) * 1200)}px`}
       loading={loading}
       style={imgStyle}
     />
@@ -47,7 +47,7 @@ const imgStyle = crop
   .shot { margin: 0; }
   .frame { border-radius: 14px; overflow: hidden; box-shadow: var(--shadow-lg); background: var(--paper); outline: 1px solid rgba(12,18,51,.06); }
   .frame :global(img) { display: block; width: 100%; height: auto; }
-  .tray { position: relative; background: var(--brand); border-radius: 18px 18px 0 0; padding: 14px 14px 0; box-shadow: 0 -30px 80px -40px rgba(47,107,255,.7); }
+  .tray { position: relative; background: var(--brand); border-radius: 0; padding: 14px 14px 0; box-shadow: 0 -30px 80px -40px rgba(47,107,255,.7); }
   .tray::before, .tray::after { content: ""; position: absolute; top: -21px; width: 84px; height: 22px; background: var(--brand); }
   .tray::before { left: 0; clip-path: polygon(0 100%, 0 0, 100% 100%); }
   .tray::after { right: 0; clip-path: polygon(0 100%, 100% 0, 100% 100%); }
