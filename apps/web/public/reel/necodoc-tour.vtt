@@ -38,15 +38,15 @@ Your policy system can also post HTML and data to the API and get the PDF back.
 
 10
 00:00:28.500 --> 00:00:31.500
-Measured median: 109 ms for a 3-page invoice with a header and footer.
+Measured median: 30 ms for a 3-page invoice with a header and footer.
 
 11
 00:00:31.500 --> 00:00:35.167
-Month-end renewals: one batch of 1,000 rows.
+Month-end renewals: one batch of 5,000 rows.
 
 12
 00:00:35.167 --> 00:00:39.500
-More workers, more throughput: 1,230 documents a minute on 8 workers, 944 on one. No licence fee per worker.
+More workers, more throughput: 8,786 documents a minute on 4 workers, 5,950 on one. No licence fee per worker.
 
 13
 00:00:39.500 --> 00:00:42.833
