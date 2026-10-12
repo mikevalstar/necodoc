@@ -22,18 +22,24 @@ const apiDir = join(root, "apps/api");
  */
 const MAX_CONNECTIONS = 400;
 
-/** A port the OS says is free right now (and never the dev server's). */
+/** Ports already handed out: the OS can offer a just-closed port again, e.g. to workers starting together. */
+const handedOut = new Set<number>();
+
+/** A port the OS says is free right now, not handed out before (and never the dev server's). */
 export async function freePort(): Promise<number> {
   const port = await new Promise<number>((resolve, reject) => {
     const server = createServer();
     server.once("error", reject);
-    server.listen(0, "127.0.0.1", () => {
+    // Every interface, as the API and workers listen.
+    server.listen(0, () => {
       const address = server.address();
       const found = typeof address === "object" && address ? address.port : 0;
       server.close(() => resolve(found));
     });
   });
-  return port === 3000 ? freePort() : port;
+  if (port === 3000 || handedOut.has(port)) return freePort();
+  handedOut.add(port);
+  return port;
 }
 
 type Proc = { name: string; port: number; child: ChildProcess; exited: Promise<void> };

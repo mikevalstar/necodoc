@@ -39,7 +39,7 @@ const { values: flags } = parseArgs({
     samples: { type: "string", default: "100" },
     warmup: { type: "string", default: "10" },
     rows: { type: "string", default: "1000" },
-    workers: { type: "string", default: "1,2,4,8" },
+    workers: { type: "string", default: "1,2,4" },
     concurrency: { type: "string", default: "2" },
     cold: { type: "string", default: "5" },
     "skip-archival": { type: "boolean", default: false },
@@ -57,7 +57,7 @@ if (flags.help) {
   --samples N        measured requests per latency scenario (default 100)
   --warmup N         unmeasured requests before each scenario (default 10)
   --rows N           rows per throughput batch (default 1000)
-  --workers LIST     worker counts for throughput (default 1,2,4,8)
+  --workers LIST     worker counts for throughput (default 1,2,4)
   --concurrency N    RENDER_CONCURRENCY per worker (default 2)
   --cold N           cold worker starts to measure (default 5)
   --skip-archival    skip the PDF/A + PDF/UA scenario

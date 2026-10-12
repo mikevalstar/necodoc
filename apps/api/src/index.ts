@@ -28,9 +28,9 @@ await startTracing({
 });
 buildInfo.set({ version: env.APP_VERSION, role: env.ROLE }, 1);
 
-// Contexts this process may hold open: a render prints the body, then its bands side by side.
+// Contexts this process may hold open: one per render.
 renderLimits.maxConcurrent =
-  2 * ((runsWorker ? env.RENDER_CONCURRENCY : 0) + (servesApi ? env.PREVIEW_CONCURRENCY : 0));
+  (runsWorker ? env.RENDER_CONCURRENCY : 0) + (servesApi ? env.PREVIEW_CONCURRENCY : 0);
 
 if (servesApi) await seedBuiltinThemes();
 // docs/features/public-demo.md: the shared demo user exists before the first visitor.

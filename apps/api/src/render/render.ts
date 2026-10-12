@@ -8,7 +8,7 @@ import {
 } from "@necodoc/shared";
 import { withSpan } from "../observability/tracing";
 import { bandBody, bandCss, stampBand } from "./bands";
-import { type AssetLoader, printPdf } from "./browser";
+import { type AssetLoader, withPrinter } from "./browser";
 import { bundledFontFiles, htmlDocument, themeCss } from "./document";
 import { createLiquid, partialsFs } from "./liquid";
 import { pageLayout } from "./page";
@@ -43,8 +43,8 @@ async function timed<T>(timings: RenderTimings, key: keyof RenderTimings, fn: ()
 }
 
 /**
- * HTML + Liquid to PDF in at most three Chromium passes: the body, then one multi-page PDF per
- * band, stamped onto the body pages with pdf-lib (ADR 0012). Reports where the time went. With
+ * HTML + Liquid to PDF in at most three Chromium passes on one page: the body, then one
+ * multi-page PDF per band, stamped onto the body pages with pdf-lib (ADR 0012). Reports where the time went. With
  * signers or sign boxes, also returns the signing package (ADR 0033); dropping its anchors costs
  * one more body pass.
  */
@@ -75,65 +75,67 @@ export async function renderPdf(job: RenderJob, loadStoredAsset: AssetLoader) {
   const body = await timed(timings, "liquidMs", () =>
     liquid.parseAndRender(job.html, data, { globals: data }),
   );
-  const sign = markSignBoxes(body);
-  const tagged = job.output?.pdfua ?? false;
-  const printBody = (html: string) =>
-    timed(timings, "chromiumMs", () =>
-      printPdf(
-        htmlDocument({ body: html, css: [...css, signingCss], lang }),
-        { width: layout.width, height: layout.height, margins: layout.bodyMargins, tagged },
-        loadAsset,
+  return withPrinter(loadAsset, async (print) => {
+    const sign = markSignBoxes(body);
+    const tagged = job.output?.pdfua ?? false;
+    const printBody = (html: string) =>
+      timed(timings, "chromiumMs", () =>
+        print(htmlDocument({ body: html, css: [...css, signingCss], lang }), {
+          width: layout.width,
+          height: layout.height,
+          margins: layout.bodyMargins,
+          tagged,
+        }),
+      );
+    let bodyPdf = await printBody(sign.html);
+    let signing: SigningPackage | undefined;
+    if (sign.marks.length || job.signers?.length) {
+      const anchors = job.signing?.anchors ?? true;
+      const located = await timed(timings, "stampMs", () =>
+        locateSignBoxes(bodyPdf, sign.marks, anchors),
+      );
+      // Anchors are absolutely positioned, so the boxes stay where they were found.
+      if (!anchors && sign.marks.length) bodyPdf = await printBody(sign.plain);
+      signing = await signingPackage(job.signers ?? [], data, located, anchors, [
+        ...sign.warnings,
+        ...located.warnings,
+      ]);
+    }
+    const doc = await timed(timings, "stampMs", () => PDFDocument.load(bodyPdf));
+    const pages = doc.getPageCount();
+
+    // Bands take turns on the page; stamping mutates the body, so it runs in order.
+    const bands = (
+      [
+        { band: header, at: { edge: "top", offset: page.margins.top } },
+        { band: footer, at: { edge: "bottom", offset: page.margins.bottom } },
+      ] as const
+    ).flatMap(({ band, at }) => (band ? [{ band, at }] : []));
+    const printed = await timed(timings, "bandsMs", () =>
+      Promise.all(
+        bands.map(async ({ band, at }) => ({
+          at,
+          pdf: await print(
+            htmlDocument({
+              body: await bandBody(liquid, band, pages, data),
+              css: [...css, bandCss(band)],
+              lang,
+            }),
+            {
+              width: layout.width,
+              height: band.height,
+              margins: { top: 0, bottom: 0, left: page.margins.left, right: page.margins.right },
+            },
+          ),
+        })),
       ),
     );
-  let bodyPdf = await printBody(sign.html);
-  let signing: SigningPackage | undefined;
-  if (sign.marks.length || job.signers?.length) {
-    const anchors = job.signing?.anchors ?? true;
-    const located = await timed(timings, "stampMs", () =>
-      locateSignBoxes(bodyPdf, sign.marks, anchors),
-    );
-    // Anchors are absolutely positioned, so the boxes stay where they were found.
-    if (!anchors && sign.marks.length) bodyPdf = await printBody(sign.plain);
-    signing = await signingPackage(job.signers ?? [], data, located, anchors, [
-      ...sign.warnings,
-      ...located.warnings,
-    ]);
-  }
-  const doc = await timed(timings, "stampMs", () => PDFDocument.load(bodyPdf));
-  const pages = doc.getPageCount();
+    const pdf = await timed(timings, "stampMs", async () => {
+      if (!bands.length) return bodyPdf;
+      for (const { at, pdf } of printed) await stampBand(doc, pdf, at);
+      return new Uint8Array(await doc.save());
+    });
 
-  // Bands print in parallel; stamping mutates the body, so it runs in order.
-  const bands = (
-    [
-      { band: header, at: { edge: "top", offset: page.margins.top } },
-      { band: footer, at: { edge: "bottom", offset: page.margins.bottom } },
-    ] as const
-  ).flatMap(({ band, at }) => (band ? [{ band, at }] : []));
-  const printed = await timed(timings, "bandsMs", () =>
-    Promise.all(
-      bands.map(async ({ band, at }) => ({
-        at,
-        pdf: await printPdf(
-          htmlDocument({
-            body: await bandBody(liquid, band, pages, data),
-            css: [...css, bandCss(band)],
-            lang,
-          }),
-          {
-            width: layout.width,
-            height: band.height,
-            margins: { top: 0, bottom: 0, left: page.margins.left, right: page.margins.right },
-          },
-          loadAsset,
-        ),
-      })),
-    ),
-  );
-  const pdf = await timed(timings, "stampMs", async () => {
-    if (!bands.length) return bodyPdf;
-    for (const { at, pdf } of printed) await stampBand(doc, pdf, at);
-    return new Uint8Array(await doc.save());
+    return { pdf, pageCount: pages, timings, signing };
   });
-
-  return { pdf, pageCount: pages, timings, signing };
 }
