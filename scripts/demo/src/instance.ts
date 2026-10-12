@@ -29,8 +29,10 @@ function secret() {
   return readFileSync(path, "utf8").trim();
 }
 
-function outputs() {
+/** The private cluster's output directory, emptied with its database on a reset. */
+function outputs(reset: boolean) {
   const target = join(demoDir, "outputs");
+  if (reset) rmSync(target, { recursive: true, force: true });
   mkdirSync(target, { recursive: true });
   mkdirSync(dirname(OUTPUTS), { recursive: true });
   rmSync(OUTPUTS, { force: true });
@@ -87,7 +89,7 @@ export async function startDemo(options: { app: boolean; workers?: number; reset
       BETTER_AUTH_SECRET: secret(),
       ...(options.app ? { BETTER_AUTH_URL: appUrl } : {}),
       STORAGE_DRIVER: "disk",
-      STORAGE_DIR: databaseUrl ? join(demoDir, "outputs") : outputs(),
+      STORAGE_DIR: databaseUrl ? join(demoDir, "outputs") : outputs(options.reset ?? true),
       ...(databaseUrl ? passThrough() : {}),
       APP_VERSION: version,
       INSTANCE_NAME: "Harbour Surety",

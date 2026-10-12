@@ -33,13 +33,14 @@ pnpm --filter @necodoc/reel studio    # Remotion Studio, live preview with a tim
 - [src/bench.ts](src/bench.ts): every number on screen, read from
   [scripts/bench/results/latest.json](../../scripts/bench/results/latest.json).
   Never type a number into a scene.
-- [public/screens](public/screens): screenshots of the dev app in the light
-  theme, captured at 1600x900 CSS px (2x) with agent-browser and saved as
-  2400 px JPEGs. Use clean demo data (the Oregon bond templates, Harbour
-  Surety), not test templates. `bond-page.png` is page 1 of
+- [public/screens](public/screens): screenshots of the seeded demo instance,
+  1600x900 CSS px saved as 2400 px JPEGs, taken by `pnpm demo:screens` (the list is
+  [scripts/demo/src/shots.ts](../../scripts/demo/src/shots.ts); see
+  [Demo data and screenshots](../../docs/features/demo-data-and-screenshots.md)). Don't edit
+  them by hand. `bond-page.png` is page 1 of
   [the OR CCB bond fixture](../../fixtures/pdfs/surety-bonds/or-ccb-commercial-contractor-bond.pdf)
-  at 200 dpi; [bond-boxes.json](src/scenes/bond-boxes.json) is that
-  template's boxes from the dev app.
+  at 200 dpi; [bond-boxes.json](src/scenes/bond-boxes.json) is what AI detection proposed for
+  it.
 
 ## Render
 

@@ -52,6 +52,18 @@ export const people = {
 
 export type PersonKey = keyof typeof people;
 
+/**
+ * The demo's own sign-in on necodoc.com (W11's public demo decides what a visitor gets; this is
+ * the account it starts from). Not one of the story's people.
+ */
+export const demoLogin = {
+  name: "Demo User",
+  email: "demo@necodoc.com",
+  roles: ["admin"] as Role[],
+  ip: "10.20.1.40",
+  userAgent: chromeMac,
+};
+
 /** Signs up on their own and waits for an admin to give them a role. */
 export const pendingPerson = person("Noah Fischer", [], "10.20.6.88", chromeMac);
 

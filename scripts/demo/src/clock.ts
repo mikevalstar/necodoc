@@ -17,7 +17,8 @@ const SKIP_COLUMNS = new Set(["apikey.expires_at", "apikey.last_refill_at", "api
 const JSON_TIMES = ["createdAt", "updatedAt", "publishedAt", "submittedAt", "decidedAt"];
 
 export class Clock {
-  #columns: Map<string, string[]> | undefined;
+  /** Per table, its timestamp columns, and SQL that reads each as timestamptz. */
+  #columns: Map<string, { name: string; tz: string }[]> | undefined;
 
   /** `now` is the story's present: when the seed started. */
   constructor(
@@ -44,7 +45,13 @@ export class Clock {
           hourCycle: "h23",
         }).format(guess),
       );
-      if (hour === h) return guess;
+      // People don't act on the minute: a few seconds in, the same every run.
+      if (hour === h)
+        return new Date(
+          guess.getTime() +
+            ((daysAgo * 37 + h * 13 + m * 7) % 60) * 1000 +
+            ((daysAgo * 101 + m * 17) % 1000),
+        );
     }
     throw new Error(`No ${hhmm} on ${calendar} in ${TIME_ZONE}`);
   }
@@ -73,7 +80,7 @@ export class Clock {
     const columns = await this.#timestampColumns();
     const selects = [...columns].flatMap(([table, cols]) =>
       cols.map(
-        (c) => `select '${table}.${c}' as k, "${c}" as v from "${table}" where "${c}" >= $1`,
+        (c) => `select '${table}.${c.name}' as k, ${c.tz} as v from "${table}" where ${c.tz} >= $1`,
       ),
     );
     const rows = await this.sql.unsafe<{ k: string; v: Date }[]>(selects.join(" union all "), [
@@ -95,13 +102,17 @@ export class Clock {
 
   async #timestampColumns() {
     if (this.#columns) return this.#columns;
-    const rows = await this.sql<{ table: string; column: string }[]>`
-      select table_name as table, column_name as column from information_schema.columns
-      where table_schema = 'public' and data_type = 'timestamp with time zone'`;
-    const columns = new Map<string, string[]>();
-    for (const { table, column } of rows) {
+    const rows = await this.sql<{ table: string; column: string; type: string }[]>`
+      select table_name as table, column_name as column, data_type as type
+      from information_schema.columns
+      where table_schema = 'public' and data_type like 'timestamp%'`;
+    const columns = new Map<string, { name: string; tz: string }[]>();
+    for (const { table, column, type } of rows) {
       if (SKIP_TABLES.has(table) || SKIP_COLUMNS.has(`${table}.${column}`)) continue;
-      columns.set(table, [...(columns.get(table) ?? []), column]);
+      // Better Auth's columns have no time zone; the demo cluster runs in UTC.
+      const tz =
+        type === "timestamp with time zone" ? `"${column}"` : `("${column}" at time zone 'UTC')`;
+      columns.set(table, [...(columns.get(table) ?? []), { name: column, tz }]);
     }
     this.#columns = columns;
     return columns;
@@ -120,13 +131,13 @@ export class Clock {
       for (const [table, cols] of columns) {
         const params: (Date | number | string[])[] = [since, ms];
         const moves = cols.map((c) => {
-          params.push(keep.get(`${table}.${c}`) ?? []);
-          return `("${c}" >= $1 and not ("${c}" = any($${params.length}::timestamptz[])))`;
+          params.push(keep.get(`${table}.${c.name}`) ?? []);
+          return `(${c.tz} >= $1 and not (${c.tz} = any($${params.length}::timestamptz[])))`;
         });
         const set = cols
           .map(
             (c, i) =>
-              `"${c}" = case when ${moves[i]} then "${c}" - $2 * interval '1 millisecond' else "${c}" end`,
+              `"${c.name}" = case when ${moves[i]} then "${c.name}" - $2 * interval '1 millisecond' else "${c.name}" end`,
           )
           .join(", ");
         await tx.unsafe(`update "${table}" set ${set} where ${moves.join(" or ")}`, params);

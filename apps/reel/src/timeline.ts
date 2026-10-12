@@ -64,7 +64,7 @@ export const scenes: Scene[] = [
       },
       {
         at: 110,
-        text: "Tick “Add a co-principal” and the bond names a second party and gains a page.",
+        text: "Tick “Add a co-principal” and the bond names a second party and their signature block.",
       },
     ],
   },

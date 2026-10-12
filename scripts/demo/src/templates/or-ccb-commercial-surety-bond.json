@@ -356,6 +356,28 @@
         "acroField": "SURETY"
       },
       {
+        "id": "bzp7hy723",
+        "page": 1,
+        "rect": {
+          "x": 52.56,
+          "y": 174,
+          "width": 225.36,
+          "height": 11.76
+        },
+        "type": "text",
+        "style": {
+          "font": "noto-sans",
+          "size": 7.5,
+          "align": "left",
+          "color": "#000000",
+          "valign": "middle",
+          "minSize": 6,
+          "autoShrink": true
+        },
+        "value": "",
+        "acroField": "Name"
+      },
+      {
         "id": "b9pbvtmil",
         "page": 1,
         "rect": {

@@ -70,14 +70,13 @@ the footer. The site is English only; a French site is deferred.
 
 ## Screenshots
 
-Captured from the dev app with seed data, then staged in the browser before capture: test
-template names were renamed or hidden, a 29 s outlier row was removed from the generations
-log, and the Admin › System figures, hostnames and storage path were replaced with plausible
-production values. Workspace "Harbour Surety" and the people are fictional. The W9 shots
-(template fields, guided form, command palette, API reference) were taken unedited; the
-command palette and API reference are cropped on the page so test template names and the
-dev API key don't show. **Before
-launch, retake them from a seeded demo instance** so nothing on the site is edited.
+Every image in [apps/web/src/assets/screens](../../apps/web/src/assets/screens) and
+[apps/reel/public/screens](../../apps/reel/public/screens) is captured by `pnpm demo:screens`
+from the seeded demo instance and not edited afterwards
+([Demo data and screenshots](../../docs/features/demo-data-and-screenshots.md)). Workspace
+"Harbour Surety" and its people are fictional. Retake them after UI changes, before a release.
+`bond-page.png` (the fixture's page 1) and the reel's `bond-boxes.json` aren't app screenshots
+and stay as they are.
 
 ## Decisions (Mike, 2026-10-12)
 

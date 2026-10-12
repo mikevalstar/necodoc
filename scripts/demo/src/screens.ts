@@ -4,7 +4,7 @@ import { parseArgs } from "node:util";
 import { type BrowserContext, chromium, type Page } from "playwright-core";
 import { Session } from "./client.ts";
 import { TIME_ZONE } from "./clock.ts";
-import { startDemo } from "./instance.ts";
+import { demoDir, startDemo } from "./instance.ts";
 import { DEMO_PASSWORD, people } from "./people.ts";
 import { seed } from "./seed.ts";
 import { type Ctx, outputDir, type Shot, shots } from "./shots.ts";
@@ -108,6 +108,8 @@ async function capture() {
         });
         log(`${shot.target}/${shot.name}`);
       } catch (error) {
+        const page = context.pages()[0];
+        if (page) await page.screenshot({ path: join(demoDir, "logs", `failed-${shot.name}.png`) });
         throw new Error(
           `${shot.target}/${shot.name}: ${error instanceof Error ? error.message : error}`,
         );

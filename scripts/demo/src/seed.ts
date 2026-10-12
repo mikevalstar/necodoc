@@ -35,6 +35,7 @@ import {
 import { type Demo, demoDir, startDemo } from "./instance.ts";
 import {
   DEMO_PASSWORD,
+  demoLogin,
   type PersonKey,
   pendingPerson,
   people,
@@ -126,6 +127,14 @@ export async function seed(demo: Demo) {
       userIds[key] = created.user.id;
     }
   });
+  await at(day(120, "09:52"), () =>
+    jordan.auth("/admin/create-user", {
+      name: demoLogin.name,
+      email: demoLogin.email,
+      password: DEMO_PASSWORD,
+      role: demoLogin.roles,
+    }),
+  );
   log("people created");
 
   const accounts = await at(day(119, "10:15"), async () => {
@@ -1098,6 +1107,8 @@ export async function seed(demo: Demo) {
     );
     return idOf(await res.json());
   })();
+  // Days apart in the story, so the certificates don't queue behind the renewals here either.
+  await waitForQueue(sql);
   const coiVersion = versionAt(versions.get(coiTemplate.id) ?? [], clock.now);
   const certificatesBatch = await (async () => {
     const h = await as("hannah");
@@ -1275,7 +1286,7 @@ export async function seed(demo: Demo) {
       batchId: oldBatch?.id ?? null,
       batchRow: i + 1,
       requestId: randomUUID(),
-      filename: `renewal-notice-${i + 1}.pdf`,
+      filename: `renewal-notice ${i + 1}.pdf`,
       error: invalid ? "renewal_premium: Expected a number" : null,
       input: null,
       subject: made.subject,
@@ -1354,37 +1365,42 @@ export async function seed(demo: Demo) {
       });
   });
 
-  // This morning: the Ontario certificate's next change, under review.
+  // This morning: the claims letter's next change, under review with questions.
   await at(clock.ago(150), async () => {
-    const draft = await draftOf(ontario);
-    if (draft.kind !== "designed") throw new Error("Ontario certificate isn't designed");
-    await edit("priya", ontario, {
+    const draft = await draftOf(claimsTemplate);
+    await edit("elena", claimsTemplate, {
       description:
-        "Performance bond certificate for Ontario municipalities, with a schedule of covered contracts and an optional rider.",
+        "Tells a claimant we have their claim, who their adjuster is, which documents to send, and how to reach us.",
       sections: draft.sections.map((section) => ({
         ...section,
         fields: section.fields.map((f) =>
-          f.key === "attorney_in_fact" ? { ...f, required: true } : f,
+          f.key === "claimant_email"
+            ? { ...f, required: true, help: "Where the adjuster writes." }
+            : f,
         ),
       })),
     });
   });
-  const ontarioReview = await at(clock.ago(142), () =>
+  const claimsReview = await at(clock.ago(142), () =>
     submit(
-      "priya",
-      ontario,
-      "Attorney-in-fact is now required; Ontario obligees reject certificates without one.",
+      "elena",
+      claimsTemplate,
+      "Claimant email is now required; claims intake sends every letter by email first.",
     ),
   );
   await at(clock.ago(95), () =>
     comment(
       "marc",
-      ontarioReview,
-      "Does this also apply to the bid bond certificates? Those go to the same obligees.",
+      claimsReview,
+      "What happens for claimants with no email? Claims intake still mails some letters.",
     ),
   );
   await at(clock.ago(81), () =>
-    comment("priya", ontarioReview, "Yes, all three bond types. The test cases still pass."),
+    comment(
+      "elena",
+      claimsReview,
+      "Intake fills in claims@harbour-surety.example for those, and the mail run picks them up.",
+    ),
   );
 
   // Jordan's own documents: an Oregon bond finished earlier, two in progress (the screenshots
@@ -1555,7 +1571,7 @@ async function main() {
     throw error;
   }
   log(`seeded in ${Math.round((Date.now() - begun) / 1000)} s; data in ${demoDir}`);
-  log(`sign in as ${people.jordan.email} / ${DEMO_PASSWORD} (pnpm demo:screens --serve)`);
+  log(`sign in as ${demoLogin.email} or ${people.jordan.email}, password ${DEMO_PASSWORD}`);
 }
 
 if (process.argv[1] && import.meta.filename === process.argv[1]) await main();

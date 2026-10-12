@@ -93,11 +93,13 @@ export function plan(clock: Clock, r: Rand, firstAvailable: (kind: DocumentKind)
     const weekend = weekday === "Sat" || weekday === "Sun";
     const count = Math.round((weekend ? 6 : 46) * (0.8 + r.next() * 0.4));
     for (let i = 0; i < count; i++) {
-      const hour = weekend ? r.int(9, 16) : r.weighted(hours);
+      const pick = r.weighted(mix);
+      const any = weekend ? r.int(9, 16) : r.weighted(hours);
+      // Integrations run late too; people stop around six.
+      const hour = pick.source === "api" || any <= 18 ? any : r.int(9, 16);
       const at = clock.day(daysAgo, `${hour}:${String(r.int(0, 59)).padStart(2, "0")}`);
       at.setUTCSeconds(r.int(0, 59), r.int(0, 999));
       if (at > clock.now) continue;
-      const pick = r.weighted(mix);
       // Integrations run around the clock; people fill documents on weekdays.
       if (weekend && pick.source !== "api") continue;
       if (pick.source === "share_link" && daysAgo > SHARE_LINK_DAYS) continue;

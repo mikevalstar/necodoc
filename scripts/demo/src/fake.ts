@@ -235,7 +235,7 @@ const slug = (name: string) =>
     .toLowerCase()
     .normalize("NFD")
     .replace(/[^a-z]+/g, "")
-    .slice(0, 16);
+    .slice(0, 24);
 
 const policyNumber = (r: Rand, line: string) => `HS-${line}-${r.int(100000, 299999)}`;
 
@@ -479,7 +479,7 @@ export const documents = {
       data: {
         principal_name: principal,
         ccb_number: r.chance(0.7) ? r.digits(6) : "",
-        principal_email: `office@${slug(principal)}.example`,
+        principal_email: `office@${slug(principal.split(" ").slice(0, 2).join(""))}.example`,
         bond_number: `HS-OR-${r.digits(7)}`,
         penal_sum: r.pick(["20,000.00", "50,000.00", "75,000.00"]),
         surety_name: "Harbour Surety Company",

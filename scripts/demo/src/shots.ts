@@ -33,6 +33,8 @@ const web = { width: 1440, height: 900 };
 const webShort = { width: 1440, height: 820 };
 const reel = { width: 1600, height: 900 };
 
+/** A table with at least one row of data. */
+const rows = (page: Page) => page.locator("tbody tr").nth(1).waitFor();
 const text = (page: Page, value: string) =>
   page.getByText(value, { exact: true }).first().waitFor();
 const tab = (page: Page, name: string) => page.getByRole("tab", { name }).first().click();
@@ -62,7 +64,7 @@ async function signedGeneration(ctx: Ctx) {
 
 /** Ticks the co-principal and types it in, leaving the cursor in the last field. */
 async function fillCoPrincipal(page: Page) {
-  await page.getByLabel("Add a co-principal").check();
+  await page.getByRole("checkbox", { name: "Add a co-principal" }).check();
   await page.getByLabel("Co-principal legal name").fill("Whitfield Holdings Inc.");
   await page
     .getByLabel("Co-principal address")
@@ -154,17 +156,19 @@ export const shots: Shot[] = [
     target: "web",
     viewport: webShort,
     route: () => "/admin/audit?targetType=template",
-    ready: (page) => text(page, "Template updated"),
+    ready: rows,
   },
   {
     name: "audit-detail",
     target: "web",
     viewport: webShort,
     route: () => "/admin/audit?targetType=template&action=template.updated",
-    ready: (page) => text(page, "Template updated"),
+    ready: rows,
     prepare: async (page) => {
-      await page.getByRole("row").nth(1).click();
+      await page.locator("tbody tr").first().click();
       await text(page, "Changes");
+      // The sheet focuses its close button; the shot doesn't need the ring.
+      await page.evaluate(() => (document.activeElement as HTMLElement | null)?.blur());
     },
   },
   {
@@ -178,7 +182,8 @@ export const shots: Shot[] = [
     name: "admin-system",
     target: "web",
     viewport: webShort,
-    route: () => "/admin/system",
+    // A week, so the figures cover working days and a batch, not one quiet hour.
+    route: () => "/admin/system?window=7d",
     ready: (page) => page.getByText("necodoc-worker-").first().waitFor(),
   },
 
@@ -217,21 +222,21 @@ export const shots: Shot[] = [
     target: "reel",
     viewport: reel,
     route: (ctx) => jordanDocument(ctx, "finished"),
-    ready: (page) => page.getByRole("button", { name: "Download PDF" }).waitFor(),
+    ready: (page) => page.getByText("Download PDF").first().waitFor(),
   },
   {
     name: "fill-coprincipal-off",
     target: "reel",
     viewport: reel,
     route: (ctx) => jordanDocument(ctx, "draft"),
-    ready: (page) => page.getByLabel("Add a co-principal").waitFor(),
+    ready: (page) => page.getByRole("checkbox", { name: "Add a co-principal" }).waitFor(),
   },
   {
     name: "fill-coprincipal-on",
     target: "reel",
     viewport: reel,
     route: (ctx) => jordanDocument(ctx, "draft"),
-    ready: (page) => page.getByLabel("Add a co-principal").waitFor(),
+    ready: (page) => page.getByRole("checkbox", { name: "Add a co-principal" }).waitFor(),
     prepare: fillCoPrincipal,
   },
   {
@@ -240,9 +245,10 @@ export const shots: Shot[] = [
     target: "reel",
     viewport: reel,
     route: (ctx) => jordanDocument(ctx, "draft"),
-    ready: (page) => page.getByLabel("Add a co-principal").waitFor(),
+    ready: (page) => page.getByRole("checkbox", { name: "Add a co-principal" }).waitFor(),
     prepare: async (page) => {
-      if (!(await page.getByLabel("Add a co-principal").isChecked())) await fillCoPrincipal(page);
+      if (!(await page.getByRole("checkbox", { name: "Add a co-principal" }).isChecked()))
+        await fillCoPrincipal(page);
       for (let step = 0; step < 6; step++) {
         const finish = page.getByRole("button", { name: "Finish and make PDF" });
         if (await finish.isVisible()) {
@@ -251,7 +257,8 @@ export const shots: Shot[] = [
         }
         await page.getByRole("button", { name: "Next" }).click();
       }
-      await page.getByRole("button", { name: "Download PDF" }).waitFor({ timeout: 30_000 });
+      await page.getByText("Download PDF").first().waitFor({ timeout: 30_000 });
+      await page.evaluate(() => window.scrollTo(0, 0));
     },
   },
   {
@@ -277,7 +284,7 @@ export const shots: Shot[] = [
     target: "reel",
     viewport: reel,
     route: () => "/admin/audit?q=Oregon",
-    ready: (page) => text(page, "Oregon Contractor License Bond"),
+    ready: rows,
   },
   {
     name: "generation-log",

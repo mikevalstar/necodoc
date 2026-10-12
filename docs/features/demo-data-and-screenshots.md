@@ -37,8 +37,11 @@ screen something real to show, and a script makes the images reproducible.
 - **Or a given database.** `DEMO_DATABASE_URL` points it at another database instead (the
   future public demo). It refuses the URL in `apps/api/.env`.
 - **Reset, then seed.** Every run drops and recreates the database (or, with
-  `DEMO_DATABASE_URL`, its schemas), migrates it, and seeds from nothing. Running it twice gives
-  the same instance, so a schedule can reset a public demo.
+  `DEMO_DATABASE_URL`, its schemas) and empties the private cluster's output directory, migrates,
+  and seeds from nothing. One entry point, [seed.ts](../../scripts/demo/src/seed.ts), so a
+  nightly reset (W13's `pnpm demo:reset`) can run it against any database and storage: with
+  `DEMO_DATABASE_URL` set, the `STORAGE_*`, `S3_*` and `AZURE_*` settings in the environment are
+  passed to the API and workers it starts.
 - **Process names.** API and worker processes report pod-style hostnames
   (`necodoc-worker-…`), outputs go to the disk driver under `/var/tmp/necodoc-demo/outputs` (a
   link into `.demo/`), and the version is the git commit, so no screenshot shows the machine it
@@ -50,8 +53,10 @@ All of it is fictional: people, companies, addresses and emails use `.example` d
 personal data.
 
 - **People:** an admin, two publishers, a reviewer, an editor and four fillers (viewers), plus
-  a pending sign-up. Three service accounts own the integration keys
-  ([users and roles](user-management-and-roles.md)).
+  a pending sign-up. Four service accounts own the integration keys
+  ([users and roles](user-management-and-roles.md)). Everyone's password is
+  `harbour-demo-2026`; the demo's own sign-in is `demo@necodoc.com` (an admin for now; W11
+  decides what a public visitor gets).
 - **Look:** a Harbour Surety theme and logo ([themes](document-themes.md), [assets](assets.md)),
   and clause snippets ([snippet library](snippet-library.md)).
 - **Designed templates:** Oregon contractor licence bond (conditional co-principal), Ontario
@@ -61,6 +66,10 @@ personal data.
 - **Overlay templates** on the [surety bond fixtures](../../fixtures/pdfs/surety-bonds/README.md):
   Oregon CCB, Castle Pines, New Haven and NY DMV VS-3, with signers
   ([overlay templates](pdf-overlay-templates.md), [signing packages](signing-packages.md)).
+  The bond templates (the Oregon licence bond with its "Add a co-principal" section, the
+  Ontario certificate and the overlays) are the ones the site and reel show, kept as JSON in
+  [templates/](../../scripts/demo/src/templates); the others are built in
+  [designed.ts](../../scripts/demo/src/designed.ts).
 - **Change control:** several published versions with notes per template, review required for
   publishing, a review that went through changes requested to approved and published, an
   approved review not yet published, an open one with comments
@@ -68,10 +77,13 @@ personal data.
   ([test cases](template-test-cases-and-visual-diff.md)).
 - **Integrations:** API keys with scopes (one rotated, one revoked, one expiring soon), webhooks
   to `.example` hosts, all disabled ([webhooks](webhooks.md)), shared and personal saved views
-  ([saved views](saved-views.md)).
+  ([saved views](saved-views.md)). The webhooks are inserted with the audit entry the API would
+  write, because creating one through the API resolves its host and `.example` hosts resolve
+  nowhere. AI shows as configured (a placeholder key) so its buttons are in the screenshots;
+  nothing calls it.
 - **Filling:** documents in progress and finished, share links with responses and view counts
   ([share links](share-links-and-data-requests.md)).
-- **History:** about 3,500 generations over 90 days with weekday and business-hour traffic, two
+- **History:** about 3,600 generations over 90 days with weekday and business-hour traffic, two
   batches, about 0.5% failures, and retention of 14 days for outputs and 30 for inputs
   ([generation log](generation-log.md)). The [audit log](audit-log.md) holds the story's sign-ins
   and changes in order.
@@ -101,9 +113,11 @@ personal data.
   [apps/web/src/assets/screens](../../apps/web/src/assets/screens) (PNG, 2x), reel images to
   [apps/reel/public/screens](../../apps/reel/public/screens) (JPEG, 2400 px wide), at the
   sizes and crops the pages and scenes already expect.
-- **Deterministic capture.** Playwright drives the Chromium the API already uses: fixed
-  viewport, light theme, comfortable density, expanded sidebar, no cursor, reduced motion, the
-  browser clock pinned to the seed's "now", and the app's own animations and carets off.
+- **Deterministic capture.** Playwright drives full Chromium in headless mode (it has the PDF
+  viewer the previews use): fixed viewport, light theme, comfortable density, expanded sidebar,
+  Toronto time zone, reduced motion, hidden scrollbars and carets, animations off. The data is
+  seeded with a fixed random seed, and the capture follows the seed by a minute, so relative
+  times ("2 hours ago") come out the same.
 - **Run.** `pnpm demo:screens` reseeds unless told not to, starts the API, a worker and the app
   (Vite) on unused ports, signs in as the admin, captures, and stops everything.
   `--only <name>` retakes some images; `--serve` starts the instance and waits, for looking
@@ -132,7 +146,9 @@ reaches outside the instance.
 
 ## Open questions
 
-- The absolute dates in screenshots follow the day they were taken; the relative ones ("2
-  hours ago") are pinned by the browser clock. Pinning absolute dates too would mean faking the
-  database clock.
+- Absolute dates in screenshots follow the day they were taken. The browser clock isn't
+  pinned: documents finished during the capture get the server's time, and a pinned clock
+  would show them "in a few seconds". Pinning dates would mean faking the database clock too.
+- The volume (about 40 documents a working day) makes Admin › System's renders per minute
+  small; its shot uses the last 7 days so the figures cover working days and a batch.
 - The API reference shows the Vite port it was captured on (`http://localhost:…/api/v1`).

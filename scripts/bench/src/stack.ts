@@ -266,6 +266,8 @@ export async function startStack(options: StackOptions) {
         "-c listen_addresses=localhost",
         "-c unix_socket_directories=''",
         `-c max_connections=${MAX_CONNECTIONS}`,
+        // Better Auth's tables use timestamp without time zone; UTC keeps now() and app writes alike.
+        "-c timezone=UTC",
       ].join(" ");
       execFileSync(
         pg("pg_ctl"),
