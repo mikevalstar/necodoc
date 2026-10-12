@@ -959,6 +959,7 @@ export const faq: readonly FaqEntry[] = [
       "Overlay templates only get PDF/A when the uploaded PDF embeds its fonts and has no scripts or attachments; most government forms don't embed theirs. The PDF is still made, without the PDF/A claim, and the generation says why.",
       "PDF/UA is for designed templates and HTML renders only; overlays and packets aren't tagged.",
       "Accessibility depends on the content: images need alt text and tables need header rows. necodoc doesn't check that for you; run a checker such as veraPDF or PAC on a sample.",
+      "Decorative images (empty alt text) and empty table cells fail the check because Chromium leaves them untagged: describe every image and put a non-breaking space in empty cells.",
       "Packets (combined PDFs) can be PDF/A only if every part qualifies.",
     ],
     access: [

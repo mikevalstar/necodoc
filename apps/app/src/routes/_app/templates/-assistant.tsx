@@ -84,8 +84,16 @@ export function AssistantPanel({
   onClose: () => void;
 }) {
   const parsed = useMemo(() => designedDraftSchema.safeParse(draft), [draft]);
+  /**
+   * The draft the next request sends. Applying updates it at once: the answer can trigger the
+   * next request before React re-renders with the merged draft.
+   */
   const current = useRef(parsed);
   current.current = parsed;
+  const applied = (next: DesignedDraft, parts: DraftPart[]) => {
+    current.current = { success: true, data: next };
+    onApply(next, parts);
+  };
   const [transport] = useState(() =>
     assistantTransport(templateId, () => {
       const p = current.current;
@@ -104,9 +112,13 @@ export function AssistantPanel({
   const sentBuild = useRef(false);
   useEffect(() => {
     if (!build || sentBuild.current) return;
-    sentBuild.current = true;
-    chat.sendMessage({ text: `Build this template from scratch: ${build}` });
-    onBuildSent();
+    // Deferred so StrictMode's mount-unmount-mount sends it once, from the mounted chat.
+    const timer = setTimeout(() => {
+      sentBuild.current = true;
+      chat.sendMessage({ text: `Build this template from scratch: ${build}` });
+      onBuildSent();
+    }, 0);
+    return () => clearTimeout(timer);
   }, [build, chat, onBuildSent]);
 
   const bottom = useRef<HTMLDivElement>(null);
@@ -126,22 +138,24 @@ export function AssistantPanel({
     chat.addToolOutput({ tool: call.tool, toolCallId, output });
   };
   const apply = (call: AssistantCall, toolCallId: string) => {
-    if (!parsed.success) return;
-    const applied = applyAssistantCall(parsed.data, call);
-    if (applied.ok) onApply(applied.draft, applied.parts);
+    const base = current.current;
+    if (!base.success) return;
+    const result = applyAssistantCall(base.data, call);
+    if (result.ok) applied(result.draft, result.parts);
     answer(
       call,
       toolCallId,
-      applied.ok ? appliedOutput : { status: "rejected", note: `Couldn't apply: ${applied.error}` },
+      result.ok ? appliedOutput : { status: "rejected", note: `Couldn't apply: ${result.error}` },
     );
   };
   const applyPending = () => {
-    if (!parsed.success) return;
+    const base = current.current;
+    if (!base.success) return;
     const all = applyAll(
-      parsed.data,
+      base.data,
       pending.map((p) => p.call),
     );
-    if (all.parts.length) onApply(all.draft, all.parts);
+    if (all.parts.length) applied(all.draft, all.parts);
     for (const [i, p] of pending.entries()) {
       answer(p.call, p.id, all.results[i] ?? rejectedOutput);
     }

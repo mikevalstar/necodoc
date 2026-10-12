@@ -57,6 +57,13 @@ Options considered:
   untagged and are stamped inside `/Artifact` marked content
   ([render/bands.ts](../../apps/api/src/render/bands.ts)), since headers and
   footers are pagination artifacts. Stamping doesn't touch the body's tags.
+- **Fixing Chromium's tagging where it's ours to fix.** Block content in a
+  list item (the visual editor's `<li><p>`) is moved into an `LBody`, and sign
+  boxes get `role="img"` with a label
+  ([render/signing.ts](../../apps/api/src/render/signing.ts)), which tags
+  their border (Chromium leaves an empty box's border untagged) and hides the
+  anchor tokens from screen readers. Untagged decorative images (`alt=""`)
+  and empty table cells are left as documented limitations.
 - **Levels offered: 2b and 2u.** 2u costs nothing more for Chromium output
   (every glyph is Unicode-mapped). PDF/A-3 is left out until attachments are
   a feature.

@@ -44,13 +44,27 @@ function attribute(attrs: string, name: string) {
 }
 
 /**
- * Puts anchor tokens inside every `data-sign` element of rendered HTML. Returns the marked HTML
- * and what each box is; elements with an unknown kind or no signer are left alone, with a warning.
+ * Gives a sign box an image role and a label, unless it has a role already. Tagged PDFs (PDF/UA,
+ * ADR 0037) then hold it as a described Figure: its border is tagged (Chromium leaves an empty
+ * box's border untagged), and screen readers say "signature for principal" instead of the tokens.
+ */
+function labelled(tag: string, attrs: string, kind: string, signerId: string) {
+  if (attribute(attrs, "role") !== null) return tag;
+  const label = `${kind.replace(/_/g, " ")} for ${signerId}`.replace(/[^\w ]/g, "");
+  return tag.replace(/\s*\/?>$/, ` role="img" aria-label="${label}">`);
+}
+
+/**
+ * Puts anchor tokens inside every `data-sign` element of rendered HTML. Returns the marked HTML,
+ * the HTML without tokens (`plain`, for `anchors: false`), both with labelled boxes, and what each
+ * box is; elements with an unknown kind or no signer are left alone, with a warning.
  */
 export function markSignBoxes(html: string) {
   const marks: SignMark[] = [];
   const warnings: string[] = [];
-  const marked = html.replace(SIGN_TAG, (tag, _name: string, attrs: string) => {
+  const plain: string[] = [];
+  let last = 0;
+  const marked = html.replace(SIGN_TAG, (tag, _name: string, attrs: string, offset: number) => {
     const kind = signingKindSchema.safeParse(attribute(attrs, "data-sign"));
     const signerId = attribute(attrs, "data-signer")?.trim();
     if (!kind.success || !signerId) {
@@ -61,9 +75,13 @@ export function markSignBoxes(html: string) {
     }
     const n = marks.length + 1;
     marks.push({ n, signerId, kind: kind.data, required: !/\sdata-sign-optional\b/i.test(attrs) });
-    return `${tag}<span class="necodoc-anchor necodoc-anchor-start">${anchorToken(n)}</span><span class="necodoc-anchor necodoc-anchor-end">${endToken(n)}</span>`;
+    const box = labelled(tag, attrs, kind.data, signerId);
+    plain.push(html.slice(last, offset), box);
+    last = offset + tag.length;
+    return `${box}<span class="necodoc-anchor necodoc-anchor-start">${anchorToken(n)}</span><span class="necodoc-anchor necodoc-anchor-end">${endToken(n)}</span>`;
   });
-  return { html: marked, marks, warnings };
+  plain.push(html.slice(last));
+  return { html: marked, plain: plain.join(""), marks, warnings };
 }
 
 type PageView = Parameters<typeof displayedRect>[1];

@@ -109,6 +109,63 @@ export function pdfaPreflight(doc: PDFDocument) {
 }
 
 /**
+ * PDF/UA 7.2: a list item holds only Lbl and LBody. Chromium puts block content (a `<p>` in an
+ * `<li>`, which the visual editor always writes) straight under LI, so it's moved into an LBody.
+ */
+function wrapListBodies(doc: PDFDocument) {
+  const { context } = doc;
+  const S = PDFName.of("S");
+  const K = PDFName.of("K");
+  const P = PDFName.of("P");
+  const kidsOf = (element: PDFDict) => {
+    const k = element.lookup(K);
+    return k instanceof PDFArray ? k : null;
+  };
+  const visit = (element: PDFDict, depth: number) => {
+    const kids = kidsOf(element);
+    if (!kids || depth > 200) return;
+    const elements: PDFDict[] = [];
+    for (let i = 0; i < kids.size(); i++) {
+      const kid = kids.lookup(i);
+      if (kid instanceof PDFDict && kid.has(S)) elements.push(kid);
+    }
+    for (const kid of elements) visit(kid, depth + 1);
+    if (element.get(S) !== PDFName.of("LI")) return;
+    const stray = elements.filter(
+      (kid) => kid.get(S) !== PDFName.of("Lbl") && kid.get(S) !== PDFName.of("LBody"),
+    );
+    // Inline content comes as NonStruct, which is fine where it is.
+    if (!stray.some((kid) => kid.get(S) !== PDFName.of("NonStruct"))) return;
+    const bodyKids = context.obj([]);
+    const bodyRef = context.register(
+      context.obj({ Type: "StructElem", S: "LBody", P: element, K: bodyKids }),
+    );
+    const kept = context.obj([]);
+    for (let i = 0; i < kids.size(); i++) {
+      const raw = kids.get(i);
+      const kid = kids.lookup(i);
+      if (kid instanceof PDFDict && stray.includes(kid)) {
+        kid.set(P, bodyRef);
+        bodyKids.push(raw);
+      } else {
+        kept.push(raw);
+      }
+    }
+    kept.push(bodyRef);
+    element.set(K, kept);
+  };
+  const root = doc.catalog.lookupMaybe(PDFName.of("StructTreeRoot"), PDFDict);
+  const top = root?.lookup(K);
+  if (top instanceof PDFDict) visit(top, 0);
+  else if (top instanceof PDFArray) {
+    for (let i = 0; i < top.size(); i++) {
+      const element = top.lookup(i);
+      if (element instanceof PDFDict) visit(element, 0);
+    }
+  }
+}
+
+/**
  * Makes a PDF identify as PDF/A-2 and/or PDF/UA-1. Returns what it could claim: PDF/A is dropped,
  * with a warning, when preflight finds something it can't fix.
  */
@@ -154,6 +211,8 @@ export async function applyConformance(pdf: Uint8Array, options: ConformanceOpti
     // A form must not ask viewers to build appearances (6.4.1); pdf-lib wrote them all.
     catalog.lookupMaybe(PDFName.of("AcroForm"), PDFDict)?.delete(PDFName.of("NeedAppearances"));
   }
+
+  if (pdfua) wrapListBodies(doc);
 
   for (const page of doc.getPages()) {
     const annots = page.node.lookupMaybe(PDFName.of("Annots"), PDFArray);

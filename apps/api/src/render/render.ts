@@ -83,7 +83,7 @@ export async function renderPdf(job: RenderJob, loadStoredAsset: AssetLoader) {
       locateSignBoxes(bodyPdf, sign.marks, anchors),
     );
     // Anchors are absolutely positioned, so the boxes stay where they were found.
-    if (!anchors && sign.marks.length) bodyPdf = await printBody(body);
+    if (!anchors && sign.marks.length) bodyPdf = await printBody(sign.plain);
     signing = await signingPackage(job.signers ?? [], data, located, anchors, [
       ...sign.warnings,
       ...located.warnings,

@@ -19,7 +19,8 @@ const html = `<h1>Invoice {{ n }}</h1>
 <table><thead><tr><th>Item</th><th>Qty</th></tr></thead><tbody><tr><td>Bond</td><td>1</td></tr></tbody></table>
 <img alt="A dot" width="20" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==">
 <p style="opacity: .5">Half-transparent text</p>
-<p>Sign here: <span data-sign="signature" data-signer="client" style="display:inline-block;width:50mm;height:10mm"></span></p>`;
+<ol><li><p>Visual-editor list items wrap a paragraph</p></li><li><p>Two</p><ul><li>Nested</li></ul></li></ol>
+<p>Sign here: <span data-sign="signature" data-signer="client" style="width:50mm;height:10mm;border-bottom:1px solid currentColor"></span></p>`;
 
 async function renderTagged() {
   const { pdf } = await renderPdf(
@@ -61,7 +62,7 @@ async function overlay(name: string) {
 }
 
 describe("applyConformance", () => {
-  it("makes a tagged Chromium render PDF/A-2u and PDF/UA-1", async () => {
+  it("makes a tagged Chromium render (lists, sign boxes, bands) PDF/A-2u and PDF/UA-1", async () => {
     const rendered = await renderTagged();
     // Chromium alone isn't PDF/A (no output intent, metadata or file id).
     if (hasVerapdf) expect(verapdf(rendered, "2u").compliant).toBe(false);

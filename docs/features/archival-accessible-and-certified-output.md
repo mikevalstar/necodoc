@@ -95,8 +95,9 @@ recorded profile), [render/finish.ts](../../apps/api/src/render/finish.ts)
   in ways the preflight doesn't look for.
 - **PDF/UA is as good as the content.** Missing alt text, empty headings or
   tables without header cells fail an accessibility check; necodoc doesn't
-  lint them. Sign box anchor tokens are tagged text (a screen reader may read
-  `~sig1~`) unless anchors are off.
+  lint them. Two Chromium quirks fail it too: decorative images (`alt=""`)
+  and empty table cells are left untagged, so give images real alt text and
+  put `&nbsp;` in empty cells.
 - **Trust is the certificate's.** Acrobat shows the signature as trusted only
   if the certificate chains to a root it trusts (AATL, or the customer's own
   trust list). No revocation data is embedded: B-B or B-T, not B-LT or B-LTA.

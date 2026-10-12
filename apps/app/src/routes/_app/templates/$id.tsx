@@ -164,6 +164,18 @@ function TemplateEditor({
   const [assistantOpen, setAssistantOpen] = useState<boolean | null>(build ? true : null);
   /** An unapplied proposal the preview shows instead of the draft. */
   const [proposal, setProposal] = useState<{ id: string; draft: DesignedDraft } | null>(null);
+  // Sent once: drop it from the URL so a reload doesn't ask again.
+  const clearBuild = useCallback(
+    () =>
+      navigate({
+        to: "/templates/$id",
+        params: { id: template.id },
+        search: {},
+        replace: true,
+        ignoreBlocker: true,
+      }),
+    [navigate, template.id],
+  );
   const suggestDescription = aiEnabled
     ? async () => {
         if (!parsed.success) throw new Error("Fix the problems listed above first.");
@@ -475,7 +487,7 @@ function TemplateEditor({
         }
       >
         <Tabs defaultValue="content">
-          <TabsList className="flex-wrap">
+          <TabsList className="flex-wrap justify-start group-data-horizontal/tabs:h-auto *:data-[slot=tabs-trigger]:h-[calc(2rem-7px)] *:data-[slot=tabs-trigger]:flex-none">
             <TabsTrigger value="content">
               {draft.kind === "overlay" ? "Boxes" : "Content"}
             </TabsTrigger>
@@ -632,15 +644,7 @@ function TemplateEditor({
                 templateId={template.id}
                 draft={draft}
                 build={build}
-                onBuildSent={() =>
-                  navigate({
-                    to: "/templates/$id",
-                    params: { id: template.id },
-                    search: {},
-                    replace: true,
-                    ignoreBlocker: true,
-                  })
-                }
+                onBuildSent={clearBuild}
                 onApply={(next, parts) => setDraft((d) => mergeApplied(d, next, parts))}
                 previewing={proposal?.id ?? null}
                 onPreview={setProposal}
