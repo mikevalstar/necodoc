@@ -176,7 +176,6 @@ const environment: [string, string][] = e
       <div>
         <Stops
           items={[
-            { icon: "laptop", title: "The numbers are for this machine.", body: "A laptop shares its CPU and throttles under sustained load. A server can be faster or slower." },
             { icon: "plug", title: "Everything is local.", body: "Postgres on the same machine with default settings, local disk storage, calls over loopback. No network, S3 or Azure round trips, TLS or proxy." },
             { icon: "files", title: "The test documents are ours.", body: "Render time grows with pages, images, fonts and table size. The test set is typical insurance documents. It isn't a worst case." },
             { icon: "queue", title: "Throughput includes the queue.", body: "Each run is timed from the batch's creation to its last row, so it includes the time a job waits for a worker slot. <code>RENDER_CONCURRENCY</code> sets the slots per worker." },

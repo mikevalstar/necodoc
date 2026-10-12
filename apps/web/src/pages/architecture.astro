@@ -259,7 +259,7 @@ curl https://necodoc.internal.example/api/v1/templates/$TEMPLATE/versions/3/gene
 
   <section id="scaling" class="alt">
     <div class="wrap">
-      <SectionHead eyebrow="Scaling and availability" title="Add workers, add throughput.">
+      <SectionHead eyebrow="Scaling and availability" title="Scale with worker replicas. Postgres holds the shared state.">
         Workers are stateless: add one per server. Rerun the <a class="tlink" href="/performance/">benchmark</a> on your
         own Postgres and nodes.
       </SectionHead>
