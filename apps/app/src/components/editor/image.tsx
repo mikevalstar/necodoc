@@ -1,7 +1,7 @@
+import { ImageIcon, PencilLineIcon, TrashIcon } from "@phosphor-icons/react";
 import { useQuery } from "@tanstack/react-query";
 import { mergeAttributes, Node } from "@tiptap/core";
 import { NodeViewWrapper, type ReactNodeViewProps, ReactNodeViewRenderer } from "@tiptap/react";
-import { ImageIcon, PenLineIcon, Trash2Icon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -92,7 +92,7 @@ function ImageView({ node, editor, selected, updateAttributes, deleteNode }: Rea
           <img src={assetFileUrl(assetId)} alt={alt} className="max-w-full" draggable={false} />
         ) : (
           <div className="flex h-20 min-w-48 items-center justify-center gap-2 rounded border border-dashed bg-muted px-4 text-xs text-muted-foreground">
-            <PenLineIcon className="size-4" />
+            <PencilLineIcon className="size-4" />
             {field ? `Image from “${pathLabel(sections, field) ?? field}”` : "No image source"}
           </div>
         )}
@@ -122,7 +122,7 @@ function ImageView({ node, editor, selected, updateAttributes, deleteNode }: Rea
             onChange={(e) => updateAttributes({ alt: e.target.value })}
           />
           <Button variant="ghost" size="icon-xs" aria-label="Delete image" onClick={deleteNode}>
-            <Trash2Icon />
+            <TrashIcon />
           </Button>
         </div>
       )}
@@ -196,7 +196,7 @@ export function ImagePicker({
                 className="w-full justify-start"
                 onClick={() => onPick({ assetId: null, field: f.path, alt: f.label, width: 40 })}
               >
-                {f.field.type === "signature" ? <PenLineIcon /> : <ImageIcon />}
+                {f.field.type === "signature" ? <PencilLineIcon /> : <ImageIcon />}
                 {f.label}
               </Button>
             ))}

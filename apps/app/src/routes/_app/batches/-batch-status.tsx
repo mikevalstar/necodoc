@@ -9,8 +9,18 @@ const labels = {
   cancelled: "Cancelled",
 } satisfies Record<BatchStatus, string>;
 
+const variants = {
+  running: "run",
+  completed: "ok",
+  cancelled: "secondary",
+} as const satisfies Record<BatchStatus, string>;
+
 export function BatchStatusBadge({ status }: { status: BatchStatus }) {
-  return <Badge variant={status === "completed" ? "secondary" : "outline"}>{labels[status]}</Badge>;
+  return (
+    <Badge dot variant={variants[status]}>
+      {labels[status]}
+    </Badge>
+  );
 }
 
 /** Done, failed and cancelled as one stacked bar. */
@@ -28,10 +38,10 @@ export function BatchProgress({
   const pct = (n: number) => `${total ? (n / total) * 100 : 0}%`;
   return (
     <div className="space-y-1">
-      <div className="flex h-2 overflow-hidden rounded-full bg-muted">
-        <div className="bg-primary" style={{ width: pct(done) }} />
-        <div className="bg-destructive" style={{ width: pct(failed) }} />
-        <div className="bg-muted-foreground/40" style={{ width: pct(cancelled) }} />
+      <div className="flex h-2 overflow-hidden rounded-full bg-tint">
+        <div className="bg-brand" style={{ width: pct(done) }} />
+        <div className="bg-bad" style={{ width: pct(failed) }} />
+        <div className="bg-ink-3/40" style={{ width: pct(cancelled) }} />
       </div>
       <div className="text-xs text-muted-foreground">
         {done} done · {failed} failed{cancelled > 0 && ` · ${cancelled} cancelled`} · {total} total

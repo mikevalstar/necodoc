@@ -13,8 +13,8 @@ import {
   signingKinds,
   type TextStyle,
 } from "@necodoc/shared";
+import { CopyIcon, TrashIcon } from "@phosphor-icons/react";
 import { useQuery } from "@tanstack/react-query";
-import { CopyIcon, Trash2Icon } from "lucide-react";
 import { useState } from "react";
 import { CodeEditor } from "@/components/code-editor";
 import { Button } from "@/components/ui/button";
@@ -112,7 +112,7 @@ export function BoxInspector({
           <CopyIcon />
         </Button>
         <Button variant="ghost" size="icon-sm" aria-label="Delete box" onClick={onDelete}>
-          <Trash2Icon />
+          <TrashIcon />
         </Button>
       </div>
 

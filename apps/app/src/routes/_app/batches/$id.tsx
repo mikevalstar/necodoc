@@ -1,4 +1,5 @@
 import { isFinishedStatus } from "@necodoc/shared";
+import { DownloadSimpleIcon } from "@phosphor-icons/react";
 import {
   keepPreviousData,
   queryOptions,
@@ -8,7 +9,6 @@ import {
   useSuspenseQuery,
 } from "@tanstack/react-query";
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { DownloadIcon } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 import { ConfirmDialog } from "@/components/confirm-dialog";
@@ -112,14 +112,14 @@ function BatchDetail() {
                   href={`/api/batches/${id}/zip`}
                   className={buttonVariants({ variant: "outline" })}
                 >
-                  <DownloadIcon />
+                  <DownloadSimpleIcon />
                   ZIP
                 </a>
                 <a
                   href={`/api/batches/${id}/packet`}
                   className={buttonVariants({ variant: "outline" })}
                 >
-                  <DownloadIcon />
+                  <DownloadSimpleIcon />
                   Packet PDF
                 </a>
               </>

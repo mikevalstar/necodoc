@@ -484,9 +484,9 @@ export const faq: readonly FaqEntry[] = [
   {
     feature: "Navigation and getting started",
     group: "Admin",
-    what: "The header groups the app into Documents, Templates, Developers and Admin, with the current section's pages underneath. Your initials open the account menu (Settings, My usage, Sign out). The home page shows a Get started checklist to people who set necodoc up, ticking off each step (design a template, upload a PDF, publish, fill a document, get an API key, invite the team) as it happens.",
+    what: "The sidebar groups the app into Documents, Templates, Developers and Admin, with the current section's pages underneath; the top bar shows where you are, Help and notifications. Your name at the foot of the sidebar opens the account menu (Settings, My usage, Sign out), next to a light/dark toggle. Tables have a comfortable or compact row setting. The home page shows a Get started checklist to people who set necodoc up, ticking off each step (design a template, upload a PDF, publish, fill a document, get an API key, invite the team) as it happens, with the next one in marigold.",
     howTo:
-      "Pick a section, then a page under it. Hide the checklist with its close button; it stays hidden in that browser. Help links next to page titles open the matching entry here.",
+      "Pick a section, then a page under it. Collapse the sidebar to icons with the button by the logo; in the icon rail (always used below 1000 px wide and in the template editor) a section's icon opens a menu of its pages. Switch table rows between comfortable and compact with the toggle above a table or in Settings. The sidebar and row choices stay in that browser. Hide the checklist with Hide checklist; it stays hidden in that browser. Help links next to page titles open the matching entry here.",
     limitations: [
       "Items a role can't use are hidden; the pages still refuse direct links.",
       "The template editors need a tablet-sized screen or larger.",

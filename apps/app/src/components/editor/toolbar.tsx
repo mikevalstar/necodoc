@@ -1,23 +1,23 @@
+import {
+  ArrowUUpLeftIcon,
+  ArrowUUpRightIcon,
+  BracketsCurlyIcon,
+  LinkIcon,
+  ListBulletsIcon,
+  ListNumbersIcon,
+  PlusIcon,
+  QuotesIcon,
+  TextAlignCenterIcon,
+  TextAlignJustifyIcon,
+  TextAlignLeftIcon,
+  TextAlignRightIcon,
+  TextBIcon,
+  TextItalicIcon,
+  TextStrikethroughIcon,
+  TextUnderlineIcon,
+} from "@phosphor-icons/react";
 import type { Editor } from "@tiptap/core";
 import { useEditorState } from "@tiptap/react";
-import {
-  AlignCenterIcon,
-  AlignJustifyIcon,
-  AlignLeftIcon,
-  AlignRightIcon,
-  BoldIcon,
-  BracesIcon,
-  ItalicIcon,
-  LinkIcon,
-  ListIcon,
-  ListOrderedIcon,
-  PlusIcon,
-  QuoteIcon,
-  Redo2Icon,
-  StrikethroughIcon,
-  UnderlineIcon,
-  Undo2Icon,
-} from "lucide-react";
 import { type ReactNode, useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
@@ -35,10 +35,10 @@ import { groupFields, useEditorFields } from "./context";
 import type { InsertItem } from "./slash";
 
 const ALIGNS = [
-  { value: "left", icon: AlignLeftIcon },
-  { value: "center", icon: AlignCenterIcon },
-  { value: "right", icon: AlignRightIcon },
-  { value: "justify", icon: AlignJustifyIcon },
+  { value: "left", icon: TextAlignLeftIcon },
+  { value: "center", icon: TextAlignCenterIcon },
+  { value: "right", icon: TextAlignRightIcon },
+  { value: "justify", icon: TextAlignJustifyIcon },
 ] as const;
 
 /** Must match markSchema's link href rule (packages/shared/src/template-doc.ts). */
@@ -112,7 +112,7 @@ export function Toolbar({
           disabled={!state.canUndo}
           onClick={() => chain().undo().run()}
         >
-          <Undo2Icon />
+          <ArrowUUpLeftIcon />
         </Button>
         <Button
           variant="ghost"
@@ -122,7 +122,7 @@ export function Toolbar({
           disabled={!state.canRedo}
           onClick={() => chain().redo().run()}
         >
-          <Redo2Icon />
+          <ArrowUUpRightIcon />
         </Button>
         <Separator orientation="vertical" className="mx-1 h-5" />
         <NativeSelect
@@ -143,10 +143,10 @@ export function Toolbar({
           <NativeSelectOption value="h4">Heading 4</NativeSelectOption>
         </NativeSelect>
         <Separator orientation="vertical" className="mx-1 h-5" />
-        {mark("bold", "Bold", <BoldIcon />)}
-        {mark("italic", "Italic", <ItalicIcon />)}
-        {mark("underline", "Underline", <UnderlineIcon />)}
-        {mark("strike", "Strikethrough", <StrikethroughIcon />)}
+        {mark("bold", "Bold", <TextBIcon />)}
+        {mark("italic", "Italic", <TextItalicIcon />)}
+        {mark("underline", "Underline", <TextUnderlineIcon />)}
+        {mark("strike", "Strikethrough", <TextStrikethroughIcon />)}
         <label
           title="Text colour"
           className="relative flex size-7 cursor-pointer items-center justify-center rounded-md hover:bg-muted"
@@ -193,7 +193,7 @@ export function Toolbar({
           pressed={state.bulletList}
           onPressedChange={() => chain().toggleBulletList().run()}
         >
-          <ListIcon />
+          <ListBulletsIcon />
         </Toggle>
         <Toggle
           size="sm"
@@ -202,7 +202,7 @@ export function Toolbar({
           pressed={state.orderedList}
           onPressedChange={() => chain().toggleOrderedList().run()}
         >
-          <ListOrderedIcon />
+          <ListNumbersIcon />
         </Toggle>
         <Toggle
           size="sm"
@@ -211,13 +211,13 @@ export function Toolbar({
           pressed={state.blockquote}
           onPressedChange={() => chain().toggleBlockquote().run()}
         >
-          <QuoteIcon />
+          <QuotesIcon />
         </Toggle>
         <Separator orientation="vertical" className="mx-1 h-5" />
         {fieldButton}
         <DropdownMenu>
           <DropdownMenuTrigger render={<Button variant="ghost" size="sm" />}>
-            <PlusIcon />
+            <PlusIcon weight="bold" />
             Insert
           </DropdownMenuTrigger>
           <DropdownMenuContent align="start" className="w-56">
@@ -324,7 +324,7 @@ function TableBar({ editor }: { editor: Editor }) {
       {action("Merge/split cells", () => chain().mergeOrSplit().run())}
       {action("Delete table", () => chain().deleteTable().run())}
       <Separator orientation="vertical" className="mx-1 h-5" />
-      <BracesIcon className="size-3.5 text-violet-600" />
+      <BracketsCurlyIcon className="size-3.5 text-violet-600" />
       <NativeSelect
         size="sm"
         aria-label="Repeat this row"

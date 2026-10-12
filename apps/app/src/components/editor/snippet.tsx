@@ -1,8 +1,8 @@
 import { compileSnippet, type SnippetContent, TemplateCompileError } from "@necodoc/shared";
+import { ArrowSquareOutIcon, PuzzlePieceIcon, TrashIcon } from "@phosphor-icons/react";
 import { useQuery } from "@tanstack/react-query";
 import { Node } from "@tiptap/core";
 import { NodeViewWrapper, type ReactNodeViewProps, ReactNodeViewRenderer } from "@tiptap/react";
-import { ExternalLinkIcon, PuzzleIcon, Trash2Icon } from "lucide-react";
 import { useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -81,7 +81,7 @@ function SnippetView({ node, editor, selected, deleteNode }: ReactNodeViewProps)
         )}
       >
         <div className="flex items-center gap-2 rounded-t-lg bg-violet-500/10 px-2 py-1.5 text-xs">
-          <PuzzleIcon className="size-3.5 text-violet-600" />
+          <PuzzlePieceIcon className="size-3.5 text-violet-600" />
           <span className="font-medium">
             Snippet: {found?.name ?? (snippets.isPending ? "…" : "not found")}
           </span>
@@ -97,7 +97,7 @@ function SnippetView({ node, editor, selected, deleteNode }: ReactNodeViewProps)
                 // A new tab, so unsaved template edits survive.
                 render={<a href={`/snippets/${found.id}`} target="_blank" rel="noreferrer" />}
               >
-                <ExternalLinkIcon />
+                <ArrowSquareOutIcon />
               </Button>
             )}
             {editor.isEditable && (
@@ -107,7 +107,7 @@ function SnippetView({ node, editor, selected, deleteNode }: ReactNodeViewProps)
                 aria-label="Remove snippet"
                 onClick={deleteNode}
               >
-                <Trash2Icon />
+                <TrashIcon />
               </Button>
             )}
           </div>

@@ -1,14 +1,15 @@
+import { ArrowLeftIcon, type Icon as PhosphorIcon, QuestionIcon } from "@phosphor-icons/react";
 import { useQuery } from "@tanstack/react-query";
 import { createLink, Link } from "@tanstack/react-router";
-import { ChevronLeftIcon, CircleHelpIcon, type LucideIcon } from "lucide-react";
 import type { ComponentProps, ReactNode } from "react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { meQuery } from "@/lib/auth";
 import { faq } from "@/lib/faq";
 import { cn } from "@/lib/utils";
 
-// The page frame every screen shares: one width per kind of page, then a header with the
-// title, a line on what the page is for, and its primary action.
+// The page frame every screen shares (docs/features/design-system.md): one width per kind of
+// page, then a header with the display title, a line on what the page is for, and its actions.
+// Pages sit left-aligned under the shell's breadcrumb.
 
 const widths = {
   /** Forms and single records: settings, filling in a document. */
@@ -27,7 +28,7 @@ export function Page({
   return (
     <main
       id="main"
-      className={cn("mx-auto w-full space-y-6 px-4 py-8 sm:px-6", widths[width], className)}
+      className={cn("w-full space-y-6 px-4 pt-1 pb-10 sm:px-8", widths[width], className)}
       {...props}
     />
   );
@@ -50,19 +51,19 @@ export function PageHeader({
   children?: ReactNode;
 }) {
   return (
-    <div className="space-y-2">
+    <div className="space-y-3 pb-1">
       {back}
-      <div className="flex flex-wrap items-start justify-between gap-x-4 gap-y-3">
-        <div className="min-w-0 space-y-1">
-          <div className="flex flex-wrap items-center gap-2">
-            <h1 className="truncate text-2xl font-semibold tracking-tight">{title}</h1>
+      <div className="flex flex-wrap items-end justify-between gap-x-4 gap-y-3">
+        <div className="min-w-0 space-y-1.5">
+          <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
+            <h1 className="truncate font-heading text-[28px] leading-tight font-bold tracking-[-0.025em] sm:text-[34px]">
+              {title}
+            </h1>
             {children}
           </div>
-          {description && (
-            <p className="max-w-prose text-sm text-muted-foreground">{description}</p>
-          )}
+          {description && <p className="max-w-prose text-[15px] text-ink-2">{description}</p>}
         </div>
-        {actions && <div className="flex flex-wrap items-center gap-2">{actions}</div>}
+        {actions && <div className="flex flex-wrap items-center gap-2.5">{actions}</div>}
       </div>
     </div>
   );
@@ -72,18 +73,18 @@ function BackAnchor({ className, children, ...props }: ComponentProps<"a">) {
   return (
     <a
       className={cn(
-        "inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground",
+        "inline-flex items-center gap-1.5 rounded-md text-sm font-semibold text-ink-3 hover:text-ink",
         className,
       )}
       {...props}
     >
-      <ChevronLeftIcon className="size-4" />
+      <ArrowLeftIcon weight="bold" className="size-4" />
       {children}
     </a>
   );
 }
 
-/** "‹ Parent page", typed like <Link>. */
+/** "← Parent page", typed like <Link>. */
 export const BackLink = createLink(BackAnchor);
 
 /** What to show where a list would be when it has nothing in it yet: what goes here and the next step. */
@@ -94,7 +95,7 @@ export function EmptyState({
   action,
   className,
 }: {
-  icon?: LucideIcon;
+  icon?: PhosphorIcon;
   title: string;
   description?: ReactNode;
   action?: ReactNode;
@@ -103,17 +104,17 @@ export function EmptyState({
   return (
     <div
       className={cn(
-        "flex flex-col items-center gap-2 rounded-xl border border-dashed px-6 py-12 text-center",
+        "flex flex-col items-center gap-1.5 rounded-xl border-2 border-dashed border-tint-2 px-6 py-12 text-center",
         className,
       )}
     >
       {Icon && (
-        <div className="mb-1 rounded-full bg-muted p-3 text-muted-foreground">
-          <Icon className="size-5" />
+        <div className="mb-2 grid size-13 place-items-center rounded-xl bg-brand-wash text-brand">
+          <Icon className="size-7" />
         </div>
       )}
-      <h2 className="font-medium">{title}</h2>
-      {description && <p className="max-w-md text-sm text-muted-foreground">{description}</p>}
+      <h2 className="font-heading text-[15.5px] font-bold">{title}</h2>
+      {description && <p className="max-w-md text-sm text-ink-3">{description}</p>}
       {action && <div className="mt-2 flex flex-wrap justify-center gap-2">{action}</div>}
     </div>
   );
@@ -125,7 +126,7 @@ export function ListSkeleton({ rows = 5, className }: { rows?: number; className
     <div className={cn("space-y-2", className)} role="status" aria-busy="true" aria-label="Loading">
       {Array.from({ length: rows }, (_, i) => (
         // biome-ignore lint/suspicious/noArrayIndexKey: placeholders have no identity
-        <Skeleton key={i} className="h-11 w-full" />
+        <Skeleton key={i} className="h-12 w-full" />
       ))}
     </div>
   );
@@ -143,11 +144,11 @@ export function FaqLink({ feature, className }: { feature: string; className?: s
       to="/admin/faq"
       search={{ entry: feature }}
       className={cn(
-        "inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground",
+        "inline-flex items-center gap-1.5 rounded-md text-sm font-semibold text-ink-3 hover:text-ink",
         className,
       )}
     >
-      <CircleHelpIcon className="size-4" />
+      <QuestionIcon className="size-[18px]" />
       Help
     </Link>
   );

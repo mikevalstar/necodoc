@@ -11,10 +11,10 @@ import {
   MAX_RATE_LIMIT_PER_MINUTE,
   type Role,
 } from "@necodoc/shared";
+import { DotsThreeIcon, WarningIcon } from "@phosphor-icons/react";
 import { queryOptions, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
 import type { InferResponseType } from "hono/client";
-import { MoreHorizontalIcon, TriangleAlertIcon } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 import { z } from "zod";
@@ -191,10 +191,7 @@ export function ApiKeyTable({
                     title={dayjs(key.expiresAt).format("YYYY-MM-DD HH:mm")}
                   >
                     {expiresSoon(key) && (
-                      <TriangleAlertIcon
-                        className="size-4 text-amber-600"
-                        aria-label="Expires soon"
-                      />
+                      <WarningIcon className="size-4 text-amber-600" aria-label="Expires soon" />
                     )}
                     {dayjs(key.expiresAt).fromNow()}
                   </span>
@@ -238,7 +235,7 @@ export function ApiKeyTable({
                       />
                     }
                   >
-                    <MoreHorizontalIcon />
+                    <DotsThreeIcon weight="bold" />
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end">
                     <DropdownMenuItem
@@ -679,7 +676,7 @@ export function ExpiryWarning({ keys }: { keys: readonly ApiKeyRow[] | undefined
   if (!soon.length) return null;
   return (
     <Alert>
-      <TriangleAlertIcon />
+      <WarningIcon />
       <AlertDescription>
         {soon.map((key) => key.name).join(", ")} {soon.length > 1 ? "expire" : "expires"} within{" "}
         {EXPIRY_WARNING_DAYS} days. Rotate {soon.length > 1 ? "them" : "it"} before then.

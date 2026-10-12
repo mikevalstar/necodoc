@@ -1,5 +1,5 @@
 import type { Translations } from "@necodoc/shared";
-import { LanguagesIcon } from "lucide-react";
+import { TranslateIcon } from "@phosphor-icons/react";
 import { NativeSelect, NativeSelectOption } from "@/components/ui/native-select";
 
 // Spec: docs/features/document-localization.md. The fill page's and share links' language: the
@@ -30,7 +30,7 @@ export function LanguagePicker({
   if (languages.length < 2) return null;
   return (
     <span className="inline-flex items-center gap-2 text-sm">
-      <LanguagesIcon className="size-4 text-muted-foreground" />
+      <TranslateIcon className="size-4 text-muted-foreground" />
       <NativeSelect
         size="sm"
         aria-label="Language"

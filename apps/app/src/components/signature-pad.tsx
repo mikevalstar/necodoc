@@ -1,4 +1,4 @@
-import { KeyboardIcon } from "lucide-react";
+import { KeyboardIcon } from "@phosphor-icons/react";
 import { useEffect, useId, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";

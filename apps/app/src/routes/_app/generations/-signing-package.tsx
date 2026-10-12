@@ -1,5 +1,5 @@
 import { type SigningPackage, signingKindLabels } from "@necodoc/shared";
-import { DownloadIcon } from "lucide-react";
+import { DownloadSimpleIcon } from "@phosphor-icons/react";
 import { useState } from "react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button, buttonVariants } from "@/components/ui/button";
@@ -46,7 +46,7 @@ export function SigningSection({
             download={`${filename.replace(/\.pdf$/i, "")}.signing.json`}
             className={buttonVariants({ variant: "outline", size: "sm" })}
           >
-            <DownloadIcon />
+            <DownloadSimpleIcon />
             Package JSON
           </a>
           <a
@@ -54,7 +54,7 @@ export function SigningSection({
             download={filename}
             className={buttonVariants({ variant: "outline", size: "sm" })}
           >
-            <DownloadIcon />
+            <DownloadSimpleIcon />
             PDF
           </a>
           <Button variant="outline" size="sm" onClick={() => setShowing(!showing)}>

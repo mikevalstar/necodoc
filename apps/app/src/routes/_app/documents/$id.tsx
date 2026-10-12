@@ -4,9 +4,9 @@ import {
   translateSections,
   type UpdateSubmission,
 } from "@necodoc/shared";
+import { DownloadSimpleIcon, SpinnerGapIcon } from "@phosphor-icons/react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { DownloadIcon, Loader2Icon } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import { ErrorAlert } from "@/components/form";
@@ -283,7 +283,7 @@ function Finished({
             download
             className={buttonVariants({ variant: "default" })}
           >
-            <DownloadIcon />
+            <DownloadSimpleIcon />
             Download PDF
           </a>
         )}
@@ -312,7 +312,7 @@ function Finished({
 
       {rendering(doc) && (
         <p className="flex items-center gap-2 text-sm text-muted-foreground">
-          <Loader2Icon className="size-4 animate-spin" />
+          <SpinnerGapIcon className="size-4 animate-spin" />
           Making your PDF…
         </p>
       )}

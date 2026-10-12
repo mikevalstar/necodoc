@@ -11,11 +11,11 @@ import {
 import {
   ArrowDownIcon,
   ArrowUpIcon,
-  ChevronDownIcon,
-  ChevronRightIcon,
+  CaretDownIcon,
+  CaretRightIcon,
   PlusIcon,
-  Trash2Icon,
-} from "lucide-react";
+  TrashIcon,
+} from "@phosphor-icons/react";
 import { type ReactNode, useMemo, useState } from "react";
 import { ConditionEditor, newCondition } from "@/components/condition-editor";
 import type { FieldChoice } from "@/components/editor/context";
@@ -315,7 +315,7 @@ export function FieldDesigner({
             ])
           }
         >
-          <PlusIcon />
+          <PlusIcon weight="bold" />
           Add section
         </Button>
       )}
@@ -335,7 +335,7 @@ function AddField<T extends FieldType>({
   return (
     <DropdownMenu>
       <DropdownMenuTrigger render={<Button variant="ghost" size="sm" />}>
-        <PlusIcon />
+        <PlusIcon weight="bold" />
         {label}
       </DropdownMenuTrigger>
       <DropdownMenuContent align="start">
@@ -371,7 +371,7 @@ function Reorder({
         disabled={index === 0}
         onClick={() => onMove(index - 1)}
       >
-        <ArrowUpIcon />
+        <ArrowUpIcon weight="bold" />
       </Button>
       <Button
         variant="ghost"
@@ -380,10 +380,10 @@ function Reorder({
         disabled={index === count - 1}
         onClick={() => onMove(index + 1)}
       >
-        <ArrowDownIcon />
+        <ArrowDownIcon weight="bold" />
       </Button>
       <Button variant="ghost" size="icon-sm" aria-label={`Delete ${label}`} onClick={onDelete}>
-        <Trash2Icon />
+        <TrashIcon />
       </Button>
     </div>
   );
@@ -478,9 +478,9 @@ function FieldRow({
           onClick={onToggle}
         >
           {open ? (
-            <ChevronDownIcon className="size-4 shrink-0" />
+            <CaretDownIcon weight="bold" className="size-4 shrink-0" />
           ) : (
-            <ChevronRightIcon className="size-4 shrink-0" />
+            <CaretRightIcon weight="bold" className="size-4 shrink-0" />
           )}
           <span className="truncate font-medium">{field.label || "Untitled"}</span>
           <code className="truncate text-xs text-muted-foreground">{field.key}</code>
@@ -883,7 +883,7 @@ function TypeSettings({
                     onChange({ ...field, options: field.options.filter((_, k) => k !== o) })
                   }
                 >
-                  <Trash2Icon />
+                  <TrashIcon />
                 </Button>
               </div>
             ))}
@@ -898,7 +898,7 @@ function TypeSettings({
                 });
               }}
             >
-              <PlusIcon />
+              <PlusIcon weight="bold" />
               Add option
             </Button>
             <Messages messages={at(errors, `${errorPath}.options`)} />

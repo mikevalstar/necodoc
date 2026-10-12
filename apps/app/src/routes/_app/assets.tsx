@@ -6,9 +6,9 @@ import {
   MAX_FILE_BYTES,
   renameAssetSchema,
 } from "@necodoc/shared";
+import { DotsThreeIcon, ImageIcon, TextTIcon, UploadSimpleIcon } from "@phosphor-icons/react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { ImageIcon, MoreHorizontalIcon, TypeIcon, UploadIcon } from "lucide-react";
 import { useRef, useState } from "react";
 import { toast } from "sonner";
 import { z } from "zod";
@@ -168,7 +168,7 @@ function Assets() {
                     />
                   ) : (
                     <div className="flex size-12 items-center justify-center rounded border text-muted-foreground">
-                      <TypeIcon />
+                      <TextTIcon />
                     </div>
                   )}
                 </TableCell>
@@ -203,7 +203,7 @@ function Assets() {
                           />
                         }
                       >
-                        <MoreHorizontalIcon />
+                        <DotsThreeIcon weight="bold" />
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
                         <DropdownMenuItem
@@ -291,7 +291,7 @@ function UploadZone() {
           send(e.dataTransfer.files);
         }}
       >
-        <UploadIcon className="size-5" />
+        <UploadSimpleIcon className="size-5" />
         <span className="font-medium text-foreground">
           {upload.isPending ? "Uploading…" : "Drop files here or click to upload"}
         </span>

@@ -5,9 +5,9 @@ import {
   type SubjectSubmission,
   subjectSearchSchema,
 } from "@necodoc/shared";
+import { DownloadSimpleIcon } from "@phosphor-icons/react";
 import { useMutation } from "@tanstack/react-query";
 import { createFileRoute, Link, redirect } from "@tanstack/react-router";
-import { DownloadIcon } from "lucide-react";
 import { type FormEvent, useState } from "react";
 import { ErrorAlert } from "@/components/form";
 import { FaqLink, Page, PageHeader } from "@/components/page";
@@ -184,7 +184,7 @@ function DataSubjects() {
               </p>
             )}
             <Button variant="outline" size="sm" onClick={() => downloadReport(report)}>
-              <DownloadIcon />
+              <DownloadSimpleIcon />
               Download report (JSON)
             </Button>
           </AlertDescription>

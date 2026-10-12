@@ -1,7 +1,7 @@
 import { submissionSourceSchema, submissionStatusSchema } from "@necodoc/shared";
+import { DotsThreeIcon, FileTextIcon, PlusIcon } from "@phosphor-icons/react";
 import { useQuery } from "@tanstack/react-query";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { FileTextIcon, MoreHorizontalIcon, PlusIcon } from "lucide-react";
 import { useDeferredValue, useState } from "react";
 import { z } from "zod";
 import { ErrorAlert } from "@/components/form";
@@ -76,7 +76,7 @@ function Documents() {
           <>
             <FaqLink feature="Filling out a document" />
             <Button nativeButton={false} render={<Link to="/documents/new" />}>
-              <PlusIcon />
+              <PlusIcon weight="bold" />
               New document
             </Button>
           </>
@@ -92,7 +92,7 @@ function Documents() {
           description="Pick a template to fill in. You answer its questions step by step and download the finished PDF."
           action={
             <Button nativeButton={false} render={<Link to="/documents/new" />}>
-              <PlusIcon />
+              <PlusIcon weight="bold" />
               Pick a template
             </Button>
           }
@@ -207,7 +207,7 @@ function Documents() {
                             />
                           }
                         >
-                          <MoreHorizontalIcon />
+                          <DotsThreeIcon weight="bold" />
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
                           <DropdownMenuItem

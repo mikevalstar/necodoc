@@ -1,5 +1,5 @@
 import { type AnalyticsBucket, toCsv } from "@necodoc/shared";
-import { DownloadIcon, TableIcon } from "lucide-react";
+import { DownloadSimpleIcon, TableIcon } from "@phosphor-icons/react";
 import {
   type KeyboardEvent,
   type PointerEvent,
@@ -202,7 +202,7 @@ export function TimeChart<K extends string>({
             tabIndex={0}
             onKeyDown={onKey}
             onBlur={() => setActive(null)}
-            className="overflow-visible outline-none focus-visible:ring-2 focus-visible:ring-ring rounded-sm"
+            className="overflow-visible outline-none rounded-sm"
           >
             {ticks.map((tick) => (
               <g key={tick}>
@@ -307,7 +307,7 @@ export function TimeChart<K extends string>({
                         cy={y(last)}
                         r={4}
                         fill={s.color}
-                        stroke="var(--background)"
+                        stroke="var(--card)"
                         strokeWidth={2}
                       />
                     )}
@@ -336,7 +336,7 @@ export function TimeChart<K extends string>({
                     cy={y(v)}
                     r={4}
                     fill={s.color}
-                    stroke="var(--background)"
+                    stroke="var(--card)"
                     strokeWidth={2}
                   />
                 );
@@ -361,7 +361,7 @@ export function TimeChart<K extends string>({
         )}
         {activeT !== undefined && activeValues && (
           <div
-            className="pointer-events-none absolute top-0 z-10 min-w-36 rounded-md border bg-popover px-3 py-2 text-xs text-popover-foreground shadow-md"
+            className="pointer-events-none absolute top-0 z-10 min-w-36 rounded-[10px] bg-popover px-3 py-2 text-xs text-popover-foreground shadow-float"
             style={
               active !== null && xCenter(active) > width / 2
                 ? { right: width - xCenter(active) + 12 }
@@ -380,7 +380,7 @@ export function TimeChart<K extends string>({
               );
             })}
             {kind === "stacked" && series.length > 1 && active !== null && (
-              <div className="mt-1 border-t pt-1 tabular-nums">
+              <div className="mt-1 border-t border-hair pt-1 tabular-nums">
                 <span className="font-semibold">{format(stackTotal(active))}</span>{" "}
                 <span className="text-muted-foreground">total</span>
               </div>
@@ -467,10 +467,10 @@ export function ChartCard({
 }) {
   const [showTable, setShowTable] = useState(false);
   return (
-    <figure className={cn("space-y-3 rounded-lg border p-4", className)}>
+    <figure className={cn("space-y-3 rounded-xl bg-card p-5 shadow-card", className)}>
       <div className="flex items-start justify-between gap-2">
         <figcaption className="space-y-0.5">
-          <div className="text-sm font-medium">{title}</div>
+          <div className="font-heading text-[17px] font-bold tracking-tight">{title}</div>
           {description && <div className="text-xs text-muted-foreground">{description}</div>}
         </figcaption>
         <div className="flex shrink-0 gap-1">
@@ -491,7 +491,7 @@ export function ChartCard({
               size="sm"
               onClick={() => downloadCsv(csv.filename, [csv.header, ...csv.rows])}
             >
-              <DownloadIcon />
+              <DownloadSimpleIcon />
               CSV
             </Button>
           )}
@@ -559,7 +559,7 @@ export function InlineBar({ value, max, label }: { value: number; max: number; l
   return (
     <span className="inline-flex items-center justify-end gap-2">
       <span className="tabular-nums">{label ?? value.toLocaleString()}</span>
-      <span className="h-1.5 w-20 overflow-hidden rounded-full bg-muted">
+      <span className="h-2 w-20 overflow-hidden rounded-full bg-tint">
         <span
           className="block h-full rounded-full"
           style={{ width: `${max > 0 ? (value / max) * 100 : 0}%`, background: slot(1) }}
@@ -579,9 +579,11 @@ export function StatTile({
   hint?: ReactNode;
 }) {
   return (
-    <div className="rounded-lg border p-4">
-      <div className="text-xs text-muted-foreground">{label}</div>
-      <div className="text-2xl font-semibold">{value}</div>
+    <div className="rounded-xl bg-card px-4 py-3.5 shadow-card">
+      <div className="text-[12.5px] font-semibold text-ink-3">{label}</div>
+      <div className="mt-1 font-heading text-[26px] leading-tight font-extrabold tracking-tight tabular-nums">
+        {value}
+      </div>
       {hint && <div className="text-xs text-muted-foreground">{hint}</div>}
     </div>
   );

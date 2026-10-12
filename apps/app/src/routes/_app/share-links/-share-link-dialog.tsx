@@ -50,7 +50,11 @@ export function linkState(link: ShareLinkRow) {
 
 export function LinkStateBadge({ link }: { link: ShareLinkRow }) {
   const state = linkState(link);
-  return <Badge variant={state.live ? "secondary" : "outline"}>{state.label}</Badge>;
+  return (
+    <Badge dot variant={state.live ? "ok" : "secondary"}>
+      {state.label}
+    </Badge>
+  );
 }
 
 /** Disable (revoke) or re-enable a link. */

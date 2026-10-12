@@ -4,6 +4,7 @@ import {
   generationSourceSchema,
   generationStatusSchema,
 } from "@necodoc/shared";
+import { DotsThreeIcon, DownloadSimpleIcon } from "@phosphor-icons/react";
 import {
   keepPreviousData,
   queryOptions,
@@ -14,7 +15,6 @@ import {
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { createColumnHelper } from "@tanstack/react-table";
 import type { InferResponseType } from "hono/client";
-import { DownloadIcon, MoreHorizontalIcon } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 import { z } from "zod";
@@ -322,7 +322,7 @@ function Generations() {
               </Button>
             )}
             <a href={exportUrl(search)} className={buttonVariants({ variant: "outline" })}>
-              <DownloadIcon />
+              <DownloadSimpleIcon />
               Export CSV
             </a>
           </>
@@ -377,7 +377,7 @@ function Generations() {
                 />
               }
             >
-              <MoreHorizontalIcon />
+              <DotsThreeIcon weight="bold" />
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
               <DropdownMenuItem

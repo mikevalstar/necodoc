@@ -1,7 +1,7 @@
 import { createTemplateSchema, hasPermission } from "@necodoc/shared";
+import { DotsThreeIcon, FileTextIcon, PlusIcon, UploadSimpleIcon } from "@phosphor-icons/react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { FileTextIcon, MoreHorizontalIcon, PlusIcon, UploadIcon } from "lucide-react";
 import { useDeferredValue, useState } from "react";
 import { z } from "zod";
 import { useAiEnabled } from "@/components/ai";
@@ -104,7 +104,7 @@ function Templates() {
             <FaqLink feature="Designed templates" />
             {can("create") && (
               <Button onClick={() => setCreating("designed")}>
-                <PlusIcon />
+                <PlusIcon weight="bold" />
                 New template
               </Button>
             )}
@@ -164,11 +164,11 @@ function Templates() {
             can("create") && (
               <>
                 <Button onClick={() => setCreating("designed")}>
-                  <PlusIcon />
+                  <PlusIcon weight="bold" />
                   Design a template
                 </Button>
                 <Button variant="outline" onClick={() => setCreating("overlay")}>
-                  <UploadIcon />
+                  <UploadSimpleIcon />
                   Upload a PDF
                 </Button>
               </>
@@ -229,7 +229,7 @@ function Templates() {
                           />
                         }
                       >
-                        <MoreHorizontalIcon />
+                        <DotsThreeIcon weight="bold" />
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
                         <DropdownMenuItem

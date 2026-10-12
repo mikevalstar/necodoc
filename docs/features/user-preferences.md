@@ -41,6 +41,10 @@ Pending users need it too, since they can sign in but have no roles yet.
 - **Theme:** light, dark, or follow the system. Stored in this browser only
   (not on the account) and applied app-wide without a flash on load
   ([theme.ts](../../apps/app/src/lib/theme.ts), [index.html](../../apps/app/index.html)).
+  The sidebar also has a light/dark toggle.
+- **Table rows:** comfortable or compact, the same setting as the toggle above
+  tables ([Design system](design-system.md), [density.ts](../../apps/app/src/lib/density.ts)).
+  Stored in this browser only.
 - **While impersonating:** an admin sees the user's profile and theme only.
   Password, sessions and account deletion are hidden: the password and account
   aren't the admin's to change, and the session list can't show the

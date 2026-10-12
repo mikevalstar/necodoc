@@ -1,6 +1,10 @@
 import { cn } from "cn";
 import * as React from "react";
 
+// Cobalt tables (ADR 0042): no outer border (the card carries them), hairlines between rows,
+// small semibold headers, and rows as tall as --row-h, which the compact toggle tightens
+// (lib/density.ts).
+
 function Table({ className, ...props }: React.ComponentProps<"table">) {
   return (
     <div data-slot="table-container" className="relative w-full overflow-x-auto">
@@ -31,7 +35,7 @@ function TableFooter({ className, ...props }: React.ComponentProps<"tfoot">) {
   return (
     <tfoot
       data-slot="table-footer"
-      className={cn("border-t bg-muted/50 font-medium [&>tr]:last:border-b-0", className)}
+      className={cn("border-t bg-tint/50 font-medium [&>tr]:last:border-b-0", className)}
       {...props}
     />
   );
@@ -42,7 +46,7 @@ function TableRow({ className, ...props }: React.ComponentProps<"tr">) {
     <tr
       data-slot="table-row"
       className={cn(
-        "border-b transition-colors hover:bg-muted/50 has-aria-expanded:bg-muted/50 data-[state=selected]:bg-muted",
+        "border-b border-hair transition-colors hover:bg-tint/55 has-aria-expanded:bg-tint/55 data-[state=selected]:bg-brand-wash",
         className,
       )}
       {...props}
@@ -55,7 +59,7 @@ function TableHead({ className, ...props }: React.ComponentProps<"th">) {
     <th
       data-slot="table-head"
       className={cn(
-        "h-10 px-2 text-left align-middle font-medium whitespace-nowrap text-foreground [&:has([role=checkbox])]:pr-0",
+        "h-10 px-3.5 text-left align-middle text-xs font-semibold whitespace-nowrap text-ink-3 compact:h-9 compact:px-2.5 [&:has([role=checkbox])]:pr-0",
         className,
       )}
       {...props}
@@ -67,7 +71,10 @@ function TableCell({ className, ...props }: React.ComponentProps<"td">) {
   return (
     <td
       data-slot="table-cell"
-      className={cn("p-2 align-middle whitespace-nowrap [&:has([role=checkbox])]:pr-0", className)}
+      className={cn(
+        "h-(--row-h) px-3.5 py-1.5 align-middle whitespace-nowrap compact:px-2.5 compact:py-1 [&:has([role=checkbox])]:pr-0",
+        className,
+      )}
       {...props}
     />
   );

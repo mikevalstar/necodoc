@@ -1,8 +1,8 @@
 import { parseRoles, type Role } from "@necodoc/shared";
+import { DotsThreeIcon, PlusIcon } from "@phosphor-icons/react";
 import { keepPreviousData, queryOptions, useMutation, useQuery } from "@tanstack/react-query";
 import { createFileRoute, redirect, useNavigate } from "@tanstack/react-router";
 import type { UserWithRole } from "better-auth/plugins";
-import { MoreHorizontalIcon, PlusIcon } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 import { z } from "zod";
@@ -136,7 +136,7 @@ function Users() {
           <>
             <FaqLink feature="Users and roles" />
             <Button onClick={() => setDialog({ kind: "create" })}>
-              <PlusIcon />
+              <PlusIcon weight="bold" />
               Create user
             </Button>
           </>
@@ -227,7 +227,7 @@ function Users() {
                     <DropdownMenuTrigger
                       render={<Button variant="ghost" size="icon-sm" aria-label="Actions" />}
                     >
-                      <MoreHorizontalIcon />
+                      <DotsThreeIcon weight="bold" />
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
                       {/* Your own name is edited in Settings; your own email only by another admin. */}

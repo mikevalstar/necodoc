@@ -1,6 +1,6 @@
+import { CodeIcon, PencilSimpleIcon, TrashIcon } from "@phosphor-icons/react";
 import { Node } from "@tiptap/core";
 import { NodeViewWrapper, type ReactNodeViewProps, ReactNodeViewRenderer } from "@tiptap/react";
-import { CodeIcon, PencilIcon, Trash2Icon } from "lucide-react";
 import { useState } from "react";
 import { CodeEditor } from "@/components/code-editor";
 import { Button } from "@/components/ui/button";
@@ -77,7 +77,7 @@ function RawHtmlView({ node, editor, selected, updateAttributes, deleteNode }: R
                   setOpen(true);
                 }}
               >
-                <PencilIcon />
+                <PencilSimpleIcon />
               </Button>
               <Button
                 variant="ghost"
@@ -85,7 +85,7 @@ function RawHtmlView({ node, editor, selected, updateAttributes, deleteNode }: R
                 aria-label="Delete raw HTML"
                 onClick={deleteNode}
               >
-                <Trash2Icon />
+                <TrashIcon />
               </Button>
             </div>
           )}

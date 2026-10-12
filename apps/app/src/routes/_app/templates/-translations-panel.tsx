@@ -7,7 +7,7 @@ import {
   textDirection,
   translatableStrings,
 } from "@necodoc/shared";
-import { PlusIcon, Trash2Icon } from "lucide-react";
+import { PlusIcon, TrashIcon } from "@phosphor-icons/react";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Field, FieldDescription, FieldLabel } from "@/components/ui/field";
@@ -104,7 +104,7 @@ export function TranslationsPanel({
             setAdding("");
           }}
         >
-          <PlusIcon />
+          <PlusIcon weight="bold" />
           Add language
         </Button>
       </div>
@@ -141,7 +141,7 @@ export function TranslationsPanel({
                   onChange(rest);
                 }}
               >
-                <Trash2Icon />
+                <TrashIcon />
                 Remove {current}
               </Button>
             </span>

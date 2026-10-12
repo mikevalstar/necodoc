@@ -9,9 +9,9 @@ import {
   templateSchema,
   toCodeMode,
 } from "@necodoc/shared";
+import { DotsThreeIcon, SparkleIcon, WarningIcon } from "@phosphor-icons/react";
 import { useMutation, useQuery, useQueryClient, useSuspenseQuery } from "@tanstack/react-query";
 import { createFileRoute, redirect, useBlocker, useNavigate } from "@tanstack/react-router";
-import { MoreHorizontalIcon, SparklesIcon, TriangleAlertIcon } from "lucide-react";
 import { useCallback, useMemo, useState } from "react";
 import { z } from "zod";
 import { useAiEnabled } from "@/components/ai";
@@ -83,6 +83,7 @@ import { VersionsPanel, versionQuery, versionsQuery } from "./-versions";
 // open it read-only; viewers never get here (the API refuses them the draft).
 
 export const Route = createFileRoute("/_app/templates/$id")({
+  staticData: { railSidebar: true },
   beforeLoad: ({ context }) => {
     const roles = context.me.user.roles;
     const seesDrafts = (["edit", "review", "publish"] as const).some((action) =>
@@ -379,7 +380,7 @@ function TemplateEditor({
           )}
           {assistantAvailable && !assistantOpen && (
             <Button variant="outline" onClick={() => setAssistantOpen(true)}>
-              <SparklesIcon />
+              <SparkleIcon />
               Assistant
             </Button>
           )}
@@ -387,7 +388,7 @@ function TemplateEditor({
             <DropdownMenuTrigger
               render={<Button variant="ghost" size="icon" aria-label="More actions" />}
             >
-              <MoreHorizontalIcon />
+              <DotsThreeIcon weight="bold" />
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-52">
               {can("create") && (
@@ -482,7 +483,7 @@ function TemplateEditor({
       )}
       {problems.length > 0 && (
         <Alert>
-          <TriangleAlertIcon />
+          <WarningIcon />
           <AlertTitle>Field references to check</AlertTitle>
           <AlertDescription>
             <ul className="list-disc pl-4">
@@ -730,7 +731,7 @@ function TemplateEditor({
           <ErrorAlert error={preview.error ?? version.error} />
           {preview.data && preview.data.warnings.length > 0 && (
             <Alert>
-              <TriangleAlertIcon />
+              <WarningIcon />
               <AlertTitle>Render warnings</AlertTitle>
               <AlertDescription>
                 <ul className="list-disc pl-4">

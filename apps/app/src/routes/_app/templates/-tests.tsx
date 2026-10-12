@@ -4,9 +4,9 @@ import {
   type TestResult,
   testAssertionsSchema,
 } from "@necodoc/shared";
+import { CheckCircleIcon, XCircleIcon } from "@phosphor-icons/react";
 import { queryOptions, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import type { InferResponseType } from "hono/client";
-import { CheckCircle2Icon, XCircleIcon } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 import { z } from "zod";
@@ -64,7 +64,7 @@ export function TestResults({ results }: { results: readonly TestResult[] }) {
         <li key={r.caseId} className="rounded-lg border p-2 text-sm">
           <div className="flex items-center gap-2">
             {r.passed ? (
-              <CheckCircle2Icon className="size-4 text-emerald-600" aria-label="Passed" />
+              <CheckCircleIcon className="size-4 text-emerald-600" aria-label="Passed" />
             ) : (
               <XCircleIcon className="size-4 text-destructive" aria-label="Failed" />
             )}

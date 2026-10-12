@@ -30,23 +30,21 @@ export const reviewStateQuery = (templateId: string) =>
       (await ok(api.reviews.templates[":templateId"].$get({ param: { templateId } }))).json(),
   });
 
-const statusVariant: Record<ReviewStatus, "default" | "secondary" | "outline" | "destructive"> = {
-  pending: "secondary",
-  changes_requested: "destructive",
-  approved: "default",
-  published: "outline",
-  withdrawn: "outline",
-};
+const statusVariant = {
+  pending: "warn",
+  changes_requested: "bad",
+  approved: "ok",
+  published: "default",
+  withdrawn: "secondary",
+} as const satisfies Record<ReviewStatus, string>;
 
 export function ReviewStatusBadge({ status, stale }: { status: ReviewStatus; stale: boolean }) {
   return (
     <span className="inline-flex gap-1">
-      <Badge variant={statusVariant[status]}>{reviewStatusLabels[status]}</Badge>
-      {stale && (
-        <Badge variant="outline" className="border-amber-500/50 text-amber-700 dark:text-amber-300">
-          Draft changed since
-        </Badge>
-      )}
+      <Badge dot variant={statusVariant[status]}>
+        {reviewStatusLabels[status]}
+      </Badge>
+      {stale && <Badge variant="warn">Draft changed since</Badge>}
     </span>
   );
 }

@@ -52,15 +52,19 @@ export const statusLabels = {
 } satisfies Record<GenerationStatus, string>;
 
 const statusVariants = {
-  queued: "outline",
-  running: "outline",
-  success: "secondary",
-  error: "destructive",
-  cancelled: "outline",
+  queued: "secondary",
+  running: "run",
+  success: "ok",
+  error: "bad",
+  cancelled: "secondary",
 } as const satisfies Record<GenerationStatus, string>;
 
 export function StatusBadge({ status }: { status: GenerationStatus }) {
-  return <Badge variant={statusVariants[status]}>{statusLabels[status]}</Badge>;
+  return (
+    <Badge dot variant={statusVariants[status]}>
+      {statusLabels[status]}
+    </Badge>
+  );
 }
 
 /** 1234 → "1.23 s", 87 → "87 ms"; null (not finished) → "—". */

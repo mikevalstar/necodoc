@@ -4,9 +4,9 @@ import {
   type WebhookDeliveryStatus,
   webhookEventSchema,
 } from "@necodoc/shared";
+import { DotsThreeIcon } from "@phosphor-icons/react";
 import { queryOptions, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import type { InferResponseType } from "hono/client";
-import { MoreHorizontalIcon } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 import { z } from "zod";
@@ -190,7 +190,7 @@ export function WebhookSection({
                       />
                     }
                   >
-                    <MoreHorizontalIcon />
+                    <DotsThreeIcon weight="bold" />
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end">
                     <DropdownMenuItem onClick={() => setLog(hook)}>Deliveries</DropdownMenuItem>

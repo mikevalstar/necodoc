@@ -11,8 +11,9 @@ generated: { by: okq/0.9.0, at: 2026-10-12T07:39:47Z }
 
 ## Summary
 
-Every signed-in page shares one frame: a header with the logo, navigation
-grouped by what people come to do, and an account menu. Pages share one
+Every signed-in page shares one frame: a sidebar with the logo, navigation
+grouped by what people come to do and your account, plus a top bar with where
+you are, help and notifications. Pages share one
 layout and the same handling for empty lists, loading, missing pages, errors,
 destructive actions and feedback.
 
@@ -26,9 +27,10 @@ an API restart replaced the page with an error.
 
 ## Behavior
 
-- **Shell** ([_app.tsx](../../apps/app/src/routes/_app.tsx)): sticky header
-  with the [logo](../../apps/app/src/components/logo.tsx), four sections and,
-  under them, the current section's pages:
+- **Shell** ([_app.tsx](../../apps/app/src/routes/_app.tsx)), styled per the
+  [Design system](design-system.md): a cobalt sidebar with the
+  [logo](../../apps/app/src/components/logo.tsx), four sections and, under the
+  current one, its pages:
   - **Documents**: My documents, Share links (publishers; shows unseen
     responses).
   - **Templates**: Templates, Reviews, Snippets, Themes, Assets.
@@ -37,8 +39,13 @@ an API restart replaced the page with an error.
   - **Admin** (admins only): Users, Service accounts, API keys, System, Queue,
     Analytics, Audit log, Data subjects, FAQ.
   Items a role can't use are hidden; the pages still guard themselves.
-- **Account menu**: your initials, never a name, so it can't read like a
-  section. It holds Settings, My usage and Sign out
+- **Collapsing**: the sidebar collapses to an icon rail (remembered in this
+  browser) and is always a rail below 1000 px. In the rail, a section's icon
+  opens a menu of its pages, so every page stays reachable.
+- **Top bar**: a breadcrumb (section, then page), Help (admins, to the
+  [Admin FAQ](admin-faq.md)) and the notification bell.
+- **Account**: at the bottom of the sidebar, your initials and name with a
+  light/dark toggle. It opens a menu with Settings, My usage and Sign out
   ([User preferences](user-preferences.md)).
 - **Page frame** ([page.tsx](../../apps/app/src/components/page.tsx)): one
   header pattern (back link on detail pages, title, one line on what the page
@@ -58,12 +65,14 @@ an API restart replaced the page with an error.
   retries for about 15 seconds, so an API restart doesn't break the page; if it
   still fails, the error page offers Try again.
 - **Accessibility**: a skip-to-content link, labelled icon-only buttons,
-  `aria-current` on the active section, and the header works down to tablet
-  width (about 768 px).
+  `aria-current` on the active section and page, a visible focus ring on every
+  stop, and the shell works down to tablet width (about 768 px).
 
 ## Acceptance criteria
 
 - [x] The header fits at 820 px wide with every section reachable.
+- [ ] At 820 px the sidebar is a rail and every page is reachable from it.
+- [ ] Collapsing the sidebar survives a reload.
 - [x] An admin named Admin sees one "Admin" in the header.
 - [x] `/documents` (no such page) shows a styled not-found page with the nav.
 - [x] Restarting the API while a page loads doesn't show an error page.

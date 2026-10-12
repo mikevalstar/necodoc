@@ -14,9 +14,9 @@ import {
   templateFieldProblems,
   toAssistantCall,
 } from "@necodoc/shared";
+import { PaperPlaneTiltIcon, SparkleIcon, SquareIcon, XIcon } from "@phosphor-icons/react";
 import { useQuery } from "@tanstack/react-query";
 import { getToolName, isToolUIPart, lastAssistantMessageIsCompleteWithToolCalls } from "ai";
-import { SendIcon, SparklesIcon, SquareIcon, XIcon } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { ErrorAlert } from "@/components/form";
 import { StructuralDiff } from "@/components/template-diff";
@@ -192,7 +192,7 @@ export function AssistantPanel({
       className="flex h-[min(46svh,32rem)] flex-col rounded-lg border bg-background"
     >
       <header className="flex items-center gap-2 border-b px-3 py-2 text-sm">
-        <SparklesIcon className="size-4" />
+        <SparkleIcon className="size-4" />
         <span className="font-medium">Assistant</span>
         <span className="truncate text-xs text-muted-foreground">
           The draft and this chat go to Anthropic (Claude). Review every change.
@@ -204,7 +204,7 @@ export function AssistantPanel({
           aria-label="Close the assistant"
           onClick={onClose}
         >
-          <XIcon />
+          <XIcon weight="bold" />
         </Button>
       </header>
       <div className="flex-1 space-y-3 overflow-y-auto p-3 text-sm">
@@ -352,7 +352,7 @@ export function AssistantPanel({
             aria-label="Send"
             disabled={!input.trim() || pending.length > 0}
           >
-            <SendIcon />
+            <PaperPlaneTiltIcon />
           </Button>
         )}
       </form>

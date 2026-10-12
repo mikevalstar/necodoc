@@ -1,7 +1,7 @@
 import { hasPermission } from "@necodoc/shared";
+import { SealCheckIcon } from "@phosphor-icons/react";
 import { useQuery } from "@tanstack/react-query";
 import { createFileRoute, Link, redirect, useNavigate } from "@tanstack/react-router";
-import { ClipboardCheckIcon } from "lucide-react";
 import { z } from "zod";
 import { ErrorAlert } from "@/components/form";
 import { EmptyState, FaqLink, ListSkeleton, Page, PageHeader } from "@/components/page";
@@ -68,7 +68,7 @@ function Reviews() {
         <ListSkeleton />
       ) : reviews.data?.length === 0 ? (
         <EmptyState
-          icon={ClipboardCheckIcon}
+          icon={SealCheckIcon}
           title={status === "open" ? "Nothing waiting for review" : "No reviews yet"}
           description="An editor submits a saved draft from the template's page (Submit for review); it shows here for reviewers."
           action={

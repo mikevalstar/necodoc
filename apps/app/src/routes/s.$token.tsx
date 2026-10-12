@@ -5,9 +5,9 @@ import {
   textDirection,
   translateSections,
 } from "@necodoc/shared";
+import { CheckCircleIcon, DownloadSimpleIcon } from "@phosphor-icons/react";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { createFileRoute, useLocation } from "@tanstack/react-router";
-import { CheckCircle2Icon, DownloadIcon } from "lucide-react";
 import { type ReactNode, useMemo, useRef, useState } from "react";
 import { z } from "zod";
 import { ErrorAlert } from "@/components/form";
@@ -85,14 +85,14 @@ function startLanguage(lang: string, translations: Translations, search: string)
 
 function Shell({ children }: { children: ReactNode }) {
   return (
-    <div className="min-h-svh bg-muted/30">
-      <header className="border-b bg-background">
-        <div className="mx-auto flex h-14 max-w-3xl items-center gap-2 px-4 font-semibold">
-          <Logo />
+    <div className="min-h-svh bg-background">
+      <header className="bg-linear-to-b from-shell to-shell-2 text-shell-fg">
+        <div className="mx-auto flex h-16 max-w-3xl items-center gap-2.5 px-4 font-heading text-xl font-bold tracking-tight sm:px-6">
+          <Logo className="size-7" accentClassName="fill-sun" />
           necodoc
         </div>
       </header>
-      <main id="main" className="mx-auto max-w-3xl space-y-4 p-4 py-8 sm:px-6">
+      <main id="main" className="mx-auto max-w-3xl space-y-5 p-4 py-8 sm:px-6">
         {children}
       </main>
     </div>
@@ -175,7 +175,7 @@ function SharedForm() {
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <CheckCircle2Icon className="size-5 text-primary" />
+              <CheckCircleIcon className="size-5 text-brand-ink" />
               Thanks, your answers were sent
             </CardTitle>
             <CardDescription>
@@ -191,7 +191,7 @@ function SharedForm() {
           {downloadUrl && (
             <CardContent>
               <a href={downloadUrl} className={buttonVariants()}>
-                <DownloadIcon />
+                <DownloadSimpleIcon />
                 Download PDF
               </a>
             </CardContent>

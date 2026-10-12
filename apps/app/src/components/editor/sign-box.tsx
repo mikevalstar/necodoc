@@ -4,9 +4,9 @@ import {
   signingKindLabels,
   signingKinds,
 } from "@necodoc/shared";
+import { PencilLineIcon } from "@phosphor-icons/react";
 import { mergeAttributes, Node } from "@tiptap/core";
 import { NodeViewWrapper, type ReactNodeViewProps, ReactNodeViewRenderer } from "@tiptap/react";
-import { PenLineIcon } from "lucide-react";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Field, FieldLabel } from "@/components/ui/field";
@@ -91,7 +91,7 @@ function SignBoxView({ node, editor, updateAttributes, deleteNode, selected }: R
             selected && "ring-2 ring-ring",
           )}
         >
-          <PenLineIcon className="size-3 shrink-0" />
+          <PencilLineIcon className="size-3 shrink-0" />
           <span className="truncate">
             {signingKindLabels[attrs.kind]} · {signer?.role ?? (attrs.signerId || "no signer")}
             {!attrs.required && " (optional)"}

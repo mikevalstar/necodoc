@@ -52,3 +52,8 @@ function subscribe(listener: () => void) {
 export function useTheme(): Theme {
   return useSyncExternalStore(subscribe, () => current);
 }
+
+/** Flips between light and dark from whatever is showing now (the sidebar's toggle). */
+export function toggleTheme() {
+  setTheme(document.documentElement.classList.contains("dark") ? "light" : "dark");
+}

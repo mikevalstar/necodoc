@@ -5,11 +5,11 @@ import {
   type auditFilterSchema,
   auditTargetTypeSchema,
 } from "@necodoc/shared";
+import { DownloadSimpleIcon } from "@phosphor-icons/react";
 import { keepPreviousData, queryOptions, useQuery } from "@tanstack/react-query";
 import { createFileRoute, redirect, useNavigate } from "@tanstack/react-router";
 import { createColumnHelper } from "@tanstack/react-table";
 import type { InferResponseType } from "hono/client";
-import { DownloadIcon } from "lucide-react";
 import { z } from "zod";
 import {
   ActorCell,
@@ -177,7 +177,7 @@ function AuditLog() {
           <>
             <FaqLink feature="Audit log" />
             <a href={exportUrl(search)} className={buttonVariants({ variant: "outline" })}>
-              <DownloadIcon />
+              <DownloadSimpleIcon />
               Export CSV
             </a>
           </>

@@ -1,7 +1,7 @@
 import { createSnippetSchema, hasPermission, snippetKeySchema } from "@necodoc/shared";
+import { PlusIcon, PuzzlePieceIcon } from "@phosphor-icons/react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute, Link, redirect, useNavigate } from "@tanstack/react-router";
-import { PlusIcon, PuzzleIcon } from "lucide-react";
 import { useDeferredValue, useState } from "react";
 import { z } from "zod";
 import { snippetText } from "@/components/editor/snippet";
@@ -82,7 +82,7 @@ function Snippets() {
             <FaqLink feature="Snippet library" />
             {canCreate && (
               <Button onClick={() => setCreating(true)}>
-                <PlusIcon />
+                <PlusIcon weight="bold" />
                 New snippet
               </Button>
             )}
@@ -140,13 +140,13 @@ function Snippets() {
         <ListSkeleton />
       ) : all.length === 0 ? (
         <EmptyState
-          icon={PuzzleIcon}
+          icon={PuzzlePieceIcon}
           title="No snippets yet"
           description="Write a clause once, then insert it into any template from the editor's Insert menu. Editing the snippet updates every draft that uses it."
           action={
             canCreate && (
               <Button onClick={() => setCreating(true)}>
-                <PlusIcon />
+                <PlusIcon weight="bold" />
                 New snippet
               </Button>
             )

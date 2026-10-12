@@ -1,7 +1,7 @@
 import { ApiReferenceReact } from "@scalar/api-reference-react";
 import "@scalar/api-reference-react/style.css";
+import { KeyIcon } from "@phosphor-icons/react";
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { KeyRoundIcon } from "lucide-react";
 import { FaqLink, Page, PageHeader } from "@/components/page";
 import { Button } from "@/components/ui/button";
 import { useTheme } from "@/lib/theme";
@@ -34,7 +34,7 @@ function Developers() {
           <>
             <FaqLink feature="API reference and OpenAPI" />
             <Button nativeButton={false} render={<Link to="/settings/api-keys" />}>
-              <KeyRoundIcon />
+              <KeyIcon />
               Get an API key
             </Button>
           </>

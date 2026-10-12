@@ -1,15 +1,48 @@
 import { keepPreviousData, skipToken, useQuery } from "@tanstack/react-query";
-import { useEffect, useState } from "react";
+import { type ReactNode, useEffect, useState } from "react";
 import { cn } from "@/lib/utils";
 
-/** Shows a PDF with the browser's viewer. Blobs get an object URL that's revoked when replaced. */
+/**
+ * The cobalt preview tray: the PDF sits in the mark's ears (docs/features/design-system.md).
+ * `toolbar` is the strip above the well (status, zoom, sample picker); white text on cobalt.
+ * Use it for any PDF preview, e.g. the overlay editor's canvas pages.
+ */
+export function PdfTray({
+  toolbar,
+  className,
+  wellClassName,
+  children,
+}: {
+  toolbar?: ReactNode;
+  className?: string;
+  wellClassName?: string;
+  children: ReactNode;
+}) {
+  return (
+    <section aria-label="PDF preview" className={cn("pdf-tray", className)}>
+      {toolbar ? (
+        <div className="flex min-h-12 flex-wrap items-center gap-2 px-3.5 pt-1.5 pb-2.5 text-[13px]">
+          {toolbar}
+        </div>
+      ) : (
+        <div className="h-2.5" />
+      )}
+      <div className={cn("pdf-tray-well", wellClassName)}>{children}</div>
+    </section>
+  );
+}
+
+/** Shows a PDF with the browser's viewer in the preview tray. Blobs get an object URL that's revoked when replaced. */
 export function PdfFrame({
   pdf,
   title,
+  toolbar,
   className,
 }: {
   pdf: Blob | string;
   title: string;
+  toolbar?: ReactNode;
+  /** Sizes the viewer, e.g. its height. */
   className?: string;
 }) {
   const [blobUrl, setBlobUrl] = useState<string>();
@@ -23,11 +56,9 @@ export function PdfFrame({
   // Chromium's viewer: no thumbnail sidebar, fit to width.
   const src = url && `${url}#navpanes=0&view=FitH`;
   return (
-    <iframe
-      title={title}
-      src={src}
-      className={cn("h-[70svh] w-full rounded-lg border bg-muted", className)}
-    />
+    <PdfTray toolbar={toolbar}>
+      <iframe title={title} src={src} className={cn("block h-[70svh] w-full", className)} />
+    </PdfTray>
   );
 }
 

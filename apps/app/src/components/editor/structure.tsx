@@ -1,4 +1,5 @@
 import { type Condition, conditionSchema } from "@necodoc/shared";
+import { GitForkIcon, RepeatIcon, SelectionSlashIcon, TrashIcon } from "@phosphor-icons/react";
 import { mergeAttributes, Node } from "@tiptap/core";
 import {
   NodeViewContent,
@@ -6,7 +7,6 @@ import {
   type ReactNodeViewProps,
   ReactNodeViewRenderer,
 } from "@tiptap/react";
-import { RepeatIcon, SplitIcon, Trash2Icon, UngroupIcon } from "lucide-react";
 import type { ReactNode } from "react";
 import { ConditionEditor } from "@/components/condition-editor";
 import { Button } from "@/components/ui/button";
@@ -144,7 +144,7 @@ function Wrapper({
               aria-label="Remove the wrapper, keep the content"
               onClick={() => unwrap(props)}
             >
-              <UngroupIcon />
+              <SelectionSlashIcon />
             </Button>
             <Button
               variant="ghost"
@@ -153,7 +153,7 @@ function Wrapper({
               aria-label="Delete the section and its content"
               onClick={props.deleteNode}
             >
-              <Trash2Icon />
+              <TrashIcon />
             </Button>
           </div>
         )}
@@ -170,7 +170,7 @@ function ConditionalView(props: ReactNodeViewProps) {
   const repeat = typeof pos === "number" ? enclosingRepeat(editor.state.doc.resolve(pos)) : null;
   const condition: Condition | null = conditionSchema.safeParse(node.attrs.condition).data ?? null;
   return (
-    <Wrapper props={props} tone="amber" icon={<SplitIcon className="size-3.5 text-amber-600" />}>
+    <Wrapper props={props} tone="amber" icon={<GitForkIcon className="size-3.5 text-amber-600" />}>
       <span className="font-medium">Show only if</span>
       <ConditionEditor
         id={`condition-${pos}`}

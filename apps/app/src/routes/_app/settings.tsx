@@ -25,6 +25,7 @@ import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { authClient, type Me, unwrap, useSessionChange, useUserMutation } from "@/lib/auth";
 import { dayjs } from "@/lib/date";
+import { densities, setDensity, useDensity } from "@/lib/density";
 import { setTheme, themes, useTheme } from "@/lib/theme";
 
 // Spec: docs/features/user-preferences.md
@@ -302,26 +303,45 @@ function ApiKeysCard() {
 
 function ThemeCard() {
   const theme = useTheme();
+  const density = useDensity();
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Theme</CardTitle>
-        <CardDescription>Saved in this browser only.</CardDescription>
+        <CardTitle>Appearance</CardTitle>
+        <CardDescription>Theme and table density. Saved in this browser only.</CardDescription>
       </CardHeader>
       <CardContent>
-        <fieldset className="flex gap-2">
-          <legend className="sr-only">Theme</legend>
-          {themes.map((option) => (
-            <Button
-              key={option}
-              variant={theme === option ? "default" : "outline"}
-              aria-pressed={theme === option}
-              className="capitalize"
-              onClick={() => setTheme(option)}
-            >
-              {option}
-            </Button>
-          ))}
+        <fieldset className="space-y-2">
+          <legend className="text-sm font-semibold">Theme</legend>
+          <div className="flex gap-2">
+            {themes.map((option) => (
+              <Button
+                key={option}
+                variant={theme === option ? "default" : "outline"}
+                aria-pressed={theme === option}
+                className="capitalize"
+                onClick={() => setTheme(option)}
+              >
+                {option}
+              </Button>
+            ))}
+          </div>
+        </fieldset>
+        <fieldset className="mt-5 space-y-2">
+          <legend className="text-sm font-semibold">Table rows</legend>
+          <div className="flex gap-2">
+            {densities.map((option) => (
+              <Button
+                key={option}
+                variant={density === option ? "default" : "outline"}
+                aria-pressed={density === option}
+                className="capitalize"
+                onClick={() => setDensity(option)}
+              >
+                {option}
+              </Button>
+            ))}
+          </div>
         </fieldset>
       </CardContent>
     </Card>

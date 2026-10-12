@@ -8,8 +8,8 @@ import {
   type TemplateData,
   templateDataSchema,
 } from "@necodoc/shared";
+import { ImageIcon, PencilSimpleIcon, PlusIcon, TrashIcon } from "@phosphor-icons/react";
 import { useStore } from "@tanstack/react-form";
-import { ImageIcon, PencilIcon, PlusIcon, Trash2Icon } from "lucide-react";
 import { type ReactNode, useMemo, useRef, useState } from "react";
 import { useAppForm } from "@/components/form";
 import { SignaturePad } from "@/components/signature-pad";
@@ -231,7 +231,7 @@ export function GuidedForm({
                         aria-label={`Remove ${field.label} ${i + 1}`}
                         onClick={() => api.handleChange(items.filter((_, j) => j !== i))}
                       >
-                        <Trash2Icon />
+                        <TrashIcon />
                       </Button>
                     )}
                   </div>
@@ -257,7 +257,7 @@ export function GuidedForm({
                 disabled={full}
                 onClick={() => api.handleChange([...items, newItem(field.fields)])}
               >
-                <PlusIcon />
+                <PlusIcon weight="bold" />
                 Add {field.label.toLowerCase()}
               </Button>
             )}
@@ -608,7 +608,7 @@ export function AnswerSummary({
             <h3 className="font-medium">{section.title}</h3>
             {onEdit && (
               <Button type="button" variant="ghost" size="sm" onClick={() => onEdit(step)}>
-                <PencilIcon />
+                <PencilSimpleIcon />
                 Edit
               </Button>
             )}

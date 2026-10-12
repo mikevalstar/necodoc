@@ -15,15 +15,15 @@ import {
   pdfSourceSchema,
   signingKindLabels,
 } from "@necodoc/shared";
-import { queryOptions, useMutation, useQuery } from "@tanstack/react-query";
 import {
   CheckIcon,
-  FileInputIcon,
-  SparklesIcon,
+  FileArrowDownIcon,
+  MagnifyingGlassMinusIcon,
+  MagnifyingGlassPlusIcon,
+  SparkleIcon,
   XIcon,
-  ZoomInIcon,
-  ZoomOutIcon,
-} from "lucide-react";
+} from "@phosphor-icons/react";
+import { queryOptions, useMutation, useQuery } from "@tanstack/react-query";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import { SuggestButton, useAiEnabled } from "@/components/ai";
@@ -342,7 +342,7 @@ export function OverlayEditor({
         )}
         {editable && unmapped.length > 0 && (
           <Button variant="outline" size="sm" onClick={importFields}>
-            <FileInputIcon />
+            <FileArrowDownIcon />
             Import form fields ({unmapped.length})
           </Button>
         )}
@@ -357,7 +357,7 @@ export function OverlayEditor({
               detection.start.mutate();
             }}
           >
-            <SparklesIcon />
+            <SparkleIcon />
             {detection.running ? "Detecting…" : "Detect with AI"}
           </Button>
         )}
@@ -370,7 +370,7 @@ export function OverlayEditor({
               setZoom(ZOOMS.filter((z) => z * (4 / 3) < scale - 0.01).at(-1) ?? ZOOMS[0] ?? 0.5)
             }
           >
-            <ZoomOutIcon />
+            <MagnifyingGlassMinusIcon />
           </Button>
           <Button variant="ghost" size="xs" onClick={() => setZoom("fit")}>
             {zoom === "fit" ? "Fit" : `${Math.round(zoom * 100)}%`}
@@ -381,7 +381,7 @@ export function OverlayEditor({
             aria-label="Zoom in"
             onClick={() => setZoom(ZOOMS.find((z) => z * (4 / 3) > scale + 0.01) ?? 3)}
           >
-            <ZoomInIcon />
+            <MagnifyingGlassPlusIcon />
           </Button>
         </div>
       </div>
@@ -433,7 +433,7 @@ export function OverlayEditor({
           {doc ? (
             // biome-ignore lint/a11y/noStaticElementInteractions: the canvas takes arrow keys, Delete and ⌘D for the selected box
             <div
-              className="relative mx-auto w-fit outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              className="relative mx-auto w-fit outline-none"
               // biome-ignore lint/a11y/noNoninteractiveTabindex: see above
               tabIndex={0}
               onKeyDown={onKeyDown}
@@ -604,7 +604,7 @@ export function OverlayEditor({
                       disabled={!editable}
                       onClick={() => accept([s])}
                     >
-                      <CheckIcon />
+                      <CheckIcon weight="bold" />
                     </Button>
                     <Button
                       size="icon-xs"
@@ -612,7 +612,7 @@ export function OverlayEditor({
                       aria-label={`Reject ${s.key}`}
                       onClick={() => reject([s.sid])}
                     >
-                      <XIcon />
+                      <XIcon weight="bold" />
                     </Button>
                   </li>
                 ))}

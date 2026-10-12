@@ -1,6 +1,6 @@
+import { BellIcon } from "@phosphor-icons/react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
-import { BellIcon } from "lucide-react";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -38,23 +38,26 @@ export function NotificationBell() {
       <PopoverTrigger
         render={
           <Button
-            variant="ghost"
+            variant="outline"
             size="icon"
             aria-label={unread ? `Notifications, ${unread} unread` : "Notifications"}
-            className="relative"
+            className="relative rounded-xl text-ink-2"
           />
         }
       >
         <BellIcon />
         {unread > 0 && (
-          <span className="absolute -top-0.5 -right-0.5 min-w-4 rounded-full bg-primary px-1 text-[0.65rem] leading-4 text-primary-foreground">
+          <span className="absolute -top-1 -right-1 min-w-[18px] rounded-full bg-sun px-1 text-[10.5px] leading-[18px] font-bold text-sun-foreground ring-2 ring-canvas">
             {unread > 99 ? "99+" : unread}
           </span>
         )}
       </PopoverTrigger>
-      <PopoverContent align="end" className="w-[min(24rem,calc(100vw-2rem))] p-0">
-        <div className="flex items-center justify-between border-b px-3 py-2">
-          <span className="text-sm font-medium">Notifications</span>
+      <PopoverContent
+        align="end"
+        className="w-[min(24rem,calc(100vw-2rem))] gap-0 overflow-hidden p-0"
+      >
+        <div className="flex items-center justify-between border-b border-hair px-4 py-3">
+          <span className="font-heading text-[15px] font-bold">Notifications</span>
           <Button
             variant="ghost"
             size="xs"
@@ -75,8 +78,8 @@ export function NotificationBell() {
               <button
                 type="button"
                 className={cn(
-                  "block w-full space-y-0.5 border-b px-3 py-2 text-left text-sm hover:bg-muted",
-                  !n.readAt && "bg-primary/5",
+                  "block w-full space-y-0.5 border-b border-hair px-4 py-2.5 text-left text-sm hover:bg-tint",
+                  !n.readAt && "bg-brand-wash/50",
                 )}
                 onClick={async () => {
                   if (!n.readAt) markRead.mutate([n.id]);
@@ -93,11 +96,11 @@ export function NotificationBell() {
               >
                 <div className="flex items-center gap-2">
                   {!n.readAt && (
-                    <span className="size-2 rounded-full bg-primary">
+                    <span className="size-2 shrink-0 rounded-full bg-brand">
                       <span className="sr-only">Unread</span>
                     </span>
                   )}
-                  <span className="font-medium whitespace-nowrap">{kindLabels[n.kind]}</span>
+                  <span className="font-semibold whitespace-nowrap">{kindLabels[n.kind]}</span>
                   <span className="truncate text-muted-foreground">{n.templateName}</span>
                   <span className="ml-auto shrink-0 text-xs text-muted-foreground">
                     {dayjs(n.createdAt).fromNow()}

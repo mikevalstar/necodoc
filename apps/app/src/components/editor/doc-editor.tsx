@@ -1,4 +1,21 @@
 import type { FieldSection, Signer } from "@necodoc/shared";
+import {
+  BracketsCurlyIcon,
+  CodeIcon,
+  GitForkIcon,
+  ImageIcon,
+  ListBulletsIcon,
+  ListNumbersIcon,
+  MinusIcon,
+  PencilLineIcon,
+  PuzzlePieceIcon,
+  QuotesIcon,
+  RepeatIcon,
+  ScissorsIcon,
+  TableIcon,
+  TextHOneIcon,
+  TextHTwoIcon,
+} from "@phosphor-icons/react";
 import type { Editor, JSONContent } from "@tiptap/core";
 import { Table, TableCell, TableHeader, TableRow } from "@tiptap/extension-table";
 import TextAlign from "@tiptap/extension-text-align";
@@ -6,23 +23,6 @@ import { Color, TextStyle } from "@tiptap/extension-text-style";
 import { Placeholder } from "@tiptap/extensions";
 import { EditorContent, useEditor } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
-import {
-  BracesIcon,
-  CodeIcon,
-  Heading1Icon,
-  Heading2Icon,
-  ImageIcon,
-  ListIcon,
-  ListOrderedIcon,
-  MinusIcon,
-  PenLineIcon,
-  PuzzleIcon,
-  QuoteIcon,
-  RepeatIcon,
-  ScissorsLineDashedIcon,
-  SplitIcon,
-  TableIcon,
-} from "lucide-react";
 import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import { newCondition } from "@/components/condition-editor";
 import { Button } from "@/components/ui/button";
@@ -200,28 +200,28 @@ export function DocEditor({
   };
 
   const insertItems: InsertItem[] = [
-    { title: "Merge field", icon: BracesIcon, run: openFieldPicker },
+    { title: "Merge field", icon: BracketsCurlyIcon, run: openFieldPicker },
     {
       title: "Heading 1",
-      icon: Heading1Icon,
+      icon: TextHOneIcon,
       run: (e) => e.chain().focus().setHeading({ level: 1 }).run(),
     },
     {
       title: "Heading 2",
-      icon: Heading2Icon,
+      icon: TextHTwoIcon,
       run: (e) => e.chain().focus().setHeading({ level: 2 }).run(),
     },
     {
       title: "Bullet list",
-      icon: ListIcon,
+      icon: ListBulletsIcon,
       run: (e) => e.chain().focus().toggleBulletList().run(),
     },
     {
       title: "Numbered list",
-      icon: ListOrderedIcon,
+      icon: ListNumbersIcon,
       run: (e) => e.chain().focus().toggleOrderedList().run(),
     },
-    { title: "Quote", icon: QuoteIcon, run: (e) => e.chain().focus().toggleBlockquote().run() },
+    { title: "Quote", icon: QuotesIcon, run: (e) => e.chain().focus().toggleBlockquote().run() },
     {
       title: "Table",
       icon: TableIcon,
@@ -230,7 +230,7 @@ export function DocEditor({
     { title: "Image", icon: ImageIcon, run: () => setImageOpen(true) },
     {
       title: "Conditional section",
-      icon: SplitIcon,
+      icon: GitForkIcon,
       run: (e) => {
         const first = scalarChoices(sections, repeatAtCursor(e))[0];
         const attrs = { condition: first ? newCondition(first) : null };
@@ -261,7 +261,7 @@ export function DocEditor({
       : [
           {
             title: "Page break",
-            icon: ScissorsLineDashedIcon,
+            icon: ScissorsIcon,
             run: (e: Editor) => e.chain().focus().insertContent({ type: "pageBreak" }).run(),
           },
         ]),
@@ -275,12 +275,12 @@ export function DocEditor({
           .insertContent({ type: "rawHtml", attrs: { html: "" } })
           .run(),
     },
-    { title: "Snippet", icon: PuzzleIcon, run: () => setSnippetOpen(true) },
+    { title: "Snippet", icon: PuzzlePieceIcon, run: () => setSnippetOpen(true) },
     ...(signers
       ? [
           {
             title: "Sign box",
-            icon: PenLineIcon,
+            icon: PencilLineIcon,
             run: (e: Editor) =>
               e
                 .chain()
@@ -313,7 +313,7 @@ export function DocEditor({
                 onOpenChange={(open) => (open ? openFieldPicker() : setFieldOpen(false))}
               >
                 <PopoverTrigger render={<Button variant="ghost" size="sm" />}>
-                  <BracesIcon />
+                  <BracketsCurlyIcon />
                   Field
                 </PopoverTrigger>
                 <PopoverContent align="start" className="w-80">

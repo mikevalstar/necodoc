@@ -1,7 +1,7 @@
 import { isFinishedStatus, type OutputProfile } from "@necodoc/shared";
+import { ArrowCounterClockwiseIcon, DownloadSimpleIcon, LinkIcon } from "@phosphor-icons/react";
 import { queryOptions, useSuspenseQuery } from "@tanstack/react-query";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { DownloadIcon, LinkIcon, RotateCcwIcon } from "lucide-react";
 import { type ReactNode, useState } from "react";
 import { CopyButton } from "@/components/copy-button";
 import { ErrorAlert } from "@/components/form";
@@ -68,7 +68,7 @@ function GenerationDetail() {
               disabled={rerun.isPending}
               onClick={() => rerun.mutate(generation.id)}
             >
-              <RotateCcwIcon />
+              <ArrowCounterClockwiseIcon />
               {rerun.isPending ? "Re-running…" : "Re-run"}
             </Button>
             {generation.hasOutput && (
@@ -82,7 +82,7 @@ function GenerationDetail() {
                   download={generation.filename}
                   className={buttonVariants()}
                 >
-                  <DownloadIcon />
+                  <DownloadSimpleIcon />
                   Download
                 </a>
               </>

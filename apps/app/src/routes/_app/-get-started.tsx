@@ -1,27 +1,19 @@
 import { hasPermission } from "@necodoc/shared";
-import { useQuery } from "@tanstack/react-query";
-import { Link } from "@tanstack/react-router";
 import {
   CheckIcon,
-  FilePlus2Icon,
-  FileUpIcon,
-  KeyRoundIcon,
-  PenLineIcon,
-  RocketIcon,
+  FileArrowUpIcon,
+  KeyIcon,
+  PencilRulerIcon,
+  RocketLaunchIcon,
+  SignatureIcon,
   UsersIcon,
-  XIcon,
-} from "lucide-react";
+} from "@phosphor-icons/react";
+import { useQuery } from "@tanstack/react-query";
+import { Link } from "@tanstack/react-router";
 import { type ReactElement, useState } from "react";
 import { apiKeysQuery } from "@/components/api-keys";
 import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardAction,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { Card, CardAction, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { authClient, type Me, unwrap } from "@/lib/auth";
 import { submissionsQuery, templatesQuery } from "@/lib/queries";
 import { cn } from "@/lib/utils";
@@ -86,7 +78,7 @@ export function GetStarted({ me }: { me: Me }) {
     {
       title: "Design a template",
       description: "Lay out a certificate, quote or letter and the questions it asks.",
-      icon: FilePlus2Icon,
+      icon: PencilRulerIcon,
       link: <Link to="/templates" search={{ new: "designed" }} />,
       action: "New template",
       done: list.some((t) => t.kind === "designed"),
@@ -95,7 +87,7 @@ export function GetStarted({ me }: { me: Me }) {
     {
       title: "Upload a PDF form",
       description: "Already have the form as a PDF? Place fields on it instead.",
-      icon: FileUpIcon,
+      icon: FileArrowUpIcon,
       link: <Link to="/templates" search={{ new: "overlay" }} />,
       action: "Upload a PDF",
       done: list.some((t) => t.kind === "overlay"),
@@ -104,7 +96,7 @@ export function GetStarted({ me }: { me: Me }) {
     {
       title: "Publish a template",
       description: "Publishing makes a version others can fill in and the API can use.",
-      icon: RocketIcon,
+      icon: RocketLaunchIcon,
       link: <Link to="/templates" />,
       action: "Open templates",
       done: list.some((t) => t.latestVersion !== null),
@@ -113,7 +105,7 @@ export function GetStarted({ me }: { me: Me }) {
     {
       title: "Fill in your first document",
       description: "Answer a template's questions and download the finished PDF.",
-      icon: PenLineIcon,
+      icon: SignatureIcon,
       link: <Link to="/documents/new" />,
       action: "New document",
       done: (documents.data?.length ?? 0) > 0,
@@ -122,7 +114,7 @@ export function GetStarted({ me }: { me: Me }) {
     {
       title: "Get an API key",
       description: "Generate PDFs from your own systems through /api/v1.",
-      icon: KeyRoundIcon,
+      icon: KeyIcon,
       link: <Link to="/settings/api-keys" />,
       action: "Create a key",
       done: (keys.data?.length ?? 0) > 0,
@@ -144,18 +136,20 @@ export function GetStarted({ me }: { me: Me }) {
   const doneCount = steps.filter((step) => step.done).length;
   if (dismissed || !loaded || doneCount === steps.length) return null;
 
+  // Marigold marks the one next step (docs/features/design-system.md).
+  const next = steps.find((step) => !step.done);
+  const radius = 50;
+  const circumference = 2 * Math.PI * radius;
+
   return (
     <Card>
       <CardHeader>
         <CardTitle>Get started</CardTitle>
-        <CardDescription>
-          {doneCount} of {steps.length} done. Each step ticks itself off once it has happened.
-        </CardDescription>
         <CardAction>
           <Button
             variant="ghost"
-            size="icon-sm"
-            aria-label="Hide the get started checklist"
+            size="sm"
+            className="text-ink-3"
             onClick={() => {
               try {
                 localStorage.setItem(dismissedKey(me.user.id), "1");
@@ -165,53 +159,97 @@ export function GetStarted({ me }: { me: Me }) {
               setDismissed(true);
             }}
           >
-            <XIcon />
+            Hide checklist
           </Button>
         </CardAction>
       </CardHeader>
-      <CardContent>
-        <ol className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-          {steps.map((step) => (
-            <li
-              key={step.title}
-              className={cn(
-                "flex gap-3 rounded-lg border p-3",
-                step.done && "bg-muted/40 text-muted-foreground",
-              )}
-            >
-              <span
+      <CardContent className="grid items-center gap-5 sm:grid-cols-[170px_1fr]">
+        <div className="grid justify-items-center gap-2 text-center">
+          <div className="relative size-32">
+            <svg viewBox="0 0 120 120" className="size-32 -rotate-90" aria-hidden="true">
+              <circle
+                cx="60"
+                cy="60"
+                r={radius}
+                fill="none"
+                strokeWidth="14"
+                stroke="var(--tint-2)"
+              />
+              <circle
+                cx="60"
+                cy="60"
+                r={radius}
+                fill="none"
+                strokeWidth="14"
+                strokeLinecap="round"
+                stroke="var(--brand)"
+                strokeDasharray={`${(doneCount / steps.length) * circumference} ${circumference}`}
+              />
+            </svg>
+            <span className="absolute inset-0 grid place-items-center font-heading text-[34px] leading-none font-extrabold">
+              <span>
+                {doneCount}
+                <small className="text-base text-ink-3">/{steps.length}</small>
+              </span>
+            </span>
+          </div>
+          <p className="text-[13px] text-ink-2">
+            {doneCount} of {steps.length} done.{next && ` Next: ${next.title.toLowerCase()}.`} Each
+            step ticks itself off.
+          </p>
+        </div>
+        <ol className={cn("grid gap-3 sm:grid-cols-2", steps.length > 4 && "xl:grid-cols-3")}>
+          {steps.map((step) => {
+            const isNext = step === next;
+            return (
+              <li
+                key={step.title}
                 className={cn(
-                  "flex size-8 shrink-0 items-center justify-center rounded-full",
-                  step.done ? "bg-primary text-primary-foreground" : "bg-primary/10 text-primary",
+                  "flex flex-col gap-1.5 rounded-[14px] bg-tint p-3.5",
+                  step.done && "bg-ok-wash",
+                  isNext && "bg-brand text-on-brand",
                 )}
               >
-                {step.done ? <CheckIcon className="size-4" /> : <step.icon className="size-4" />}
-              </span>
-              <div className="min-w-0 flex-1 space-y-1">
-                <p
+                <span
                   className={cn(
-                    "text-sm font-medium",
-                    step.done ? "line-through" : "text-foreground",
+                    "grid size-9 place-items-center rounded-[10px] bg-surface text-brand",
+                    step.done && "text-ok",
+                    isNext && "bg-white/18 text-on-brand dark:bg-black/15",
                   )}
                 >
+                  <step.icon className="size-5" />
+                </span>
+                <p className="font-heading text-[15px] font-bold">
                   {step.title}
-                  {step.done && <span className="sr-only"> (done)</span>}
+                  {step.done && (
+                    <>
+                      <CheckIcon weight="bold" className="ml-1 inline size-4 text-ok" />
+                      <span className="sr-only"> (done)</span>
+                    </>
+                  )}
                 </p>
-                <p className="text-xs">{step.description}</p>
+                <p
+                  className={cn(
+                    "text-[13px] leading-snug text-ink-2",
+                    isNext && "text-[color-mix(in_srgb,var(--on-brand)_85%,transparent)]",
+                  )}
+                >
+                  {step.description}
+                </p>
                 {!step.done && (
                   <Button
                     size="sm"
-                    variant="outline"
-                    className="mt-1"
+                    variant={isNext ? "sun" : "link"}
+                    className={cn("mt-1 self-start", !isNext && "h-auto px-0")}
                     nativeButton={false}
                     render={step.link}
                   >
                     {step.action}
                   </Button>
                 )}
-              </div>
-            </li>
-          ))}
+              </li>
+            );
+          })}
         </ol>
       </CardContent>
     </Card>

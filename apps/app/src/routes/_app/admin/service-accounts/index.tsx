@@ -1,7 +1,7 @@
 import type { createServiceAccountSchema } from "@necodoc/shared";
+import { PlusIcon, RobotIcon } from "@phosphor-icons/react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute, Link, redirect, useNavigate } from "@tanstack/react-router";
-import { BotIcon, PlusIcon } from "lucide-react";
 import { useState } from "react";
 import type { z } from "zod";
 import { ErrorAlert, useAppForm } from "@/components/form";
@@ -54,7 +54,7 @@ function ServiceAccounts() {
           <>
             <FaqLink feature="Service accounts" />
             <Button onClick={() => setCreating(true)}>
-              <PlusIcon />
+              <PlusIcon weight="bold" />
               Create service account
             </Button>
           </>
@@ -64,12 +64,12 @@ function ServiceAccounts() {
       {accounts.isPending && <ListSkeleton />}
       {accounts.data?.length === 0 && (
         <EmptyState
-          icon={BotIcon}
+          icon={RobotIcon}
           title="No service accounts yet"
           description="Give each system that calls the API its own account, so its keys keep working when the person who set it up leaves."
           action={
             <Button onClick={() => setCreating(true)}>
-              <PlusIcon />
+              <PlusIcon weight="bold" />
               Create service account
             </Button>
           }

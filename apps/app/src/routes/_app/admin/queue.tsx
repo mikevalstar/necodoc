@@ -1,4 +1,5 @@
 import { type JobState, jobStateSchema, type QueueJob } from "@necodoc/shared";
+import { PauseIcon, PlayIcon } from "@phosphor-icons/react";
 import {
   keepPreviousData,
   queryOptions,
@@ -8,7 +9,6 @@ import {
 } from "@tanstack/react-query";
 import { createFileRoute, Link, redirect } from "@tanstack/react-router";
 import { createColumnHelper } from "@tanstack/react-table";
-import { PauseIcon, PlayIcon } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 import { z } from "zod";

@@ -1,4 +1,15 @@
 import {
+  ArrowDownIcon,
+  ArrowUpIcon,
+  CaretDoubleLeftIcon,
+  CaretDoubleRightIcon,
+  CaretLeftIcon,
+  CaretRightIcon,
+  ColumnsIcon,
+  ListDashesIcon,
+  RowsIcon,
+} from "@phosphor-icons/react";
+import {
   columnVisibilityFeature,
   metaHelper,
   type RowData,
@@ -6,15 +17,6 @@ import {
   tableFeatures,
   useTable,
 } from "@tanstack/react-table";
-import {
-  ArrowDownIcon,
-  ArrowUpIcon,
-  ChevronLeftIcon,
-  ChevronRightIcon,
-  ChevronsLeftIcon,
-  ChevronsRightIcon,
-  Columns3Icon,
-} from "lucide-react";
 import { type ComponentProps, type ReactNode, useEffect, useId, useRef, useState } from "react";
 import { z } from "zod";
 import { ListSkeleton } from "@/components/page";
@@ -31,6 +33,7 @@ import { Field, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { NativeSelect, NativeSelectOption } from "@/components/ui/native-select";
 import { TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { type Density, setDensity, useDensity } from "@/lib/density";
 import { cn } from "@/lib/utils";
 
 // A server-side table: the server sorts, filters and pages; the URL holds the table state (so
@@ -139,44 +142,47 @@ export function DataTable<TData extends RowData, TSort extends string>({
   const pageSizeId = useId();
 
   return (
-    <div className="space-y-3">
-      <div className="flex flex-wrap items-end gap-3">
+    <div className="overflow-hidden rounded-xl bg-card shadow-card">
+      <div className="flex flex-wrap items-end gap-3 border-b border-hair px-4 py-3.5">
         {toolbar}
-        <DropdownMenu>
-          <DropdownMenuTrigger render={<Button variant="outline" className="ml-auto" />}>
-            <Columns3Icon />
-            Columns
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-48">
-            <DropdownMenuGroup>
-              <DropdownMenuLabel>Show columns</DropdownMenuLabel>
-              {hideable.map((column) => (
-                <DropdownMenuCheckboxItem
-                  key={column.id}
-                  checked={column.getIsVisible()}
-                  onCheckedChange={(checked) =>
-                    onStateChange({
-                      columns: visibleColumns
-                        .map((visible) => visible.id)
-                        .filter((id) => id !== column.id)
-                        .concat(checked ? [column.id] : []),
-                    })
-                  }
-                >
-                  {typeof column.columnDef.header === "string"
-                    ? column.columnDef.header
-                    : column.id}
-                </DropdownMenuCheckboxItem>
-              ))}
-            </DropdownMenuGroup>
-          </DropdownMenuContent>
-        </DropdownMenu>
+        <div className="ml-auto flex items-center gap-2">
+          <DensityToggle />
+          <DropdownMenu>
+            <DropdownMenuTrigger render={<Button variant="secondary" size="sm" />}>
+              <ColumnsIcon />
+              Columns
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-48">
+              <DropdownMenuGroup>
+                <DropdownMenuLabel>Show columns</DropdownMenuLabel>
+                {hideable.map((column) => (
+                  <DropdownMenuCheckboxItem
+                    key={column.id}
+                    checked={column.getIsVisible()}
+                    onCheckedChange={(checked) =>
+                      onStateChange({
+                        columns: visibleColumns
+                          .map((visible) => visible.id)
+                          .filter((id) => id !== column.id)
+                          .concat(checked ? [column.id] : []),
+                      })
+                    }
+                  >
+                    {typeof column.columnDef.header === "string"
+                      ? column.columnDef.header
+                      : column.id}
+                  </DropdownMenuCheckboxItem>
+                ))}
+              </DropdownMenuGroup>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
       </div>
 
       {/* Its own scroll box, so the header can stick while the rows scroll in both directions. */}
-      <div className="max-h-[75vh] overflow-auto rounded-lg border">
+      <div className="max-h-[75vh] overflow-auto">
         <table className="w-full text-sm">
-          <TableHeader className="sticky top-0 z-10 bg-background shadow-[0_1px_0_var(--color-border)]">
+          <TableHeader className="sticky top-0 z-10 bg-card shadow-[0_1px_0_var(--hair)] [&_tr]:border-0">
             {table.getHeaderGroups().map((group) => (
               <TableRow key={group.id} className="hover:bg-transparent">
                 {group.headers.map((header) => {
@@ -195,7 +201,10 @@ export function DataTable<TData extends RowData, TSort extends string>({
                       ) : (
                         <button
                           type="button"
-                          className="inline-flex items-center gap-1 hover:underline"
+                          className={cn(
+                            "inline-flex items-center gap-1 rounded hover:text-ink",
+                            sorted && "text-ink",
+                          )}
                           onClick={() =>
                             onStateChange({
                               sort: sortId,
@@ -207,9 +216,9 @@ export function DataTable<TData extends RowData, TSort extends string>({
                           <table.FlexRender header={header} />
                           {sorted &&
                             (state.order === "desc" ? (
-                              <ArrowDownIcon className="size-3.5" />
+                              <ArrowDownIcon weight="bold" className="size-3.5" />
                             ) : (
-                              <ArrowUpIcon className="size-3.5" />
+                              <ArrowUpIcon weight="bold" className="size-3.5" />
                             ))}
                         </button>
                       )}
@@ -271,13 +280,13 @@ export function DataTable<TData extends RowData, TSort extends string>({
         </table>
       </div>
 
-      <div className="flex flex-wrap items-center justify-between gap-2 text-sm text-muted-foreground">
+      <div className="flex flex-wrap items-center justify-between gap-2 border-t border-hair px-4 py-3 text-[13px] text-ink-3">
         <span aria-live="polite">
           {total === undefined
             ? " "
             : `${total.toLocaleString()} ${total === 1 ? noun : `${noun}s`}`}
         </span>
-        <div className="flex flex-wrap items-center gap-2">
+        <div className="flex flex-wrap items-center gap-1.5">
           <label htmlFor={pageSizeId}>Rows</label>
           <NativeSelect
             id={pageSizeId}
@@ -291,32 +300,61 @@ export function DataTable<TData extends RowData, TSort extends string>({
               </NativeSelectOption>
             ))}
           </NativeSelect>
-          <span className="tabular-nums">
+          <span className="px-2 font-semibold text-ink-2 tabular-nums">
             Page {state.page.toLocaleString()} of {pages.toLocaleString()}
           </span>
           <PageButton label="First page" disabled={state.page <= 1} onClick={() => goTo(1)}>
-            <ChevronsLeftIcon />
+            <CaretDoubleLeftIcon weight="bold" />
           </PageButton>
           <PageButton
             label="Previous page"
             disabled={state.page <= 1}
             onClick={() => goTo(Math.min(state.page, pages) - 1)}
           >
-            <ChevronLeftIcon />
+            <CaretLeftIcon weight="bold" />
           </PageButton>
           <PageButton
             label="Next page"
             disabled={state.page >= pages}
             onClick={() => goTo(state.page + 1)}
           >
-            <ChevronRightIcon />
+            <CaretRightIcon weight="bold" />
           </PageButton>
           <PageButton label="Last page" disabled={state.page >= pages} onClick={() => goTo(pages)}>
-            <ChevronsRightIcon />
+            <CaretDoubleRightIcon weight="bold" />
           </PageButton>
         </div>
       </div>
     </div>
+  );
+}
+
+/**
+ * Comfortable or compact rows for every table, remembered in this browser (lib/density.ts).
+ * DataTable shows it; put it beside any other table that should offer it.
+ */
+export function DensityToggle() {
+  const density = useDensity();
+  const option = (value: Density, label: string, icon: ReactNode) => (
+    <button
+      type="button"
+      aria-pressed={density === value}
+      aria-label={label}
+      title={label}
+      onClick={() => setDensity(value)}
+      className={cn(
+        "grid h-7 w-8 place-items-center rounded-[7px] text-ink-2 hover:text-ink [&>svg]:size-4",
+        density === value && "bg-surface text-ink shadow-card",
+      )}
+    >
+      {icon}
+    </button>
+  );
+  return (
+    <fieldset aria-label="Row density" className="flex gap-0.5 rounded-[10px] bg-tint p-0.5">
+      {option("comfortable", "Comfortable rows", <RowsIcon />)}
+      {option("compact", "Compact rows", <ListDashesIcon weight="bold" />)}
+    </fieldset>
   );
 }
 
@@ -339,7 +377,7 @@ function StatusRow({
 }
 
 function PageButton({ label, ...props }: { label: string } & ComponentProps<typeof Button>) {
-  return <Button variant="outline" size="icon-sm" aria-label={label} title={label} {...props} />;
+  return <Button variant="ghost" size="icon-sm" aria-label={label} title={label} {...props} />;
 }
 
 /**

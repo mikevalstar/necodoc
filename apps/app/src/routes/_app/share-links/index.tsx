@@ -1,7 +1,7 @@
 import { hasPermission } from "@necodoc/shared";
+import { DotsThreeIcon, LinkIcon, PlusIcon } from "@phosphor-icons/react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute, Link, redirect } from "@tanstack/react-router";
-import { LinkIcon, MoreHorizontalIcon, PlusIcon } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 import { CopyButton } from "@/components/copy-button";
@@ -71,7 +71,7 @@ function ShareLinks() {
           <>
             <FaqLink feature="Share links" />
             <Button onClick={() => setEditing("new")}>
-              <PlusIcon />
+              <PlusIcon weight="bold" />
               New share link
             </Button>
           </>
@@ -88,7 +88,7 @@ function ShareLinks() {
           description="Send a link to people outside necodoc. They answer the template's questions without an account, and each response lands in My documents."
           action={
             <Button onClick={() => setEditing("new")}>
-              <PlusIcon />
+              <PlusIcon weight="bold" />
               New share link
             </Button>
           }
@@ -148,7 +148,7 @@ function ShareLinks() {
                         />
                       }
                     >
-                      <MoreHorizontalIcon />
+                      <DotsThreeIcon weight="bold" />
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
                       <DropdownMenuItem

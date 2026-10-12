@@ -1,5 +1,10 @@
+import {
+  ArrowClockwiseIcon,
+  CloudWarningIcon,
+  FileMagnifyingGlassIcon,
+  SpinnerGapIcon,
+} from "@phosphor-icons/react";
 import { type ErrorComponentProps, Link, useRouter } from "@tanstack/react-router";
-import { FileQuestionIcon, Loader2Icon, RefreshCwIcon, ServerCrashIcon } from "lucide-react";
 import { Logo } from "@/components/logo";
 import { EmptyState, Page } from "@/components/page";
 import { Button } from "@/components/ui/button";
@@ -11,7 +16,7 @@ export function NotFound() {
   return (
     <Page width="narrow" className="py-16">
       <EmptyState
-        icon={FileQuestionIcon}
+        icon={FileMagnifyingGlassIcon}
         title="Page not found"
         description="The link may be old, or the page was moved or deleted."
         action={
@@ -32,7 +37,7 @@ export function RouteError({ error, reset }: ErrorComponentProps) {
         <Logo className="size-8" />
       </div>
       <EmptyState
-        icon={ServerCrashIcon}
+        icon={CloudWarningIcon}
         title="Something went wrong"
         description={
           <>
@@ -47,7 +52,7 @@ export function RouteError({ error, reset }: ErrorComponentProps) {
               router.invalidate();
             }}
           >
-            <RefreshCwIcon />
+            <ArrowClockwiseIcon />
             Try again
           </Button>
         }
@@ -63,7 +68,7 @@ export function RoutePending() {
       role="status"
       className="flex min-h-[50svh] items-center justify-center gap-2 text-sm text-muted-foreground"
     >
-      <Loader2Icon className="size-4 animate-spin" />
+      <SpinnerGapIcon className="size-4 animate-spin" />
       Loading…
     </div>
   );

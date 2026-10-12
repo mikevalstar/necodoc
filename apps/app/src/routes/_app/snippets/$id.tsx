@@ -7,10 +7,10 @@ import {
   TemplateCompileError,
   updateSnippetSchema,
 } from "@necodoc/shared";
+import { WarningIcon } from "@phosphor-icons/react";
 import { queryOptions, useMutation, useQueryClient, useSuspenseQuery } from "@tanstack/react-query";
 import { createFileRoute, Link, redirect, useBlocker, useNavigate } from "@tanstack/react-router";
 import type { JSONContent } from "@tiptap/core";
-import { TriangleAlertIcon } from "lucide-react";
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
 import { HistoryPanel } from "@/components/audit";
@@ -255,7 +255,7 @@ function SnippetEditor({ snippet }: { snippet: SnippetDetail }) {
       )}
       {outOfDate.length > 0 && (
         <Alert>
-          <TriangleAlertIcon />
+          <WarningIcon />
           <AlertTitle>Published versions out of date</AlertTitle>
           <AlertDescription>
             {outOfDate.length === 1 ? "One template's" : `${outOfDate.length} templates'`} latest
@@ -388,7 +388,7 @@ function SnippetEditor({ snippet }: { snippet: SnippetDetail }) {
                   <Link
                     to="/templates/$id"
                     params={{ id: u.templateId }}
-                    className="text-xs text-primary hover:underline"
+                    className="text-xs text-brand-ink hover:underline"
                   >
                     Open to republish
                   </Link>

@@ -1,5 +1,5 @@
+import { SparkleIcon } from "@phosphor-icons/react";
 import { useMutation, useQuery } from "@tanstack/react-query";
-import { SparklesIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { meQuery } from "@/lib/auth";
 
@@ -32,7 +32,7 @@ export function SuggestButton({
         disabled={run.isPending}
         onClick={() => run.mutate()}
       >
-        <SparklesIcon />
+        <SparkleIcon />
         {run.isPending ? "Suggesting…" : "Suggest with AI"}
       </Button>
       {run.error && (

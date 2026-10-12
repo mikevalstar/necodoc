@@ -52,4 +52,5 @@ Add one with `okq new adr "<title>"`.
 | Sensitive fields masked outside stored inputs, erasure by data subject | [0039-sensitive-fields-masked-outside-stored-inputs-erasure-by-data-subject.md](0039-sensitive-fields-masked-outside-stored-inputs-erasure-by-data-subject.md) |
 | One document language and source-text translation tables | [0040-one-document-language-and-source-text-translation-tables.md](0040-one-document-language-and-source-text-translation-tables.md) |
 | Python, .NET and Java SDKs generated with openapi-generator | [0041-python-net-and-java-sdks-generated-with-openapi-generator.md](0041-python-net-and-java-sdks-generated-with-openapi-generator.md) |
+| Cobalt design system with Bricolage, Figtree and Phosphor | [0042-cobalt-design-system-with-bricolage-figtree-and-phosphor.md](0042-cobalt-design-system-with-bricolage-figtree-and-phosphor.md) |
 <!-- okq:index:end -->

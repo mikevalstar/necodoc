@@ -1,13 +1,54 @@
 @import "tailwindcss";
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
-@import "@fontsource-variable/geist";
+@import "@fontsource-variable/bricolage-grotesque/opsz.css";
+@import "@fontsource-variable/figtree";
+@import "@fontsource/fragment-mono";
+
+/* Cobalt (ADR 0042, docs/features/design-system.md). The look is specified in
+   design/directions/README.md (C. Cobalt) and the cobalt/ mockups; this file is the only
+   place its values live. Cobalt names (canvas, tint, ink, washes, shell, sun) sit beside the
+   shadcn ones, which are mapped onto them. */
 
 @custom-variant dark (&:is(.dark *));
+/* Tables and lists that honour the compact toggle (lib/density.ts). */
+@custom-variant compact (&:is([data-density="compact"] *));
 
 @theme inline {
-  --font-heading: var(--font-sans);
-  --font-sans: "Geist Variable", sans-serif;
+  --font-sans: "Figtree Variable", system-ui, sans-serif;
+  --font-heading: "Bricolage Grotesque Variable", system-ui, sans-serif;
+  --font-mono: "Fragment Mono", ui-monospace, monospace;
+
+  --color-canvas: var(--canvas);
+  --color-surface: var(--surface);
+  --color-tint: var(--tint);
+  --color-tint-2: var(--tint-2);
+  --color-ink: var(--ink);
+  --color-ink-2: var(--ink-2);
+  --color-ink-3: var(--ink-3);
+  --color-hair: var(--hair);
+  --color-brand: var(--brand);
+  --color-brand-ink: var(--brand-ink);
+  --color-brand-wash: var(--brand-wash);
+  --color-on-brand: var(--on-brand);
+  --color-shell: var(--shell);
+  --color-shell-2: var(--shell-2);
+  --color-shell-fg: var(--shell-fg);
+  --color-shell-fg-2: var(--shell-fg-2);
+  --color-sun: var(--sun);
+  --color-sun-foreground: var(--sun-foreground);
+  --color-sun-ink: var(--sun-ink);
+  --color-sun-wash: var(--sun-wash);
+  --color-ok: var(--ok);
+  --color-ok-wash: var(--ok-wash);
+  --color-warn: var(--warn);
+  --color-warn-wash: var(--warn-wash);
+  --color-bad: var(--bad);
+  --color-bad-wash: var(--bad-wash);
+  --color-run: var(--run);
+  --color-run-wash: var(--run-wash);
+  --color-mute-wash: var(--mute-wash);
+
   --color-sidebar-ring: var(--sidebar-ring);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
@@ -22,7 +63,6 @@
   --color-chart-2: var(--chart-2);
   --color-chart-1: var(--chart-1);
   --color-ring: var(--ring);
-  --color-brand: var(--brand);
   --color-input: var(--input);
   --color-border: var(--border);
   --color-destructive: var(--destructive);
@@ -40,53 +80,102 @@
   --color-card: var(--card);
   --color-foreground: var(--foreground);
   --color-background: var(--background);
-  --radius-sm: calc(var(--radius) * 0.6);
-  --radius-md: calc(var(--radius) * 0.8);
+
+  /* 10px controls, 16px cards, 22px trays; pills use rounded-full. */
+  --radius-sm: 6px;
+  --radius-md: 8px;
   --radius-lg: var(--radius);
-  --radius-xl: calc(var(--radius) * 1.4);
-  --radius-2xl: calc(var(--radius) * 1.8);
-  --radius-3xl: calc(var(--radius) * 2.2);
-  --radius-4xl: calc(var(--radius) * 2.6);
+  --radius-xl: 16px;
+  --radius-2xl: 22px;
+  --radius-3xl: 28px;
+  --radius-4xl: 36px;
+
+  /* Depth replaces borders: cards sit on `shadow-card`, menus and dialogs on `shadow-float`. */
+  --shadow-card: var(--depth-1);
+  --shadow-float: var(--depth-2);
+  --shadow-md: var(--depth-2);
+  --shadow-lg: var(--depth-2);
+  --shadow-xl: var(--depth-2);
+  --shadow-2xl: var(--depth-2);
 }
 
 :root {
-  --background: oklch(1 0 0);
-  --foreground: oklch(0.145 0 0);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.145 0 0);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.145 0 0);
-  /* Brand accent from the neko mark (/brand, components/logo.tsx). */
+  --canvas: #f2f3fa;
+  --surface: #ffffff;
+  --tint: #eceefb;
+  --tint-2: #e2e5f8;
+  --ink: #0c1233;
+  --ink-2: #3f4668;
+  --ink-3: #5b6285;
+  --hair: #e3e5f2;
+  /* Brand cobalt from the neko mark (/brand, components/logo.tsx). White on it is exactly
+     4.5:1: text on brand fills stays 14px semibold or heavier. Text in brand colour uses
+     brand-ink, which passes on every surface. */
   --brand: #2f6bff;
+  --brand-ink: #1f50e0;
+  --brand-wash: #e7eeff;
+  --on-brand: #ffffff;
+  --shell: #1430a6;
+  --shell-2: #0f2585;
+  --shell-fg: #ffffff;
+  --shell-fg-2: #c9d4ff;
+  /* Marigold: the one next step on a screen, and the focus ring. */
+  --sun: #ffc53d;
+  --sun-foreground: #3a2900;
+  --sun-ink: #6b4a00;
+  --sun-wash: #fff3d1;
+  --ok: #0b7a52;
+  --ok-wash: #dcf5e9;
+  --warn: #8a5600;
+  --warn-wash: #fff0cc;
+  --bad: #c92a32;
+  --bad-wash: #fde4e4;
+  --run: #1f50e0;
+  --run-wash: #e7eeff;
+  --mute-wash: #eceef6;
+  --depth-1: 0 1px 2px rgba(12, 18, 51, 0.06), 0 10px 30px -14px rgba(12, 18, 51, 0.22);
+  --depth-2: 0 2px 4px rgba(12, 18, 51, 0.06), 0 30px 60px -24px rgba(12, 18, 51, 0.35);
+  /* Marigold on white is under 3:1, so the ring gets a dark inner edge (WCAG 1.4.11). */
+  --focus-edge: var(--ink);
+
+  --background: var(--canvas);
+  --foreground: var(--ink);
+  --card: var(--surface);
+  --card-foreground: var(--ink);
+  --popover: var(--surface);
+  --popover-foreground: var(--ink);
   --primary: var(--brand);
-  --primary-foreground: oklch(0.985 0 0);
-  --secondary: oklch(0.97 0 0);
-  --secondary-foreground: oklch(0.205 0 0);
-  --muted: oklch(0.97 0 0);
-  --muted-foreground: oklch(0.556 0 0);
-  --accent: oklch(0.97 0 0);
-  --accent-foreground: oklch(0.205 0 0);
-  --destructive: oklch(0.577 0.245 27.325);
-  --border: oklch(0.922 0 0);
-  --input: oklch(0.922 0 0);
-  --ring: color-mix(in oklab, var(--brand) 60%, transparent);
-  --chart-1: oklch(0.87 0 0);
-  --chart-2: oklch(0.556 0 0);
-  --chart-3: oklch(0.439 0 0);
-  --chart-4: oklch(0.371 0 0);
-  --chart-5: oklch(0.269 0 0);
-  --radius: 0.625rem;
-  --sidebar: oklch(0.985 0 0);
-  --sidebar-foreground: oklch(0.145 0 0);
-  --sidebar-primary: oklch(0.205 0 0);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.97 0 0);
-  --sidebar-accent-foreground: oklch(0.205 0 0);
-  --sidebar-border: oklch(0.922 0 0);
-  --sidebar-ring: oklch(0.708 0 0);
+  --primary-foreground: var(--on-brand);
+  --secondary: var(--tint);
+  --secondary-foreground: var(--ink);
+  --muted: var(--tint);
+  --muted-foreground: var(--ink-3);
+  --accent: var(--tint);
+  --accent-foreground: var(--ink);
+  --destructive: var(--bad);
+  --border: var(--hair);
+  /* Input outlines need 3:1 against the surface (WCAG 1.4.11); hair is decorative only. */
+  --input: #878daf;
+  --ring: var(--sun);
+  --chart-1: var(--brand);
+  --chart-2: #eb6834;
+  --chart-3: #1baf7a;
+  --chart-4: #eda100;
+  --chart-5: #6250d6;
+  --radius: 10px;
+  --sidebar: var(--shell);
+  --sidebar-foreground: var(--shell-fg);
+  --sidebar-primary: var(--surface);
+  --sidebar-primary-foreground: var(--ink);
+  --sidebar-accent: rgba(255, 255, 255, 0.07);
+  --sidebar-accent-foreground: var(--shell-fg);
+  --sidebar-border: rgba(255, 255, 255, 0.14);
+  --sidebar-ring: var(--sun);
+  /* Row height for tables; [data-density=compact] on <html> tightens it (lib/density.ts). */
+  --row-h: 52px;
   /* Analytics charts (ADR 0034): fixed categorical slots, validated for colour-blind separation;
-     status colours mean state only. Dark steps are their own, not a flip. */
-  --series-1: #2a78d6;
+     status colours mean state only. Dark steps are their own, not a flip. Slot 1 is cobalt. */
+  --series-1: #2f6bff;
   --series-2: #eb6834;
   --series-3: #1baf7a;
   --series-4: #eda100;
@@ -94,48 +183,51 @@
   --series-6: #008300;
   --series-7: #6250d6;
   --series-8: #e34948;
-  --series-other: #b4b2a9;
-  --status-good: #0ca30c;
-  --status-critical: #d03b3b;
-  --chart-grid: #e1e0d9;
-  --chart-axis: #c3c2b7;
+  --series-other: #b4b8cf;
+  --status-good: var(--ok);
+  --status-critical: var(--bad);
+  --chart-grid: var(--hair);
+  --chart-axis: #c9cde3;
 }
 
 .dark {
   color-scheme: dark;
-  --background: oklch(0.145 0 0);
-  --foreground: oklch(0.985 0 0);
-  --card: oklch(0.205 0 0);
-  --card-foreground: oklch(0.985 0 0);
-  --popover: oklch(0.205 0 0);
-  --popover-foreground: oklch(0.985 0 0);
-  --brand: #6b93ff;
-  --primary: var(--brand);
-  --primary-foreground: oklch(0.18 0.03 264);
-  --secondary: oklch(0.269 0 0);
-  --secondary-foreground: oklch(0.985 0 0);
-  --muted: oklch(0.269 0 0);
-  --muted-foreground: oklch(0.708 0 0);
-  --accent: oklch(0.269 0 0);
-  --accent-foreground: oklch(0.985 0 0);
-  --destructive: oklch(0.704 0.191 22.216);
-  --border: oklch(1 0 0 / 10%);
-  --input: oklch(1 0 0 / 15%);
-  --ring: color-mix(in oklab, var(--brand) 60%, transparent);
-  --chart-1: oklch(0.87 0 0);
-  --chart-2: oklch(0.556 0 0);
-  --chart-3: oklch(0.439 0 0);
-  --chart-4: oklch(0.371 0 0);
-  --chart-5: oklch(0.269 0 0);
-  --sidebar: oklch(0.205 0 0);
-  --sidebar-foreground: oklch(0.985 0 0);
-  --sidebar-primary: oklch(0.488 0.243 264.376);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.269 0 0);
-  --sidebar-accent-foreground: oklch(0.985 0 0);
-  --sidebar-border: oklch(1 0 0 / 10%);
-  --sidebar-ring: oklch(0.556 0 0);
-  --series-1: #3987e5;
+  --canvas: #0a0d22;
+  --surface: #121834;
+  --tint: #19204a;
+  --tint-2: #222a5c;
+  --ink: #eef0ff;
+  --ink-2: #b9bfe0;
+  --ink-3: #959cc4;
+  --hair: #242c5a;
+  --brand: #5b8cff;
+  --brand-ink: #9db8ff;
+  --brand-wash: #1c2861;
+  --on-brand: #071033;
+  --shell: #0e1544;
+  --shell-2: #0b1138;
+  --shell-fg: #eef0ff;
+  --shell-fg-2: #a9b5ec;
+  --sun: #ffc53d;
+  --sun-foreground: #3a2900;
+  --sun-ink: #ffd56e;
+  --sun-wash: #33280c;
+  --ok: #4fd8a0;
+  --ok-wash: #0f2e26;
+  --warn: #ffc764;
+  --warn-wash: #33270c;
+  --bad: #ff8a8f;
+  --bad-wash: #3a1520;
+  --run: #9db8ff;
+  --run-wash: #1c2861;
+  --mute-wash: #1d2348;
+  --depth-1: 0 0 0 1px rgba(255, 255, 255, 0.04), 0 12px 30px -14px rgba(0, 0, 0, 0.7);
+  --depth-2: 0 0 0 1px rgba(255, 255, 255, 0.05), 0 30px 60px -20px rgba(0, 0, 0, 0.8);
+  --focus-edge: transparent;
+  --input: #646c9a;
+  --sidebar-primary: var(--brand);
+  --sidebar-primary-foreground: var(--on-brand);
+  --series-1: #5b8cff;
   --series-2: #d95926;
   --series-3: #199e70;
   --series-4: #c98500;
@@ -143,22 +235,148 @@
   --series-6: #008300;
   --series-7: #9085e9;
   --series-8: #e66767;
-  --series-other: #5f5e58;
-  --status-good: #0ca30c;
-  --status-critical: #d03b3b;
-  --chart-grid: #2c2c2a;
-  --chart-axis: #383835;
+  --series-other: #4a5180;
+  --chart-axis: #343d74;
+}
+
+[data-density="compact"] {
+  --row-h: 40px;
 }
 
 @layer base {
   * {
-    @apply border-border outline-ring/50;
-  }
-  body {
-    @apply bg-background text-foreground;
+    @apply border-border;
   }
   html {
     @apply font-sans;
+    -webkit-font-smoothing: antialiased;
+  }
+  body {
+    @apply bg-background text-sm/[1.45] text-foreground;
+  }
+  :is(h1, h2, h3) {
+    @apply font-heading;
+  }
+}
+
+/* Unlayered, so it beats every utility (shadcn's `outline-none` included) without !important.
+   One marigold focus ring for everything; editors (ProseMirror, CodeMirror) show their caret
+   instead, and menu items draw it inside so their scrolling popup doesn't clip it. */
+:focus-visible:not([contenteditable="true"], .cm-content) {
+  outline: 3px solid var(--ring);
+  outline-offset: 2px;
+  box-shadow: 0 0 0 1px var(--focus-edge);
+}
+:is(
+  [role="menuitem"],
+  [role="menuitemcheckbox"],
+  [role="menuitemradio"],
+  [role="option"]
+):focus-visible {
+  outline-offset: -3px;
+  box-shadow: none;
+}
+@media (prefers-reduced-motion: reduce) {
+  *,
+  ::before,
+  ::after {
+    animation-duration: 0.01ms;
+    animation-iteration-count: 1;
+    transition-duration: 0.01ms;
+    scroll-behavior: auto;
+  }
+}
+
+/* The mark's cat ears, used structurally in exactly three places: the active nav item
+   (cat-ears), the PDF preview tray (pdf-tray) and template thumbnails (sheet-ears). The ears
+   take the element's own background. */
+@layer components {
+  .cat-ears {
+    position: relative;
+  }
+  .cat-ears::before,
+  .cat-ears::after {
+    content: "";
+    position: absolute;
+    top: -7px;
+    width: 14px;
+    height: 9px;
+    background: inherit;
+    pointer-events: none;
+    clip-path: polygon(0 100%, 18% 0, 100% 100%);
+  }
+  .cat-ears::before {
+    left: var(--ear-inset, 14px);
+  }
+  .cat-ears::after {
+    right: var(--ear-inset, 14px);
+    clip-path: polygon(0 100%, 82% 0, 100% 100%);
+  }
+  .pdf-tray {
+    position: relative;
+    margin-top: 22px;
+    display: flex;
+    min-height: 0;
+    flex-direction: column;
+    border-radius: 0 0 var(--radius-2xl) var(--radius-2xl);
+    background: var(--brand);
+    color: #fff;
+  }
+  .dark .pdf-tray {
+    background: #1a2a7a;
+  }
+  .pdf-tray::before,
+  .pdf-tray::after {
+    content: "";
+    position: absolute;
+    top: -21px;
+    width: 84px;
+    height: 22px;
+    background: inherit;
+    pointer-events: none;
+  }
+  .pdf-tray::before {
+    left: 0;
+    clip-path: polygon(0 0, 100% 100%, 0 100%);
+    border-top-left-radius: 6px;
+  }
+  .pdf-tray::after {
+    right: 0;
+    clip-path: polygon(100% 0, 100% 100%, 0 100%);
+  }
+  .pdf-tray-well {
+    flex: 1;
+    min-height: 0;
+    margin: 0 10px 10px;
+    overflow: auto;
+    border-radius: 0 0 14px 14px;
+    background: color-mix(in srgb, var(--brand) 70%, #0c1233);
+  }
+  .dark .pdf-tray-well {
+    background: #0f1850;
+  }
+  /* A white sheet whose top corners rise into ears; sits in a tinted thumbnail. */
+  .sheet-ears {
+    position: relative;
+    background: #fff;
+    box-shadow: 0 -2px 12px rgba(12, 18, 51, 0.12);
+  }
+  .sheet-ears::before,
+  .sheet-ears::after {
+    content: "";
+    position: absolute;
+    top: -15px;
+    width: 30%;
+    height: 16px;
+    background: #fff;
+  }
+  .sheet-ears::before {
+    left: 0;
+    clip-path: polygon(0 100%, 0 8%, 6% 0, 100% 100%);
+  }
+  .sheet-ears::after {
+    right: 0;
+    clip-path: polygon(0 100%, 94% 0, 100% 8%, 100% 100%);
   }
 }
 
@@ -193,7 +411,7 @@
     @apply border-l-4 pl-3 text-muted-foreground;
   }
   .necodoc-editor a {
-    @apply text-primary underline;
+    @apply text-brand-ink underline;
   }
   .necodoc-editor hr {
     @apply my-4 border-t-2;

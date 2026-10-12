@@ -1,4 +1,4 @@
-import { CheckIcon, CopyIcon } from "lucide-react";
+import { CheckIcon, CopyIcon } from "@phosphor-icons/react";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 
@@ -15,7 +15,7 @@ export function CopyButton({ text, label = "Copy" }: { text: string; label?: str
         setTimeout(() => setCopied(false), 1500);
       }}
     >
-      {copied ? <CheckIcon /> : <CopyIcon />}
+      {copied ? <CheckIcon weight="bold" /> : <CopyIcon />}
       {copied ? "Copied" : label}
     </Button>
   );

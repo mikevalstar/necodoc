@@ -1,11 +1,11 @@
+import type { Icon } from "@phosphor-icons/react";
 import { type Editor, Extension } from "@tiptap/core";
 import Suggestion, { type SuggestionProps } from "@tiptap/suggestion";
-import type { LucideIcon } from "lucide-react";
 
 /** One entry of the Insert menu and the "/" menu. */
 export type InsertItem = {
   title: string;
-  icon: LucideIcon;
+  icon: Icon;
   run: (editor: Editor) => void;
 };
 

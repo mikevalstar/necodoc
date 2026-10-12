@@ -1,6 +1,6 @@
+import { PlusIcon, StackIcon } from "@phosphor-icons/react";
 import { queryOptions, useQuery } from "@tanstack/react-query";
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { LayersIcon, PlusIcon } from "lucide-react";
 import { ErrorAlert } from "@/components/form";
 import { EmptyState, FaqLink, ListSkeleton, Page, PageHeader } from "@/components/page";
 import { buttonVariants } from "@/components/ui/button";
@@ -42,7 +42,7 @@ function Batches() {
           <>
             <FaqLink feature="Batches" />
             <Link to="/batches/new" className={buttonVariants()}>
-              <PlusIcon />
+              <PlusIcon weight="bold" />
               Run batch
             </Link>
           </>
@@ -52,12 +52,12 @@ function Batches() {
       {batches.isPending && <ListSkeleton />}
       {batches.data?.length === 0 && (
         <EmptyState
-          icon={LayersIcon}
+          icon={StackIcon}
           title="No batches yet"
           description="Upload a CSV with one row per document and get a PDF for each, plus a ZIP or one combined packet."
           action={
             <Link to="/batches/new" className={buttonVariants()}>
-              <PlusIcon />
+              <PlusIcon weight="bold" />
               Run batch
             </Link>
           }

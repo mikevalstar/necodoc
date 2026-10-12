@@ -1,5 +1,5 @@
 import type { Signer } from "@necodoc/shared";
-import { PlusIcon, Trash2Icon } from "lucide-react";
+import { PlusIcon, TrashIcon } from "@phosphor-icons/react";
 import { Button } from "@/components/ui/button";
 import { Field, FieldDescription, FieldGroup, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
@@ -82,7 +82,7 @@ export function SigningPanel({
             aria-label={`Remove ${signer.role || signer.id}`}
             onClick={() => onChange(signers.filter((_, j) => j !== i))}
           >
-            <Trash2Icon />
+            <TrashIcon />
           </Button>
           <Field className="col-span-2">
             <FieldLabel htmlFor={`signer-${i}-name`}>Name (Liquid)</FieldLabel>
@@ -122,7 +122,7 @@ export function SigningPanel({
           ])
         }
       >
-        <PlusIcon /> Add signer
+        <PlusIcon weight="bold" /> Add signer
       </Button>
       <FieldDescription>
         Signers with the same order sign in parallel. Renaming an id doesn&apos;t update the boxes

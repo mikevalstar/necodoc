@@ -26,12 +26,32 @@ export function DocumentStatusBadge({
   status: SubmissionStatus;
   generationStatus: GenerationStatus | null;
 }) {
-  if (status === "draft") return <Badge variant="outline">Draft</Badge>;
-  if (generationStatus === "error") return <Badge variant="destructive">PDF failed</Badge>;
-  if (generationStatus === "queued" || generationStatus === "running") {
-    return <Badge variant="outline">Making PDF…</Badge>;
+  if (status === "draft") {
+    return (
+      <Badge dot variant="secondary">
+        Draft
+      </Badge>
+    );
   }
-  return <Badge variant="secondary">Finished</Badge>;
+  if (generationStatus === "error") {
+    return (
+      <Badge dot variant="bad">
+        PDF failed
+      </Badge>
+    );
+  }
+  if (generationStatus === "queued" || generationStatus === "running") {
+    return (
+      <Badge dot variant="run">
+        Making PDF…
+      </Badge>
+    );
+  }
+  return (
+    <Badge dot variant="ok">
+      Finished
+    </Badge>
+  );
 }
 
 /** Creates a draft (blank, or from a previous document's answers) and opens it. */

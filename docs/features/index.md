@@ -20,6 +20,7 @@ Add one with `okq new feature "<title>"`.
 | Audit log | [audit-log.md](audit-log.md) |
 | Combining PDFs into packets | [combining-pdfs-into-packets.md](combining-pdfs-into-packets.md) |
 | Competitive scope | [competitive-scope.md](competitive-scope.md) |
+| Design system | [design-system.md](design-system.md) |
 | Document localization | [document-localization.md](document-localization.md) |
 | Document templates | [document-templates.md](document-templates.md) |
 | Document themes | [document-themes.md](document-themes.md) |

@@ -60,15 +60,15 @@ export function TemplateStatusBadges({ template }: { template: StatusSource }) {
     <span className="inline-flex flex-wrap gap-1">
       {template.archivedAt && <Badge variant="secondary">Archived</Badge>}
       {template.latestVersion === null ? (
-        <Badge variant="outline">Draft</Badge>
+        <Badge dot variant="secondary">
+          Draft
+        </Badge>
       ) : (
-        <Badge>Published v{template.latestVersion}</Badge>
-      )}
-      {status === "changes" && (
-        <Badge variant="outline" className="border-amber-500/50 text-amber-700 dark:text-amber-300">
-          Unpublished changes
+        <Badge dot variant="ok">
+          Published v{template.latestVersion}
         </Badge>
       )}
+      {status === "changes" && <Badge variant="warn">Unpublished changes</Badge>}
     </span>
   );
 }
