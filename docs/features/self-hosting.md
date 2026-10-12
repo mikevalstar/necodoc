@@ -48,6 +48,9 @@ data lives, and how to get it back.
   DR, upgrades, SSO setup) is in the developer docs site
   ([ADR 0026](../adrs/0026-astro-starlight-for-the-developer-docs-site.md)),
   [self-hosting section](../../apps/devdocs/src/content/docs/self-hosting).
+  The site is static files; customers can serve it internally from the
+  `docs` image (nginx, like `site`) or any static host, so their integrators
+  get docs matching their version.
 
 ## Implementation
 
@@ -59,6 +62,7 @@ data lives, and how to get it back.
 ## Acceptance criteria
 
 - [x] The `api`, `app` and `site` images build from a clean checkout.
+- [ ] The `docs` image builds from a clean checkout and serves the developer docs.
 - [x] `docker compose up` from the example env reaches a ready API; the first
       sign-up is admin and can render a PDF through the app's proxy.
 - [x] `docker compose up --scale worker=2` shows two workers online.
@@ -79,5 +83,6 @@ data lives, and how to get it back.
 ## Open questions
 
 - Where images are published (GHCR, a customer registry mirror) and signed.
-- Prometheus metrics endpoint, so queue depth autoscaling needn't read
-  pg-boss's tables.
+- Switch KEDA to its Prometheus scaler on the queue depth metric
+  ([Observability](observability.md)), so autoscaling needn't read pg-boss's
+  tables.

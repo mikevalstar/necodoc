@@ -1,5 +1,5 @@
 import fontkit from "@cantoo/fontkit";
-import { PDFDocument } from "@cantoo/pdf-lib";
+import { PDFDocument, PDFName } from "@cantoo/pdf-lib";
 import {
   type AcroField,
   MAX_OVERLAY_PAGES,
@@ -122,11 +122,6 @@ export async function inspectUpload(bytes: Uint8Array) {
     throw new PdfUploadError("This PDF couldn't be read; it may be damaged");
   }
   try {
-    if (doc.isPureXfa) {
-      throw new PdfUploadError(
-        "This is an XFA form (made with Adobe LiveCycle). Its pages only exist as form data, so it can't be filled here. Save it as a standard PDF and upload that.",
-      );
-    }
     if (doc.numPages > MAX_OVERLAY_PAGES) throw new PdfUploadError(tooBig);
     const pages: PdfPage[] = [];
     for (let i = 1; i <= doc.numPages; i++) {
@@ -147,11 +142,21 @@ export async function inspectUpload(bytes: Uint8Array) {
     if (filled.getPageCount() !== pages.length) {
       throw new PdfUploadError("This PDF's page tree is damaged; re-save it and upload again");
     }
+    // pdf.js only reports isPureXfa with XFA parsing on, which stays off for untrusted uploads,
+    // and pdf-lib's getForm() strips the XFA packet, so read the AcroForm dict itself.
+    // Pure XFA = an XFA packet with no AcroForm fields to fill.
+    const acroForm = filled.catalog.getAcroForm();
+    const xfa = acroForm?.dict.has(PDFName.of("XFA")) ?? false;
+    if (xfa && !acroForm?.getAllFields().length) {
+      throw new PdfUploadError(
+        "This is an XFA form (made with Adobe LiveCycle). Its pages only exist as form data, so it can't be filled here. Save it as a standard PDF and upload that.",
+      );
+    }
     return {
       pages,
       fields,
       encrypted: filled.context.isDecrypted,
-      xfa: filled.getForm().hasXFA(),
+      xfa,
     };
   } finally {
     await doc.loadingTask.destroy();

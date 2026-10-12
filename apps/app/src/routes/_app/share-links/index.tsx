@@ -1,5 +1,6 @@
+import { hasPermission } from "@necodoc/shared";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, redirect } from "@tanstack/react-router";
 import { MoreHorizontalIcon, PlusIcon } from "lucide-react";
 import { useState } from "react";
 import { CopyButton } from "@/components/copy-button";
@@ -45,6 +46,9 @@ import {
 // Spec: docs/features/share-links-and-data-requests.md. A publisher's own links.
 
 export const Route = createFileRoute("/_app/share-links/")({
+  beforeLoad: ({ context }) => {
+    if (!hasPermission(context.me.user.roles, { document: ["publish"] })) throw redirect({ to: "/" });
+  },
   component: ShareLinks,
 });
 

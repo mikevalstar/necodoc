@@ -10,3 +10,7 @@
 .tanstack
 apps/api/data
 deploy/helm
+packages/sdk-java/target
+packages/sdk-dotnet/**/bin
+packages/sdk-dotnet/**/obj
+packages/sdk-python/build

@@ -599,7 +599,7 @@ export const faq: readonly FaqEntry[] = [
       "Traces don't show individual database queries (apart from sign-in checks) or outgoing calls such as webhooks, AI and S3; their time shows inside the step that made them.",
       "All rows of a batch land in the trace of the request that started it.",
       "Request times end when the response starts, so long downloads aren't timed to the last byte.",
-      "Field values aren't written to logs. Masking for anything that does log them comes with field-level privacy settings.",
+      "Field values aren't written to logs or traces (see Sensitive fields and masking for the audit log and admin views).",
     ],
     access: [{ action: "Configure (server environment)", needs: "admin" }],
     spec: "docs/features/observability.md",
@@ -619,6 +619,21 @@ export const faq: readonly FaqEntry[] = [
     ],
     access: [{ action: "See the active driver", needs: "admin" }],
     spec: "docs/features/render-queue-batch-jobs-and-scaling.md",
+  },
+  {
+    feature: "Installing and upgrading (Docker, Kubernetes)",
+    group: "Admin",
+    what: "necodoc runs on your own infrastructure. One host runs it with Docker Compose (Postgres, migrations, API, a worker and the app); Kubernetes runs it with the Helm chart, with API, workers and app as separate deployments behind one ingress. Liveness and readiness endpoints let load balancers route around a node that has lost its database, queue or storage.",
+    howTo:
+      "Compose: copy deploy/compose's .env.example to .env, set the secrets, run docker compose up, then sign up: the first account becomes the admin. Add workers with docker compose up --scale worker=2. Kubernetes: helm install deploy/helm/necodoc with a DATABASE_URL and a secret. Upgrades: build the new image tag, run migrations, roll the pods; Admin › System shows each worker's version so you can see when old ones are gone. The developer docs' Self-hosting section has the full environment reference, scaling, storage, backups and disaster recovery.",
+    limitations: [
+      "No published image registry yet; you build the images.",
+      "The Helm chart doesn't include Postgres; bring your own.",
+      "helm uninstall leaves the chart's Secret behind.",
+      "The chart has been checked with helm lint and helm template, not yet on a live cluster.",
+    ],
+    access: [{ action: "Install and configure (server)", needs: "admin" }],
+    spec: "docs/features/self-hosting.md",
   },
   {
     feature: "Signed download links",
@@ -831,7 +846,7 @@ export const faq: readonly FaqEntry[] = [
       "Keys see only their own account's generations and batches.",
       "Combine takes generation ids and uploaded PDFs, not template data; uploaded inputs stay stored after the packet is made.",
       "No JavaScript in submitted HTML, and no URL-to-PDF.",
-      "Only a TypeScript SDK so far; other languages use plain HTTP.",
+      "SDKs exist for TypeScript, Python, .NET and Java but aren't on package registries yet; other languages use plain HTTP.",
     ],
     access: [{ action: "Call the API with your own key", needs: view }],
     spec: "docs/features/html-to-pdf-api.md",
@@ -908,14 +923,25 @@ export const faq: readonly FaqEntry[] = [
   {
     feature: "API reference and OpenAPI",
     group: "API",
-    what: "The API page in the app lists every /api/v1 endpoint with its request and response schemas, generated from the code so it can't drift, and can send test calls with a key. The same OpenAPI 3.1 document is at /api/v1/openapi.json for code generators, and the developer docs site renders it too. A TypeScript SDK is generated from it.",
+    what: "The API page in the app lists every /api/v1 endpoint with its request and response schemas, generated from the code so it can't drift, and can send test calls with a key. The same OpenAPI 3.1 document is at /api/v1/openapi.json for code generators, and the developer docs site renders it too. The SDKs are generated from it.",
     howTo:
       "Click API in the nav. Paste a key under Authentication to try calls from the browser; they're real calls and are logged. Point Postman, Insomnia or an OpenAPI generator at /api/v1/openapi.json.",
-    limitations: [
-      "Try-it calls run against this deployment and its real data.",
-      "Only a TypeScript SDK so far; Python, .NET and Java are planned.",
-    ],
+    limitations: ["Try-it calls run against this deployment and its real data."],
     access: [{ action: "Read the reference", needs: view }],
+    spec: "docs/features/html-to-pdf-api.md",
+  },
+  {
+    feature: "SDKs",
+    group: "API",
+    what: "Typed client libraries for /api/v1 in TypeScript, Python, .NET and Java, generated from the same OpenAPI document as the API page, so they match the API they were built with. Each comes with a small example that renders HTML, generates from a template and fetches a signing package.",
+    howTo:
+      "Developers install them from the necodoc repository (packages/sdk-ts, sdk-python, sdk-dotnet, sdk-java) and give them the deployment's URL and an API key. The developer docs have a page per language.",
+    limitations: [
+      "Not on npm, PyPI, NuGet or Maven Central yet; they're built or copied from the repository.",
+      "In Python, .NET and Java, a render or generate that answers JSON (response: json, or a signing package) comes back as raw bytes for the developer to parse with the SDK's model.",
+      "An SDK from a newer necodoc may know fields an older deployment doesn't; generate from this deployment's /api/v1/openapi.json for an exact match.",
+    ],
+    access: [{ action: "Use an SDK with your own key", needs: view }],
     spec: "docs/features/html-to-pdf-api.md",
   },
   {

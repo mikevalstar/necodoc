@@ -1,8 +1,9 @@
 # syntax=docker/dockerfile:1
-# ADR 0025: one Dockerfile, three runtime targets.
+# ADR 0025: one Dockerfile, four runtime targets.
 #   docker build --target api  -t necodoc-api .   # ROLE=api | worker | all
 #   docker build --target app  -t necodoc-app .   # SPA + /api proxy
 #   docker build --target site -t necodoc-site .  # marketing site
+#   docker build --target docs -t necodoc-docs .  # developer docs (ADR 0026)
 
 ARG NODE_VERSION=24
 
@@ -34,6 +35,11 @@ RUN pnpm --filter @necodoc/app build
 
 FROM deps AS site-build
 RUN pnpm --filter @necodoc/web build
+
+# The generate step emits the OpenAPI document from the API's code; nothing connects.
+FROM deps AS docs-build
+ARG DEVDOCS_SITE
+RUN DEVDOCS_SITE=${DEVDOCS_SITE} pnpm --filter @necodoc/devdocs build
 
 # --- api: the API and render worker (ADR 0020) ---
 FROM node:${NODE_VERSION}-bookworm-slim AS api
@@ -72,4 +78,9 @@ EXPOSE 8080
 # --- site: the static marketing site ---
 FROM nginxinc/nginx-unprivileged:1.29-alpine AS site
 COPY --from=site-build /repo/apps/web/dist /usr/share/nginx/html
+EXPOSE 8080
+
+# --- docs: the static developer docs (apps/devdocs) ---
+FROM nginxinc/nginx-unprivileged:1.29-alpine AS docs
+COPY --from=docs-build /repo/apps/devdocs/dist /usr/share/nginx/html
 EXPOSE 8080

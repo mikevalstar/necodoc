@@ -34,8 +34,10 @@ pnpm workspaces monorepo ([ADR 0002](docs/adrs/0002-pnpm-workspaces-monorepo.md)
 - `/api/v1` (public, API keys only) is described for OpenAPI with hono-openapi
   ([ADR 0030](docs/adrs/0030-openapi-for-the-public-api-with-hono-openapi.md)):
   every route there needs a `describeRoute`. After changing it, run
-  `pnpm --filter @necodoc/sdk generate` to refresh `packages/sdk-ts`; the
-  devdocs build regenerates its reference itself.
+  `pnpm sdk:generate` (needs Java 11+, e.g. `JAVA_HOME=$(brew --prefix openjdk)`)
+  to refresh `packages/sdk-ts`, `sdk-python`, `sdk-dotnet` and `sdk-java`
+  ([ADR 0041](docs/adrs/0041-python-net-and-java-sdks-generated-with-openapi-generator.md));
+  the devdocs build regenerates its reference itself.
 
 ## Documentation-first (OKF)
 

@@ -9,7 +9,7 @@ sidebar:
 
 A **template** is a document design plus the fields it needs. Designed templates are edited in a visual editor or, after a one-way conversion, as HTML and Liquid (code mode). Each template has a page setup (Letter, A4 or Legal; portrait or landscape; margins), an optional header and footer, a theme, template CSS, and sample data for previews.
 
-PDF overlay templates (filling an existing PDF) are coming.
+**Overlay templates** fill an existing PDF instead: you upload it, place typed boxes on its pages (or import its form fields, or let AI detect them), and map each box to data with a Liquid expression. Both kinds generate the same way through the API.
 
 ## Fields and the guided form
 

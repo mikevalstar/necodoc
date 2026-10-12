@@ -69,11 +69,15 @@ export function printPdf(html: string, options: PrintOptions, loadAsset: AssetLo
       });
       const page = await context.newPage();
       const print = async () => {
-        await page.setContent(html, { waitUntil: "load", timeout: renderLimits.timeoutMs });
+        // No timeout of its own: the race below owns the deadline, so a slow render always fails
+        // as "Render timed out" rather than whichever Playwright timer happens to fire first.
+        await page.setContent(html, { waitUntil: "load", timeout: 0 });
         // Fallback faces (Arabic, Hebrew: ADR 0040) only start loading once layout needs their
         // glyphs, which can be after `load`: lay out, then wait for every font in flight.
         await page.evaluate("document.body.offsetHeight, document.fonts.ready.then(() => {})");
-        const mm = (value: number) => `${value}mm`;
+        // Inches, not mm: Playwright's mm rounds Letter up to 612.96 x 792.96pt; inches give
+        // exactly 612 x 792 (Chromium still snaps A4 to its pixel grid, under a point off).
+        const mm = (value: number) => `${value / 25.4}in`;
         return page.pdf({
           width: mm(options.width),
           height: mm(options.height),

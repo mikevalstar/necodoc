@@ -43,7 +43,9 @@ candidate on the real document (October 2026).
   document and, for generators only: turns `anyOf` parameters into a string
   (or the array branch, repeated), turns `const` into a one-value `enum`
   (dropped on booleans), and drops `pattern` where `format` already says it.
-  Without it the Java and C# output doesn't compile.
+  The generator also lifts inline enums into named types
+  (`RESOLVE_INLINE_ENUMS`). Without these the Java and C# output doesn't
+  compile, or C# throws serializing an unset enum.
 - **Committed output** in [packages/sdk-python](../../packages/sdk-python),
   [packages/sdk-dotnet](../../packages/sdk-dotnet) and
   [packages/sdk-java](../../packages/sdk-java), like the TypeScript SDK, so a

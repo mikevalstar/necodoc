@@ -121,7 +121,9 @@ function removeGenerated(dir: string) {
 
 execFileSync("pnpm", ["--filter", "@necodoc/sdk", "generate"], { cwd: root, stdio: "inherit" });
 
-const spec: JsonObject = JSON.parse(readFileSync(join(root, "packages/sdk-ts/openapi.json"), "utf8"));
+const spec: JsonObject = JSON.parse(
+  readFileSync(join(root, "packages/sdk-ts/openapi.json"), "utf8"),
+);
 mkdirSync(cache, { recursive: true });
 const specPath = join(cache, "openapi.json");
 writeFileSync(specPath, JSON.stringify(forGenerators(spec), null, 2));

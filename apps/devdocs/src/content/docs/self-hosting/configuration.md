@@ -47,6 +47,15 @@ Workers certify PDFs whose template or request asks for it ([Archival, accessibl
 | `CERTIFY_PASSWORD` | unset | Opens the PKCS#12 file or an encrypted PEM key. |
 | `CERTIFY_TSA_URL` | unset | An RFC 3161 timestamp server, e.g. `http://timestamp.digicert.com`. With it signatures are PAdES B-T; without, B-B. Workers need outbound access to it. |
 
+## AI
+
+AI features ([AI template assistant](/guides/ai-template-assistant/), AI field detection on overlay templates, suggested descriptions and version notes) exist only with a key. Template content goes to Anthropic when someone uses them.
+
+| Variable | Default | Description |
+| --- | --- | --- |
+| `ANTHROPIC_KEY` | unset | An Anthropic API key. Unset or empty turns every AI control off and the AI routes answer 404. |
+| `AI_MODEL` | `claude-sonnet-5-5` | The Claude model AI features call. |
+
 ## Sign-in
 
 | Variable | Default | Description |

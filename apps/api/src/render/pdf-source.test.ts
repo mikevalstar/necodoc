@@ -1,5 +1,5 @@
 import { readdirSync, readFileSync } from "node:fs";
-import { PDFDocument, rgb, StandardFonts } from "@cantoo/pdf-lib";
+import { PDFBool, PDFDocument, PDFName, rgb, StandardFonts } from "@cantoo/pdf-lib";
 import { describe, expect, it } from "vitest";
 import { inspectUpload, loadSourcePdf, PdfUploadError } from "./pdf-source";
 import { openPdfjs, pdfjs } from "./pdfjs";
@@ -96,6 +96,25 @@ describe("inspectUpload", () => {
     await expect(inspectUpload(new Uint8Array(await doc.save()))).rejects.toThrow(
       /needs a password/,
     );
+  });
+
+  it("refuses a pure XFA form and accepts a hybrid one", async () => {
+    /** An AcroForm with an XFA packet, with or without a real field. */
+    async function xfaPdf(withField: boolean) {
+      const doc = await PDFDocument.create();
+      doc.addPage();
+      const form = doc.getForm();
+      if (withField) form.createTextField("name").addToPage(doc.getPage(0));
+      form.acroForm.dict.set(
+        PDFName.of("XFA"),
+        doc.context.flateStream("<xdp:xdp xmlns:xdp='http://ns.adobe.com/xdp/'/>"),
+      );
+      doc.catalog.set(PDFName.of("NeedsRendering"), PDFBool.True);
+      // Saving with appearance updates calls getForm(), which would strip the XFA again.
+      return new Uint8Array(await doc.save({ updateFieldAppearances: false }));
+    }
+    await expect(inspectUpload(await xfaPdf(false))).rejects.toThrow(/XFA form/);
+    expect((await inspectUpload(await xfaPdf(true))).xfa).toBe(true);
   });
 
   it("refuses something that isn't a PDF", async () => {

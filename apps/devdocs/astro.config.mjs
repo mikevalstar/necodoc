@@ -8,6 +8,9 @@ import starlightOpenAPI, { openAPISidebarGroups } from "starlight-openapi";
 // generated from the /api/v1 OpenAPI document (ADR 0030), which scripts/generate.ts writes
 // before every build.
 export default defineConfig({
+  // The public URL, when the docs are hosted (self-hosting/developer-docs.md): enables the sitemap
+  // and canonical links. Unset for local builds.
+  site: process.env.DEVDOCS_SITE || undefined,
   integrations: [
     starlight({
       title: "necodoc docs",
