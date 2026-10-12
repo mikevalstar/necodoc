@@ -31,6 +31,7 @@ import {
   dataTableSearchSchema,
   FilterSelect,
 } from "@/components/data-table";
+import { DemoLock } from "@/components/demo-lock";
 import { ErrorAlert } from "@/components/form";
 import { FaqLink, Page, PageHeader } from "@/components/page";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -442,20 +443,23 @@ function Queue() {
                   {queueLabels[queue]}
                   <span className="font-normal">{isPaused ? "paused" : "running"}</span>
                 </Badge>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  aria-label={`${isPaused ? "Resume" : "Pause"} ${queueLabels[queue]}`}
-                  disabled={!system.data || pause.isPending}
-                  onClick={() => {
-                    pause.reset();
-                    if (isPaused) pause.mutate({ queue, paused: false });
-                    else setToPause(queue);
-                  }}
-                >
-                  {isPaused ? <PlayIcon /> : <PauseIcon />}
-                  {isPaused ? "Resume" : "Pause"}
-                </Button>
+                {/* A paused queue stops rendering for every visitor of the public demo (ADR 0046). */}
+                <DemoLock>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    aria-label={`${isPaused ? "Resume" : "Pause"} ${queueLabels[queue]}`}
+                    disabled={!system.data || pause.isPending}
+                    onClick={() => {
+                      pause.reset();
+                      if (isPaused) pause.mutate({ queue, paused: false });
+                      else setToPause(queue);
+                    }}
+                  >
+                    {isPaused ? <PlayIcon /> : <PauseIcon />}
+                    {isPaused ? "Resume" : "Pause"}
+                  </Button>
+                </DemoLock>
               </li>
             );
           })}

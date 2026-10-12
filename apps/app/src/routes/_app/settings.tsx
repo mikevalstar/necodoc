@@ -15,6 +15,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { type ReactNode, useId, useState } from "react";
 import { toast } from "sonner";
 import type { z } from "zod";
+import { DemoLock, useDemoMode } from "@/components/demo-lock";
 import { ErrorAlert, useAppForm } from "@/components/form";
 import { setStatusBar, useStatusBar } from "@/components/ops-status-bar";
 import { FaqLink, Page, PageHeader } from "@/components/page";
@@ -56,6 +57,8 @@ export const Route = createFileRoute("/_app/settings")({
 
 function Settings() {
   const { me } = Route.useRouteContext();
+  // The public demo's account is everyone's: its password, sessions and deletion are off (ADR 0046).
+  const demo = useDemoMode();
   return (
     <Page width="narrow">
       <PageHeader
@@ -64,7 +67,14 @@ function Settings() {
         actions={<FaqLink feature="Settings and preferences" />}
       />
       <ProfileCard me={me} />
-      {me.impersonatedBy ? (
+      {demo ? (
+        <Alert>
+          <AlertDescription>
+            This is the public demo's shared account. Password, sessions and account deletion are
+            turned off.
+          </AlertDescription>
+        </Alert>
+      ) : me.impersonatedBy ? (
         // Impersonation sessions are hidden from the session list, and the password and
         // account belong to the user, not the admin: manage those from Admin > Users.
         <Alert>
@@ -80,7 +90,7 @@ function Settings() {
       )}
       <AppearanceCard isAdmin={me.user.roles.includes("admin")} />
       {me.user.roles.length > 0 && <ApiKeysCard />}
-      {!me.impersonatedBy && <DangerZone />}
+      {!me.impersonatedBy && !demo && <DangerZone />}
     </Page>
   );
 }
@@ -138,9 +148,11 @@ function ProfileCard({ me }: { me: Me }) {
           </FieldGroup>
         </CardContent>
         <CardFooter className="justify-end">
-          <Button type="submit" disabled={update.isPending}>
-            Save name
-          </Button>
+          <DemoLock>
+            <Button type="submit" disabled={update.isPending}>
+              Save name
+            </Button>
+          </DemoLock>
         </CardFooter>
       </form>
     </Card>

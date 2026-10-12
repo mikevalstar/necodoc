@@ -7,7 +7,7 @@ import { auditScope } from "./audit";
 import { auth } from "./auth";
 import { demoResetting } from "./demo-reset";
 import { env, instance } from "./env";
-import { type AppEnv, requestId } from "./middleware";
+import { type AppEnv, demo, requestId } from "./middleware";
 import { observeRequests } from "./observability/http";
 import { adminUserRoutes } from "./routes/admin-users";
 import { analyticsRoutes } from "./routes/analytics";
@@ -67,14 +67,18 @@ app.use(async (c, next) => {
 // ADR 0032: who and from where, for audit entries recorded anywhere below (Better Auth included).
 app.use(auditScope);
 
-app.on(["GET", "POST"], "/auth/*", (c) => auth.handler(c.req.raw));
+// ADR 0046: the demo refuses user and session changes before Better Auth sees them.
+app.on(["GET", "POST"], "/auth/*", demo.authPaths, (c) => auth.handler(c.req.raw));
 
 // ADR 0014: bodies are capped before they're read. The slack covers a 20 MB file's multipart
-// envelope; stored files are checked against the exact limit.
+// envelope; stored files are checked against the exact limit. The public demo caps every body
+// lower (ADR 0046).
+const MB = 1024 * 1024;
+const maxBodyMb = env.DEMO_MODE ? env.DEMO_UPLOAD_MAX_MB : MAX_FILE_BYTES / MB;
 app.use(
   bodyLimit({
-    maxSize: MAX_FILE_BYTES + 1024 * 1024,
-    onError: (c) => c.json({ error: "Request body is over 20 MB" }, 413),
+    maxSize: env.DEMO_MODE ? env.DEMO_UPLOAD_MAX_MB * MB : MAX_FILE_BYTES + MB,
+    onError: (c) => c.json({ error: `Request body is over ${maxBodyMb} MB` }, 413),
   }),
 );
 
@@ -87,6 +91,9 @@ const routes = app
     let user = c.get("user");
     // ADR 0044: in the public demo, no session means "sign in as the demo user" right here.
     if (!user && env.DEMO_MODE) {
+      // ADR 0046: a few sessions an hour per address, so a script can't fill the table.
+      const limited = demo.signIn(c);
+      if (limited) return limited;
       const cookies = (await auth.api.demoSignIn({ returnHeaders: true })).headers.getSetCookie();
       for (const cookie of cookies) c.header("Set-Cookie", cookie, { append: true });
       // Read back through the new cookie: the user as every other request sees it.

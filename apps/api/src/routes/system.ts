@@ -19,7 +19,7 @@ import { db } from "../db";
 import { generation, template, worker } from "../db/schema";
 import { env } from "../env";
 import { RETRY_LIMIT, retryFailedRenders } from "../generate";
-import { type AppEnv, requireRole } from "../middleware";
+import { type AppEnv, demo, requireRole } from "../middleware";
 import { announceFinished, boss, pausedQueues, setQueuePaused } from "../queue";
 import { retentionSettings, runRetention, saveRetentionSettings } from "../retention";
 import { publishingSettings, savePublishingSettings } from "../review";
@@ -140,7 +140,7 @@ export const systemRoutes = new Hono<AppEnv>()
   // round-trips storage.
   .get("/config", async (c) => c.json(await systemConfig()))
   .get("/retention", async (c) => c.json(await retentionSettings()))
-  .put("/retention", zValidator("json", retentionSettingsSchema), async (c) => {
+  .put("/retention", demo.off, zValidator("json", retentionSettingsSchema), async (c) => {
     const before = await retentionSettings();
     await saveRetentionSettings(c.req.valid("json"), c.get("user").id);
     const after = await retentionSettings();
@@ -152,7 +152,7 @@ export const systemRoutes = new Hono<AppEnv>()
     });
     return c.json(after);
   })
-  .post("/retention/run", async (c) => c.json(await runRetention()))
+  .post("/retention/run", demo.off, async (c) => c.json(await runRetention()))
   // docs/features/review-and-approval.md
   .get("/publishing", async (c) => c.json(await publishingSettings()))
   .put("/publishing", zValidator("json", publishingSettingsSchema), async (c) => {
@@ -251,7 +251,7 @@ export const systemRoutes = new Hono<AppEnv>()
     return c.json({ jobId, generationId: job.generation_id, generationCancelled: !!cancelled });
   })
   // Pausing stops every worker fetching the queue's jobs (src/worker.ts); running ones finish.
-  .post("/queue/pause", zValidator("json", queuePauseSchema), async (c) => {
+  .post("/queue/pause", demo.off, zValidator("json", queuePauseSchema), async (c) => {
     const { queue, paused } = c.req.valid("json");
     const { before, after } = await setQueuePaused(queue, paused, c.get("user").id);
     if (before.includes(queue) !== paused) {

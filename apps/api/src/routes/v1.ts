@@ -484,7 +484,9 @@ const keyed = new Hono<AppEnv>()
         key.id,
       );
       if (result.status !== undefined) {
-        const code = result.status === 404 ? "not_found" : "template_archived";
+        const code = { 404: "not_found", 409: "template_archived", 422: "too_many_rows" }[
+          result.status
+        ];
         return v1Error(c, result.status, code, result.error);
       }
       return c.json(result.summary, 202);

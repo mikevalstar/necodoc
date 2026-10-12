@@ -7,7 +7,7 @@ import { requireAi } from "../ai";
 import { db } from "../db";
 import { file, pdfSource } from "../db/schema";
 import { FileTooLargeError, fileBytes, storeFile } from "../files";
-import { type AppEnv, requireAnyPermission, requirePermission } from "../middleware";
+import { type AppEnv, demo, requireAnyPermission, requirePermission } from "../middleware";
 import { boss, type DetectJobData, queues } from "../queue";
 import { inspectUpload, PdfUploadError } from "../render/pdf-source";
 import { fileHeaders } from "./http";
@@ -47,40 +47,50 @@ async function findSource(id: string) {
 const failedOutput = z.object({ message: z.string() });
 
 export const pdfSourceRoutes = new Hono<AppEnv>()
-  .post("/", canUpload, zValidator("form", z.object({ file: z.instanceof(File) })), async (c) => {
-    const upload = c.req.valid("form").file;
-    const bytes = new Uint8Array(await upload.arrayBuffer());
-    let inspected: Awaited<ReturnType<typeof inspectUpload>>;
-    try {
-      inspected = await inspectUpload(bytes);
-    } catch (error) {
-      if (error instanceof PdfUploadError) return c.json({ error: error.message }, 422);
-      throw error;
-    }
-    const userId = c.get("user").id;
-    try {
-      const id = await db.transaction(async (tx) => {
-        const fileId = await storeFile(tx, { bytes, mimeType: "application/pdf", ownerId: userId });
-        const [row] = await tx
-          .insert(pdfSource)
-          .values({
-            ...inspected,
-            fileId,
-            filename: upload.name || "document.pdf",
-            uploadedBy: userId,
-          })
-          .returning({ id: pdfSource.id });
-        return row?.id;
-      });
-      const created = id ? await findSource(id) : null;
-      if (!created) throw new Error("PDF source insert returned no row");
-      const { fileId: _f, ...summary } = created;
-      return c.json(summary, 201);
-    } catch (error) {
-      if (error instanceof FileTooLargeError) return c.json({ error: error.message }, 413);
-      throw error;
-    }
-  })
+  .post(
+    "/",
+    canUpload,
+    demo.limit("upload"),
+    zValidator("form", z.object({ file: z.instanceof(File) })),
+    async (c) => {
+      const upload = c.req.valid("form").file;
+      const bytes = new Uint8Array(await upload.arrayBuffer());
+      let inspected: Awaited<ReturnType<typeof inspectUpload>>;
+      try {
+        inspected = await inspectUpload(bytes);
+      } catch (error) {
+        if (error instanceof PdfUploadError) return c.json({ error: error.message }, 422);
+        throw error;
+      }
+      const userId = c.get("user").id;
+      try {
+        const id = await db.transaction(async (tx) => {
+          const fileId = await storeFile(tx, {
+            bytes,
+            mimeType: "application/pdf",
+            ownerId: userId,
+          });
+          const [row] = await tx
+            .insert(pdfSource)
+            .values({
+              ...inspected,
+              fileId,
+              filename: upload.name || "document.pdf",
+              uploadedBy: userId,
+            })
+            .returning({ id: pdfSource.id });
+          return row?.id;
+        });
+        const created = id ? await findSource(id) : null;
+        if (!created) throw new Error("PDF source insert returned no row");
+        const { fileId: _f, ...summary } = created;
+        return c.json(summary, 201);
+      } catch (error) {
+        if (error instanceof FileTooLargeError) return c.json({ error: error.message }, 413);
+        throw error;
+      }
+    },
+  )
   .get("/:id", canSeeDrafts, idParam, async (c) => {
     const found = await findSource(c.req.valid("param").id);
     if (!found) return c.json({ error: "PDF not found" }, 404);

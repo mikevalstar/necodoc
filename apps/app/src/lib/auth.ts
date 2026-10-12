@@ -20,6 +20,8 @@ export const signInOptionsQuery = queryOptions({
 async function fetchMe() {
   const res = await api.me.$get();
   if (res.status === 401) return null;
+  // The public demo limits sign-ins per address (ADR 0046): show the API's message.
+  if (res.status === 429) await ok(res);
   if (!res.ok) throw new ApiError(`Couldn't load your account (${res.status})`, res.status);
   return res.json();
 }
@@ -51,7 +53,7 @@ export function requireAccess(me: Me, access: Access) {
 export const meQuery = queryOptions({
   queryKey: ["me"],
   queryFn: fetchMe,
-  retry: 5,
+  retry: (failures, error) => failures < 5 && !(error instanceof ApiError && error.status === 429),
   retryDelay: (failures) => Math.min(1000 * failures, 4000),
 });
 

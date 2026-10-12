@@ -4,6 +4,7 @@ import { hasPermission, type Permissions, parseRoles, type Role } from "@necodoc
 import type { Context } from "hono";
 import { createMiddleware } from "hono/factory";
 import type { auth } from "./auth";
+import { demoGuards } from "./demo";
 import { env } from "./env";
 
 export type AppEnv = {
@@ -55,3 +56,22 @@ export function clientIp(c: Context) {
   const hops = env.TRUST_PROXY ? c.req.header("X-Forwarded-For")?.split(",") : undefined;
   return hops?.at(-1)?.trim() || getConnInfo(c).remote.address || "unknown";
 }
+
+/**
+ * ADR 0046: the public demo's refusals and limits, keyed by clientIp. Every check passes unless
+ * DEMO_MODE is on.
+ */
+export const demo = demoGuards(
+  env.DEMO_MODE
+    ? {
+        rendersPerMinute: env.DEMO_RENDERS_PER_MINUTE,
+        uploadsPerHour: env.DEMO_UPLOADS_PER_HOUR,
+        batchesPerHour: env.DEMO_BATCHES_PER_HOUR,
+        signInsPerHour: env.DEMO_SIGNINS_PER_HOUR,
+        aiPerIpPerDay: env.DEMO_AI_PER_IP_PER_DAY,
+        aiPerDay: env.DEMO_AI_PER_DAY,
+        timeZone: env.DEMO_RESET_TZ,
+      }
+    : null,
+  clientIp,
+);

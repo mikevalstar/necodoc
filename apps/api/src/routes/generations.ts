@@ -35,7 +35,7 @@ import { apikey, file, generation, template, user } from "../db/schema";
 import { mintLink, serveFile } from "../download";
 import { deleteFiles, deleteObjects } from "../files";
 import { generate } from "../generate";
-import { type AppEnv, requirePermission, requireRole, type SignedInEnv } from "../middleware";
+import { type AppEnv, demo, requirePermission, requireRole, type SignedInEnv } from "../middleware";
 import { maskedInput } from "../privacy";
 import { signingQueryOptions, signingResponse } from "../signing-package";
 
@@ -271,18 +271,24 @@ export const generationRoutes = new Hono<AppEnv>()
       failed: stats?.failed ?? 0,
     } satisfies RenderTimeHistogram);
   })
-  .delete("/", requireRole("admin"), zValidator("query", generationFilterSchema), async (c) => {
-    const filter = c.req.valid("query");
-    const where = filterWhere(c.get("user"), filter);
-    if (!where) return c.json({ error: "Pick at least one filter to bulk delete" }, 422);
-    const deleted = await deleteGenerations(where);
-    await recordAudit({
-      action: "generation.bulk_deleted",
-      target: { id: null, name: `${deleted} generations` },
-      details: { filter, deleted },
-    });
-    return c.json({ deleted }, 200);
-  })
+  .delete(
+    "/",
+    requireRole("admin"),
+    demo.off,
+    zValidator("query", generationFilterSchema),
+    async (c) => {
+      const filter = c.req.valid("query");
+      const where = filterWhere(c.get("user"), filter);
+      if (!where) return c.json({ error: "Pick at least one filter to bulk delete" }, 422);
+      const deleted = await deleteGenerations(where);
+      await recordAudit({
+        action: "generation.bulk_deleted",
+        target: { id: null, name: `${deleted} generations` },
+        details: { filter, deleted },
+      });
+      return c.json({ deleted }, 200);
+    },
+  )
   .get("/:id", canView, idParam, async (c) => {
     const [row] = await selectSummaries({
       input: generation.input,
@@ -342,7 +348,7 @@ export const generationRoutes = new Hono<AppEnv>()
       );
     },
   )
-  .post("/:id/rerun", canView, idParam, async (c) => {
+  .post("/:id/rerun", canView, demo.limit("render"), idParam, async (c) => {
     const actor = c.get("user");
     const [original] = await db
       .select({

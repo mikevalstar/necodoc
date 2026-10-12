@@ -34,6 +34,7 @@ import {
   dataTableSearchSchema,
   FilterSelect,
 } from "@/components/data-table";
+import { DemoLock } from "@/components/demo-lock";
 import { ErrorAlert } from "@/components/form";
 import { FaqLink, Page, PageHeader } from "@/components/page";
 import { SavedViews } from "@/components/saved-views";
@@ -382,15 +383,18 @@ function Generations() {
           <>
             <FaqLink feature="Generation log" />
             {isAdmin && (
-              <Button
-                variant="destructive"
-                disabled={!hasFilter || total === 0}
-                title={hasFilter ? undefined : "Pick at least one filter first"}
-                onClick={() => setDialog({ kind: "bulk" })}
-              >
-                <TrashIcon />
-                Delete matching…
-              </Button>
+              // Would empty the log for every visitor of the public demo (ADR 0046).
+              <DemoLock>
+                <Button
+                  variant="destructive"
+                  disabled={!hasFilter || total === 0}
+                  title={hasFilter ? undefined : "Pick at least one filter first"}
+                  onClick={() => setDialog({ kind: "bulk" })}
+                >
+                  <TrashIcon />
+                  Delete matching…
+                </Button>
+              </DemoLock>
             )}
             <a href={exportUrl(search)} className={buttonVariants({ variant: "outline" })}>
               <DownloadSimpleIcon />

@@ -25,6 +25,7 @@ import { toast } from "sonner";
 import { z } from "zod";
 import { ConfirmDialog } from "@/components/confirm-dialog";
 import { activeFilter, DebouncedInput, DensityToggle, FilterSelect } from "@/components/data-table";
+import { DemoLock, useDemoMode } from "@/components/demo-lock";
 import { ErrorAlert } from "@/components/form";
 import { EmptyState, FaqLink, ListSkeleton, Page, PageHeader } from "@/components/page";
 import { RoleBadges } from "@/components/role-badges";
@@ -160,10 +161,12 @@ function Users() {
   const pages = Math.max(1, Math.ceil(total / PAGE_SIZE));
   const goTo = (page: number) => navigate({ search: { ...search, page } });
   const createUser = (
-    <Button onClick={() => setDialog({ kind: "create" })}>
-      <PlusIcon weight="bold" />
-      Create user
-    </Button>
+    <DemoLock>
+      <Button onClick={() => setDialog({ kind: "create" })}>
+        <PlusIcon weight="bold" />
+        Create user
+      </Button>
+    </DemoLock>
   );
 
   return (
@@ -209,20 +212,22 @@ function Users() {
                   </p>
                 </div>
                 <div className="flex items-center gap-2">
-                  <Button
-                    variant="destructive"
-                    size="sm"
-                    onClick={() => setDialog({ kind: "delete", user })}
-                  >
-                    Delete…
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setDialog({ kind: "roles", user })}
-                  >
-                    Grant access…
-                  </Button>
+                  <DemoLock className="items-center gap-2">
+                    <Button
+                      variant="destructive"
+                      size="sm"
+                      onClick={() => setDialog({ kind: "delete", user })}
+                    >
+                      Delete…
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setDialog({ kind: "roles", user })}
+                    >
+                      Grant access…
+                    </Button>
+                  </DemoLock>
                 </div>
               </li>
             ))}
@@ -534,6 +539,8 @@ function UserActions({
   open: (kind: Exclude<Dialog["kind"], "create">) => void;
   unban: () => void;
 }) {
+  // The public demo refuses every change here except impersonation (ADR 0046).
+  const demo = useDemoMode();
   return (
     <DropdownMenu>
       <DropdownMenuTrigger
@@ -542,19 +549,27 @@ function UserActions({
         <DotsThreeIcon weight="bold" />
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end">
-        {/* Your own name, password and sessions live in Settings; your own email only another admin changes. */}
-        {!isSelf && (
-          <DropdownMenuItem onClick={() => open("details")}>Edit details…</DropdownMenuItem>
-        )}
-        <DropdownMenuItem onClick={() => open("roles")}>
-          {roles.length === 0 ? "Grant access…" : "Edit roles…"}
-        </DropdownMenuItem>
-        {!isSelf && (
-          <>
-            <DropdownMenuItem onClick={() => open("password")}>Set password…</DropdownMenuItem>
-            <DropdownMenuItem onClick={() => open("revoke")}>Revoke sessions…</DropdownMenuItem>
-          </>
-        )}
+        <DemoLock className="flex flex-col">
+          {/* Your own name, password and sessions live in Settings; your own email only another admin changes. */}
+          {!isSelf && (
+            <DropdownMenuItem disabled={demo} onClick={() => open("details")}>
+              Edit details…
+            </DropdownMenuItem>
+          )}
+          <DropdownMenuItem disabled={demo} onClick={() => open("roles")}>
+            {roles.length === 0 ? "Grant access…" : "Edit roles…"}
+          </DropdownMenuItem>
+          {!isSelf && (
+            <>
+              <DropdownMenuItem disabled={demo} onClick={() => open("password")}>
+                Set password…
+              </DropdownMenuItem>
+              <DropdownMenuItem disabled={demo} onClick={() => open("revoke")}>
+                Revoke sessions…
+              </DropdownMenuItem>
+            </>
+          )}
+        </DemoLock>
         {/* The admin role can't impersonate other admins (Better Auth default). */}
         {!isSelf && !roles.includes("admin") && !user.banned && (
           <DropdownMenuItem onClick={() => open("impersonate")}>Impersonate…</DropdownMenuItem>
@@ -563,16 +578,24 @@ function UserActions({
         {!isSelf && (
           <>
             <DropdownMenuSeparator />
-            {user.banned ? (
-              <DropdownMenuItem onClick={unban}>Unban</DropdownMenuItem>
-            ) : (
-              <DropdownMenuItem variant="destructive" onClick={() => open("ban")}>
-                Ban…
+            <DemoLock className="flex flex-col">
+              {user.banned ? (
+                <DropdownMenuItem disabled={demo} onClick={unban}>
+                  Unban
+                </DropdownMenuItem>
+              ) : (
+                <DropdownMenuItem disabled={demo} variant="destructive" onClick={() => open("ban")}>
+                  Ban…
+                </DropdownMenuItem>
+              )}
+              <DropdownMenuItem
+                disabled={demo}
+                variant="destructive"
+                onClick={() => open("delete")}
+              >
+                Delete…
               </DropdownMenuItem>
-            )}
-            <DropdownMenuItem variant="destructive" onClick={() => open("delete")}>
-              Delete…
-            </DropdownMenuItem>
+            </DemoLock>
           </>
         )}
       </DropdownMenuContent>

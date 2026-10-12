@@ -28,13 +28,10 @@ import { signatureHeader, type WebhookSubject, webhookMatches } from "./webhook-
 
 export type WebhookTarget = { url: URL; address: string; family: 4 | 6 };
 
-/**
- * Parses and resolves a webhook URL, refusing non-HTTPS and any host with a non-public address.
- * Run on save and again before every POST, which then connects to the address checked here.
- */
-export async function resolveWebhookUrl(
+/** The URL's shape alone: HTTPS, no credentials. What the public demo checks on save. */
+export function checkWebhookUrl(
   raw: string,
-): Promise<{ ok: true; target: WebhookTarget } | { ok: false; error: string }> {
+): { ok: true; url: URL } | { ok: false; error: string } {
   let url: URL;
   try {
     url = new URL(raw);
@@ -47,6 +44,19 @@ export async function resolveWebhookUrl(
   }
   if (url.username || url.password)
     return { ok: false, error: "Put credentials in the secret, not the URL" };
+  return { ok: true, url };
+}
+
+/**
+ * Parses and resolves a webhook URL, refusing non-HTTPS and any host with a non-public address.
+ * Run on save and again before every POST, which then connects to the address checked here.
+ */
+export async function resolveWebhookUrl(
+  raw: string,
+): Promise<{ ok: true; target: WebhookTarget } | { ok: false; error: string }> {
+  const checked = checkWebhookUrl(raw);
+  if (!checked.ok) return checked;
+  const { url } = checked;
   const host = url.hostname.replace(/^\[|\]$/g, "");
   let addresses: { address: string; family: number }[];
   try {
@@ -310,8 +320,12 @@ export async function deliver(deliveryId: string, retriesLeft: boolean) {
   const started = performance.now();
   let status: number | null = null;
   let error: string | null = null;
+  // ADR 0046: the public demo records deliveries but sends nothing anywhere.
+  const skipped = env.DEMO_MODE && row.enabled;
   if (!row.enabled) {
     error = "The webhook is disabled";
+  } else if (skipped) {
+    error = "Not sent in the public demo";
   } else {
     const resolved = await resolveWebhookUrl(row.url);
     if (!resolved.ok) {
@@ -343,8 +357,13 @@ export async function deliver(deliveryId: string, retriesLeft: boolean) {
     error,
   };
   // A disabled webhook doesn't get better by retrying; DNS and network failures might.
-  const next: WebhookDeliveryStatus =
-    error === null ? "success" : retriesLeft && row.enabled ? "pending" : "failed";
+  const next: WebhookDeliveryStatus = skipped
+    ? "skipped"
+    : error === null
+      ? "success"
+      : retriesLeft && row.enabled
+        ? "pending"
+        : "failed";
   await db
     .update(webhookDelivery)
     .set({

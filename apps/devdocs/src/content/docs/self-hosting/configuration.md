@@ -70,9 +70,17 @@ AI features ([AI template assistant](/guides/ai-template-assistant/), AI field d
 | Variable | Default | Description |
 | --- | --- | --- |
 | `AUTH_PASSWORD_ENABLED` | `true` | `false` hides and refuses email/password sign-in and registration. Needs at least one SSO provider. |
-| `DEMO_MODE` | `false` | Public demo only. Every visitor is signed in as one shared admin, `demo@necodoc.com` (created on start), with a banner saying the data is public. Turns off password sign-in, registration, SSO and sign out. Never set it on an installation with real data. |
+| `DEMO_MODE` | `false` | Public demo only. Every visitor is signed in as one shared admin, `demo@necodoc.com` (created on start), with a banner saying the data is public. Turns off password sign-in, registration, SSO and sign out; refuses user management, API key creation, retention, bulk log deletion and queue pause; records webhooks as skipped instead of sending them; and applies the `DEMO_*` limits below, per client address. Set it on the workers too. Never set it on an installation with real data. |
 | `DEMO_RESET_TIME` | unset | Public demo only. When the scheduled `pnpm demo:reset` runs, as `HH:MM` in `DEMO_RESET_TZ`; the banner counts down to it. Keep it in step with the schedule that runs the reset. Unset: no countdown. |
-| `DEMO_RESET_TZ` | `America/Toronto` | The IANA time zone `DEMO_RESET_TIME` is in. |
+| `DEMO_RESET_TZ` | `America/Toronto` | The IANA time zone `DEMO_RESET_TIME` is in, and where the demo's AI day starts. |
+| `DEMO_RENDERS_PER_MINUTE` | `30` | Public demo only. Renders, previews, test runs, re-runs and document PDFs per client address: a burst of this many, refilled evenly. Over it: 429 with `Retry-After`. |
+| `DEMO_UPLOADS_PER_HOUR` | `30` | Public demo only. Asset and PDF uploads per client address. |
+| `DEMO_BATCHES_PER_HOUR` | `10` | Public demo only. Batches started per client address. |
+| `DEMO_BATCH_MAX_ROWS` | `25` | Public demo only. Rows in one batch. |
+| `DEMO_UPLOAD_MAX_MB` | `5` | Public demo only. The largest request body, uploads included (1 to 20). |
+| `DEMO_SIGNINS_PER_HOUR` | `30` | Public demo only. Demo sessions created per client address. |
+| `DEMO_AI_PER_IP_PER_DAY` | `20` | Public demo with `ANTHROPIC_KEY` only. AI requests per client address per day; `0` turns AI off in the demo. Counters are in memory and restart with the API. |
+| `DEMO_AI_PER_DAY` | `300` | Public demo with `ANTHROPIC_KEY` only. AI requests per day for the whole demo. |
 | `SSO_PROVIDERS` | none | Comma-separated SSO provider ids. Each reads `SSO_<ID>_*`: `TYPE` (`oidc`, `saml`, `header`), `LABEL`, `ROLE_MAP`, `DEFAULT_ROLES`, `LINK_EXISTING`, `EMAIL_DOMAINS`, plus the protocol's settings. Full list and IdP guides: [Single sign-on](/self-hosting/sso/). |
 
 ## Storage

@@ -16,7 +16,7 @@ import { createKey, revokeKey } from "../api-keys";
 import { recordAudit } from "../audit";
 import { db } from "../db";
 import { apiKeyPolicy, apikey, user } from "../db/schema";
-import { type AppEnv, requirePermission, type SignedInEnv } from "../middleware";
+import { type AppEnv, demo, requirePermission, type SignedInEnv } from "../middleware";
 
 // Spec: docs/features/html-to-pdf-api.md (keys). ADR 0029: people manage their own keys; admins
 // manage service accounts' keys, and see and revoke everyone's.
@@ -112,7 +112,7 @@ export const apiKeyRoutes = new Hono<AppEnv>()
     );
     return c.json(keys, 200);
   })
-  .post("/", canUseApi, zValidator("json", createApiKeySchema), async (c) => {
+  .post("/", canUseApi, demo.off, zValidator("json", createApiKeySchema), async (c) => {
     const actor = c.get("user");
     const { ownerId, name, expiresInDays, ...settings } = c.req.valid("json");
     const owner = await findOwner(ownerId ?? actor.id);
@@ -138,45 +138,54 @@ export const apiKeyRoutes = new Hono<AppEnv>()
     });
     return c.json(created, 201);
   })
-  .post("/:id/rotate", canUseApi, idParam, zValidator("json", rotateApiKeySchema), async (c) => {
-    const actor = c.get("user");
-    const [found] = await selectKeys(eq(apikey.id, c.req.valid("param").id));
-    const owner = found && (await findOwner(found.ownerId));
-    if (!found || !owner || !canManage(actor, owner)) {
-      return c.json({ error: "Key not found" }, 404);
-    }
-    if (found.status !== "active") return c.json({ error: `This key is ${found.status}` }, 409);
-    const now = Date.now();
-    // The replacement lives as long as the original was meant to.
-    const lifetime = found.expiresAt ? found.expiresAt.getTime() - found.createdAt.getTime() : null;
-    const created = await createKey(
-      owner.id,
-      {
-        name: found.name ?? "Rotated key",
-        scopes: found.scopes,
-        templateIds: found.templateIds,
-        ipAllowlist: found.ipAllowlist,
-        rateLimitPerMinute: found.rateLimitPerMinute ?? 120,
-        expiresAt: lifetime ? new Date(now + lifetime) : null,
-      },
-      { createdBy: actor.id, rotatedFromId: found.id },
-    );
-    const overlapEnd = new Date(now + c.req.valid("json").overlapHours * 3_600_000);
-    const oldExpiresAt =
-      found.expiresAt && found.expiresAt < overlapEnd ? found.expiresAt : overlapEnd;
-    await db
-      .update(apiKeyPolicy)
-      .set({ expiresAt: oldExpiresAt })
-      .where(eq(apiKeyPolicy.apiKeyId, found.id));
-    await recordAudit({
-      action: "api_key.rotated",
-      target: { id: found.id, name: found.name },
-      before: { expiresAt: found.expiresAt },
-      after: { expiresAt: oldExpiresAt },
-      details: { replacedBy: created.id, replacementStart: created.start },
-    });
-    return c.json({ ...created, oldKeyExpiresAt: overlapEnd.toISOString() }, 201);
-  })
+  .post(
+    "/:id/rotate",
+    canUseApi,
+    demo.off,
+    idParam,
+    zValidator("json", rotateApiKeySchema),
+    async (c) => {
+      const actor = c.get("user");
+      const [found] = await selectKeys(eq(apikey.id, c.req.valid("param").id));
+      const owner = found && (await findOwner(found.ownerId));
+      if (!found || !owner || !canManage(actor, owner)) {
+        return c.json({ error: "Key not found" }, 404);
+      }
+      if (found.status !== "active") return c.json({ error: `This key is ${found.status}` }, 409);
+      const now = Date.now();
+      // The replacement lives as long as the original was meant to.
+      const lifetime = found.expiresAt
+        ? found.expiresAt.getTime() - found.createdAt.getTime()
+        : null;
+      const created = await createKey(
+        owner.id,
+        {
+          name: found.name ?? "Rotated key",
+          scopes: found.scopes,
+          templateIds: found.templateIds,
+          ipAllowlist: found.ipAllowlist,
+          rateLimitPerMinute: found.rateLimitPerMinute ?? 120,
+          expiresAt: lifetime ? new Date(now + lifetime) : null,
+        },
+        { createdBy: actor.id, rotatedFromId: found.id },
+      );
+      const overlapEnd = new Date(now + c.req.valid("json").overlapHours * 3_600_000);
+      const oldExpiresAt =
+        found.expiresAt && found.expiresAt < overlapEnd ? found.expiresAt : overlapEnd;
+      await db
+        .update(apiKeyPolicy)
+        .set({ expiresAt: oldExpiresAt })
+        .where(eq(apiKeyPolicy.apiKeyId, found.id));
+      await recordAudit({
+        action: "api_key.rotated",
+        target: { id: found.id, name: found.name },
+        before: { expiresAt: found.expiresAt },
+        after: { expiresAt: oldExpiresAt },
+        details: { replacedBy: created.id, replacementStart: created.start },
+      });
+      return c.json({ ...created, oldKeyExpiresAt: overlapEnd.toISOString() }, 201);
+    },
+  )
   .post("/:id/revoke", canUseApi, idParam, async (c) => {
     const actor = c.get("user");
     const [found] = await selectKeys(eq(apikey.id, c.req.valid("param").id));

@@ -16,7 +16,7 @@ import { db } from "../db";
 import { generation, shareLink, submission, templateVersion } from "../db/schema";
 import { serveFile } from "../download";
 import { generate } from "../generate";
-import { type AppEnv, requirePermission } from "../middleware";
+import { type AppEnv, demo, requirePermission } from "../middleware";
 import { findVersion, versionRequest } from "./templates";
 
 // Spec: docs/features/filling-out-a-document.md. Documents are private to their owner, admins
@@ -214,28 +214,39 @@ export const submissionRoutes = new Hono<AppEnv>()
       .returning({ id: submission.id });
     return deleted ? c.body(null, 204) : c.json({ error: "Document not found" }, 404);
   })
-  .post("/:id/finish", canView, idParam, zValidator("json", finishSubmissionSchema), async (c) => {
-    const { id } = c.req.valid("param");
-    const body = c.req.valid("json");
-    const found = await findOwn(c.get("user").id, id);
-    if (!found) return c.json({ error: "Document not found" }, 404);
-    const row = body.data
-      ? { ...found.submission, data: fieldAnswers(found.version.sections, body.data) }
-      : found.submission;
-    if (body.data) await db.update(submission).set({ data: row.data }).where(eq(submission.id, id));
-    // Also how a finished document is regenerated. Answers at once; the app polls the document.
-    const finished = await finishSubmission({
-      row,
-      version: found.version,
-      source: "app",
-      requestId: c.get("requestId"),
-      wait: false,
-    });
-    if (!finished.ok) {
-      return c.json({ error: "Some answers need fixing", fieldErrors: finished.fieldErrors }, 422);
-    }
-    return c.json({ generationId: finished.result.generationId }, 202);
-  })
+  .post(
+    "/:id/finish",
+    canView,
+    demo.limit("render"),
+    idParam,
+    zValidator("json", finishSubmissionSchema),
+    async (c) => {
+      const { id } = c.req.valid("param");
+      const body = c.req.valid("json");
+      const found = await findOwn(c.get("user").id, id);
+      if (!found) return c.json({ error: "Document not found" }, 404);
+      const row = body.data
+        ? { ...found.submission, data: fieldAnswers(found.version.sections, body.data) }
+        : found.submission;
+      if (body.data)
+        await db.update(submission).set({ data: row.data }).where(eq(submission.id, id));
+      // Also how a finished document is regenerated. Answers at once; the app polls the document.
+      const finished = await finishSubmission({
+        row,
+        version: found.version,
+        source: "app",
+        requestId: c.get("requestId"),
+        wait: false,
+      });
+      if (!finished.ok) {
+        return c.json(
+          { error: "Some answers need fixing", fieldErrors: finished.fieldErrors },
+          422,
+        );
+      }
+      return c.json({ generationId: finished.result.generationId }, 202);
+    },
+  )
   .get("/:id/pdf", canView, idParam, async (c) => {
     const [row] = await db
       .select({ fileId: generation.outputFileId, filename: generation.filename })

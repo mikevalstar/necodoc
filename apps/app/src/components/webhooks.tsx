@@ -74,10 +74,11 @@ const eventLabels: Record<z.infer<typeof webhookEventSchema>, string> = {
   "batch.completed": "Batch completed",
 };
 
-const deliveryBadge: Record<WebhookDeliveryStatus, "ok" | "run" | "bad"> = {
+const deliveryBadge: Record<WebhookDeliveryStatus, "ok" | "run" | "bad" | "secondary"> = {
   success: "ok",
   pending: "run",
   failed: "bad",
+  skipped: "secondary",
 };
 
 function scopeLabel(hook: Webhook) {
@@ -455,9 +456,10 @@ function DeliveriesDialog({ hook, onClose }: { hook: Webhook; onClose: () => voi
                   <ol className="space-y-1 text-xs">
                     {delivery.attempts.map((attempt) => (
                       <li key={attempt.at} className="tabular-nums">
-                        {dayjs(attempt.at).format("HH:mm:ss")} ·{" "}
-                        {attempt.status === null ? "no response" : `HTTP ${attempt.status}`} ·{" "}
-                        {attempt.ms} ms
+                        {dayjs(attempt.at).format("HH:mm:ss")}
+                        {/* A skipped delivery (public demo) has no response to show, only why. */}
+                        {delivery.status !== "skipped" &&
+                          ` · ${attempt.status === null ? "no response" : `HTTP ${attempt.status}`} · ${attempt.ms} ms`}
                         {attempt.error && <span className="text-ink-3"> · {attempt.error}</span>}
                       </li>
                     ))}

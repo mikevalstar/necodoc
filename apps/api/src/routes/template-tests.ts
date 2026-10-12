@@ -17,6 +17,7 @@ import { generation, submission, template, templateTestCase } from "../db/schema
 import { renderPreview, type Tx } from "../generate";
 import {
   type AppEnv,
+  demo,
   requireAnyPermission,
   requirePermission,
   type SignedInEnv,
@@ -196,21 +197,29 @@ export const templateTestRoutes = new Hono<AppEnv>()
     });
     return row ? c.body(null, 204) : c.json({ error: "Test case not found" }, 404);
   })
-  .post("/:id/tests/run", canSeeDrafts, idParam, zValidator("json", runTestsSchema), async (c) => {
-    const { id } = c.req.valid("param");
-    const { caseIds } = c.req.valid("json");
-    const draft = await findDraft(id);
-    const typed = draft && savedDraft(draft);
-    if (!draft || !typed) return c.json({ error: "Template not found" }, 404);
-    const cases = caseIds
-      ? (await listCases(id)).filter((t) => caseIds.includes(t.id))
-      : await listCases(id);
-    return c.json({ results: await runTests(typed, draft.name, cases) }, 200);
-  })
+  .post(
+    "/:id/tests/run",
+    canSeeDrafts,
+    demo.limit("render"),
+    idParam,
+    zValidator("json", runTestsSchema),
+    async (c) => {
+      const { id } = c.req.valid("param");
+      const { caseIds } = c.req.valid("json");
+      const draft = await findDraft(id);
+      const typed = draft && savedDraft(draft);
+      if (!draft || !typed) return c.json({ error: "Template not found" }, 404);
+      const cases = caseIds
+        ? (await listCases(id)).filter((t) => caseIds.includes(t.id))
+        : await listCases(id);
+      return c.json({ results: await runTests(typed, draft.name, cases) }, 200);
+    },
+  )
   // The latest published version and the saved draft, rendered with the same data, compared.
   .post(
     "/:id/visual-diff",
     canSeeDrafts,
+    demo.limit("render"),
     idParam,
     zValidator("json", visualDiffSchema),
     async (c) => {

@@ -31,7 +31,8 @@ export const updateWebhookSchema = z.object({
   events: z.array(webhookEventSchema).min(1).optional(),
 });
 
-export const webhookDeliveryStatusSchema = z.enum(["pending", "success", "failed"]);
+/** `skipped`: recorded but not sent, in the public demo (docs/features/public-demo.md). */
+export const webhookDeliveryStatusSchema = z.enum(["pending", "success", "failed", "skipped"]);
 export type WebhookDeliveryStatus = z.infer<typeof webhookDeliveryStatusSchema>;
 
 /** One POST: its outcome, as the delivery log shows it. */

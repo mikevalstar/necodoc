@@ -2,7 +2,7 @@ import { zValidator } from "@hono/zod-validator";
 import { renderCallSchema } from "@necodoc/shared";
 import { Hono } from "hono";
 import { generate, renderPreview } from "../generate";
-import { type AppEnv, requirePermission } from "../middleware";
+import { type AppEnv, demo, requirePermission } from "../middleware";
 import { generationResponse, pdfHeaders } from "./http";
 
 // Spec: docs/features/html-to-pdf-api.md (the app's own render; /api/v1 adds API keys later).
@@ -10,6 +10,7 @@ import { generationResponse, pdfHeaders } from "./http";
 export const renderRoutes = new Hono<AppEnv>().post(
   "/",
   requirePermission({ document: ["view"] }),
+  demo.limit("render"),
   zValidator("json", renderCallSchema),
   async (c) => {
     const { async, ...request } = c.req.valid("json");

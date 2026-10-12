@@ -1,6 +1,7 @@
 import { createAnthropic } from "@ai-sdk/anthropic";
 import { createMiddleware } from "hono/factory";
 import { env } from "./env";
+import { demo } from "./middleware";
 
 // ADR 0022: the one module that owns the model. AI is on only when ANTHROPIC_KEY is set; without
 // it no AI code path runs, AI routes answer 404 and /api/me reports it off so the app hides every
@@ -11,8 +12,13 @@ export const aiModel = env.ANTHROPIC_KEY
   ? createAnthropic({ apiKey: env.ANTHROPIC_KEY })(env.AI_MODEL)
   : null;
 
-/** Guards AI routes: 404, as if they didn't exist, when AI is off. */
+/**
+ * Guards AI routes: 404, as if they didn't exist, when AI is off. In the public demo each POST
+ * (one model call) counts against the daily caps (ADR 0046); polling a detection doesn't.
+ */
 export const requireAi = createMiddleware(async (c, next) => {
   if (!aiModel) return c.json({ error: "Not found" }, 404);
+  const capped = c.req.method === "POST" ? demo.ai(c) : null;
+  if (capped) return capped;
   await next();
 });

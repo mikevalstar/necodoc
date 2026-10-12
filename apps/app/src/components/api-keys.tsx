@@ -18,6 +18,7 @@ import type { InferResponseType } from "hono/client";
 import { type ReactNode, useRef, useState } from "react";
 import { toast } from "sonner";
 import { z } from "zod";
+import { DemoLock, useDemoMode } from "@/components/demo-lock";
 import { ErrorAlert, useAppForm } from "@/components/form";
 import { EmptyState } from "@/components/page";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -144,6 +145,7 @@ export function ApiKeyTable({
   const [secret, setSecret] = useState<{ key: string; name: string } | null>(null);
   const close = () => setAction(null);
   const isAdmin = useQuery(meQuery).data?.user.roles.includes("admin") === true;
+  const demo = useDemoMode();
   if (keys?.length === 0)
     return (
       empty ?? (
@@ -317,9 +319,14 @@ export function ApiKeyTable({
                       </DropdownMenuItem>
                     )}
                     {key.status === "active" && canRotate(key) && (
-                      <DropdownMenuItem onClick={() => setAction({ kind: "rotate", key })}>
-                        Rotate…
-                      </DropdownMenuItem>
+                      <DemoLock className="flex flex-col">
+                        <DropdownMenuItem
+                          disabled={demo}
+                          onClick={() => setAction({ kind: "rotate", key })}
+                        >
+                          Rotate…
+                        </DropdownMenuItem>
+                      </DemoLock>
                     )}
                     {key.status !== "revoked" && (
                       <>
@@ -793,14 +800,18 @@ export function CreateKeyButton({
 }) {
   const [open, setOpen] = useState(false);
   const [secret, setSecret] = useState<{ key: string; name: string } | null>(null);
+  // The public demo hands out no keys (ADR 0046).
+  const demo = useDemoMode();
   const close = () => {
     setOpen(false);
     onDone?.();
   };
   return (
     <>
-      <Button onClick={() => setOpen(true)}>Create key</Button>
-      {(open || requested) && (
+      <DemoLock>
+        <Button onClick={() => setOpen(true)}>Create key</Button>
+      </DemoLock>
+      {(open || requested) && !demo && (
         <CreateKeyDialog
           {...props}
           onClose={close}

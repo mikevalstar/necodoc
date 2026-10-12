@@ -74,7 +74,7 @@ export class ApiError extends Error {
  * ApiError with the API's message, so TanStack Query shows it.
  */
 export async function ok<R extends ApiResponse>(
-  request: Promise<R>,
+  request: R | Promise<R>,
 ): Promise<Exclude<R, { ok: false }>> {
   const res = await request;
   // Hono types `ok` as `false` on error statuses; TS can't narrow a generic on it by itself.
@@ -179,5 +179,13 @@ export type AssistantMessage = UIMessage<unknown, UIDataTypes, AssistantTools>;
 export const assistantTransport = (id: string, draft: () => DesignedDraft) =>
   new DefaultChatTransport<AssistantMessage>({
     api: `/api/templates/${id}/assistant`,
+    // The SDK shows a failed response's body as the error: hand it the message, not the JSON
+    // (the public demo's AI cap answers 429 with one, ADR 0046).
+    fetch: async (input, init) => {
+      const res = await fetch(input, init);
+      if (res.ok) return res;
+      const message = errorMessage(await res.json().catch(() => null), res.status);
+      return new Response(message, { status: res.status });
+    },
     prepareSendMessagesRequest: ({ messages }) => ({ body: { messages, draft: draft() } }),
   });

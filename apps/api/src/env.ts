@@ -36,6 +36,19 @@ export const env = z
           return false;
         }
       }, "an IANA time zone, e.g. America/Toronto"),
+    /**
+     * docs/features/public-demo.md (Hardening), ADR 0046: DEMO_MODE limits per client address.
+     * Each "per" limit is a burst of that many, refilled evenly; AI caps count per day.
+     */
+    DEMO_RENDERS_PER_MINUTE: z.coerce.number().int().min(1).default(30),
+    DEMO_UPLOADS_PER_HOUR: z.coerce.number().int().min(1).default(30),
+    DEMO_BATCHES_PER_HOUR: z.coerce.number().int().min(1).default(10),
+    DEMO_BATCH_MAX_ROWS: z.coerce.number().int().min(1).default(25),
+    /** Every request body, uploads included. */
+    DEMO_UPLOAD_MAX_MB: z.coerce.number().min(1).max(20).default(5),
+    DEMO_SIGNINS_PER_HOUR: z.coerce.number().int().min(1).default(30),
+    DEMO_AI_PER_IP_PER_DAY: z.coerce.number().int().min(0).default(20),
+    DEMO_AI_PER_DAY: z.coerce.number().int().min(0).default(300),
     PORT: z.coerce.number().default(3000),
     /** ADR 0020: `api` serves HTTP, `worker` renders queued jobs, `all` does both. */
     ROLE: processRoleSchema.default("all"),

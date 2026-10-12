@@ -11,9 +11,10 @@ import { z } from "zod";
 import { recordAudit } from "../audit";
 import { db } from "../db";
 import { apikey, template, user, webhook, webhookDelivery } from "../db/schema";
+import { env } from "../env";
 import { type AppEnv, requirePermission, type SignedInEnv } from "../middleware";
 import { newWebhookSecret } from "../webhook-rules";
-import { queueTestDelivery, resolveWebhookUrl } from "../webhooks";
+import { checkWebhookUrl, queueTestDelivery, resolveWebhookUrl } from "../webhooks";
 
 // Spec: docs/features/webhooks.md. People manage their own webhooks; admins manage service
 // accounts' (and can see anyone's). Secrets are returned once, on create.
@@ -100,7 +101,8 @@ export const webhookRoutes = new Hono<AppEnv>()
         return c.json({ error: "Template webhooks need the editor role" }, 403);
       }
     }
-    const resolved = await resolveWebhookUrl(url);
+    // ADR 0046: the public demo never delivers, so it doesn't look the host up either.
+    const resolved = env.DEMO_MODE ? checkWebhookUrl(url) : await resolveWebhookUrl(url);
     if (!resolved.ok) return c.json({ error: resolved.error }, 422);
     const secret = newWebhookSecret();
     const created = await db.transaction(async (tx) => {

@@ -21,9 +21,10 @@ import { z } from "zod";
 import { recordAudit } from "../audit";
 import { db } from "../db";
 import { batch, generation, user } from "../db/schema";
+import { env } from "../env";
 import { findFile, openFile } from "../files";
 import { enqueue, pdfFilename, queuedRow } from "../generate";
-import { type AppEnv, requirePermission, type SignedInEnv } from "../middleware";
+import { type AppEnv, demo, requirePermission, type SignedInEnv } from "../middleware";
 import { priorities } from "../queue";
 import { completeBatch } from "../webhooks";
 import { findVersion, versionRequest } from "./templates";
@@ -95,6 +96,13 @@ export async function createBatch(
   requestId: string,
   apiKeyId?: string,
 ) {
+  // ADR 0046: the public demo takes small batches only.
+  if (env.DEMO_MODE && rows.length > env.DEMO_BATCH_MAX_ROWS) {
+    return {
+      error: `The public demo limits a batch to ${env.DEMO_BATCH_MAX_ROWS} rows`,
+      status: 422,
+    } as const;
+  }
   const found = await findVersion(actor, id, version);
   if (!found) return { error: "Version not found", status: 404 } as const;
   if (found.archivedAt) return { error: "This template is archived", status: 409 } as const;
@@ -186,6 +194,7 @@ export const templateBatchRoutes = new Hono<AppEnv>()
   .post(
     "/:id/versions/:version/batch",
     canView,
+    demo.limit("batch"),
     versionParam,
     zValidator("json", batchJsonSchema),
     async (c) => {
@@ -202,6 +211,7 @@ export const templateBatchRoutes = new Hono<AppEnv>()
   .post(
     "/:id/versions/:version/batch/csv",
     canView,
+    demo.limit("batch"),
     versionParam,
     zValidator("form", csvFormSchema),
     async (c) => {

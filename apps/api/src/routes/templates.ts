@@ -27,6 +27,7 @@ import { pdfSource, template, templateTestCase, templateVersion, theme, user } f
 import { generate, renderPreview } from "../generate";
 import {
   type AppEnv,
+  demo,
   requireAnyPermission,
   requirePermission,
   type SignedInEnv,
@@ -357,6 +358,7 @@ export const templateRoutes = new Hono<AppEnv>()
   .post(
     "/:id/preview",
     canSeeDrafts,
+    demo.limit("render"),
     idParam,
     zValidator("json", previewTemplateSchema),
     async (c) => {
@@ -555,6 +557,7 @@ export const templateRoutes = new Hono<AppEnv>()
   .post(
     "/:id/versions/:version/generate",
     canView,
+    demo.limit("render"),
     versionParam,
     zValidator("json", generateFromTemplateSchema),
     async (c) => {

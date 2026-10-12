@@ -24,6 +24,7 @@ import { toast } from "sonner";
 import { z } from "zod";
 import { StatTile } from "@/components/charts";
 import { ConfirmDialog } from "@/components/confirm-dialog";
+import { DemoLock } from "@/components/demo-lock";
 import { ErrorAlert } from "@/components/form";
 import { FaqLink, ListSkeleton, Page, PageHeader } from "@/components/page";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -698,7 +699,10 @@ function RetentionCard() {
         description="Deletes generated PDFs, and optionally inputs, of generations that finished more than N days ago. Log entries stay. Runs daily at 03:17 UTC."
       />
       {retention.data ? (
-        <RetentionForm key={JSON.stringify(retention.data)} saved={retention.data} />
+        // A short retention run would empty the demo for everyone (ADR 0046).
+        <DemoLock className="flex flex-col">
+          <RetentionForm key={JSON.stringify(retention.data)} saved={retention.data} />
+        </DemoLock>
       ) : (
         <div className="px-4 py-4">
           <ErrorAlert error={retention.error} />

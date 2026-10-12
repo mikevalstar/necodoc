@@ -8,7 +8,7 @@ import { recordAudit } from "../audit";
 import { db } from "../db";
 import { asset, file, user } from "../db/schema";
 import { deleteFiles, FileTooLargeError, fileBytes, storeFile } from "../files";
-import { type AppEnv, requirePermission } from "../middleware";
+import { type AppEnv, demo, requirePermission } from "../middleware";
 import { fileHeaders } from "./http";
 
 // Spec: docs/features/assets.md. Assets are global and immutable; only the name changes.
@@ -58,6 +58,7 @@ export const assetRoutes = new Hono<AppEnv>()
   .post(
     "/",
     requirePermission({ document: ["create"] }),
+    demo.limit("upload"),
     zValidator("form", z.object({ file: z.instanceof(File), name: z.string().trim().optional() })),
     async (c) => {
       const form = c.req.valid("form");
