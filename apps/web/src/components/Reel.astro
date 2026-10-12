@@ -1,22 +1,48 @@
 ---
 import { Image } from "astro:assets";
-// The product tour slot (W5's Remotion reel). It never autoplays: the poster stays until
-// someone presses play, then the video loads with captions. With no video yet, the poster
-// says so instead of offering a dead button. Reduced motion needs nothing extra because
-// nothing moves until asked; the chapter list doubles as the text alternative.
+import { existsSync, readFileSync } from "node:fs";
+import path from "node:path";
+// The product tour slot (docs/features/product-tour-reel.md). It never autoplays: the poster
+// stays until someone presses play, then the video loads, muted, with controls and captions.
+// Reduced motion needs nothing extra because nothing moves until asked; the chapter list
+// doubles as the text alternative. The video, its captions and its chapter times come from
+// public/reel/reel.json, written by `pnpm --filter @necodoc/reel render`; once it exists its
+// chapters replace the ones passed in, so the list always matches the video. Without it,
+// the poster says the video is coming instead of offering a dead button.
 import type { ImageMetadata } from "astro";
 
+type Chapter = { label: string; at?: string };
 type Props = {
   poster: ImageMetadata;
   title: string;
-  chapters: { label: string; at?: string }[];
-  video?: { src: string; captions: string; duration: string };
+  chapters: Chapter[];
 };
-const { poster, title, chapters, video } = Astro.props;
+type Manifest = {
+  duration: string;
+  mp4: string;
+  webm: string;
+  poster: string;
+  captions: string;
+  chapters: Required<Chapter>[];
+};
+
+// Astro runs from apps/web for dev and build.
+const manifestPath = path.join(process.cwd(), "public/reel/reel.json");
+const video: Manifest | undefined = existsSync(manifestPath)
+  ? JSON.parse(readFileSync(manifestPath, "utf8"))
+  : undefined;
+const { poster, title } = Astro.props;
+const chapters = video?.chapters ?? Astro.props.chapters;
 ---
 
 <div class="reel">
-  <div class="frame" data-reel={video?.src} data-captions={video?.captions}>
+  <div
+    class="frame"
+    data-mp4={video?.mp4}
+    data-webm={video?.webm}
+    data-poster={video?.poster}
+    data-captions={video?.captions}
+  >
     <Image class="poster" src={poster} alt="" widths={[960, 1440, 1920]} sizes="(max-width: 1100px) 100vw, 820px" />
     <div class="veil"></div>
     <div class="title"><p class="eyebrow">Product tour</p><b>{title}</b></div>
@@ -46,22 +72,37 @@ const { poster, title, chapters, video } = Astro.props;
 </div>
 
 <script>
-  for (const frame of document.querySelectorAll<HTMLElement>("[data-reel]")) {
-    const src = frame.dataset.reel;
+  for (const frame of document.querySelectorAll<HTMLElement>(".reel .frame")) {
+    const { mp4, webm, poster, captions } = frame.dataset;
     const button = frame.querySelector("button.play");
-    if (!src || !button) continue;
+    if (!mp4 || !button) continue;
     button.addEventListener("click", () => {
       const video = document.createElement("video");
-      video.src = src;
       video.controls = true;
       video.playsInline = true;
       video.muted = true;
-      const track = document.createElement("track");
-      track.kind = "captions";
-      track.srclang = "en";
-      track.src = frame.dataset.captions ?? "";
-      track.default = true;
-      video.append(track);
+      video.preload = "auto";
+      if (poster) video.poster = poster;
+      for (const [src, type] of [
+        [webm, "video/webm"],
+        [mp4, "video/mp4"],
+      ] as const) {
+        if (!src) continue;
+        const source = document.createElement("source");
+        source.src = src;
+        source.type = type;
+        video.append(source);
+      }
+      if (captions) {
+        const track = document.createElement("track");
+        track.kind = "captions";
+        track.srclang = "en";
+        track.label = "English";
+        track.src = captions;
+        // Captions are burned into the video; the track is there for assistive tech and for
+        // anyone who wants them larger, so it starts hidden to avoid showing them twice.
+        video.append(track);
+      }
       frame.replaceChildren(video);
       void video.play();
       video.focus();

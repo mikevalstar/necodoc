@@ -83,7 +83,7 @@ export const Screen = ({
 export const Highlight = ({
   box: [x1, y1, x2, y2],
   from,
-  to = Number.POSITIVE_INFINITY,
+  to = 100_000,
 }: {
   box: [number, number, number, number];
   from: number;
@@ -128,17 +128,29 @@ export const Cursor = ({
   const ats = path.map((p) => p.at);
   const x =
     path.length > 1
-      ? interpolate(frame, ats, path.map((p) => p.x), { easing: ease, extrapolateRight: "clamp" })
+      ? interpolate(
+          frame,
+          ats,
+          path.map((p) => p.x),
+          { easing: ease, extrapolateRight: "clamp" },
+        )
       : first.x;
   const y =
     path.length > 1
-      ? interpolate(frame, ats, path.map((p) => p.y), { easing: ease, extrapolateRight: "clamp" })
+      ? interpolate(
+          frame,
+          ats,
+          path.map((p) => p.y),
+          { easing: ease, extrapolateRight: "clamp" },
+        )
       : first.y;
   const press = clicks.reduce((m, c) => {
     const d = frame - c;
     return d >= 0 && d < 14 ? Math.max(m, 1 - d / 14) : m;
   }, 0);
-  const appear = interpolate(frame, [first.at, first.at + 8], [0, 1], { extrapolateRight: "clamp" });
+  const appear = interpolate(frame, [first.at, first.at + 8], [0, 1], {
+    extrapolateRight: "clamp",
+  });
   return (
     <div
       style={{
@@ -165,7 +177,13 @@ export const Cursor = ({
           }}
         />
       )}
-      <svg width="34" height="40" viewBox="0 0 34 40" style={{ display: "block" }} aria-hidden="true">
+      <svg
+        width="34"
+        height="40"
+        viewBox="0 0 34 40"
+        style={{ display: "block" }}
+        aria-hidden="true"
+      >
         <path
           d="M2 2 L2 32 L10 25 L16 38 L22 35 L16 23 L27 23 Z"
           fill={color.ink}

@@ -10,7 +10,16 @@ export const height = 1080;
 type Caption = { at: number; text: string };
 
 export type Scene = {
-  id: "opener" | "overlay" | "conditional" | "fill" | "api" | "batch" | "signing" | "governance" | "closing";
+  id:
+    | "opener"
+    | "overlay"
+    | "conditional"
+    | "fill"
+    | "api"
+    | "batch"
+    | "signing"
+    | "governance"
+    | "closing";
   frames: number;
   /** Shown in the site's chapter list; scenes without one don't get a chapter. */
   chapter?: string;
@@ -49,8 +58,14 @@ export const scenes: Scene[] = [
     chapter: "Designed templates with conditional sections",
     burnIn: true,
     captions: [
-      { at: 0, text: "Designed templates carry their own rules: this part shows only when it applies." },
-      { at: 110, text: "Tick “Add a co-principal” and the bond names a second party and gains a page." },
+      {
+        at: 0,
+        text: "Designed templates carry their own rules: this part shows only when it applies.",
+      },
+      {
+        at: 110,
+        text: "Tick “Add a co-principal” and the bond names a second party and gains a page.",
+      },
     ],
   },
   {
@@ -92,7 +107,10 @@ export const scenes: Scene[] = [
     chapter: "E-signature ready signing packages",
     burnIn: true,
     captions: [
-      { at: 0, text: "E-signature ready: each PDF comes with its signers and where every signature goes." },
+      {
+        at: 0,
+        text: "E-signature ready: each PDF comes with its signers and where every signature goes.",
+      },
       { at: 100, text: "Hand the package to DocuSign, Dropbox Sign or Adobe Acrobat Sign." },
     ],
   },
@@ -104,21 +122,31 @@ export const scenes: Scene[] = [
     captions: [
       { at: 0, text: "Every change and sign-in lands in an audit log that can't be edited." },
       { at: 80, text: "Every render is logged with its input, output and timing." },
-      { at: 145, text: "It runs in your cloud. Files stay in your S3-compatible storage or Azure Blob." },
+      {
+        at: 145,
+        text: "It runs in your cloud. Files stay in your S3-compatible storage or Azure Blob.",
+      },
     ],
   },
   {
     id: "closing",
     frames: 120,
     burnIn: false,
-    captions: [{ at: 0, text: "necodoc. Self-hosted, open source under MIT. github.com/mikevalstar/necodoc" }],
+    captions: [
+      {
+        at: 0,
+        text: "necodoc. Self-hosted, open source under MIT. github.com/mikevalstar/necodoc",
+      },
+    ],
   },
 ];
 
 export const totalFrames = scenes.reduce((sum, s) => sum + s.frames, 0);
 
 /** Scene start frames, in order. */
-export const starts = scenes.map((_, i) => scenes.slice(0, i).reduce((sum, s) => sum + s.frames, 0));
+export const starts = scenes.map((_, i) =>
+  scenes.slice(0, i).reduce((sum, s) => sum + s.frames, 0),
+);
 
 /** Every caption with absolute start and end frames. */
 export const cues = scenes.flatMap((scene, i) => {

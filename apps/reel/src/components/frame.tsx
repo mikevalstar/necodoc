@@ -1,8 +1,8 @@
 // Scene chrome: a gentle fade between scenes, the chapter eyebrow and the burned-in caption.
 import type { ReactNode } from "react";
 import { AbsoluteFill, interpolate, useCurrentFrame } from "remotion";
-import type { Scene } from "../timeline.ts";
 import { color, font } from "../theme.ts";
+import type { Scene } from "../timeline.ts";
 
 const FADE = 12;
 

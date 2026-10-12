@@ -1,7 +1,7 @@
 // Scene 1: upload an existing surety bond, AI proposes boxes, a person confirms.
 import { Easing, Img, interpolate, staticFile, useCurrentFrame } from "remotion";
-import { Card, Cursor, Highlight, Screen } from "../components/screen.tsx";
 import { Part } from "../components/part.tsx";
+import { Card, Cursor, Highlight, Screen } from "../components/screen.tsx";
 import { color, font } from "../theme.ts";
 import suggestions from "./bond-boxes.json" with { type: "json" };
 
@@ -12,7 +12,7 @@ const PAGE_PT = { w: 612, h: 792 };
 const VIEW = { left: 40, top: 40, width: 780, height: 739 };
 const k = VIEW.width / PAGE_PT.w;
 const pageHeight = PAGE_PT.h * k;
-const ACCEPT_AT = 84;
+const ACCEPT_AT = 92;
 
 const Detect = () => {
   const frame = useCurrentFrame();
@@ -23,7 +23,10 @@ const Detect = () => {
   });
   const accepted = frame >= ACCEPT_AT + 4;
   const appear = (i: number) =>
-    interpolate(frame, [12 + i * 5, 22 + i * 5], [0, 1], { extrapolateLeft: "clamp", extrapolateRight: "clamp" });
+    interpolate(frame, [12 + i * 4, 22 + i * 4], [0, 1], {
+      extrapolateLeft: "clamp",
+      extrapolateRight: "clamp",
+    });
   return (
     <Card>
       <div style={{ position: "absolute", inset: 0, background: color.tint }} />
@@ -37,8 +40,13 @@ const Detect = () => {
           boxShadow: "0 1px 2px rgba(12,18,51,.06), 0 10px 30px -14px rgba(12,18,51,.22)",
         }}
       >
-        <div style={{ position: "absolute", left: 0, top: pan, width: VIEW.width, height: pageHeight }}>
-          <Img src={staticFile("screens/bond-page.png")} style={{ width: VIEW.width, height: pageHeight }} />
+        <div
+          style={{ position: "absolute", left: 0, top: pan, width: VIEW.width, height: pageHeight }}
+        >
+          <Img
+            src={staticFile("screens/bond-page.png")}
+            style={{ width: VIEW.width, height: pageHeight }}
+          />
           {suggestions.map((b, i) => (
             <div
               key={b.label}
@@ -58,11 +66,28 @@ const Detect = () => {
         </div>
       </div>
       <div style={{ position: "absolute", left: 860, top: 40, width: 556, height: 739 }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 12, font: `700 32px ${font.display}`, color: color.ink }}>
-          <Sparkle /> Detect with AI
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: 12,
+            font: `700 32px ${font.display}`,
+            color: color.ink,
+          }}
+        >
+          <Sparkle /> AI suggestions
         </div>
-        <div style={{ font: `400 20px ${font.sans}`, color: color.ink3, marginTop: 6, marginBottom: 18 }}>
-          {accepted ? `${suggestions.length} boxes accepted on page 1` : "Suggestions stay apart until you accept them"}
+        <div
+          style={{
+            font: `400 20px ${font.sans}`,
+            color: color.ink3,
+            marginTop: 6,
+            marginBottom: 18,
+          }}
+        >
+          {accepted
+            ? `${suggestions.length} boxes added to page 1`
+            : `${suggestions.length} to review · keys and labels are guesses`}
         </div>
         {suggestions.map((b, i) => (
           <div
@@ -104,15 +129,23 @@ const Detect = () => {
             style={{
               padding: "12px 22px",
               borderRadius: 10,
-              background: accepted ? color.okWash : color.brand,
-              color: accepted ? color.ok : color.paper,
+              background: accepted ? color.okWash : color.sun,
+              color: accepted ? color.ok : color.sunInk,
               font: `600 20px ${font.sans}`,
             }}
           >
             {accepted ? "Accepted" : "Accept all"}
           </div>
-          <div style={{ padding: "12px 22px", borderRadius: 10, background: color.paper, color: color.ink, font: `600 20px ${font.sans}` }}>
-            Review one by one
+          <div
+            style={{
+              padding: "12px 22px",
+              borderRadius: 10,
+              background: color.paper,
+              color: color.ink,
+              font: `600 20px ${font.sans}`,
+            }}
+          >
+            Reject all
           </div>
         </div>
       </div>
@@ -134,7 +167,10 @@ const CardCursor = () => (
 
 const Sparkle = () => (
   <svg width="30" height="30" viewBox="0 0 24 24" aria-hidden="true">
-    <path d="M12 2l2.2 6.3L20.5 10.5l-6.3 2.2L12 19l-2.2-6.3L3.5 10.5l6.3-2.2z" fill={color.brand} />
+    <path
+      d="M12 2l2.2 6.3L20.5 10.5l-6.3 2.2L12 19l-2.2-6.3L3.5 10.5l6.3-2.2z"
+      fill={color.brand}
+    />
     <path d="M19 15l.9 2.1L22 18l-2.1.9L19 21l-.9-2.1L16 18l2.1-.9z" fill={color.sun} />
   </svg>
 );

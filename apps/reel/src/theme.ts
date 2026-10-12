@@ -1,8 +1,9 @@
 // Cobalt tokens (apps/web/src/styles/global.css, ADR 0042) and the self-hosted fonts.
-import { loadFont } from "@remotion/fonts";
+
+import fragment from "@fontsource/fragment-mono/files/fragment-mono-latin-400-normal.woff2";
 import bricolage from "@fontsource-variable/bricolage-grotesque/files/bricolage-grotesque-latin-wght-normal.woff2";
 import figtree from "@fontsource-variable/figtree/files/figtree-latin-wght-normal.woff2";
-import fragment from "@fontsource/fragment-mono/files/fragment-mono-latin-400-normal.woff2";
+import { loadFont } from "@remotion/fonts";
 
 export const color = {
   paper: "#ffffff",

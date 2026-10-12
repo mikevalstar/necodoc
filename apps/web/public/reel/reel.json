@@ -1,0 +1,41 @@
+{
+  "duration": "0:57",
+  "mp4": "/reel/necodoc-tour.mp4",
+  "webm": "/reel/necodoc-tour.webm",
+  "poster": "/reel/necodoc-tour-poster.png",
+  "captions": "/reel/necodoc-tour.vtt",
+  "chapters": [
+    {
+      "label": "Upload the bond form; AI proposes boxes, you confirm",
+      "at": "0:03"
+    },
+    {
+      "label": "Designed templates with conditional sections",
+      "at": "0:13"
+    },
+    {
+      "label": "Guided form to finished PDF",
+      "at": "0:20"
+    },
+    {
+      "label": "HTML to PDF from your policy system",
+      "at": "0:26"
+    },
+    {
+      "label": "Batches that scale out with workers",
+      "at": "0:32"
+    },
+    {
+      "label": "E-signature ready signing packages",
+      "at": "0:40"
+    },
+    {
+      "label": "Audit trail, generation log, your cloud",
+      "at": "0:46"
+    }
+  ],
+  "bench": {
+    "finishedAt": "2026-10-12T13:53:22.255Z",
+    "gitSha": "2be2c89cf38b137b126f282c1c38608eae4b815b"
+  }
+}
