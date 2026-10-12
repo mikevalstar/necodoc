@@ -28,8 +28,10 @@ Add one with `okq new feature "<title>"`.
 | Filling out a document | [filling-out-a-document.md](filling-out-a-document.md) |
 | Generation log | [generation-log.md](generation-log.md) |
 | HTML to PDF API | [html-to-pdf-api.md](html-to-pdf-api.md) |
+| Marketing site | [marketing-site.md](marketing-site.md) |
 | Observability | [observability.md](observability.md) |
 | PDF overlay templates | [pdf-overlay-templates.md](pdf-overlay-templates.md) |
+| Performance benchmark | [performance-benchmark.md](performance-benchmark.md) |
 | Personal data masking and erasure | [personal-data-masking-and-erasure.md](personal-data-masking-and-erasure.md) |
 | Publishing and versions | [publishing-and-versions.md](publishing-and-versions.md) |
 | Render queue, batch jobs and scaling | [render-queue-batch-jobs-and-scaling.md](render-queue-batch-jobs-and-scaling.md) |

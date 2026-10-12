@@ -73,9 +73,10 @@ anything we skip has a reason.
 - **Prebuilt industry form libraries** (GhostDraft's ISO/AAIS forms). Content,
   not software.
 - **Multi-tenant SaaS (organisations, workspaces, billing).** Every customer self-hosts their own install, so tenancy isolation isn't needed.
-- **Official SDKs, embedded editor.** Not now. Each needs its own ADR when
-  demand shows. (Async and batch generation moved in scope with
-  [ADR 0020](../adrs/0020-pg-boss-job-queue-and-separate-render-worker-processes.md).)
+- **Embedded editor.** Not now; needs its own ADR when demand shows. (Async
+  and batch generation moved in scope with
+  [ADR 0020](../adrs/0020-pg-boss-job-queue-and-separate-render-worker-processes.md);
+  official SDKs with [ADR 0041](../adrs/0041-python-net-and-java-sdks-generated-with-openapi-generator.md).)
 
 ## Known limitations
 
