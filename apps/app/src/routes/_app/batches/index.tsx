@@ -14,15 +14,14 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { api, ok } from "@/lib/api";
 import { dayjs } from "@/lib/date";
+import { batchesQuery } from "@/lib/queries";
 import { BatchProgress, BatchStatusBadge } from "./-batch-status";
 
 // Spec: docs/features/render-queue-batch-jobs-and-scaling.md (batch jobs). The API scopes
 // non-admins to their own batches.
-const batchesQuery = queryOptions({
-  queryKey: ["batches"],
-  queryFn: async () => (await ok(api.batches.$get())).json(),
+const pollingBatchesQuery = queryOptions({
+  ...batchesQuery,
   refetchInterval: (query) =>
     query.state.data?.some((batch) => batch.status === "running") ? 3000 : false,
 });
@@ -34,7 +33,7 @@ export const Route = createFileRoute("/_app/batches/")({
 function Batches() {
   const { me } = Route.useRouteContext();
   const isAdmin = me.user.roles.includes("admin");
-  const batches = useQuery(batchesQuery);
+  const batches = useQuery(pollingBatchesQuery);
   const running = batches.data?.filter((batch) => batch.status === "running").length ?? 0;
   const runBatch = (
     <Link to="/batches/new" className={buttonVariants()}>

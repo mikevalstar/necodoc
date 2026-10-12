@@ -1,4 +1,4 @@
-import type { Latency, Results, Stats } from "./schema";
+import { formatMs, type Latency, type Results, type Stats } from "./schema";
 
 // Spec: docs/features/performance-benchmark.md (statistics, output).
 
@@ -23,16 +23,15 @@ export function stats(samples: readonly number[]): Stats {
   };
 }
 
-const ms = (v: number | null) => (v === null ? "–" : `${Math.round(v)}`);
 const row = (cells: (string | number)[]) => `| ${cells.join(" | ")} |`;
 const statCells = (s: Stats) => [
   s.n,
-  ms(s.p50),
-  ms(s.p95),
-  ms(s.p99),
-  ms(s.mean),
-  ms(s.min),
-  ms(s.max),
+  formatMs(s.p50),
+  formatMs(s.p95),
+  formatMs(s.p99),
+  formatMs(s.mean),
+  formatMs(s.min),
+  formatMs(s.max),
 ];
 
 function latencyTable(scenarios: Latency[]) {
@@ -52,7 +51,13 @@ function latencyTable(scenarios: Latency[]) {
     ]),
     row(Array(11).fill("---")),
     ...scenarios.map((s) =>
-      row([s.label, s.pages, ...statCells(s.roundTrip), ms(s.queueWait.p50), ms(s.run.p50)]),
+      row([
+        s.label,
+        s.pages,
+        ...statCells(s.roundTrip),
+        formatMs(s.queueWait.p50),
+        formatMs(s.run.p50),
+      ]),
     ),
   ].join("\n");
 }
@@ -64,11 +69,11 @@ function breakdownTable(scenarios: Latency[]) {
     ...scenarios.map((s) =>
       row([
         s.label,
-        ms(s.breakdown.liquidMs),
-        ms(s.breakdown.chromiumMs),
-        ms(s.breakdown.bandsMs),
-        ms(s.breakdown.stampMs),
-        ms(s.breakdown.finishMs),
+        formatMs(s.breakdown.liquidMs),
+        formatMs(s.breakdown.chromiumMs),
+        formatMs(s.breakdown.bandsMs),
+        formatMs(s.breakdown.stampMs),
+        formatMs(s.breakdown.finishMs),
       ]),
     ),
   ].join("\n");
@@ -89,13 +94,13 @@ export function markdown(r: Results) {
     `- Commit ${e.gitSha.slice(0, 10)}${e.gitDirty ? " (uncommitted changes)" : ""}; load average before the run ${e.loadAverage.map((l) => l.toFixed(2)).join(" / ")}`,
     `- Latency: ${s.latencyWorkers} worker, RENDER_CONCURRENCY=${s.concurrency}, ${s.samples} samples after ${s.warmup} warm-up requests, one request at a time`,
     "",
-    "## Latency (ms, client round trip through /api/v1)",
+    "## Latency (client round trip through /api/v1)",
     "",
     latencyTable(r.latency),
     "",
     "Queue and run are the generation log's queue wait and worker run time (p50).",
     "",
-    "### Where the time goes (mean ms, generation log)",
+    "### Where the time goes (mean, generation log)",
     "",
     breakdownTable(r.latency),
     "",
@@ -111,7 +116,7 @@ export function markdown(r: Results) {
     );
   }
   lines.push(
-    "## Cold vs warm Chromium (ms)",
+    "## Cold vs warm Chromium",
     "",
     row(["", "n", "p50", "p95", "p99", "mean", "min", "max"]),
     row(Array(8).fill("---")),
@@ -140,8 +145,8 @@ export function markdown(r: Results) {
         t.failed,
         (t.wallMs / 1000).toFixed(1),
         Math.round(t.docsPerMinute),
-        ms(t.run.p50),
-        ms(t.queueWait.p50),
+        formatMs(t.run.p50),
+        formatMs(t.queueWait.p50),
       ]),
     ),
     "",

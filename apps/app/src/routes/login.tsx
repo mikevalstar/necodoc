@@ -7,6 +7,7 @@ import { ErrorAlert, useAppForm } from "@/components/form";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { FieldGroup } from "@/components/ui/field";
+import { ssoHeaderUrl } from "@/lib/api";
 import { authClient, meQuery, signInOptionsQuery, unwrap, useSessionChange } from "@/lib/auth";
 
 // Spec: docs/features/single-sign-on.md. Failed SSO sign-ins come back here with ?error=.
@@ -104,7 +105,7 @@ function Login() {
                   key={provider.id}
                   variant="outline"
                   nativeButton={false}
-                  render={<a href={`/api/sso/header/${provider.id}${returnQuery}`} />}
+                  render={<a href={`${ssoHeaderUrl(provider.id)}${returnQuery}`} />}
                 >
                   Sign in with {provider.label}
                 </Button>

@@ -17,7 +17,7 @@ export const faqGroups = [
   "Settings",
   "Admin",
 ] as const;
-export type FaqGroup = (typeof faqGroups)[number];
+type FaqGroup = (typeof faqGroups)[number];
 
 export type FaqEntry = {
   feature: string;

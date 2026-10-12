@@ -31,7 +31,7 @@ import {
   snippetLanguages,
 } from "@/lib/api-snippets";
 import { themesQuery } from "@/lib/queries";
-import { cn, formatBytes } from "@/lib/utils";
+import { cn, formatBytes, formatMs } from "@/lib/utils";
 import { OutputPanel } from "./templates/-output-panel";
 
 // The HTML playground: the render request of docs/features/html-to-pdf-api.md, field by field.
@@ -182,9 +182,6 @@ const tabOf = (name: string): Tab | undefined => {
   if (root === "filename" || root === "themeId") return "page";
   return tabs.find((tab) => tab.value === root)?.value;
 };
-
-const formatMs = (ms: number) =>
-  ms < 1000 ? `${Math.round(ms)} ms` : `${(ms / 1000).toFixed(ms < 10_000 ? 2 : 1)} s`;
 
 function RenderPlayground() {
   const themes = useQuery(themesQuery);

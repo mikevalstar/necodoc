@@ -359,9 +359,6 @@ importers:
       '@codemirror/lang-liquid':
         specifier: ^6.3.3
         version: 6.3.3
-      '@codemirror/language':
-        specifier: ^6.13.1
-        version: 6.13.1
       '@codemirror/state':
         specifier: ^6.7.6
         version: 6.7.6

@@ -14,15 +14,12 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { generationPdfUrl } from "@/lib/api";
+import { generationPdfUrl, signingPackageUrl } from "@/lib/api";
+import { plural } from "@/lib/utils";
 import { PageCanvas, usePdfDocument } from "../templates/-overlay-pages";
 
 // Spec: docs/features/signing-packages.md. A generation's signers and sign boxes, the package
 // download, and the boxes drawn over the PDF to check them by eye.
-
-/** Every provider format, PDF embedded for DocuSign: one file to hand off. */
-const packageUrl = (id: string) =>
-  `/api/generations/${id}/signing-package?formats=docusign&formats=dropbox_sign&formats=adobe_sign`;
 
 /** One categorical series colour per signer (index.css), so a box's colour says whose it is. */
 const SERIES = 8;
@@ -66,7 +63,7 @@ export function SigningSection({
             {showing ? "Hide boxes" : "Show boxes on the PDF"}
           </Button>
           <a
-            href={packageUrl(generationId)}
+            href={signingPackageUrl(generationId)}
             download={`${filename.replace(/\.pdf$/i, "")}.signing.json`}
             className={buttonVariants({ variant: "outline", size: "sm" })}
           >
@@ -152,8 +149,6 @@ export function SigningSection({
     </Card>
   );
 }
-
-const plural = (n: number, one: string, many = `${one}s`) => `${n} ${n === 1 ? one : many}`;
 
 const SCALE = 1;
 

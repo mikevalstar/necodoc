@@ -38,11 +38,11 @@ import { EmptyState, Page } from "@/components/page";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { api, ok } from "@/lib/api";
-import { authClient, requireAccess, unwrap } from "@/lib/auth";
+import { requireAccess } from "@/lib/auth";
 import { dayjs } from "@/lib/date";
-import { templatesQuery } from "@/lib/queries";
-import { formatBytes } from "@/lib/utils";
-import { formatMs, sourceLabels, statusLabels } from "../../generations/-generation-actions";
+import { allUsersQuery, templatesQuery } from "@/lib/queries";
+import { formatBytes, formatMs } from "@/lib/utils";
+import { sourceLabels, statusLabels } from "../../generations/-generation-actions";
 
 // Spec: docs/features/analytics-dashboards.md (Documents). Filters scope every chart and table;
 // rows link into the generation log with the same filters.
@@ -65,11 +65,6 @@ const documentsQuery = (search: Search) => {
     placeholderData: keepPreviousData,
   });
 };
-
-const usersQuery = queryOptions({
-  queryKey: ["admin", "users", "all"],
-  queryFn: () => unwrap(authClient.admin.listUsers({ query: { limit: 500, sortBy: "name" } })),
-});
 
 /** Status is state: success and error take the status colours; the rest recede. */
 const statusSeries = [
@@ -117,7 +112,7 @@ function DocumentAnalytics() {
   const navigate = useNavigate({ from: Route.fullPath });
   const result = useQuery(documentsQuery(search));
   const templates = useQuery(templatesQuery);
-  const users = useQuery(usersQuery);
+  const users = useQuery(allUsersQuery);
   const keys = useQuery(apiKeysQuery({ all: "true" }));
   const setSearch = (next: Partial<Search>) =>
     navigate({ search: (prev) => ({ ...prev, ...next }) });

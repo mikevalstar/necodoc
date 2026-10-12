@@ -1,4 +1,5 @@
 import {
+  createTemplateSchema,
   type DesignedDraft,
   designedContentSchema,
   hasPermission,
@@ -58,7 +59,7 @@ import { ApiError, api, ok, previewTemplate } from "@/lib/api";
 import { requireAccess } from "@/lib/auth";
 import { usePageCrumb } from "@/lib/breadcrumb";
 import { dayjs } from "@/lib/date";
-import { snippetsQuery, templatesQuery } from "@/lib/queries";
+import { snippetsQuery, templatesQuery, versionQuery, versionsQuery } from "@/lib/queries";
 import { useSaveShortcut } from "@/lib/save-shortcut";
 import { cn } from "@/lib/utils";
 import { AssistantPanel } from "./-assistant";
@@ -67,7 +68,6 @@ import {
   type CommonChanges,
   type DesignedDraftValues,
   type DraftValues,
-  draftSchema,
   type EditorContent,
   mergeApplied,
   previewDraftSchema,
@@ -91,7 +91,7 @@ import {
 } from "./-template-actions";
 import { TestsPanel } from "./-tests";
 import { TranslationsPanel } from "./-translations-panel";
-import { VersionsPanel, versionQuery, versionsQuery } from "./-versions";
+import { VersionsPanel } from "./-versions";
 
 // Specs: docs/features/document-templates.md, docs/features/pdf-overlay-templates.md,
 // docs/features/template-fields-and-guided-form.md, docs/features/publishing-and-versions.md. Editors change the draft; reviewers and publishers
@@ -197,7 +197,8 @@ function TemplateEditor({
   const current = JSON.stringify(draft);
   const dirty = canEdit && current !== saved;
 
-  const parsed = useMemo(() => draftSchema.safeParse(draft), [draft]);
+  // Checked like the API checks it; PATCH /templates/:id ignores the `kind`.
+  const parsed = useMemo(() => createTemplateSchema.safeParse(draft), [draft]);
   const snippets = useQuery(snippetsQuery).data;
   const problems = useMemo(() => {
     const found =

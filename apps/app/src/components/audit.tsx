@@ -24,7 +24,7 @@ import { cn } from "@/lib/utils";
 const acronyms = new Set(["api", "ai", "pdf", "sso", "csv", "url", "ip", "html", "json"]);
 
 /** "api_key" → "API key", "sign_in_failed" → "Sign in failed"; `lower` keeps the first word lower. */
-const words = (id: string, lower = false) =>
+export const words = (id: string, lower = false) =>
   id
     .split("_")
     .map((word, i) =>
@@ -43,7 +43,6 @@ export const actionLabel = (action: AuditAction) => {
     ? words(verb)
     : `${words(type)} ${words(verb, true)}`;
 };
-export const targetTypeLabel = (type: AuditTargetType) => words(type);
 
 export const actorKindLabels: Record<AuditActorKind, string> = {
   user: "User",
@@ -121,7 +120,7 @@ const same = (a: unknown, b: unknown) => JSON.stringify(a) === JSON.stringify(b)
  * ok wash, and "Show full value" for the nested objects they sit in. With one side (a create, a
  * delete or details), every field.
  */
-export function AuditDiff({ before, after }: { before: Fields; after: Fields }) {
+function AuditDiff({ before, after }: { before: Fields; after: Fields }) {
   if (before && after) return <ChangedFields before={before} after={after} />;
   const fields = before ?? after ?? {};
   const keys = Object.keys(fields);
@@ -323,7 +322,7 @@ export function AuditEntrySheet({ id, onClose }: { id: string | null; onClose: (
           <SheetTitle className="text-xl">
             {e ? (
               <>
-                <span className="text-ink-3">{targetTypeLabel(e.targetType)}</span>{" "}
+                <span className="text-ink-3">{words(e.targetType)}</span>{" "}
                 <TargetLink
                   type={e.targetType}
                   id={e.targetId}

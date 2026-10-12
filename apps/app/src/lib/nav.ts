@@ -31,7 +31,7 @@ export type NavSection = {
 };
 
 // Grouped by who uses it: people filling documents, template designers, developers, admins.
-export const sections: readonly NavSection[] = [
+const sections: readonly NavSection[] = [
   {
     label: "Documents",
     icon: FilesIcon,

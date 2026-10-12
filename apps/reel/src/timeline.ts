@@ -1,7 +1,8 @@
+import { formatMs } from "@necodoc/bench/schema";
 // The storyboard (docs/features/product-tour-reel.md): scene order, lengths and captions.
 // The composition, the burned-in captions, the VTT track and the site's chapter list all
 // read from here, so they can't drift apart. Plain data: scripts/render.ts imports it in Node.
-import { bench, count, fastest, latency, ms, runs, slowest, workers } from "./bench.ts";
+import { bench, count, fastest, latency, runs, slowest, workers } from "./bench.ts";
 
 export const fps = 30;
 export const width = 1920;
@@ -90,7 +91,7 @@ export const scenes: Scene[] = [
       },
       {
         at: 90,
-        text: `Measured median: ${ms(invoice.roundTrip.p50)} for a ${invoice.pages}-page invoice with a header and footer.`,
+        text: `Measured median: ${formatMs(invoice.roundTrip.p50)} for a ${invoice.pages}-page invoice with a header and footer.`,
       },
     ],
   },

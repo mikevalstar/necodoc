@@ -89,8 +89,7 @@ const tickFormats = { hour: "HH:00", day: "MMM D", week: "MMM D" } satisfies Rec
   AnalyticsBucket,
   string
 >;
-export const formatBucket = (bucket: AnalyticsBucket, t: number) =>
-  dayjs(t).format(bucketFormats[bucket]);
+const formatBucket = (bucket: AnalyticsBucket, t: number) => dayjs(t).format(bucketFormats[bucket]);
 
 /** A clean step near max/4: 1, 2 or 5 times a power of ten; whole numbers for counts. */
 function niceTicks(max: number, counts: boolean) {
@@ -436,7 +435,7 @@ export function timeTable<K extends string>(data: TimeData<K>, withTotal: boolea
   return { header, rows };
 }
 
-export function downloadCsv(filename: string, rows: readonly (readonly unknown[])[]) {
+function downloadCsv(filename: string, rows: readonly (readonly unknown[])[]) {
   const url = URL.createObjectURL(new Blob([toCsv(rows)], { type: "text/csv;charset=utf-8" }));
   const link = document.createElement("a");
   link.href = url;

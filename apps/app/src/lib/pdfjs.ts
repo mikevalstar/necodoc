@@ -37,5 +37,5 @@ export async function openPdf(url: string) {
 }
 
 export type PdfDocument = Awaited<Awaited<ReturnType<typeof openPdf>>["promise"]>;
-export type PdfPageProxy = Awaited<ReturnType<PdfDocument["getPage"]>>;
+type PdfPageProxy = Awaited<ReturnType<PdfDocument["getPage"]>>;
 export type PdfViewport = ReturnType<PdfPageProxy["getViewport"]>;

@@ -43,9 +43,7 @@ export const generationFiltersSearchSchema = z.object({
 });
 export type GenerationFilters = z.output<typeof generationFiltersSearchSchema>;
 
-export const filterKeys = Object.keys(
-  generationFiltersSearchSchema.shape,
-) as (keyof GenerationFilters)[];
+const filterKeys = Object.keys(generationFiltersSearchSchema.shape) as (keyof GenerationFilters)[];
 
 /** Every filter unset: spread it under a parsed result so applying tokens replaces them all. */
 export const noFilters = Object.fromEntries(filterKeys.map((key) => [key, undefined])) as {

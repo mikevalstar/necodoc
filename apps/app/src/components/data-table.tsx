@@ -41,7 +41,7 @@ import { cn } from "@/lib/utils";
 // Clickable rows: `onRowClick` is a mouse shortcut only. The keyboard and screen-reader path is a
 // link in the row's first cell to the same place (generations, audit), so rows aren't tab stops.
 
-export const dataTableFeatures = tableFeatures({
+const dataTableFeatures = tableFeatures({
   columnVisibilityFeature,
   columnMeta: metaHelper<{
     /** Classes for the column's header and cells, e.g. "text-right" or a max width. */
@@ -57,7 +57,7 @@ export type DataTableColumns<TData extends RowData> = TableOptions<
   TData
 >["columns"];
 
-export const pageSizes = [25, 50, 100, 200] as const;
+const pageSizes = [25, 50, 100, 200] as const;
 
 /** The table's URL state. `.extend()` it with the page's filters for `validateSearch`. */
 export function dataTableSearchSchema<TSort extends string>(

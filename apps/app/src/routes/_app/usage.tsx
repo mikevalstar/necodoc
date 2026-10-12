@@ -29,8 +29,8 @@ import { EmptyState, FaqLink, Page, PageHeader } from "@/components/page";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { api, ok } from "@/lib/api";
-import { cn, formatBytes } from "@/lib/utils";
-import { formatMs, statusLabels } from "./generations/-generation-actions";
+import { cn, formatBytes, formatMs } from "@/lib/utils";
+import { statusLabels } from "./generations/-generation-actions";
 
 // Spec: docs/features/analytics-dashboards.md (My usage). Everyone with a role; the API scopes
 // it to the signed-in user.

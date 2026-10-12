@@ -5,6 +5,13 @@ import { z } from "zod";
 
 export const SCHEMA_VERSION = 1;
 
+/**
+ * 87 → "87 ms", 1234 → "1.23 s". The one formatter for benchmark times, so the site, the reel,
+ * the review pack and the results README show the same numbers.
+ */
+export const formatMs = (v: number | null | undefined, missing = "–") =>
+  v == null ? missing : v >= 1000 ? `${(v / 1000).toFixed(2)} s` : `${Math.round(v)} ms`;
+
 /** Milliseconds over a set of samples. Null percentiles only when there are no samples. */
 export const statsSchema = z.object({
   n: z.int().min(0),

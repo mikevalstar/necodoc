@@ -8,7 +8,7 @@ import { type AssetLoader, closeBrowser } from "@necodoc/api/render/browser";
 import { finishPdf } from "@necodoc/api/render/finish";
 import { openPdfjs } from "@necodoc/api/render/pdfjs";
 import { type RenderJob, renderPdf } from "@necodoc/api/render/render";
-import { type Results, resultsSchema, type Stats } from "@necodoc/bench/schema";
+import { formatMs, type Results, resultsSchema, type Stats } from "@necodoc/bench/schema";
 import { ASSET_ORIGIN, type OutputOptions } from "@necodoc/shared";
 import { marked } from "marked";
 import { z } from "zod";
@@ -102,8 +102,6 @@ function siteControls() {
 
 // ---- Generated parts ---------------------------------------------------------------------
 
-const ms = (v: number | null) =>
-  v == null ? "–" : v >= 1000 ? `${(v / 1000).toFixed(2)} s` : `${Math.round(v)} ms`;
 const int = (v: number) => Math.round(v).toLocaleString("en-CA");
 const table = (head: string[], rows: string[][], numeric = new Set<number>()) =>
   `<table class="keep"><thead><tr>${head.map((h, i) => `<th scope="col"${numeric.has(i) ? ' class="num"' : ""}>${h}</th>`).join("")}</tr></thead><tbody>${rows
@@ -130,9 +128,9 @@ function benchHtml() {
   const latencyRow = (l: Results["latency"][number]) => [
     esc(l.label),
     String(l.pages),
-    ms(l.roundTrip.p50),
-    ms(l.roundTrip.p95),
-    ms(l.run.p50),
+    formatMs(l.roundTrip.p50),
+    formatMs(l.roundTrip.p95),
+    formatMs(l.run.p50),
   ];
   const scale = bench.throughput.map((t) => [
     String(t.workers),
@@ -146,15 +144,20 @@ function benchHtml() {
   const best = bench.throughput.reduce((a, b) => (b.docsPerMinute > a.docsPerMinute ? b : a));
   const html = bench.latency.find((l) => l.id === "html-simple");
   const overlay = bench.latency.find((l) => l.id.startsWith("overlay"));
-  const coldRow = (label: string, st: Stats) => [label, String(st.n), ms(st.p50), ms(st.p95)];
+  const coldRow = (label: string, st: Stats) => [
+    label,
+    String(st.n),
+    formatMs(st.p50),
+    formatMs(st.p95),
+  ];
   const figure = (v: string, l: string) =>
     `<td><span class="v">${v}</span><span class="l">${l}</span></td>`;
   return [
     `<p>Measured by <code>pnpm bench</code> through the public API, from the run finished ${bench.finishedAt.slice(0, 10)} at commit <code>${env.gitSha.slice(0, 10)}</code>. Latency is the client's round trip, one request at a time. Rerun it on your own hardware with the same command.</p>`,
     benchCaveat ? `<p class="limit"><b>Caveat</b> ${benchCaveat}</p>` : "",
     `<table class="figures keep"><tbody><tr>${[
-      html && figure(ms(html.roundTrip.p50), "p50, one-page HTML to PDF"),
-      overlay && figure(ms(overlay.roundTrip.p50), "p50, overlay on an existing PDF form"),
+      html && figure(formatMs(html.roundTrip.p50), "p50, one-page HTML to PDF"),
+      overlay && figure(formatMs(overlay.roundTrip.p50), "p50, overlay on an existing PDF form"),
       one && figure(int(one.docsPerMinute), "docs/min, 1 worker, batch"),
       figure(int(best.docsPerMinute), `docs/min, ${best.workers} workers on one machine`),
     ]
@@ -167,7 +170,7 @@ function benchHtml() {
       new Set([1, 2, 3, 4]),
     ),
     bench.archival
-      ? `<p>PDF/A-2b with PDF/UA on the invoice adds ${ms(bench.archival.overheadP50Ms)} at p50 (${ms(bench.archival.plain.roundTrip.p50)} to ${ms(bench.archival.archival.roundTrip.p50)}).</p>`
+      ? `<p>PDF/A-2b with PDF/UA on the invoice adds ${formatMs(bench.archival.overheadP50Ms)} at p50 (${formatMs(bench.archival.plain.roundTrip.p50)} to ${formatMs(bench.archival.archival.roundTrip.p50)}).</p>`
       : "",
     "<h2>Batch throughput</h2>",
     `<p>A JSON batch of ${int(s.batchRows)} designed surety bonds, timed from the batch's creation to its last row, so it includes the queue. All workers share one machine.</p>`,

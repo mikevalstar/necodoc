@@ -4,6 +4,7 @@ import { KeyIcon } from "@phosphor-icons/react";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { FaqLink, Page, PageHeader } from "@/components/page";
 import { Button } from "@/components/ui/button";
+import { openApiUrl } from "@/lib/api";
 import { useTheme } from "@/lib/theme";
 
 // ADR 0030; spec: docs/features/html-to-pdf-api.md (Docs and SDK). The live /api/v1 OpenAPI
@@ -60,7 +61,7 @@ function Developers() {
             <code className="font-mono text-[14px]">x-api-key</code>. Point Postman or an OpenAPI
             generator at{" "}
             <a
-              href="/api/v1/openapi.json"
+              href={openApiUrl}
               className="font-mono text-[14px] font-semibold text-brand-ink hover:underline"
             >
               /api/v1/openapi.json
@@ -82,7 +83,7 @@ function Developers() {
         <ApiReferenceReact
           configuration={{
             customCss: scalarCss,
-            url: "/api/v1/openapi.json",
+            url: openApiUrl,
             hideDarkModeToggle: true,
             forceDarkModeState: dark ? "dark" : "light",
             withDefaultFonts: false,

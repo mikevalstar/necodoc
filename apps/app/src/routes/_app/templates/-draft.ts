@@ -1,5 +1,4 @@
 import {
-  createTemplateSchema,
   type DesignedContent,
   type DesignedDraft,
   type DraftPart,
@@ -15,7 +14,6 @@ import {
 } from "@necodoc/shared";
 import { queryOptions } from "@tanstack/react-query";
 import type { JSONContent } from "@tiptap/core";
-import type { z } from "zod";
 import { api, ok } from "@/lib/api";
 
 /** The saved draft, for editors, reviewers and publishers. */
@@ -31,9 +29,9 @@ export const templateQuery = (id: string) =>
 // until a save or preview checks them against docSchema (packages/shared/src/template-doc.ts).
 
 export type EditorBand = { height: number; doc: JSONContent; firstPage?: JSONContent | null };
-export type CodeContent = Extract<DesignedContent, { mode: "code" }>;
+type CodeContent = Extract<DesignedContent, { mode: "code" }>;
 export type CodeBand = NonNullable<CodeContent["header"]>;
-export type VisualContent = {
+type VisualContent = {
   mode: "visual";
   body: JSONContent;
   header: EditorBand | null;
@@ -58,18 +56,14 @@ export type DesignedDraftValues = CommonValues & {
   page: PageOptions;
   content: EditorContent;
 };
-export type OverlayDraftValues = CommonValues & { kind: "overlay"; content: OverlayContent };
+type OverlayDraftValues = CommonValues & { kind: "overlay"; content: OverlayContent };
 export type DraftValues = DesignedDraftValues | OverlayDraftValues;
 export type CommonChanges = Partial<CommonValues>;
 
 export const emptyDoc: JSONContent = { type: "doc", content: [{ type: "paragraph" }] };
 
-/** The draft checked like the API checks it; PATCH /templates/:id ignores the `kind`. */
-export const draftSchema = createTemplateSchema;
-
 /** What POST /templates/:id/preview renders: the draft minus its name. */
 export const previewDraftSchema = previewTemplateSchema.shape.draft.unwrap();
-export type PreviewDraft = z.infer<typeof previewDraftSchema>;
 
 export function toDraftValues(template: Template): DraftValues {
   const { name, description, sections, sampleData } = template;

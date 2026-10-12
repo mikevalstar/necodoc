@@ -59,11 +59,10 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
-import { api, generationPdfUrl, ok } from "@/lib/api";
-import { authClient, unwrap } from "@/lib/auth";
+import { api, generationPdfUrl, generationsExportUrl, ok } from "@/lib/api";
 import { dayjs } from "@/lib/date";
-import { batchesQuery, templatesQuery } from "@/lib/queries";
-import { cn, formatBytes } from "@/lib/utils";
+import { allUsersQuery, batchesQuery, templatesQuery } from "@/lib/queries";
+import { cn, formatBytes, formatMs } from "@/lib/utils";
 import {
   generationFiltersSearchSchema,
   parseFilters,
@@ -74,7 +73,6 @@ import {
 } from "./-filter-tokens";
 import {
   DeleteGenerationDialog,
-  formatMs,
   SignedLinkDialog,
   StatusBadge,
   sourceLabels,
@@ -126,15 +124,6 @@ function toFilter(search: GenerationsSearch) {
   } satisfies z.input<typeof generationFilterSchema>;
 }
 
-/** The CSV export of everything matching the filters (metadata only). */
-function exportUrl(search: GenerationsSearch) {
-  const params = new URLSearchParams();
-  for (const [key, value] of Object.entries(toFilter(search))) {
-    if (value !== undefined) params.set(key, value);
-  }
-  return `/api/generations/export.csv?${params}`;
-}
-
 function generationsQuery(search: GenerationsSearch) {
   // Visible columns aren't part of the request, so toggling one doesn't refetch.
   const query = {
@@ -175,11 +164,6 @@ function listSelect<T extends string>(values: T[] | undefined, labels: Record<T,
   const value = values.join(",");
   return { value, extra: [{ value, label: values.map((v) => labels[v]).join(", ") }] };
 }
-
-const usersQuery = queryOptions({
-  queryKey: ["admin", "users", "all"],
-  queryFn: () => unwrap(authClient.admin.listUsers({ query: { limit: 500, sortBy: "name" } })),
-});
 
 type Generation = InferResponseType<typeof api.generations.$get, 200>["items"][number];
 
@@ -336,7 +320,7 @@ function Generations() {
   const { me } = Route.useRouteContext();
   const isAdmin = me.user.roles.includes("admin");
   const generations = useQuery(generationsQuery(search));
-  const users = useQuery({ ...usersQuery, enabled: isAdmin });
+  const users = useQuery({ ...allUsersQuery, enabled: isAdmin });
   const templates = useQuery(templatesQuery);
   const batches = useQuery(batchesQuery);
   const keys = useQuery(apiKeysQuery(isAdmin ? { all: "true" } : {}));
@@ -396,7 +380,10 @@ function Generations() {
                 </Button>
               </DemoLock>
             )}
-            <a href={exportUrl(search)} className={buttonVariants({ variant: "outline" })}>
+            <a
+              href={generationsExportUrl(toFilter(search))}
+              className={buttonVariants({ variant: "outline" })}
+            >
               <DownloadSimpleIcon />
               Export CSV
             </a>

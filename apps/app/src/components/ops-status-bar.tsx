@@ -3,8 +3,7 @@ import { Link, type LinkProps } from "@tanstack/react-router";
 import { type ReactNode, useSyncExternalStore } from "react";
 import { api, ok } from "@/lib/api";
 import { formatRate, summarize, type Tone } from "@/lib/ops-status";
-import { cn } from "@/lib/utils";
-import { formatMs } from "@/routes/_app/generations/-generation-actions";
+import { cn, formatMs } from "@/lib/utils";
 
 // Spec: docs/features/app-shell-and-navigation.md (ops status bar). Admins only, opt-in per
 // browser. Reads GET /api/system like Admin › System, but every 30 s, and TanStack Query skips

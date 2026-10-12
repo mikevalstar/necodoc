@@ -44,14 +44,14 @@ import { api, ok } from "@/lib/api";
 // Spec: docs/features/saved-views.md. A view is the table's URL search under a name. The menu sits
 // in the data table's toolbar; `SavedViewList` is the same list for a sidebar.
 
-export const savedViewsQuery = (table: SavedViewTable) =>
+const savedViewsQuery = (table: SavedViewTable) =>
   queryOptions({
     queryKey: ["saved-views", table],
     queryFn: async () => (await ok(api["saved-views"].$get({ query: { table } }))).json(),
   });
 
 /** URL state minus `omit` (page, an open drawer) and unset values, ready to store or compare. */
-export function viewSearch(search: object, omit: readonly string[]): SavedViewSearch | null {
+function viewSearch(search: object, omit: readonly string[]): SavedViewSearch | null {
   const kept = Object.fromEntries(
     Object.entries(search).filter(([key, value]) => value !== undefined && !omit.includes(key)),
   );

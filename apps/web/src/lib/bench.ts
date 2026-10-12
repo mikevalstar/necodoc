@@ -1,7 +1,7 @@
 // Every performance number on the site comes from the W2 benchmark output
 // (docs/features/performance-benchmark.md), never typed by hand. A missing results file
 // renders visible placeholders; a file that doesn't match the schema fails the build.
-import { type Latency, type Results, resultsSchema } from "@necodoc/bench/schema";
+import { formatMs, type Latency, type Results, resultsSchema } from "@necodoc/bench/schema";
 
 const found = import.meta.glob<{ default: unknown }>(
   "../../../../scripts/bench/results/latest.json",
@@ -17,19 +17,16 @@ export const bench: Results | null = raw === undefined ? null : resultsSchema.pa
 /** A value ready to print, or the placeholder key it stands in for. */
 export type BenchValue = { text: string } | { placeholder: string };
 
-export const ms = (v: number | null | undefined): string | null => {
-  if (v == null) return null;
-  return v >= 1000 ? `${(v / 1000).toFixed(2)} s` : `${Math.round(v)} ms`;
-};
-
 const latency = (id: string): Latency | undefined => bench?.latency.find((l) => l.id === id);
 
 const pick = (key: string, value: string | null | undefined): BenchValue =>
   value == null ? { placeholder: `{bench.${key}}` } : { text: value };
 
 /** Latency scenarios by id from scripts/bench/src/scenarios.ts; client round trip. */
-export const roundTrip = (id: string, stat: "p50" | "p95") =>
-  pick(`${id}.${stat}`, ms(latency(id)?.roundTrip[stat]));
+export const roundTrip = (id: string, stat: "p50" | "p95") => {
+  const v = latency(id)?.roundTrip[stat];
+  return pick(`${id}.${stat}`, v == null ? null : formatMs(v));
+};
 
 /** Worker counts the site quotes throughput for. */
 export const scaleWorkers = [1, 2, 4, 8] as const;

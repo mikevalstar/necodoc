@@ -5,7 +5,6 @@ import { z } from "zod";
 // index.html applies the stored theme before first paint; keep its key and rule in sync.
 const themeSchema = z.enum(["light", "dark", "system"]);
 export type Theme = z.infer<typeof themeSchema>;
-export const themes = themeSchema.options;
 
 const storageKey = "necodoc-theme";
 const systemDark = window.matchMedia("(prefers-color-scheme: dark)");

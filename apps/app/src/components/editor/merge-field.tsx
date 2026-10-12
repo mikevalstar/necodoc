@@ -123,7 +123,7 @@ export function suggestedFilter(field: ScalarField | undefined): MergeFilter | n
   return null;
 }
 
-export function filterSummary(filter: MergeFilter | null) {
+function filterSummary(filter: MergeFilter | null) {
   if (!filter) return "";
   switch (filter.name) {
     case "date":

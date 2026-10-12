@@ -1,4 +1,5 @@
 ---
+import { formatMs } from "@necodoc/bench/schema";
 // Performance. Its job (docs/features/marketing-site.md, Pages): the W2 numbers with method,
 // hardware and the script to reproduce them. Everything here is read from the benchmark's
 // JSON (docs/features/performance-benchmark.md); nothing is typed by hand.
@@ -14,13 +15,11 @@ import Stat from "../components/Stat.astro";
 import Stats from "../components/Stats.astro";
 import Stops from "../components/Stops.astro";
 import Layout from "../layouts/Layout.astro";
-import { bench, ms, scaleModel, type BenchValue as Value } from "../lib/bench";
+import { bench, scaleModel, type BenchValue as Value } from "../lib/bench";
 import { spec } from "../lib/links";
 
-const value = (key: string, v: number | null | undefined): Value => {
-  const text = ms(v);
-  return text ? { text } : { placeholder: `{bench.${key}}` };
-};
+const value = (key: string, v: number | null | undefined): Value =>
+  v == null ? { placeholder: `{bench.${key}}` } : { text: formatMs(v) };
 const n = (v: number) => v.toLocaleString("en-CA");
 
 const latency = bench?.latency ?? [];
@@ -77,8 +76,8 @@ const environment: [string, string][] = e
                 label: l.label,
                 value: l.roundTrip.p50 ?? 0,
                 whisker: l.roundTrip.p95 ?? undefined,
-                text: `${ms(l.roundTrip.p50)} · ${ms(l.roundTrip.p95)}`,
-                tip: `${l.label}: p50 ${ms(l.roundTrip.p50)}, p95 ${ms(l.roundTrip.p95)}, p99 ${ms(l.roundTrip.p99)}, ${l.roundTrip.n} samples`,
+                text: `${formatMs(l.roundTrip.p50)} · ${formatMs(l.roundTrip.p95)}`,
+                tip: `${l.label}: p50 ${formatMs(l.roundTrip.p50)}, p95 ${formatMs(l.roundTrip.p95)}, p99 ${formatMs(l.roundTrip.p99)}, ${l.roundTrip.n} samples`,
               }))}
             />
             <table class="spec">
@@ -88,9 +87,9 @@ const environment: [string, string][] = e
                   <tr>
                     <td>{l.label}</td>
                     <td class="n">{l.pages}</td>
-                    <td class="n">{ms(l.roundTrip.p50)}</td>
-                    <td class="n">{ms(l.roundTrip.p95)}</td>
-                    <td class="n">{ms(l.roundTrip.p99)}</td>
+                    <td class="n">{formatMs(l.roundTrip.p50)}</td>
+                    <td class="n">{formatMs(l.roundTrip.p95)}</td>
+                    <td class="n">{formatMs(l.roundTrip.p99)}</td>
                     <td class="n">{l.roundTrip.n}</td>
                   </tr>
                 ))}

@@ -97,7 +97,7 @@ export function InstanceLabel() {
 }
 
 /** "midnight ET", "2:30 AM ET": the reset's time on its own clock, never the browser's. */
-export function resetLabel(at: Date, timeZone: string) {
+function resetLabel(at: Date, timeZone: string) {
   const time = new Intl.DateTimeFormat("en-US", { timeZone, hour: "numeric", minute: "2-digit" });
   const zone = new Intl.DateTimeFormat("en-US", { timeZone, timeZoneName: "shortGeneric" })
     .formatToParts(at)
@@ -107,7 +107,7 @@ export function resetLabel(at: Date, timeZone: string) {
 }
 
 /** "3h 12m", "4m", rounded up to the minute. */
-export function countdown(ms: number) {
+function countdown(ms: number) {
   const minutes = Math.max(0, Math.ceil(ms / 60_000));
   const hours = Math.floor(minutes / 60);
   return hours ? `${hours}h ${minutes % 60}m` : `${minutes}m`;

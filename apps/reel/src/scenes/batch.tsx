@@ -1,6 +1,7 @@
+import { formatMs } from "@necodoc/bench/schema";
 // Scene 5: a batch filling up while workers are added; rows and rates from the benchmark (W2).
 import { interpolate, useCurrentFrame } from "remotion";
-import { bench, count, fastest, ms, runs, workers } from "../bench.ts";
+import { bench, count, fastest, runs, workers } from "../bench.ts";
 import { useEnter } from "../components/frame.tsx";
 import { Card } from "../components/screen.tsx";
 import { color, font } from "../theme.ts";
@@ -86,7 +87,7 @@ export const Batch = () => {
           <Bar
             key={r.workers}
             label={workers(r.workers)}
-            value={`${count(r.docsPerMinute)} / min · ${ms(r.wallMs)}`}
+            value={`${count(r.docsPerMinute)} / min · ${formatMs(r.wallMs)}`}
             ratio={r.docsPerMinute / maxRate}
             at={barAt(i)}
           />

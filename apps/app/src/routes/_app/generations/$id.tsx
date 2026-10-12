@@ -27,10 +27,9 @@ import { Card, CardAction, CardContent, CardHeader, CardTitle } from "@/componen
 import { api, generationPdfUrl, ok } from "@/lib/api";
 import { usePageCrumb } from "@/lib/breadcrumb";
 import { dayjs } from "@/lib/date";
-import { cn, formatBytes } from "@/lib/utils";
+import { cn, formatBytes, formatMs } from "@/lib/utils";
 import {
   DeleteGenerationDialog,
-  formatMs,
   SignedLinkDialog,
   StatusBadge,
   sourceLabels,

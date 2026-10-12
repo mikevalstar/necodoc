@@ -10,7 +10,7 @@ import { plural } from "@/lib/utils";
 // Specs: docs/features/publishing-and-versions.md (diff), docs/features/review-and-approval.md.
 // The structural diff of the saved draft against the latest published version.
 
-export const templateDiffQuery = (id: string) =>
+const templateDiffQuery = (id: string) =>
   queryOptions({
     queryKey: ["templates", id, "diff"],
     queryFn: async () => (await ok(api.templates[":id"].diff.$get({ param: { id } }))).json(),

@@ -30,7 +30,7 @@ import { NativeSelect, NativeSelectOption } from "@/components/ui/native-select"
 import { Switch } from "@/components/ui/switch";
 import { api, ok } from "@/lib/api";
 import { dayjs } from "@/lib/date";
-import { shareLinksQuery, templatesQuery } from "@/lib/queries";
+import { shareLinksQuery, templatesQuery, versionQuery, versionsQuery } from "@/lib/queries";
 
 // Spec: docs/features/share-links-and-data-requests.md. One dialog creates and edits a link; the
 // template can't change once the link exists.
@@ -151,22 +151,9 @@ export function ShareLinkDialog({
   const [prefill, setPrefill] = useState<Prefill>(link?.prefill ?? {});
   const [lockedKeys, setLockedKeys] = useState<readonly string[]>(link?.lockedKeys ?? []);
 
-  const versions = useQuery({
-    queryKey: ["templates", templateId, "versions"],
-    queryFn: async () =>
-      (await ok(api.templates[":id"].versions.$get({ param: { id: templateId } }))).json(),
-    enabled: !!templateId,
-  });
+  const versions = useQuery({ ...versionsQuery(templateId), enabled: !!templateId });
   const fields = useQuery({
-    queryKey: ["templates", templateId, "versions", version ?? "latest"],
-    queryFn: async () =>
-      (
-        await ok(
-          api.templates[":id"].versions[":version"].$get({
-            param: { id: templateId, version: String(version ?? "latest") },
-          }),
-        )
-      ).json(),
+    ...versionQuery(templateId, version ?? "latest"),
     enabled: !!templateId,
   });
   const sections = fields.data?.sections ?? [];

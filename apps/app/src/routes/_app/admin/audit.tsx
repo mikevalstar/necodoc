@@ -16,7 +16,7 @@ import {
   AuditEntrySheet,
   actionLabel,
   actorKindLabels,
-  targetTypeLabel,
+  words,
 } from "@/components/audit";
 import {
   activeFilter,
@@ -31,9 +31,10 @@ import { SavedViews } from "@/components/saved-views";
 import { Badge } from "@/components/ui/badge";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { api, ok } from "@/lib/api";
-import { authClient, requireAccess, unwrap } from "@/lib/auth";
+import { api, auditExportUrl, ok } from "@/lib/api";
+import { requireAccess } from "@/lib/auth";
 import { dayjs } from "@/lib/date";
+import { allUsersQuery } from "@/lib/queries";
 import { cn } from "@/lib/utils";
 
 // Spec: docs/features/audit-log.md. The API filters, sorts and pages; the URL holds the view.
@@ -76,14 +77,6 @@ function toFilter(search: AuditSearch) {
   } satisfies z.input<typeof auditFilterSchema>;
 }
 
-function exportUrl(search: AuditSearch) {
-  const params = new URLSearchParams();
-  for (const [key, value] of Object.entries(toFilter(search))) {
-    if (value !== undefined) params.set(key, value);
-  }
-  return `/api/audit/export.csv?${params}`;
-}
-
 function auditQuery(search: AuditSearch) {
   const query = {
     ...toFilter(search),
@@ -98,11 +91,6 @@ function auditQuery(search: AuditSearch) {
     placeholderData: keepPreviousData,
   });
 }
-
-const usersQuery = queryOptions({
-  queryKey: ["admin", "users", "all"],
-  queryFn: () => unwrap(authClient.admin.listUsers({ query: { limit: 500, sortBy: "name" } })),
-});
 
 type Entry = InferResponseType<typeof api.audit.$get, 200>["items"][number];
 
@@ -134,7 +122,7 @@ const columns = column.columns([
   }),
   column.accessor("targetType", {
     header: "Target type",
-    cell: ({ getValue }) => <span className="text-ink-2">{targetTypeLabel(getValue())}</span>,
+    cell: ({ getValue }) => <span className="text-ink-2">{words(getValue())}</span>,
     meta: { className: "max-lg:hidden" },
   }),
   column.accessor("targetName", {
@@ -177,7 +165,7 @@ function AuditLog() {
   const search = Route.useSearch();
   const navigate = useNavigate({ from: Route.fullPath });
   const entries = useQuery(auditQuery(search));
-  const users = useQuery(usersQuery);
+  const users = useQuery(allUsersQuery);
   const setSearch = (next: Partial<AuditSearch>) =>
     navigate({ search: (prev) => ({ ...prev, ...next }) });
   const setFilter = (next: Partial<AuditSearch>) => setSearch({ ...next, page: 1 });
@@ -196,7 +184,10 @@ function AuditLog() {
         actions={
           <>
             <FaqLink feature="Audit log" />
-            <a href={exportUrl(search)} className={buttonVariants({ variant: "outline" })}>
+            <a
+              href={auditExportUrl(toFilter(search))}
+              className={buttonVariants({ variant: "outline" })}
+            >
               <DownloadSimpleIcon />
               Export CSV
             </a>
@@ -260,7 +251,7 @@ function AuditLog() {
               value={search.targetType}
               options={auditTargetTypeSchema.options.map((value) => ({
                 value,
-                label: targetTypeLabel(value),
+                label: words(value),
               }))}
               onChange={(value) =>
                 setFilter({ targetType: auditTargetTypeSchema.safeParse(value).data })

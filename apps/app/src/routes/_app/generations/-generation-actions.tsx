@@ -67,10 +67,6 @@ export function StatusBadge({ status }: { status: GenerationStatus }) {
   );
 }
 
-/** 1234 → "1.23 s", 87 → "87 ms"; null (not finished) → "—". */
-export const formatMs = (ms: number | null) =>
-  ms === null ? "—" : ms < 1000 ? `${Math.round(ms)} ms` : `${(ms / 1000).toFixed(2)} s`;
-
 /** Re-renders the stored input as a new entry, then opens it. */
 export function useRerun() {
   const queryClient = useQueryClient();

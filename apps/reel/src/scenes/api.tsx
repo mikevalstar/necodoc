@@ -1,6 +1,7 @@
+import { formatMs } from "@necodoc/bench/schema";
 // Scene 4: an HTML to PDF call, with round-trip times from the benchmark (W2).
 import { interpolate, useCurrentFrame } from "remotion";
-import { bench, latency, ms } from "../bench.ts";
+import { bench, latency } from "../bench.ts";
 import { useEnter } from "../components/frame.tsx";
 import { Card } from "../components/screen.tsx";
 import { color, font } from "../theme.ts";
@@ -64,10 +65,10 @@ export const Api = () => {
             letterSpacing: "-0.03em",
           }}
         >
-          {ms(invoice.roundTrip.p50)}
+          {formatMs(invoice.roundTrip.p50)}
         </div>
         <div style={{ font: `400 24px ${font.sans}`, color: color.nightFg2, marginTop: 10 }}>
-          median round trip, p95 {ms(invoice.roundTrip.p95)}
+          median round trip, p95 {formatMs(invoice.roundTrip.p95)}
         </div>
         <div style={{ marginTop: 40 }}>
           {bench.latency.map((l, i) => (
@@ -127,7 +128,7 @@ const LatencyRow = ({
         }}
       >
         <span>{label}</span>
-        <span style={{ font: `400 20px ${font.mono}` }}>{ms(p50)}</span>
+        <span style={{ font: `400 20px ${font.mono}` }}>{formatMs(p50)}</span>
       </div>
       <div style={{ height: 6, borderRadius: 3, background: color.nightHair, marginTop: 6 }}>
         <div

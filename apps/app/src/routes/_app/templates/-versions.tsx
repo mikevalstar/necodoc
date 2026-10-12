@@ -1,5 +1,5 @@
 import { StackIcon } from "@phosphor-icons/react";
-import { queryOptions, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { toast } from "sonner";
 import { SuggestButton, useAiEnabled } from "@/components/ai";
@@ -20,28 +20,9 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { api, ok } from "@/lib/api";
 import { dayjs } from "@/lib/date";
+import { versionsQuery } from "@/lib/queries";
 
 // Spec: docs/features/publishing-and-versions.md (version history, start a draft from a version).
-
-export const versionsQuery = (id: string) =>
-  queryOptions({
-    queryKey: ["templates", id, "versions"],
-    queryFn: async () => (await ok(api.templates[":id"].versions.$get({ param: { id } }))).json(),
-  });
-
-export const versionQuery = (id: string, version: number) =>
-  queryOptions({
-    queryKey: ["templates", id, "versions", version],
-    queryFn: async () =>
-      (
-        await ok(
-          api.templates[":id"].versions[":version"].$get({
-            param: { id, version: String(version) },
-          }),
-        )
-      ).json(),
-    staleTime: Number.POSITIVE_INFINITY,
-  });
 
 export function VersionsPanel({
   id,

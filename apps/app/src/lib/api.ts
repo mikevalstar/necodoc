@@ -6,7 +6,7 @@ import type {
   RenderRequestInput,
 } from "@necodoc/shared";
 import { DefaultChatTransport, type UIDataTypes, type UIMessage } from "ai";
-import { hc } from "hono/client";
+import { hc, type InferRequestType } from "hono/client";
 import { z } from "zod";
 
 /**
@@ -168,6 +168,24 @@ export const submissionPdfUrl = (id: string) => `/api/submissions/${id}/pdf`;
 /** `version` is the list's `thumbnail`, so a new publish or save fetches a new image. */
 export const templateThumbnailUrl = (id: string, version: string) =>
   `/api/templates/${id}/thumbnail?v=${encodeURIComponent(version)}`;
+export const batchPacketUrl = (id: string) => api.batches[":id"].packet.$path({ param: { id } });
+export const batchZipUrl = (id: string) => api.batches[":id"].zip.$path({ param: { id } });
+/** Every provider format, PDF embedded for DocuSign: one file to hand off. */
+export const signingPackageUrl = (id: string) =>
+  api.generations[":id"]["signing-package"].$path({
+    param: { id },
+    query: { formats: ["docusign", "dropbox_sign", "adobe_sign"] },
+  });
+/** CSV exports of everything matching a filter (metadata only); undefined values are left out. */
+export const generationsExportUrl = (
+  query: InferRequestType<(typeof api.generations)["export.csv"]["$get"]>["query"],
+) => api.generations["export.csv"].$path({ query });
+export const auditExportUrl = (
+  query: InferRequestType<(typeof api.audit)["export.csv"]["$get"]>["query"],
+) => api.audit["export.csv"].$path({ query });
+/** Trusted-header sign-in: the browser goes through the proxy, which sets the identity headers. */
+export const ssoHeaderUrl = (id: string) => api.sso.header[":id"].$path({ param: { id } });
+export const openApiUrl = api.v1["openapi.json"].$path();
 
 /** A chat message with the template assistant's typed proposals (ADR 0035). */
 export type AssistantMessage = UIMessage<unknown, UIDataTypes, AssistantTools>;

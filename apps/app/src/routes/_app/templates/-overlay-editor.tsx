@@ -46,7 +46,7 @@ import { PageCanvas, toPdf, toView, usePdfDocument, type ViewRect } from "./-ove
 // Spec: docs/features/pdf-overlay-templates.md. The placement editor for overlay templates: page
 // thumbnails, the page with its boxes, and the inspector; AcroForm import and AI suggestions.
 
-export const pdfSourceQuery = (id: string) =>
+const pdfSourceQuery = (id: string) =>
   queryOptions({
     queryKey: ["pdf-sources", id],
     queryFn: async () =>

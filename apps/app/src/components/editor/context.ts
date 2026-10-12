@@ -31,7 +31,7 @@ export const pageTokens = [
   { path: "pages", label: "Total pages" },
 ] as const;
 
-export const topLevelFields = (sections: readonly FieldSection[]): Field[] =>
+const topLevelFields = (sections: readonly FieldSection[]): Field[] =>
   sections.flatMap((section) => section.fields);
 
 export const groupFields = (sections: readonly FieldSection[]) =>

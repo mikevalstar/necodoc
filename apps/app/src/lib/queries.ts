@@ -2,6 +2,7 @@ import type { assetListQuerySchema, SubmissionListQuery } from "@necodoc/shared"
 import { keepPreviousData, queryOptions } from "@tanstack/react-query";
 import type { z } from "zod";
 import { api, ok } from "./api";
+import { authClient, unwrap } from "./auth";
 
 // Lists more than one page reads: assets (asset library, theme font picker, editor images),
 // themes (theme list, render and template theme pickers) and templates (template list, and the
@@ -28,6 +29,34 @@ export const templatesQuery = queryOptions({
 export const batchesQuery = queryOptions({
   queryKey: ["batches"],
   queryFn: async () => (await ok(api.batches.$get())).json(),
+});
+
+/** A template's published versions (version history, share link version picker). */
+export const versionsQuery = (id: string) =>
+  queryOptions({
+    queryKey: ["templates", id, "versions"],
+    queryFn: async () => (await ok(api.templates[":id"].versions.$get({ param: { id } }))).json(),
+  });
+
+/** One published version; a numbered one never changes, "latest" moves on publish. */
+export const versionQuery = (id: string, version: number | "latest") =>
+  queryOptions({
+    queryKey: ["templates", id, "versions", version],
+    queryFn: async () =>
+      (
+        await ok(
+          api.templates[":id"].versions[":version"].$get({
+            param: { id, version: String(version) },
+          }),
+        )
+      ).json(),
+    staleTime: version === "latest" ? 0 : Number.POSITIVE_INFINITY,
+  });
+
+/** Every user, for admin filters and pickers (generation log, audit log, analytics). */
+export const allUsersQuery = queryOptions({
+  queryKey: ["admin", "users", "all"],
+  queryFn: () => unwrap(authClient.admin.listUsers({ query: { limit: 500, sortBy: "name" } })),
 });
 
 /** The user's documents (home page, "start from a previous document"). Detail keys nest under it. */

@@ -3,9 +3,9 @@ import {
   type Field,
   type FieldSection,
   type FieldType,
+  fieldKeyFrom,
   fieldSectionsSchema,
   isSensitiveField,
-  RESERVED_FIELD_KEYS,
   type ScalarField,
 } from "@necodoc/shared";
 import {
@@ -41,7 +41,7 @@ import { cn } from "@/lib/utils";
 // Spec: docs/features/template-fields-and-guided-form.md. Edits the template's sections and
 // fields; problems come from fieldSectionsSchema itself, so the designer and the API agree.
 
-export const fieldTypeLabels: Record<FieldType, string> = {
+const fieldTypeLabels: Record<FieldType, string> = {
   text: "Short text",
   long_text: "Long text",
   number: "Number",
@@ -57,17 +57,6 @@ export const fieldTypeLabels: Record<FieldType, string> = {
 const scalarTypes = (Object.keys(fieldTypeLabels) as FieldType[]).filter(
   (t): t is ScalarField["type"] => t !== "group",
 );
-
-/** "Policy holder name" → "policy_holder_name", kept to fieldKeySchema's rules. */
-function slug(label: string) {
-  const key = label
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, "_")
-    .replace(/^_+|_+$/g, "")
-    .slice(0, 60);
-  const safe = /^[a-z]/.test(key) ? key : `f_${key}`;
-  return (RESERVED_FIELD_KEYS as readonly string[]).includes(safe) ? `${safe}_value` : safe;
-}
 
 const uniqueKey = (base: string, taken: ReadonlySet<string>) => {
   let key = base;
@@ -166,7 +155,7 @@ export function FieldDesigner({
     if (!section) return;
     const label = `New ${fieldTypeLabels[type].toLowerCase()}`;
     const field = ofType(
-      { type: "text", key: uniqueKey(slug(label), allKeys), label, required: false },
+      { type: "text", key: uniqueKey(fieldKeyFrom(label), allKeys), label, required: false },
       type,
     );
     setSection(s, { ...section, fields: [...section.fields, field] });
@@ -590,8 +579,12 @@ function FieldForm({
           onChange={(e) => {
             const label = e.target.value;
             // The key follows the label until someone edits it by hand.
-            const auto = field.key === slug(field.label) || /^new_/.test(field.key);
-            onChange({ ...field, label, ...(auto && label.trim() ? { key: slug(label) } : {}) });
+            const auto = field.key === fieldKeyFrom(field.label) || /^new_/.test(field.key);
+            onChange({
+              ...field,
+              label,
+              ...(auto && label.trim() ? { key: fieldKeyFrom(label) } : {}),
+            });
           }}
         />
         <Messages messages={err("label")} />
@@ -870,10 +863,10 @@ function TypeSettings({
                   value={option.label}
                   onChange={(e) => {
                     const label = e.target.value;
-                    const auto = option.value === slug(option.label);
+                    const auto = option.value === fieldKeyFrom(option.label);
                     const next = {
                       label,
-                      value: auto && label.trim() ? slug(label) : option.value,
+                      value: auto && label.trim() ? fieldKeyFrom(label) : option.value,
                     };
                     onChange({
                       ...field,
@@ -993,7 +986,7 @@ function TypeSettings({
                   const label = `New ${fieldTypeLabels[type].toLowerCase()}`;
                   const base: Field = {
                     type: "text",
-                    key: uniqueKey(slug(label), taken),
+                    key: uniqueKey(fieldKeyFrom(label), taken),
                     label,
                     required: false,
                   };

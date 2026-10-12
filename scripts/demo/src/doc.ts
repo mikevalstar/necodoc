@@ -64,8 +64,6 @@ export const ul = (...items: Inline[][]): BlockNode => ({
   type: "bulletList",
   content: items.map((item) => ({ type: "listItem", content: [p(...item)] })),
 });
-export const hr: BlockNode = { type: "horizontalRule" };
-export const pageBreak: BlockNode = { type: "pageBreak" };
 
 const cell = (type: "tableCell" | "tableHeader", parts: Inline[]) => ({
   type,

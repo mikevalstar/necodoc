@@ -6,7 +6,7 @@ import {
   parseCsv,
 } from "@necodoc/shared";
 import { WarningCircleIcon, WarningIcon } from "@phosphor-icons/react";
-import { queryOptions, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { type ReactNode, useState } from "react";
 import { ErrorAlert } from "@/components/form";
@@ -27,25 +27,10 @@ import {
 } from "@/components/ui/table";
 import { api, ok } from "@/lib/api";
 import { usePageCrumb } from "@/lib/breadcrumb";
+import { templatesQuery, versionQuery } from "@/lib/queries";
 
 // Spec: docs/features/render-queue-batch-jobs-and-scaling.md (batch jobs): a CSV upload in the
 // app, one document per row, columns mapped to the template's fields.
-
-const templatesQuery = queryOptions({
-  queryKey: ["templates"],
-  queryFn: async () => (await ok(api.templates.$get())).json(),
-});
-
-const versionQuery = (id: string) =>
-  queryOptions({
-    queryKey: ["templates", id, "versions", "latest"],
-    queryFn: async () =>
-      (
-        await ok(
-          api.templates[":id"].versions[":version"].$get({ param: { id, version: "latest" } }),
-        )
-      ).json(),
-  });
 
 export const Route = createFileRoute("/_app/batches/new")({
   component: NewBatch,
@@ -60,7 +45,7 @@ function NewBatch() {
   const templates = useQuery(templatesQuery);
   const published = (templates.data ?? []).filter((t) => t.latestVersion !== null && !t.archivedAt);
   const [templateId, setTemplateId] = useState("");
-  const version = useQuery({ ...versionQuery(templateId), enabled: templateId !== "" });
+  const version = useQuery({ ...versionQuery(templateId, "latest"), enabled: templateId !== "" });
   const targets = version.data ? csvFieldTargets(version.data.sections) : [];
   const [csv, setCsv] = useState<Csv | null>(null);
   const [mapping, setMapping] = useState<CsvMapping>({});

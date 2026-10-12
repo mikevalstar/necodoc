@@ -3,8 +3,7 @@ import { XIcon } from "@phosphor-icons/react";
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { cn } from "@/lib/utils";
-import { formatMs } from "./-generation-actions";
+import { cn, formatMs } from "@/lib/utils";
 
 // Spec: docs/features/generation-log.md (Render-time histogram). End-to-end times of the filtered
 // entries in log-ish buckets. Each bar is a button: pick one, drag across several, or Shift-pick
@@ -16,7 +15,7 @@ type Bucket = Histogram["buckets"][number];
 /** 0.15 → "0.15 s"; the axis reads in seconds. */
 const edge = (ms: number) => `${Number((ms / 1000).toFixed(2))} s`;
 
-export const bucketLabel = (bucket: Bucket) =>
+const bucketLabel = (bucket: Bucket) =>
   bucket.maxMs === null
     ? `${edge(bucket.minMs)} and over`
     : bucket.minMs === 0
@@ -24,7 +23,7 @@ export const bucketLabel = (bucket: Bucket) =>
       : `${edge(bucket.minMs)} to ${edge(bucket.maxMs)}`;
 
 /** The filter for buckets `from`..`to`; the open ends drop out. */
-export function rangeOf(buckets: readonly Bucket[], from: number, to: number): TimeRange {
+function rangeOf(buckets: readonly Bucket[], from: number, to: number): TimeRange {
   const low = buckets[Math.min(from, to)];
   const high = buckets[Math.max(from, to)];
   return {

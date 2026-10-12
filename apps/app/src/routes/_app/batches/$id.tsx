@@ -31,11 +31,11 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { api, ok } from "@/lib/api";
+import { api, batchPacketUrl, batchZipUrl, ok } from "@/lib/api";
 import { usePageCrumb } from "@/lib/breadcrumb";
 import { dayjs } from "@/lib/date";
-import { cn } from "@/lib/utils";
-import { formatMs, StatusBadge } from "../generations/-generation-actions";
+import { cn, formatMs } from "@/lib/utils";
+import { StatusBadge } from "../generations/-generation-actions";
 import { BatchProgress, BatchStatusBadge, remaining } from "./-batch-status";
 
 // Spec: docs/features/render-queue-batch-jobs-and-scaling.md (batch jobs). Polls while running.
@@ -149,14 +149,11 @@ function BatchDetail() {
             )}
             {batch.done > 0 && (
               <>
-                <a
-                  href={`/api/batches/${id}/packet`}
-                  className={buttonVariants({ variant: "outline" })}
-                >
+                <a href={batchPacketUrl(id)} className={buttonVariants({ variant: "outline" })}>
                   <DownloadSimpleIcon />
                   Packet PDF
                 </a>
-                <a href={`/api/batches/${id}/zip`} className={buttonVariants()}>
+                <a href={batchZipUrl(id)} className={buttonVariants()}>
                   <DownloadSimpleIcon />
                   Download ZIP
                 </a>

@@ -6,7 +6,6 @@ import { z } from "zod";
 // and the `compact:` variant. index.html applies it before first paint; keep its key in sync.
 const densitySchema = z.enum(["comfortable", "compact"]);
 export type Density = z.infer<typeof densitySchema>;
-export const densities = densitySchema.options;
 
 const storageKey = "necodoc-density";
 const listeners = new Set<() => void>();
