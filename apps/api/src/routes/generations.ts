@@ -31,6 +31,7 @@ import { apikey, file, generation, template, user } from "../db/schema";
 import { mintLink, serveFile } from "../download";
 import { deleteFiles, deleteObjects } from "../files";
 import { generate } from "../generate";
+import { maskedInput } from "../privacy";
 import { type AppEnv, requirePermission, requireRole, type SignedInEnv } from "../middleware";
 import { signingQueryOptions, signingResponse } from "../signing-package";
 
@@ -241,8 +242,15 @@ export const generationRoutes = new Hono<AppEnv>()
       requestId: generation.requestId,
       signing: generation.signing,
       outputProfile: generation.outputProfile,
+      subject: generation.subject,
     }).where(visible(c.get("user"), c.req.valid("param").id));
-    return row ? c.json(row, 200) : c.json({ error: "Generation not found" }, 404);
+    if (!row) return c.json({ error: "Generation not found" }, 404);
+    // Someone else's entry (an admin looking): sensitive values masked (ADR 0039).
+    const input =
+      row.input && row.userId !== c.get("user").id
+        ? await maskedInput(row.input, row.templateVersionId)
+        : row.input;
+    return c.json({ ...row, input }, 200);
   })
   .get("/:id/pdf", canView, idParam, async (c) => {
     const output = await findOutput(c.get("user"), c.req.valid("param").id);
@@ -294,6 +302,7 @@ export const generationRoutes = new Hono<AppEnv>()
         input: generation.input,
         templateId: generation.templateId,
         templateVersionId: generation.templateVersionId,
+        subject: generation.subject,
       })
       .from(generation)
       .where(visible(actor, c.req.valid("param").id));
@@ -308,6 +317,7 @@ export const generationRoutes = new Hono<AppEnv>()
       userId: actor.id,
       requestId: c.get("requestId"),
       rerunOfId: original.id,
+      subject: original.subject,
       ...(original.templateId && original.templateVersionId
         ? { template: { id: original.templateId, versionId: original.templateVersionId } }
         : {}),

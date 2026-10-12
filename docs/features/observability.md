@@ -40,8 +40,10 @@ people; this answers it for their tooling.
   - Every queue job: queue, job id, duration; failures at `warn`.
   - Unhandled errors log with their stack and the request id.
   - Secrets (passwords, tokens, cookies, authorization headers) are
-    redacted. Field values aren't logged; masking for anything that does log
-    them comes with field-level PII settings and plugs into the same redaction.
+    redacted. Field values are never logged: `data`, `input` and `fields`
+    are redacted wherever they appear, and render errors in logs and spans
+    have the input's values masked
+    ([personal data masking and erasure](personal-data-masking-and-erasure.md)).
 - **Metrics.** `METRICS_PORT` turns on a Prometheus `/metrics` listener on
   every role. It's a separate port so it's never reachable through the public
   `/api` proxy; operators limit who can reach the port. Metrics:
@@ -92,6 +94,3 @@ people; this answers it for their tooling.
 - Metrics reset when a process restarts (Prometheus counters handle this).
 - Logs go to stdout only; shipping them is the platform's job.
 
-## Open questions
-
-- Field-level masking of values in logs and spans (PII settings phase).

@@ -275,7 +275,7 @@ const keyed = new Hono<AppEnv>()
     json(v1RenderSchema),
     async (c) => {
       const key = c.get("apiKey");
-      const { response, async, signing: asked, ...request } = c.req.valid("json");
+      const { response, async, signing: asked, subject, ...request } = c.req.valid("json");
       const signing = asked ? signingOptionsOf(asked) : undefined;
       if (request.themeId) {
         const [found] = await db
@@ -295,6 +295,7 @@ const keyed = new Hono<AppEnv>()
         userId: key.owner.id,
         apiKeyId: key.id,
         requestId: c.get("requestId"),
+        subject,
         wait: !async,
       });
       return answer(c, result, response, signing);
@@ -411,7 +412,8 @@ const keyed = new Hono<AppEnv>()
     async (c) => {
       const key = c.get("apiKey");
       const { id, version } = c.req.valid("param");
-      const { data, filename, async, response, signing: asked, output } = c.req.valid("json");
+      const { data, filename, async, response, signing: asked, output, subject } =
+        c.req.valid("json");
       const signing = asked ? signingOptionsOf(asked) : undefined;
       if (!templateAllowed(key, id)) {
         return v1Error(c, 403, "template_not_allowed", "This key can't use that template");
@@ -436,6 +438,7 @@ const keyed = new Hono<AppEnv>()
         apiKeyId: key.id,
         requestId: c.get("requestId"),
         template: { id, versionId: v.id },
+        subject,
         wait: !async,
       });
       return answer(c, result, response, signing);

@@ -25,6 +25,7 @@ const canPublish = requirePermission({ document: ["publish"] });
 const idParam = zValidator("param", z.object({ id: z.uuid() }));
 
 const off = { error: "Not found" } as const;
+const lastRole = z.object({ role: z.string() });
 
 export const assistantRoutes = new Hono<AppEnv>()
   // A chat turn, streamed. The draft is the editor's (unsaved) one: the model edits what the
@@ -45,11 +46,14 @@ export const assistantRoutes = new Hono<AppEnv>()
       }
       const { messages, draft } = c.req.valid("json");
       const themes = await db.select({ id: theme.id, name: theme.name }).from(theme);
-      await recordAudit({
-        action: "template.ai_requested",
-        target: { id, name: saved.name },
-        details: { feature: "assistant", messages: messages.length },
-      });
+      // One entry per author message; the follow-ups that carry their answers to proposals aren't.
+      if (lastRole.safeParse(messages.at(-1)).data?.role === "user") {
+        await recordAudit({
+          action: "template.ai_requested",
+          target: { id, name: saved.name },
+          details: { feature: "assistant", messages: messages.length },
+        });
+      }
       return assistantResponse({
         model: aiModel,
         messages,

@@ -45,7 +45,9 @@ document permissions in
   plus the compiled HTML, so compiler changes don't touch it either. Later edits
   to the theme or snippets don't touch it. Publishing fails if the content
   doesn't compile or its Liquid doesn't parse.
-- A publisher can add a change note when publishing.
+- A publisher can add a change note when publishing, and write or edit a
+  version's note later (the old text stays in the [audit log](audit-log.md)).
+  AI can draft it ([AI template assistant](ai-template-assistant.md)).
 - **Review.** Editors can submit the draft for review; an admin setting makes
   an approved, unchanged review a condition for publishing
   ([Review and approval](review-and-approval.md)). The publish dialog shows

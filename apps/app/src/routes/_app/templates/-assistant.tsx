@@ -211,7 +211,7 @@ export function AssistantPanel({
                 if (part.type === "text") {
                   return (
                     <p key={key} className="whitespace-pre-wrap">
-                      {part.text}
+                      <Bold text={part.text} />
                     </p>
                   );
                 }
@@ -421,4 +421,15 @@ function Proposal({
       </div>
     </div>
   );
+}
+
+/** Models write **bold** whatever they're told; show it as bold rather than asterisks. */
+function Bold({ text }: { text: string }) {
+  const pieces = text.split(/\*\*(.+?)\*\*/g);
+  let offset = 0;
+  return pieces.map((piece, i) => {
+    const key = offset;
+    offset += piece.length + (i % 2 ? 4 : 0);
+    return i % 2 ? <strong key={key}>{piece}</strong> : <span key={key}>{piece}</span>;
+  });
 }

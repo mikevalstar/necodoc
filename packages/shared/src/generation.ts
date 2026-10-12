@@ -152,6 +152,8 @@ export const generationDetailSchema = generationSummarySchema.extend({
   signing: signingPackageSchema.nullable(),
   /** PDF/A, PDF/UA and certification as applied; null when none was asked for. */
   outputProfile: outputProfileSchema.nullable(),
+  /** Who it's about (docs/features/personal-data-masking-and-erasure.md). */
+  subject: z.string().nullable(),
 });
 export type GenerationDetail = z.infer<typeof generationDetailSchema>;
 

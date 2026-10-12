@@ -2,6 +2,7 @@ import { z } from "zod";
 import { fieldSectionsSchema } from "./fields";
 import { outputOptionsSchema, outputOverridesSchema } from "./output";
 import { overlayContentSchema } from "./overlay";
+import { subjectSchema } from "./privacy";
 import { bandSchema, pageOptionsSchema } from "./render";
 import { signersSchema } from "./signing";
 import { docSchema } from "./template-doc";
@@ -144,6 +145,7 @@ export const generateFromTemplateSchema = z.object({
   async: z.boolean().default(false),
   /** Overrides the template's output settings for this PDF. */
   output: outputOverridesSchema.optional(),
+  subject: subjectSchema.optional(),
 });
 
 const timestamps = {

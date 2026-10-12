@@ -2,6 +2,7 @@ import { z } from "zod";
 import { batchJsonSchema, batchSummarySchema } from "./batch";
 import { generationStatusSchema, generationSummarySchema } from "./generation";
 import { outputOptionsSchema, outputProfileSchema } from "./output";
+import { subjectSchema } from "./privacy";
 import { renderRequestSchema } from "./render";
 import {
   signingFormatSchema,
@@ -42,7 +43,7 @@ const {
 } = renderRequestSchema.shape;
 
 export const v1RenderSchema = z
-  .object({ ...renderFields, ...responseOptions, ...signingOption })
+  .object({ ...renderFields, ...responseOptions, ...signingOption, subject: subjectSchema.optional() })
   .meta({ id: "RenderRequest", description: "HTML (Liquid allowed) to render as a PDF." });
 
 export const v1GenerateSchema = generateFromTemplateSchema

@@ -523,6 +523,7 @@ export const templateRoutes = new Hono<AppEnv>()
         userId: c.get("user").id,
         requestId: c.get("requestId"),
         template: { id, versionId: v.id },
+        subject: body.subject,
         wait: !body.async,
       });
       return generationResponse(c, result);

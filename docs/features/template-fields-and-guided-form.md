@@ -33,6 +33,9 @@ to user-defined data.
 - **Validation per type:** min/max length and pattern for text; min, max and
   decimals for number; min/max date; min/max items for repeating groups and
   multiple choice.
+- **Sensitive.** A field can be marked sensitive (or left automatic), which
+  masks its values in audit diffs and in other people's log entries
+  ([personal data masking and erasure](personal-data-masking-and-erasure.md)).
 - **Repeating group.** A list of items, each with its own child fields. It
   feeds repeating sections and table rows in
   [designed templates](document-templates.md). Groups don't nest.

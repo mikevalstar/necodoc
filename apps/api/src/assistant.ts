@@ -186,7 +186,7 @@ export async function suggestNote(
       : `Template "${input.name}", first version.\n${templateText(input.first)}`;
   const res = await generateText({
     model,
-    instructions: `You write the change note for a published version of a document template, for its version history. Name the actual changes (fields by label, clauses, header/footer, page or theme), most important first, as one to four short bullet lines starting with "- ". For a first version, one sentence saying what the template covers. Under 600 characters. ${SUMMARY_RULES}`,
+    instructions: `You write the change note for a published version of a document template, for its version history. Name the actual changes (fields by label, clauses, header/footer, page or theme), most important first, as one to four short bullet lines starting with "- ". For a first version, one sentence saying what the template covers. Block texts in the diff are shortened: describe what you can see and never mention the diff, truncation or uncertainty. Under 600 characters. ${SUMMARY_RULES}`,
     prompt,
     maxOutputTokens: 1000,
   });

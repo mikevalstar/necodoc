@@ -100,6 +100,8 @@ export async function finishSubmission({
     userId: row.ownerId,
     requestId,
     template: { id: version.templateId, versionId: version.id },
+    // A share-link respondent is who the document is about.
+    subject: row.respondentEmail,
     wait,
   });
   await db

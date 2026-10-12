@@ -246,6 +246,8 @@ export const generation = pgTable(
     warnings: jsonb().$type<string[]>().default(sql`'[]'::jsonb`).notNull(),
     /** Null once retention removed it. */
     input: jsonb().$type<RenderInput>(),
+    /** Who it's about, for erasure (docs/features/personal-data-masking-and-erasure.md). */
+    subject: text(),
     outputFileId: uuid().references(() => file.id, { onDelete: "set null" }),
     queuedAt: timestamp({ withTimezone: true }).defaultNow().notNull(),
     startedAt: timestamp({ withTimezone: true }),
@@ -288,6 +290,8 @@ export const generation = pgTable(
     index().on(t.apiKeyId, t.queuedAt),
     // The self-reference's ON DELETE SET NULL scans for re-runs of every deleted row.
     index().on(t.rerunOfId),
+    // Erasure looks subjects up case-insensitively.
+    index("generation_subject_index").on(sql`lower(${t.subject})`),
     // Free-text search (`q`): substring matches need trigrams (migration enables pg_trgm).
     index("generation_filename_trgm_index").using("gin", t.filename.op("gin_trgm_ops")),
     index("generation_error_trgm_index").using("gin", t.error.op("gin_trgm_ops")),

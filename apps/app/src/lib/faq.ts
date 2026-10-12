@@ -689,6 +689,40 @@ export const faq: readonly FaqEntry[] = [
     spec: "docs/features/pdf-overlay-templates.md",
   },
   {
+    feature: "AI template assistant",
+    group: "Templates",
+    what: 'A chat panel in the editor of a designed template. Describe the document or ask for a change ("add a co-principal and show the second signature block only when there is one") and Claude (Sonnet) proposes changes: name and description, fields and sections, body content, header and footer, page and theme, CSS, sample data, or the HTML of a code-mode template. Each proposal shows what it changes; nothing happens until you apply it, and nothing is saved until you save. It can also explain the template or a Liquid expression. Only shown when AI is turned on.',
+    howTo:
+      "Open a designed template and click Assistant (top right). Type a request and press Enter. On each proposal: Preview shows the PDF with the change, Apply puts it in the draft (undo in the editor takes body changes back), Reject tells the assistant no. Apply all takes every waiting proposal. To start from nothing, choose New template › Describe it to the AI assistant.",
+    limitations: [
+      "Suggestions can be wrong; review each one and the preview before saving.",
+      "The draft and the conversation are sent to Anthropic with every message; don't use it on templates that mustn't leave your systems.",
+      "Not for PDF overlay templates (use AI field detection there).",
+      "Conversations aren't kept: closing the editor or reloading the page starts over.",
+      "It can't see snippet content or upload images; it uses existing fields and assets only.",
+      "Each message sends the whole draft (about 20,000 tokens of instructions plus the template), so long templates cost more; there's no per-user quota yet.",
+    ],
+    access: [{ action: "Use the assistant", needs: edit }],
+    spec: "docs/features/ai-template-assistant.md",
+  },
+  {
+    feature: "AI summaries",
+    group: "Templates",
+    what: "'Suggest with AI' drafts text you'd otherwise write: a template's description (from its fields and content), and a version's change note (from what changed since the previous version, or what the template covers for version 1). The text lands in the box for you to edit; your own text is only replaced when you click. Only shown when AI is turned on.",
+    howTo:
+      "Description: Page & theme tab (PDF tab on overlay templates), Suggest with AI next to Description, then save. Change note: in the Publish dialog, Suggest with AI under the note. Older versions: Versions tab › Edit note (or Add note) › Suggest with AI › Save note.",
+    limitations: [
+      "The draft text can miss or misname a change; read it before publishing.",
+      "Notes are based on the structural diff, which shortens long paragraphs, so wording changes inside a clause are summarised loosely.",
+      "Template content is sent to Anthropic.",
+    ],
+    access: [
+      { action: "Suggest a description", needs: edit },
+      { action: "Suggest, write or edit a version note", needs: publish },
+    ],
+    spec: "docs/features/ai-template-assistant.md",
+  },
+  {
     feature: "Encrypted PDFs",
     group: "Templates",
     what: "Many government forms are encrypted with an empty password: every viewer opens them without asking, and the encryption only carries print and edit restrictions. necodoc accepts these, fills them, and saves the output unencrypted. PDFs that really need a password to open are refused with a message saying so.",
@@ -704,7 +738,7 @@ export const faq: readonly FaqEntry[] = [
   {
     feature: "Turning AI on and off",
     group: "Admin",
-    what: "AI features (currently field detection) are on only when the API has an Anthropic key. Without one, every AI button is hidden and the AI endpoints answer 404, so no document content can reach a model.",
+    what: "AI features (field detection, the template assistant and AI summaries) are on only when the API has an Anthropic key. Without one, every AI button is hidden and the AI endpoints answer 404, so no document content can reach a model.",
     howTo:
       "Set ANTHROPIC_KEY on every API and worker process and restart them; workers run the detection jobs. AI_MODEL picks the model (default claude-sonnet-5-5). Remove the key (or set it empty) and restart to turn AI off.",
     limitations: [

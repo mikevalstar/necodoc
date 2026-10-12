@@ -10,6 +10,7 @@ export * from "./generation";
 export * from "./output";
 export * from "./overlay";
 export * from "./overlay-import";
+export * from "./privacy";
 export * from "./public-api";
 export * from "./render";
 export * from "./review";

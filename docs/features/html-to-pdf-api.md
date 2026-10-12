@@ -64,7 +64,10 @@ accounts, scopes), [ADR 0030](../adrs/0030-openapi-for-the-public-api-with-hono-
 
 ### Endpoints
 
-All under `/api/v1`, authenticated with the `x-api-key` header.
+All under `/api/v1`, authenticated with the `x-api-key` header. Render and
+generate take an optional `subject` (the person the document is about) so a
+GDPR erasure can find it
+([personal data masking and erasure](personal-data-masking-and-erasure.md)).
 
 - `POST /render` (`render:html`): `html` (Liquid with `data`), optional `css`,
   `themeId` ([Document themes](document-themes.md)), `header`/`footer` bands

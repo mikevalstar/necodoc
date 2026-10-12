@@ -31,6 +31,7 @@ Compliance reviews ask for change history. When a published document is wrong, t
   - batch jobs: start, cancel ([render queue](render-queue-batch-jobs-and-scaling.md))
   - generation log: bulk delete (with the filter and count), signed download link minted ([generation log](generation-log.md))
   - settings: retention and publishing changes
+  - data subject erasure, with counts only ([personal data masking and erasure](personal-data-masking-and-erasure.md))
 - **Actors.** A person (with the admin behind them when impersonating), an API key (its owner, or a service account), the system (SSO provisioning and role sync, jobs), or the public (failed sign-ins).
 - **Append-only.** No one can edit or delete entries through the app or API, and a database trigger rejects updates and deletes.
 - **Admin > Audit log:** filter by actor, action, target type, target, date range and free text (target, actor, request id, IP); sort; page through large volumes server-side; open an entry to see its diff; export the filtered list as CSV.
@@ -54,6 +55,6 @@ Compliance reviews ask for change history. When a published document is wrong, t
 - Entries are kept forever; there is no retention for the audit log.
 - Large rich-text edits store the whole before/after document, not a minimal diff.
 - Database administrators can still alter rows directly by disabling the trigger; the log is tamper-resistant, not tamper-evident (no hash chain).
-- Personal data in entries (names, emails, IPs, field values in diffs) isn't masked yet.
+- Field values in diffs are masked only for sensitive fields; names, emails and IPs stay, and entries are never erased ([personal data masking and erasure](personal-data-masking-and-erasure.md)).
 - Events recorded by Better Auth hooks (sign-in, admin user actions) are written just after the change, not in its transaction.
 - Downloads and signed-link uses aren't recorded, only minting a link.

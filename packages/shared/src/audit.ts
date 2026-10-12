@@ -16,6 +16,7 @@ export const auditTargetTypes = [
   "batch",
   "generation",
   "setting",
+  "data_subject",
 ] as const;
 export const auditTargetTypeSchema = z.enum(auditTargetTypes);
 export type AuditTargetType = z.infer<typeof auditTargetTypeSchema>;
@@ -88,6 +89,8 @@ export const auditActions = {
   "generation.link_created": "generation",
   "settings.retention_updated": "setting",
   "settings.publishing_updated": "setting",
+  /** A GDPR erasure: counts only, never who (docs/features/personal-data-masking-and-erasure.md). */
+  "privacy.subject_erased": "data_subject",
 } as const satisfies Record<string, AuditTargetType>;
 
 export type AuditAction = keyof typeof auditActions;

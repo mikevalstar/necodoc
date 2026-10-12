@@ -44,19 +44,21 @@ A blank editor is the slowest part of authoring. GhostDraft authors start from W
 
 ## Acceptance criteria
 
-- [ ] With no `ANTHROPIC_KEY`, no AI control appears anywhere and AI routes return 404.
-- [ ] From a one-paragraph description, the assistant creates a draft with sensible fields and content that previews without errors.
-- [ ] Asking it to "add a co-principal and show the second signature block only when there is one" adds the field, the condition and the content.
-- [ ] Every change is shown before it applies, and rejecting it leaves the draft unchanged.
-- [ ] "Suggest with AI" drafts a template description and, in the publish dialog, a version note that names the actual changes since the previous version; both stay editable and save only when the author saves.
-- [ ] A viewer or a user without edit permission can't call the assistant routes (403).
+- [x] With no `ANTHROPIC_KEY`, no AI control appears anywhere and AI routes return 404.
+- [x] From a one-paragraph description, the assistant creates a draft with sensible fields and content that previews without errors.
+- [x] Asking it to "add a co-principal and show the second signature block only when there is one" adds the field, the condition and the content.
+- [x] Every change is shown before it applies, and rejecting it leaves the draft unchanged.
+- [x] "Suggest with AI" drafts a template description and, in the publish dialog, a version note that names the actual changes since the previous version; both stay editable and save only when the author saves.
+- [x] A viewer or a user without edit permission can't call the assistant routes (403).
 
 ## Known limitations
 
 - Template content and the conversation go to the model provider. The panel says so.
 - Suggestions can be wrong; the author reviews every change.
-- No per-user quota or cost tracking yet.
+- No per-user quota or cost tracking yet; the audit log shows who used AI on which template.
 - Conversations aren't saved between sessions.
 - Overlay templates have no chat assistant (they have [AI field detection](pdf-overlay-templates.md)); the description summary works for both kinds.
-- The whole draft is sent on every chat turn, so long templates cost more per message.
+- The whole draft and the tool definitions (about 20,000 tokens) are sent on every chat turn, so long templates cost more per message.
+- The model sometimes miscounts body blocks after its own edits; a proposal that no longer fits is shown as "can't apply" and the model is told why.
+- Version notes come from the structural diff, which shortens long paragraphs, so wording changes inside a clause are summarised loosely.
 - The assistant can't see snippet content or upload images; it can only place existing assets and fields.

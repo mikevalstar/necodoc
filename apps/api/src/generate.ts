@@ -186,6 +186,8 @@ export type GenerationInput = {
   rerunOfId?: string;
   /** The published template version the request was built from. */
   template?: { id: string; versionId: string };
+  /** Who it's about, for erasure (docs/features/personal-data-masking-and-erasure.md). */
+  subject?: string | null;
 };
 
 /** The row a queued generation starts as. Batch rows add their batch id and row number. */
@@ -197,6 +199,7 @@ export const queuedRow = ({
   requestId,
   rerunOfId,
   template,
+  subject,
 }: GenerationInput) =>
   ({
     source,
@@ -209,6 +212,7 @@ export const queuedRow = ({
     templateVersionId: template?.versionId,
     filename: pdfFilename(request.filename),
     input: { ...request, preview: false },
+    subject,
   }) satisfies typeof generation.$inferInsert;
 
 export type Tx = Parameters<Parameters<typeof db.transaction>[0]>[0];

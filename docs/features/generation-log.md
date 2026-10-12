@@ -84,8 +84,10 @@ needs counting.
 
 ## Known limitations
 
-- Inputs can hold personal data and are kept until deleted or removed by the
-  retention setting.
+- Inputs can hold personal data and are kept until deleted, erased for a data
+  subject, or removed by the retention setting. Admins see sensitive values in
+  other people's inputs masked
+  ([personal data masking and erasure](personal-data-masking-and-erasure.md)).
 - Outputs rendered before the storage driver existed stay in Postgres until
   `pnpm --filter @necodoc/api storage:migrate` moves them.
 - Signed links can't be revoked before they expire, except by deleting the

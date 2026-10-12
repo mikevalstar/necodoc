@@ -52,6 +52,11 @@ const base = {
   help: z.string().max(1000).optional(),
   required: z.boolean().default(false),
   showIf: conditionSchema.optional(),
+  /**
+   * Masked outside stored inputs and PDFs (docs/features/personal-data-masking-and-erasure.md).
+   * Unset: automatic, by type and key (`isSensitiveField` in privacy.ts).
+   */
+  sensitive: z.boolean().optional(),
 };
 
 const textField = {

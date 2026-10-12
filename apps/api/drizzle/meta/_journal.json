@@ -134,6 +134,13 @@
       "when": 1791785183776,
       "tag": "0018_previous_jackpot",
       "breakpoints": true
+    },
+    {
+      "idx": 19,
+      "version": "7",
+      "when": 1791786458197,
+      "tag": "0019_glossy_cassandra_nova",
+      "breakpoints": true
     }
   ]
 }
