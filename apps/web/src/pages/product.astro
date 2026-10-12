@@ -263,7 +263,8 @@ const admin: Feature[] = [
           ]}
         />
         <p class="measured">
-          <BenchValue value={docsPerMinute(8)} /> documents per minute on 8 workers on <BenchValue value={env.cpu} />.
+          About <BenchValue value={docsPerMinute(8)} /> documents per minute on 8 workers, one per server.
+          One worker on <BenchValue value={env.cpu} /> does <BenchValue value={docsPerMinute(1)} />.
           <a class="tlink" href="/performance/">Method and caveats</a>
         </p>
         <Limit>Postgres carries the queue, so it bounds throughput. A batch input is capped at 20 MB.</Limit>

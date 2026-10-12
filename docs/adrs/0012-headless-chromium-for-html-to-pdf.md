@@ -21,6 +21,8 @@ the deploy target left open in
 
 Extended by [ADR 0020](0020-pg-boss-job-queue-and-separate-render-worker-processes.md): logged renders run on queue worker processes.
 
+The fresh-context-per-render rule is superseded by [ADR 0047](0047-warm-chromium-pages-reused-across-renders.md): warm pages are reused across renders; JavaScript stays off and the network stays blocked.
+
 ## Context
 
 [Document templates](../features/document-templates.md),

@@ -115,8 +115,9 @@ product. Order is the order on the home page.
    JSON, with its hardware, date and commit beside them. Placeholders until
    the schema lands: `{bench.html.p50}`, `{bench.overlay.p50}`,
    `{bench.designed.p95}`, `{bench.batch.docsPerMin}`, scaling at
-   `{bench.scale.1}` / `{bench.scale.4}` / `{bench.scale.8}` workers, on
-   `{bench.env.cpu}`. Batches of up to 10,000 rows from JSON or CSV, with
+   `{bench.scaleModel.1}` / `{bench.scaleModel.4}` / `{bench.scaleModel.8}`
+   workers (1 measured, more from the benchmark's
+   [scale model](performance-benchmark.md#behavior)), on `{bench.env.cpu}`. Batches of up to 10,000 rows from JSON or CSV, with
    progress, cancel, ZIP or one packet.
    Proof: [Render queue, batch jobs and scaling](render-queue-batch-jobs-and-scaling.md),
    [Generation log](generation-log.md).

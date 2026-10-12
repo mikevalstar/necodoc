@@ -14,6 +14,7 @@ import { buildInfo, serveMetrics } from "./observability/metrics";
 import { startTracing, stopTracing } from "./observability/tracing";
 import { boss, startQueue } from "./queue";
 import { closeBrowser, renderLimits } from "./render/browser";
+import { warmPrinters } from "./render/render";
 import { healthRoutes } from "./routes/health";
 import { startHeartbeat, startWorker } from "./worker";
 
@@ -28,13 +29,17 @@ await startTracing({
 });
 buildInfo.set({ version: env.APP_VERSION, role: env.ROLE }, 1);
 
-// Contexts this process may hold open: one per render.
+// Printers (a warm context + page each, ADR 0047) this process may hold: one per render slot.
 renderLimits.maxConcurrent =
   (runsWorker ? env.RENDER_CONCURRENCY : 0) + (servesApi ? env.PREVIEW_CONCURRENCY : 0);
 
 if (servesApi) await seedBuiltinThemes();
 // docs/features/public-demo.md: the shared demo user exists before the first visitor.
 if (servesApi && env.DEMO_MODE) await ensureDemoUser(await auth.$context);
+// ADR 0047: every render slot gets its warm page before the first job or preview.
+await warmPrinters(renderLimits.maxConcurrent).catch((err) =>
+  log.error({ err }, "warming Chromium failed; the first renders start it"),
+);
 await startQueue();
 if (runsWorker) await startWorker();
 await startHeartbeat();

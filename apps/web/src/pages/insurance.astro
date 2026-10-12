@@ -100,7 +100,7 @@ import { links, spec } from "../lib/links";
           <dl>
             <dt>How</dt><dd>Watch progress or cancel the run. An invalid row fails alone. Download one ZIP or one combined packet.</dd>
             <dt>Scale</dt><dd>Add workers for the run and remove them after. There is no licence fee per worker.</dd>
-            <dt>Measured</dt><dd><BenchValue value={docsPerMinute(8)} /> documents per minute on 8 workers on <BenchValue value={env.cpu} />. <a class="tlink" href="/performance/">Method</a></dd>
+            <dt>Throughput</dt><dd>About <BenchValue value={docsPerMinute(8)} /> documents per minute on 8 workers, one per server. One worker on <BenchValue value={env.cpu} /> does <BenchValue value={docsPerMinute(1)} />. <a class="tlink" href="/performance/">Method</a></dd>
           </dl>
           <Proof links={[{ label: "Render queue and batches", href: spec("features/render-queue-batch-jobs-and-scaling") }]} />
         </div>

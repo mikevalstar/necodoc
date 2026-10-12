@@ -57,11 +57,11 @@ export const throughputSchema = z.object({
 export type Throughput = z.infer<typeof throughputSchema>;
 
 export const coldWarmSchema = z.object({
-  /** First render on a freshly started worker: includes launching Chromium. */
+  /** First render on a freshly started worker, which warmed its Chromium pages before ready (ADR 0047). */
   cold: statsSchema,
   /** The same render once that worker is warm. */
   warm: statsSchema,
-  /** Worker process spawn to ready (health), before any render. */
+  /** Worker process spawn to ready (health), including starting Chromium and its pages. */
   workerStart: statsSchema,
 });
 

@@ -57,4 +57,5 @@ Add one with `okq new adr "<title>"`.
 | Shared demo account signed in by a server-only Better Auth endpoint | [0044-shared-demo-account-signed-in-by-a-server-only-better-auth-endpoint.md](0044-shared-demo-account-signed-in-by-a-server-only-better-auth-endpoint.md) |
 | Nightly demo reset rebuilds the database in place behind a resetting flag | [0045-nightly-demo-reset-rebuilds-the-database-in-place-behind-a-resetting-flag.md](0045-nightly-demo-reset-rebuilds-the-database-in-place-behind-a-resetting-flag.md) |
 | Public demo stays a shared admin with dangerous actions blocked and in-memory limits | [0046-public-demo-stays-a-shared-admin-with-dangerous-actions-blocked-and-in-memory-limits.md](0046-public-demo-stays-a-shared-admin-with-dangerous-actions-blocked-and-in-memory-limits.md) |
+| Warm Chromium pages reused across renders | [0047-warm-chromium-pages-reused-across-renders.md](0047-warm-chromium-pages-reused-across-renders.md) |
 <!-- okq:index:end -->

@@ -181,7 +181,7 @@ function benchHtml() {
       ["Measure", "n", "p50", "p95"],
       [
         coldRow("Worker process start to ready", bench.coldWarm.workerStart),
-        coldRow("First render on a new worker (launches Chromium)", bench.coldWarm.cold),
+        coldRow("First render on a new worker", bench.coldWarm.cold),
         coldRow("Warm render", bench.coldWarm.warm),
       ],
       new Set([1, 2, 3]),

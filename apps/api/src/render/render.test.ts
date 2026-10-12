@@ -112,6 +112,22 @@ describe("renderPdf", () => {
     expect(pageCount).toBe(1);
   });
 
+  it("asks each render's own loader for assets on a reused page (ADR 0047)", async () => {
+    const job = {
+      html: `<img src="{{ 'a' | asset_url }}">`,
+      page: pageOptionsSchema.parse({}),
+      data: {},
+    };
+    const asked: string[] = [];
+    const loader = (name: string) => async (path: string) => {
+      asked.push(`${name}:${path}`);
+      return null;
+    };
+    await renderPdf(job, loader("first"));
+    await renderPdf(job, loader("second"));
+    expect(asked).toEqual(["first:a", "second:a"]);
+  });
+
   it("relaunches the browser after it goes away", async () => {
     await closeBrowser();
     const { pageCount } = await renderPdf(

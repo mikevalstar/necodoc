@@ -18,7 +18,7 @@ import Stat from "../components/Stat.astro";
 import Stats from "../components/Stats.astro";
 import Stops from "../components/Stops.astro";
 import Layout from "../layouts/Layout.astro";
-import { docsPerMinute, env } from "../lib/bench";
+import { docsPerMinute, env, scaleWorkers } from "../lib/bench";
 import { devdocs, links, spec } from "../lib/links";
 
 const deploy = [
@@ -262,12 +262,12 @@ curl https://necodoc.internal.example/api/v1/templates/$TEMPLATE/versions/3/gene
   <section id="scaling" class="alt">
     <div class="wrap">
       <SectionHead eyebrow="Scaling and availability" title="Throughput by worker count.">
-        The <a class="tlink" href="/performance/">benchmark</a> measured these on one machine. Your results depend on your
-        Postgres and your nodes, so rerun the benchmark on them.
+        The <a class="tlink" href="/performance/">benchmark</a> measured one worker. With one worker per server, expect
+        about these figures. Your results depend on your Postgres and your nodes, so rerun the benchmark on them.
       </SectionHead>
       <Stats>
         {
-          [1, 2, 4, 8].map((n) => (
+          scaleWorkers.map((n) => (
             <Stat value={docsPerMinute(n)} label={`docs/min, ${n} worker${n > 1 ? "s" : ""}`}>
               JSON batch of <BenchValue value={env.batchRows} /> rows
             </Stat>

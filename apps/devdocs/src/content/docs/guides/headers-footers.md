@@ -54,4 +54,4 @@ Content taller than the band is clipped at the band's height; it doesn't push th
 
 ## How it renders
 
-The body renders first, which fixes the page count. Each band then renders as one document with one band-height page per body page, with the page tokens and first-page variant applied, and is stamped onto the body pages. A render with both bands takes three Chromium passes; the bands render in parallel. The time shows up as "bands" in the [generation's timings](/guides/generation-log/#timings).
+The body renders first, which fixes the page count. Each band then renders as one document with one band-height page per body page, with the page tokens and first-page variant applied, and is stamped onto the body pages. A render with both bands takes three Chromium passes, one after another on the same page. The time shows up as "bands" in the [generation's timings](/guides/generation-log/#timings).

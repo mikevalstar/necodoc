@@ -4,6 +4,7 @@
 // JSON (docs/features/performance-benchmark.md); nothing is typed by hand.
 import generations from "../assets/screens/generations-log.png";
 import BarChart from "../components/BarChart.astro";
+import BenchValue from "../components/BenchValue.astro";
 import PageHero from "../components/PageHero.astro";
 import Pillar from "../components/Pillar.astro";
 import Proof from "../components/Proof.astro";
@@ -14,10 +15,10 @@ import Stat from "../components/Stat.astro";
 import Stats from "../components/Stats.astro";
 import Stops from "../components/Stops.astro";
 import Layout from "../layouts/Layout.astro";
-import { type BenchValue, bench, ms } from "../lib/bench";
+import { bench, docsPerMinute, ms, type BenchValue as Value } from "../lib/bench";
 import { spec } from "../lib/links";
 
-const value = (key: string, v: number | null | undefined): BenchValue => {
+const value = (key: string, v: number | null | undefined): Value => {
   const text = ms(v);
   return text ? { text } : { placeholder: `{bench.${key}}` };
 };
@@ -108,9 +109,11 @@ const environment: [string, string][] = e
   <section id="throughput" class="alt">
     <div class="wrap">
       <SectionHead eyebrow="Throughput" title="Batch documents per minute, by worker count.">
-        Each run is one JSON batch, timed from creation to its last row, so the time includes the queue. All workers run
-        on one machine, so from two workers up they compete for its CPU and the curve levels off. More cores or more
-        machines add throughput.
+        Each run is one JSON batch, timed from creation to its last row, so the time includes the queue. The chart and
+        table show the measured runs. All workers ran on one machine, so from two workers up they compete for its CPU
+        and the curve levels off. With one worker per server, expect about <BenchValue value={docsPerMinute(2)} />
+        docs/min on 2 workers, <BenchValue value={docsPerMinute(4)} /> on 4 and <BenchValue value={docsPerMinute(8)} />
+        on 8.
       </SectionHead>
       {
         throughput.length > 0 ? (
@@ -152,9 +155,9 @@ const environment: [string, string][] = e
     <div class="wrap">
       <SectionHead eyebrow="Cold start and archival" title="What a fresh worker and PDF/A cost." />
       <Stats>
-        <Stat value={value("coldWarm.cold.p50", bench?.coldWarm.cold.p50)} label="First render, fresh worker">p50, includes launching Chromium</Stat>
+        <Stat value={value("coldWarm.cold.p50", bench?.coldWarm.cold.p50)} label="First render, fresh worker">p50, first job once the worker is ready</Stat>
         <Stat value={value("coldWarm.warm.p50", bench?.coldWarm.warm.p50)} label="Same render, warm">p50 on the same worker</Stat>
-        <Stat value={value("coldWarm.workerStart.p50", bench?.coldWarm.workerStart.p50)} label="Worker process to ready">p50, before any render</Stat>
+        <Stat value={value("coldWarm.workerStart.p50", bench?.coldWarm.workerStart.p50)} label="Worker process to ready">p50, includes starting Chromium</Stat>
         <Stat value={value("archival.overheadP50Ms", bench?.archival?.overheadP50Ms)} label="PDF/A-2b + PDF/UA overhead">p50 added to the invoice</Stat>
       </Stats>
     </div>
@@ -187,7 +190,7 @@ const environment: [string, string][] = e
             { icon: "plug", title: "Everything is local.", body: "Postgres on the same machine with default settings, local disk storage, calls over loopback. No network, S3 or Azure round trips, TLS or proxy." },
             { icon: "files", title: "The test documents are ours.", body: "Render time grows with pages, images, fonts and table size. The test set is typical insurance documents. It isn't a worst case." },
             { icon: "queue", title: "Throughput includes the queue.", body: "Each run is timed from the batch's creation to its last row, so it includes the time a job waits for a worker slot. <code>RENDER_CONCURRENCY</code> sets the slots per worker." },
-            { icon: "snowflake", title: "Cold start means a new process.", body: "It measures a new worker launching Chromium for its first job. It doesn't measure a container or node cold start." },
+            { icon: "snowflake", title: "Cold start means a new process.", body: "It measures the first job on a new worker. A worker starts Chromium and opens its pages before it takes jobs. It doesn't measure a container or node cold start." },
             { icon: "arrow-right", title: "Latency is sequential.", body: "One request at a time. It says nothing about latency under concurrent load." },
           ]}
         />

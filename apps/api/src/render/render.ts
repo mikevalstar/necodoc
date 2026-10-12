@@ -1,6 +1,7 @@
 import { readFile } from "node:fs/promises";
 import { PDFDocument } from "@cantoo/pdf-lib";
 import {
+  pageOptionsSchema,
   type RenderRequest,
   type RenderTimings,
   type SigningPackage,
@@ -138,4 +139,13 @@ export async function renderPdf(job: RenderJob, loadStoredAsset: AssetLoader) {
 
     return { pdf, pageCount: pages, timings, signing };
   });
+}
+
+/**
+ * Opens `count` printers before the first job (ADR 0047): one throwaway render each, so the first
+ * real renders don't pay for launching Chromium and starting a renderer process.
+ */
+export async function warmPrinters(count: number) {
+  const job = { html: "<p>warm</p>", page: pageOptionsSchema.parse({}), data: {} };
+  await Promise.all(Array.from({ length: count }, () => renderPdf(job, async () => null)));
 }

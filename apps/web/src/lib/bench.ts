@@ -31,13 +31,31 @@ const pick = (key: string, value: string | null | undefined): BenchValue =>
 export const roundTrip = (id: string, stat: "p50" | "p95") =>
   pick(`${id}.${stat}`, ms(latency(id)?.roundTrip[stat]));
 
-/** Batch documents per minute at a worker count, if that count was run. */
-export const docsPerMinute = (workers: number) => {
-  const run = bench?.throughput.find((t) => t.workers === workers);
-  return pick(
-    `scale.${workers}`,
-    run ? Math.round(run.docsPerMinute).toLocaleString("en-CA") : null,
-  );
+/** Worker counts the site quotes throughput for. */
+export const scaleWorkers = [1, 2, 4, 8] as const;
+
+/**
+ * Batch documents per minute by worker count, one worker per server. 1 is the measured run; more
+ * workers follow the model in docs/features/performance-benchmark.md (each added worker gives 90%
+ * of the single-worker rate), until a multi-server run replaces it. Kept apart from `bench`, which
+ * holds only measured values.
+ */
+export const scaleModel = (() => {
+  const single = bench?.throughput.find((t) => t.workers === 1)?.docsPerMinute;
+  if (single === undefined) return null;
+  return scaleWorkers.map((workers) => ({
+    workers,
+    docsPerMinute:
+      workers === 1
+        ? Math.round(single)
+        : Math.round((single * (1 + 0.9 * (workers - 1))) / 10) * 10,
+  }));
+})();
+
+/** Batch documents per minute at a worker count, from `scaleModel`. */
+export const docsPerMinute = (workers: (typeof scaleWorkers)[number]) => {
+  const point = scaleModel?.find((p) => p.workers === workers);
+  return pick(`scaleModel.${workers}`, point?.docsPerMinute.toLocaleString("en-CA"));
 };
 
 export const env = {
