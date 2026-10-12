@@ -1,6 +1,7 @@
 import { DetectiveIcon } from "@phosphor-icons/react";
 import { type QueryClient, useMutation, useQuery } from "@tanstack/react-query";
 import { createRootRouteWithContext, Outlet } from "@tanstack/react-router";
+import { DemoResetGate } from "@/components/demo-reset";
 import { ErrorAlert } from "@/components/form";
 import { Button } from "@/components/ui/button";
 import { Toaster } from "@/components/ui/sonner";
@@ -9,8 +10,10 @@ import { authClient, meQuery, unwrap, useSessionChange } from "@/lib/auth";
 export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()({
   component: () => (
     <>
-      <ImpersonationBanner />
-      <Outlet />
+      <DemoResetGate>
+        <ImpersonationBanner />
+        <Outlet />
+      </DemoResetGate>
       <Toaster position="bottom-right" />
     </>
   ),

@@ -521,12 +521,14 @@ export const faq: readonly FaqEntry[] = [
   {
     feature: "Public demo mode",
     group: "Admin",
-    what: "For a public demo only: every visitor is signed in to one shared demo account (demo@necodoc.com, an admin) with no login, and a banner says that anything entered is public and may be reset. Sign-in, registration, single sign-on and Sign out are off.",
+    what: "For a public demo only: every visitor is signed in to one shared demo account (demo@necodoc.com, an admin) with no login, and a banner says that anything entered is public and counts down to the next reset. Every night the demo is rebuilt from the sample data; while that runs, visitors see a page saying the demo is resetting, which reloads by itself. Sign-in, registration, single sign-on and Sign out are off.",
     howTo:
-      "The operator sets DEMO_MODE=true and restarts; INSTANCE_ENV=demo labels the instance. The demo account is created on start if it's missing. Never turn it on for an installation with real data.",
+      "The operator sets DEMO_MODE=true and restarts; INSTANCE_ENV=demo labels the instance. The demo account is created on start if it's missing. For the nightly reset, schedule pnpm demo:reset (with the instance's env file and the commands that stop and restart its processes) and set DEMO_RESET_TIME and DEMO_RESET_TZ to the same time so the banner's countdown matches. Never turn it on for an installation with real data.",
     limitations: [
       "Every visitor is the same admin: they can see and change everything, including users, API keys and settings.",
-      "Webhooks, AI, uploads and API keys aren't limited yet, and nothing resets the data on a schedule.",
+      "Webhooks, AI, uploads and API keys aren't limited yet.",
+      "A reset takes the demo away for a few minutes, and anything entered that day is gone.",
+      "If the sample data fails to load, the demo comes back empty apart from the demo account until the next reset.",
       "Everyone shares one identity, so the audit log can't tell visitors apart.",
     ],
     access: [{ action: "Configure (env, by the operator)", needs: "admin" }],

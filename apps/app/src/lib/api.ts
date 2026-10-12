@@ -9,7 +9,32 @@ import { DefaultChatTransport, type UIDataTypes, type UIMessage } from "ai";
 import { hc } from "hono/client";
 import { z } from "zod";
 
-export const api = hc<AppType>("/").api;
+/**
+ * docs/features/public-demo.md (Nightly reset): when the API answers that the demo is resetting,
+ * from when the app first heard. The root route swaps the page for the resetting screen.
+ */
+let resettingSince: number | null = null;
+const resettingListeners = new Set<() => void>();
+export const demoResetting = {
+  since: () => resettingSince,
+  subscribe(listener: () => void) {
+    resettingListeners.add(listener);
+    return () => resettingListeners.delete(listener);
+  },
+  start() {
+    if (resettingSince !== null) return;
+    resettingSince = Date.now();
+    for (const listener of resettingListeners) listener();
+  },
+};
+
+export const api = hc<AppType>("/", {
+  fetch: async (input: RequestInfo | URL, init?: RequestInit) => {
+    const res = await fetch(input, init);
+    if (res.status === 503 && res.headers.has("X-Demo-Resetting")) demoResetting.start();
+    return res;
+  },
+}).api;
 
 /** Handlers answer `{ error: "message" }`; the zod validator answers with a serialised ZodError. */
 const errorBodySchema = z.object({

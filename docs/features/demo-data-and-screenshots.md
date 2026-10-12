@@ -38,10 +38,13 @@ screen something real to show, and a script makes the images reproducible.
   future public demo). It refuses the URL in `apps/api/.env`.
 - **Reset, then seed.** Every run drops and recreates the database (or, with
   `DEMO_DATABASE_URL`, its schemas) and empties the private cluster's output directory, migrates,
-  and seeds from nothing. One entry point, [seed.ts](../../scripts/demo/src/seed.ts), so a
-  nightly reset (W13's `pnpm demo:reset`) can run it against any database and storage: with
-  `DEMO_DATABASE_URL` set, the `STORAGE_*`, `S3_*` and `AZURE_*` settings in the environment are
-  passed to the API and workers it starts.
+  and seeds from nothing. One entry point, [seed.ts](../../scripts/demo/src/seed.ts), so the
+  [public demo's](public-demo.md) nightly `pnpm demo:reset` runs it against the demo's own
+  database and storage: with `DEMO_DATABASE_URL` set, the `STORAGE_*`, `S3_*` and `AZURE_*`
+  settings and the auth and download signing secrets in the environment are passed to the API and
+  workers it starts, so what it writes works for the live instance.
+- **The dev database is refused** unless `apps/api/.env` itself turns on `DEMO_MODE` (the demo
+  host, where that file is the demo's).
 - **Process names.** API and worker processes report pod-style hostnames
   (`necodoc-worker-…`), outputs go to the disk driver under `/var/tmp/necodoc-demo/outputs` (a
   link into `.demo/`), and the version is the git commit, so no screenshot shows the machine it
@@ -125,13 +128,15 @@ personal data.
 - **After a UI change:** run `pnpm demo:screens`, then re-render the reel
   (`pnpm --filter @necodoc/reel render`) and rebuild the site.
 
-### Reuse for the public demo (W11)
+### Reuse for the public demo
 
-The public no-login demo will run this seed against its own database with `DEMO_DATABASE_URL`
-on a schedule; the reset makes each run start clean. Its security model (the auto sign-in,
-outbound calls off, AI limits) is W11's spec and ADR, not this seed's. The seed keeps webhooks
-disabled and on `.example` hosts and holds no secrets worth stealing, so nothing it creates
-reaches outside the instance.
+The public no-login demo runs this seed against its own database every night through
+`pnpm demo:reset` ([public demo](public-demo.md#nightly-reset),
+[ADR 0045](../adrs/0045-nightly-demo-reset-rebuilds-the-database-in-place-behind-a-resetting-flag.md)),
+which stops the live worker around it and checks the Oregon licence bond came out. Its security
+model (the auto sign-in, outbound calls off, AI limits) belongs to the public demo spec and W11,
+not this seed. The seed keeps webhooks disabled and on `.example` hosts and holds no secrets
+worth stealing, so nothing it creates reaches outside the instance.
 
 ## Acceptance criteria
 

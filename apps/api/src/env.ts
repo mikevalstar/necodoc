@@ -1,5 +1,6 @@
 import { type Instance, instanceEnvSchema, processRoleSchema } from "@necodoc/shared";
 import { z } from "zod";
+import { demoResetting, nextResetAt } from "./demo-reset";
 import { parseSsoProviders } from "./sso-config";
 import { storageEnvSchema } from "./storage/config";
 
@@ -15,6 +16,26 @@ export const env = z
      * sign-in, sign-up and SSO are off. Only for a public demo instance.
      */
     DEMO_MODE: z.stringbool().default(false),
+    /**
+     * docs/features/public-demo.md (Nightly reset): when the scheduled `pnpm demo:reset` runs,
+     * "HH:MM" in DEMO_RESET_TZ, for the banner's countdown. Unset: no countdown. The host's cron
+     * line must agree (ADR 0045).
+     */
+    DEMO_RESET_TIME: z
+      .string()
+      .regex(/^([01]\d|2[0-3]):[0-5]\d$/, "HH:MM, 24-hour")
+      .optional(),
+    DEMO_RESET_TZ: z
+      .string()
+      .default("America/Toronto")
+      .refine((zone) => {
+        try {
+          new Intl.DateTimeFormat("en-US", { timeZone: zone });
+          return true;
+        } catch {
+          return false;
+        }
+      }, "an IANA time zone, e.g. America/Toronto"),
     PORT: z.coerce.number().default(3000),
     /** ADR 0020: `api` serves HTTP, `worker` renders queued jobs, `all` does both. */
     ROLE: processRoleSchema.default("all"),
@@ -90,9 +111,15 @@ if (!env.AUTH_PASSWORD_ENABLED && !env.DEMO_MODE && !ssoProviders.length) {
 export const servesApi = env.ROLE !== "worker";
 export const runsWorker = env.ROLE !== "api";
 
-/** GET /api/instance and the System page: which installation this is. */
-export const instance: Instance = {
-  name: env.INSTANCE_NAME ?? null,
-  env: env.INSTANCE_ENV ?? null,
-  demoMode: env.DEMO_MODE,
-};
+/** GET /api/instance and the System page: which installation this is, and its demo reset. */
+export function instance(now = new Date()): Instance {
+  const resetTime = env.DEMO_MODE ? env.DEMO_RESET_TIME : undefined;
+  return {
+    name: env.INSTANCE_NAME ?? null,
+    env: env.INSTANCE_ENV ?? null,
+    demoMode: env.DEMO_MODE,
+    resetting: env.DEMO_MODE && demoResetting(now.getTime()),
+    nextResetAt: resetTime ? nextResetAt(now, resetTime, env.DEMO_RESET_TZ).toISOString() : null,
+    resetTimeZone: resetTime ? env.DEMO_RESET_TZ : null,
+  };
+}

@@ -1556,9 +1556,8 @@ async function signInHistory(
   }
 }
 
-/** `pnpm demo:seed`: reset and seed, then stop everything. */
-async function main() {
-  const begun = Date.now();
+/** Reset and seed, then stop the processes it started (also when it fails). */
+export async function resetAndSeed() {
   const demo = await startDemo({ app: false });
   const stop = () => void demo.teardown().finally(() => process.exit(130));
   process.once("SIGINT", stop);
@@ -1569,7 +1568,16 @@ async function main() {
   } catch (error) {
     await demo.teardown(true);
     throw error;
+  } finally {
+    process.off("SIGINT", stop);
+    process.off("SIGTERM", stop);
   }
+}
+
+/** `pnpm demo:seed`: reset and seed, then stop everything. */
+async function main() {
+  const begun = Date.now();
+  await resetAndSeed();
   log(`seeded in ${Math.round((Date.now() - begun) / 1000)} s; data in ${demoDir}`);
   log(`sign in as ${demoLogin.email} or ${people.jordan.email}, password ${DEMO_PASSWORD}`);
 }

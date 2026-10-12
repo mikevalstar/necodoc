@@ -37,7 +37,7 @@ export async function systemConfig(): Promise<SystemConfig> {
   ]);
   const { OTEL_EXPORTER_OTLP_TRACES_ENDPOINT, OTEL_EXPORTER_OTLP_ENDPOINT } = process.env;
   return {
-    instance,
+    instance: instance(),
     role: env.ROLE,
     chromium,
     ai: { enabled: !!env.ANTHROPIC_KEY, model: env.AI_MODEL },

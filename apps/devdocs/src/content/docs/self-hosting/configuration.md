@@ -71,6 +71,8 @@ AI features ([AI template assistant](/guides/ai-template-assistant/), AI field d
 | --- | --- | --- |
 | `AUTH_PASSWORD_ENABLED` | `true` | `false` hides and refuses email/password sign-in and registration. Needs at least one SSO provider. |
 | `DEMO_MODE` | `false` | Public demo only. Every visitor is signed in as one shared admin, `demo@necodoc.com` (created on start), with a banner saying the data is public. Turns off password sign-in, registration, SSO and sign out. Never set it on an installation with real data. |
+| `DEMO_RESET_TIME` | unset | Public demo only. When the scheduled `pnpm demo:reset` runs, as `HH:MM` in `DEMO_RESET_TZ`; the banner counts down to it. Keep it in step with the schedule that runs the reset. Unset: no countdown. |
+| `DEMO_RESET_TZ` | `America/Toronto` | The IANA time zone `DEMO_RESET_TIME` is in. |
 | `SSO_PROVIDERS` | none | Comma-separated SSO provider ids. Each reads `SSO_<ID>_*`: `TYPE` (`oidc`, `saml`, `header`), `LABEL`, `ROLE_MAP`, `DEFAULT_ROLES`, `LINK_EXISTING`, `EMAIL_DOMAINS`, plus the protocol's settings. Full list and IdP guides: [Single sign-on](/self-hosting/sso/). |
 
 ## Storage

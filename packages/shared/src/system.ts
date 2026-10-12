@@ -16,6 +16,11 @@ export const instanceSchema = z.object({
   env: instanceEnvSchema.nullable(),
   /** docs/features/public-demo.md: signed in automatically, no sign-in or sign out. */
   demoMode: z.boolean(),
+  /** A demo reset is running (docs/features/public-demo.md, Nightly reset). */
+  resetting: z.boolean(),
+  /** The next scheduled demo reset, or null without one; shown in `resetTimeZone`. */
+  nextResetAt: z.iso.datetime().nullable(),
+  resetTimeZone: z.string().nullable(),
 });
 export type Instance = z.infer<typeof instanceSchema>;
 

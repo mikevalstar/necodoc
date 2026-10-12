@@ -5,6 +5,7 @@ import { HTTPException } from "hono/http-exception";
 import { aiModel } from "./ai";
 import { auditScope } from "./audit";
 import { auth } from "./auth";
+import { demoResetting } from "./demo-reset";
 import { env, instance } from "./env";
 import { type AppEnv, requestId } from "./middleware";
 import { observeRequests } from "./observability/http";
@@ -45,6 +46,17 @@ app.onError((error, c) =>
   error instanceof HTTPException ? error.getResponse() : c.text("Internal Server Error", 500),
 );
 
+// ADR 0045: while `pnpm demo:reset` rebuilds the database, say so without touching it. Health
+// and the instance label (which reports `resetting`) still answer.
+app.use(async (c, next) => {
+  if (!env.DEMO_MODE || !demoResetting() || /^\/api\/(instance|health)(\/|$)/.test(c.req.path)) {
+    return next();
+  }
+  c.header("Retry-After", "30");
+  c.header("X-Demo-Resetting", "1");
+  return c.json({ error: "The demo is resetting with fresh sample data. Back in a minute." }, 503);
+});
+
 app.use(async (c, next) => {
   const session = await auth.api.getSession({ headers: c.req.raw.headers });
   c.set("user", session?.user ?? null);
@@ -70,7 +82,7 @@ const routes = app
   .route("/health", healthRoutes)
   .route("/sso", ssoRoutes)
   // Public: the login page shows it too. A label for this one installation, not a tenant.
-  .get("/instance", (c) => c.json(instance))
+  .get("/instance", (c) => c.json(instance()))
   .get("/me", async (c) => {
     let user = c.get("user");
     // ADR 0044: in the public demo, no session means "sign in as the demo user" right here.

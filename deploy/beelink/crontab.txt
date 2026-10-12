@@ -1,0 +1,4 @@
+# Public demo nightly reset (docs/features/public-demo.md, ADR 0045). Install with `crontab -e`.
+# Toronto midnight whatever the host's zone; keep it in step with DEMO_RESET_TIME/DEMO_RESET_TZ.
+CRON_TZ=America/Toronto
+0 0 * * * /var/www/necodoc/deploy/beelink/demo-reset.sh

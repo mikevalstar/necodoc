@@ -40,24 +40,29 @@ function outputs(reset: boolean) {
   return OUTPUTS;
 }
 
-/** Storage settings from the environment, for DEMO_DATABASE_URL deployments. */
+/**
+ * Storage settings and secrets from the environment, for DEMO_DATABASE_URL deployments: what the
+ * seed writes must work for the live instance (the public demo's nightly reset, ADR 0045).
+ */
 const passThrough = () =>
   Object.fromEntries(
     Object.entries(process.env).filter(
       (entry): entry is [string, string] =>
-        /^(STORAGE_|S3_|AZURE_)/.test(entry[0]) && entry[1] !== undefined,
+        /^(STORAGE_|S3_|AZURE_|BETTER_AUTH_SECRET$|DOWNLOAD_SIGNING_SECRET$)/.test(entry[0]) &&
+        entry[1] !== undefined,
     ),
   );
 
-/** Refuses the dev database, wherever DEMO_DATABASE_URL came from. */
+/**
+ * Refuses the dev database, wherever DEMO_DATABASE_URL came from. On the public demo's host
+ * apps/api/.env is the demo's own, and says so with DEMO_MODE.
+ */
 function checkTarget(url: string | undefined) {
   if (!url) return;
   const envFile = join(root, "apps/api/.env");
-  const dev = existsSync(envFile)
-    ? readFileSync(envFile, "utf8")
-        .match(/^DATABASE_URL=(.+)$/m)?.[1]
-        ?.trim()
-    : undefined;
+  const text = existsSync(envFile) ? readFileSync(envFile, "utf8") : "";
+  if (/^DEMO_MODE=["']?(true|1|yes|on)["']?\s*$/im.test(text)) return;
+  const dev = text.match(/^DATABASE_URL=(.+)$/m)?.[1]?.trim();
   const norm = (u: string) => {
     const parsed = new URL(u);
     return `${parsed.hostname}:${parsed.port || "5432"}${parsed.pathname}`;

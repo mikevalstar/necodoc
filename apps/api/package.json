@@ -5,6 +5,7 @@
   "type": "module",
   "exports": {
     "./app": "./src/app.ts",
+    "./demo-reset": "./src/demo-reset.ts",
     "./render/*": "./src/render/*.ts"
   },
   "scripts": {

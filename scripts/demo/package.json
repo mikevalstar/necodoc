@@ -5,8 +5,10 @@
   "type": "module",
   "scripts": {
     "seed": "tsx src/seed.ts",
+    "reset": "tsx src/reset.ts",
     "screens": "tsx src/screens.ts",
-    "typecheck": "tsc"
+    "typecheck": "tsc",
+    "test": "vitest run"
   },
   "dependencies": {
     "@necodoc/api": "workspace:*",
@@ -20,6 +22,7 @@
   "devDependencies": {
     "@types/node": "^24.13.6",
     "tsx": "^4.23.15",
-    "typescript": "^7.0.2"
+    "typescript": "^7.0.2",
+    "vitest": "^5.0.1"
   }
 }

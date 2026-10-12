@@ -1,6 +1,7 @@
 import type { InstanceEnv } from "@necodoc/shared";
 import { WarningIcon } from "@phosphor-icons/react";
-import { queryOptions, useQuery } from "@tanstack/react-query";
+import { queryOptions, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useEffect, useSyncExternalStore } from "react";
 import { api, ok } from "@/lib/api";
 import { cn } from "@/lib/utils";
 
@@ -95,9 +96,42 @@ export function InstanceLabel() {
   );
 }
 
+/** "midnight ET", "2:30 AM ET": the reset's time on its own clock, never the browser's. */
+export function resetLabel(at: Date, timeZone: string) {
+  const time = new Intl.DateTimeFormat("en-US", { timeZone, hour: "numeric", minute: "2-digit" });
+  const zone = new Intl.DateTimeFormat("en-US", { timeZone, timeZoneName: "shortGeneric" })
+    .formatToParts(at)
+    .find((part) => part.type === "timeZoneName")?.value;
+  const clock = time.format(at);
+  return `${clock === "12:00 AM" ? "midnight" : clock}${zone ? ` ${zone}` : ""}`;
+}
+
+/** "3h 12m", "4m", rounded up to the minute. */
+export function countdown(ms: number) {
+  const minutes = Math.max(0, Math.ceil(ms / 60_000));
+  const hours = Math.floor(minutes / 60);
+  return hours ? `${hours}h ${minutes % 60}m` : `${minutes}m`;
+}
+
+const subscribeMinute = (onChange: () => void) => {
+  const timer = setInterval(onChange, 15_000);
+  return () => clearInterval(timer);
+};
+/** The time, refreshed often enough for a minute countdown. */
+const useNow = () =>
+  useSyncExternalStore(subscribeMinute, () => Math.floor(Date.now() / 15_000)) * 15_000;
+
 /** docs/features/public-demo.md: on every app page of a public demo, above the header. */
 export function DemoBanner() {
   const { data } = useQuery(instanceQuery);
+  const queryClient = useQueryClient();
+  const now = useNow();
+  const next = data?.nextResetAt ? new Date(data.nextResetAt) : null;
+  const passed = next !== null && next.getTime() <= now;
+  // Past the reset time: ask for the next one (the reset itself shows its own screen).
+  useEffect(() => {
+    if (passed) void queryClient.invalidateQueries({ queryKey: instanceQuery.queryKey });
+  }, [passed, queryClient]);
   if (!data?.demoMode) return null;
   return (
     <div
@@ -105,7 +139,9 @@ export function DemoBanner() {
       className="flex items-center justify-center gap-2 bg-warn-wash px-4 py-1.5 text-center text-[13px] text-ink"
     >
       <WarningIcon aria-hidden="true" className="size-4 shrink-0 text-warn" />
-      Public demo: anything you enter is visible to everyone and may be reset.
+      {next && data.resetTimeZone
+        ? `Public demo. Anything you enter is visible to everyone. Resets at ${resetLabel(next, data.resetTimeZone)} (${passed ? "any minute now" : `in ${countdown(next.getTime() - now)}`}).`
+        : "Public demo. Anything you enter is visible to everyone and may be reset."}
     </div>
   );
 }

@@ -20,6 +20,7 @@
     "sdk:generate": "node scripts/generate-sdks.ts",
     "bench": "pnpm --filter @necodoc/bench bench",
     "demo:seed": "pnpm --filter @necodoc/demo seed",
+    "demo:reset": "pnpm --filter @necodoc/demo reset",
     "demo:screens": "pnpm --filter @necodoc/demo screens",
     "review-pack": "pnpm --filter @necodoc/review-pack generate",
     "release:assets": "pnpm --filter @necodoc/review-pack generate --release"
