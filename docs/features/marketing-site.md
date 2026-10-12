@@ -332,8 +332,10 @@ it is.
 
 ## Tone
 
-- Write like an architecture document, not an ad: concrete nouns, mechanisms,
-  limits. "Workers retry a job lost to a crash" beats "resilient".
+- Short, direct marketing copy that leads with what the buyer gets. Assume
+  readers know the category: don't explain the basics or say things twice.
+- Concrete nouns, mechanisms, limits. "Workers retry a job lost to a crash"
+  beats "resilient".
 - Every claim links to its proof (spec, devdocs, source).
 - State limits plainly, near the claim. Architects trust the vendor that
   tells them where it stops.
