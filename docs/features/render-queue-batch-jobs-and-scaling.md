@@ -39,7 +39,7 @@ A month-end run of 10,000 statements must not time out or slow down someone fill
 - Process roles, env and shutdown: [index.ts](../../apps/api/src/index.ts), [env.ts](../../apps/api/src/env.ts). `pnpm --filter @necodoc/api worker` starts a worker locally.
 - Queue setup and the finished-generation channel: [queue.ts](../../apps/api/src/queue.ts). Synchronous callers wake on a Postgres `NOTIFY` when their generation finishes, so pickup is milliseconds, not a poll interval.
 - Enqueue, wait, preview and the worker's run of one job: [generate.ts](../../apps/api/src/generate.ts). Rows and their jobs are written in one transaction. Previews skip the queue and are capped by `PREVIEW_CONCURRENCY`.
-- Worker loop, heartbeats, retention schedule: [worker.ts](../../apps/api/src/worker.ts).
+- Worker loop, heartbeats, retention schedule: [worker.ts](../../apps/api/src/worker.ts). Each render slot fetches its next job the moment it finishes one and only waits (for NOTIFY or the poll) once a fetch comes back empty, so a batch runs at render speed, not poll speed: [queue-slots.ts](../../apps/api/src/queue-slots.ts).
 - Storage drivers: [storage/](../../apps/api/src/storage/index.ts); file rows and their locations: [files.ts](../../apps/api/src/files.ts); downloads, ranges and signed links: [download.ts](../../apps/api/src/download.ts); moving old outputs out of Postgres: [storage-migrate.ts](../../apps/api/src/storage-migrate.ts). Retry rules: [errors.ts](../../apps/api/src/render/errors.ts).
 - Timing: [render.ts](../../apps/api/src/render/render.ts) reports Liquid (body), Chromium (body pass), bands (their Liquid and print), and stamping (pdf-lib load, stamp, save). The worker adds queue wait (queued to the last attempt's start), run time and total (queued to finished).
 - Routes: [render](../../apps/api/src/routes/render.ts), [batches](../../apps/api/src/routes/batches.ts), [system and live queue](../../apps/api/src/routes/system.ts), [health](../../apps/api/src/routes/health.ts). CSV parsing and column mapping: [batch.ts](../../packages/shared/src/batch.ts).
@@ -63,7 +63,7 @@ A month-end run of 10,000 statements must not time out or slow down someone fill
 - Synchronous renders pay queue pickup latency; it's shown as queue wait. With an idle worker it's a few milliseconds (NOTIFY wakes it).
 - Postgres carries the queue; very high volumes will need a dedicated queue later.
 - Batch input is capped by the 20 MB request limit (the CSV or JSON array, not the outputs) and 10,000 rows.
-- Between jobs a worker slot waits up to 0.5 s (pg-boss's minimum poll) before fetching again, and idle slots poll twice a second.
+- Idle slots poll twice a second (pg-boss's minimum) as a backstop to NOTIFY; a job queued by a retry delay rather than an insert waits for that poll.
 - A killed worker's job is detected by its missed heartbeat: 10–20 s before the retry starts.
 - Render timeouts count as template errors and don't retry. A job that loses its worker three times fails.
 - Each batch row stores its own copy of the compiled template as its input, so large batches take space.

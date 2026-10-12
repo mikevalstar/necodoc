@@ -1,0 +1,59 @@
+---
+// One-series horizontal bars, cobalt, with an optional whisker to a second value (p95).
+// Rows are direct-labelled; each bar carries a native tooltip. The page shows the same
+// numbers in a table beside it, so the chart is never the only way to read them.
+type Row = { label: string; value: number; whisker?: number; text: string; tip: string };
+type Props = { rows: Row[]; unit: string; caption: string };
+const { rows, unit, caption } = Astro.props;
+
+const labelW = 300;
+const plotW = 740;
+const rowH = 40;
+const max = Math.max(...rows.map((r) => r.whisker ?? r.value)) * 1.05;
+const x = (v: number) => (v / max) * plotW;
+const height = rows.length * rowH + 28;
+---
+
+<figure class="bars">
+  <svg viewBox={`0 0 ${labelW + plotW + 160} ${height}`} role="img" aria-label={caption}>
+    {
+      [0, 0.25, 0.5, 0.75, 1].map((t) => (
+        <line x1={labelW + t * plotW} x2={labelW + t * plotW} y1="0" y2={rows.length * rowH} class="grid" />
+      ))
+    }
+    {
+      rows.map((r, i) => {
+        const y = i * rowH + 10;
+        return (
+          <g>
+            <title>{r.tip}</title>
+            <text x={labelW - 14} y={y + 15} text-anchor="end" class="lab">{r.label}</text>
+            <rect x={labelW} y={y} width={Math.max(x(r.value), 3)} height="20" rx="4" class="bar" />
+            {r.whisker != null && (
+              <>
+                <line x1={labelW + x(r.value)} x2={labelW + x(r.whisker)} y1={y + 10} y2={y + 10} class="wh" />
+                <line x1={labelW + x(r.whisker)} x2={labelW + x(r.whisker)} y1={y + 4} y2={y + 16} class="wh" />
+              </>
+            )}
+            <text x={labelW + x(r.whisker ?? r.value) + 8} y={y + 15} class="val">{r.text}</text>
+          </g>
+        );
+      })
+    }
+    <text x={labelW} y={height - 4} class="axis">0</text>
+    <text x={labelW + plotW} y={height - 4} text-anchor="end" class="axis">{Math.round(max)} {unit}</text>
+  </svg>
+  <figcaption class="caption">{caption}</figcaption>
+</figure>
+
+<style>
+  .bars { margin: 0; }
+  svg { width: 100%; height: auto; display: block; }
+  .grid { stroke: var(--hair); stroke-width: 1; }
+  .bar { fill: var(--brand); }
+  .wh { stroke: var(--ink-2); stroke-width: 2; }
+  .lab { font: 500 13px var(--sans); fill: var(--ink); }
+  .val { font: 12px var(--mono); fill: var(--ink-2); }
+  .axis { font: 11px var(--mono); fill: var(--ink-3); }
+  g:hover .bar { fill: var(--brand-ink); }
+</style>

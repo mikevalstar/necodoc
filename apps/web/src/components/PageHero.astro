@@ -1,5 +1,10 @@
 ---
-type Props = { crumb: string; eyebrow: string; title: string; toc?: { href: string; label: string }[] };
+type Props = {
+  crumb: string;
+  eyebrow: string;
+  title: string;
+  toc?: { href: string; label: string }[];
+};
 const { crumb, eyebrow, title, toc = [] } = Astro.props;
 ---
 

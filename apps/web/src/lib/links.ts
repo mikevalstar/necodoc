@@ -17,7 +17,8 @@ export const links = {
 } as const;
 
 /** A feature spec or ADR in the repo, by file name under docs/. */
-export const spec = (path: `features/${string}` | `adrs/${string}`) => `${repo}/blob/main/docs/${path}.md`;
+export const spec = (path: `features/${string}` | `adrs/${string}`) =>
+  `${repo}/blob/main/docs/${path}.md`;
 
 /** A developer docs page, by its path under the docs site. */
 export const devdocs = (path: string) => `${docsUrl}/${path}/`;

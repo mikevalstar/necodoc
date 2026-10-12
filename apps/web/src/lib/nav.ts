@@ -34,7 +34,12 @@ export const footerNav: { title: string; items: NavItem[] }[] = [
     items: [
       { id: "docs", label: "Developer docs", href: links.docs, external: true },
       { id: "github", label: "Source on GitHub", href: links.github, external: true },
-      { id: "discussions", label: "Questions: GitHub Discussions", href: links.discussions, external: true },
+      {
+        id: "discussions",
+        label: "Questions: GitHub Discussions",
+        href: links.discussions,
+        external: true,
+      },
     ],
   },
 ];

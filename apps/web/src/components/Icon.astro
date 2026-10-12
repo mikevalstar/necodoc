@@ -3,10 +3,13 @@
 type Weight = "regular" | "bold" | "duotone" | "fill";
 type Props = { name: string; weight?: Weight; label?: string };
 
-const files = import.meta.glob<string>("/node_modules/@phosphor-icons/core/assets/{regular,bold,duotone,fill}/*.svg", {
-  query: "?raw",
-  import: "default",
-});
+const files = import.meta.glob<string>(
+  "/node_modules/@phosphor-icons/core/assets/{regular,bold,duotone,fill}/*.svg",
+  {
+    query: "?raw",
+    import: "default",
+  },
+);
 
 const { name, weight = "regular", label } = Astro.props;
 const file = `${name}${weight === "regular" ? "" : `-${weight}`}.svg`;

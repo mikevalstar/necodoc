@@ -21,6 +21,7 @@ import {
   type RenderJobData,
   type WebhookJobData,
 } from "./queue";
+import { workInSlots } from "./queue-slots";
 import { runRetention } from "./retention";
 import { deliver } from "./webhooks";
 
@@ -83,19 +84,11 @@ function observed<J extends JobLike, R>(queue: string, handler: (jobs: J[]) => P
 }
 
 /** How each pausable queue is consumed; src/queue.ts holds which ones an admin paused. */
-const consumers: Record<PausableQueue, () => Promise<string>> = {
+const consumers: Record<PausableQueue, () => Promise<unknown>> = {
   [queues.render]: () =>
-    boss.work(
-      queues.render,
-      {
-        localConcurrency: env.RENDER_CONCURRENCY,
-        includeMetadata: true,
-        // The lowest pg-boss allows, with or without NOTIFY. NOTIFY wakes idle workers for a new
-        // job, but after finishing one a worker waits out this interval before fetching again, so
-        // a longer one throttles batches. Costs two cheap polls a second per idle slot.
-        pollingIntervalSeconds: 0.5,
-        notifyPollingIntervalSeconds: 0.5,
-      },
+    workInSlots(
+      boss,
+      env.RENDER_CONCURRENCY,
       observed(queues.render, async ([job]: JobWithMetadata<RenderJobData>[]) => {
         if (!job) return;
         running++;
@@ -109,6 +102,19 @@ const consumers: Record<PausableQueue, () => Promise<string>> = {
           running--;
         }
       }),
+      (handler) =>
+        boss.work(
+          queues.render,
+          {
+            includeMetadata: true,
+            // The lowest pg-boss allows. A slot that just finished a job fetches again at once
+            // (workInSlots), so this only paces idle slots: NOTIFY wakes them for new jobs, the
+            // poll catches retries coming off their delay. Two cheap polls a second per idle slot.
+            pollingIntervalSeconds: 0.5,
+            notifyPollingIntervalSeconds: 0.5,
+          },
+          handler,
+        ),
     ),
   [queues.detectFields]: () =>
     boss.work(

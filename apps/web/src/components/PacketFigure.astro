@@ -1,0 +1,48 @@
+---
+// Three documents becoming one packet PDF (Insurance, policy packets). Illustrative only.
+const parts = [
+  { title: "Declarations", sub: "designed template", accent: "#e7eeff" },
+  { title: "Policy wording", sub: "static PDF asset", accent: null },
+  { title: "Endorsements", sub: "conditional sections", accent: "#fff3d1" },
+];
+---
+
+<figure class="pk">
+  <figcaption class="example">Example: commercial property packet</figcaption>
+  <svg viewBox="0 0 620 214" role="img" aria-label="Declarations, policy wording and endorsements combine into one packet PDF">
+    <defs><marker id="pk-a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z" fill="#3f4668"></path></marker></defs>
+    {
+      parts.map((p, i) => (
+        <g transform={`translate(${i * 150} 0)`}>
+          <rect x="0" y="10" width="120" height="150" rx="6" fill="#fff" stroke="#d3d7ea" stroke-width="1.5" />
+          <rect x="14" y="26" width="70" height="7" rx="2" fill="#0c1233" />
+          <rect x="14" y="44" width="92" height="4" rx="2" fill="#d3d7ea" />
+          <rect x="14" y="54" width="80" height="4" rx="2" fill="#d3d7ea" />
+          <rect x="14" y="64" width="88" height="4" rx="2" fill="#d3d7ea" />
+          {p.accent && <rect x="14" y="78" width="92" height="34" rx="3" fill={p.accent} />}
+          <text x="0" y="184" class="t">{p.title}</text>
+          <text x="0" y="202" class="m">{p.sub}</text>
+        </g>
+      ))
+    }
+    <path d="M436 85H478" stroke="#3f4668" stroke-width="1.5" marker-end="url(#pk-a)"></path>
+    <g transform="translate(492 0)">
+      <rect x="12" y="0" width="116" height="150" rx="6" fill="#e7eeff" stroke="#9db8ff"></rect>
+      <rect x="6" y="5" width="116" height="150" rx="6" fill="#f3f6ff" stroke="#9db8ff"></rect>
+      <rect x="0" y="10" width="116" height="150" rx="6" fill="#fff" stroke="#2f6bff" stroke-width="1.5"></rect>
+      <text x="18" y="82" class="d">packet.pdf</text>
+      <text x="18" y="102" class="m b">PDF/A-2b</text>
+      <text x="0" y="184" class="t">One PDF</text>
+      <text x="0" y="202" class="m">POST /combine</text>
+    </g>
+  </svg>
+</figure>
+
+<style>
+  .pk { margin: 0; background: var(--paper); border-radius: 16px; box-shadow: var(--shadow); padding: 28px; }
+  svg { width: 100%; height: auto; display: block; margin-top: 8px; }
+  .t { font: 600 13px var(--sans); fill: var(--ink); }
+  .m { font: 11px var(--mono); fill: var(--ink-3); }
+  .m.b { fill: var(--brand-ink); }
+  .d { font: 700 16px var(--display); fill: var(--ink); }
+</style>

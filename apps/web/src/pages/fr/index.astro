@@ -1,0 +1,26 @@
+---
+// fr-CA home placeholder until the French site is written and reviewed by a fluent speaker
+// (docs/features/marketing-site.md, Pages: Français). Text here needs that review too.
+import Layout from "../../layouts/Layout.astro";
+import { links } from "../../lib/links";
+---
+
+<Layout
+  title="necodoc · Génération de documents pour assureurs IARD et cautions"
+  description="La version française du site est en préparation."
+>
+  <section class="on-night grid-bg">
+    <div class="wrap">
+      <p class="eyebrow">Français</p>
+      <h1>La version française du site arrive bientôt.</h1>
+      <p class="lede">
+        necodoc produit déjà vos documents en français canadien et en anglais à partir d'un seul modèle. Le site, lui, est
+        en cours de traduction. En attendant, la version anglaise est complète.
+      </p>
+      <div class="cta-row">
+        <a class="btn next" href="/" lang="en-CA" hreflang="en-CA">Site en anglais</a>
+        <a class="btn ghost" href={links.github}>Code source sur GitHub</a>
+      </div>
+    </div>
+  </section>
+</Layout>

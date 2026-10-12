@@ -1,0 +1,353 @@
+---
+// Architecture. Its job (docs/features/marketing-site.md, Pages and Reference architecture):
+// the reference architecture, deployment options, integration patterns, scaling and HA,
+// and what data goes where.
+import system from "../assets/screens/admin-system.png";
+import BenchValue from "../components/BenchValue.astro";
+import Checks from "../components/Checks.astro";
+import Icon from "../components/Icon.astro";
+import Limit from "../components/Limit.astro";
+import PageHero from "../components/PageHero.astro";
+import Pillar from "../components/Pillar.astro";
+import Proof from "../components/Proof.astro";
+import Provenance from "../components/Provenance.astro";
+import ReferenceArchitecture from "../components/ReferenceArchitecture.astro";
+import Screenshot from "../components/Screenshot.astro";
+import SectionHead from "../components/SectionHead.astro";
+import Stat from "../components/Stat.astro";
+import Stats from "../components/Stats.astro";
+import Stops from "../components/Stops.astro";
+import Layout from "../layouts/Layout.astro";
+import { docsPerMinute, env } from "../lib/bench";
+import { devdocs, links, spec } from "../lib/links";
+
+const deploy = [
+  {
+    icon: "desktop-tower",
+    title: "Docker Compose, one host",
+    body: "Postgres, migrations, API, a worker and the app from one <code>.env</code>. For evaluation and small installs.",
+    code: "docker compose up \\\n  --scale worker=2",
+    foot: "deploy/compose",
+  },
+  {
+    icon: "cube",
+    title: "Helm on Kubernetes",
+    body: "Separate API and worker deployments, migrations as a pre-install hook, disruption budgets, graceful drain on scale-down. Bring your own Postgres.",
+    code: "helm install necodoc \\\n  deploy/helm/necodoc \\\n  --set secrets.existingSecret=necodoc",
+    foot: "deploy/helm/necodoc",
+  },
+  {
+    icon: "arrows-out-line-horizontal",
+    title: "Autoscaled workers",
+    body: "KEDA scales the worker deployment on queue depth read from Postgres. Without KEDA, both deployments can use a CPU autoscaler.",
+    code: "worker:\n  keda:\n    enabled: true\n    jobsPerReplica: 4",
+    foot: "values.yaml · KEDA",
+  },
+];
+
+const patterns = [
+  {
+    tag: "A",
+    eyebrow: "Synchronous",
+    title: "Wait for the PDF",
+    body: "For a certificate issued while the broker waits. The response is the PDF, with <code>X-Generation-Id</code>.",
+    out: "POST …/generate",
+    back: [{ y: 90, label: "200 application/pdf", tone: "brand" }],
+  },
+  {
+    tag: "B",
+    eyebrow: "Asynchronous",
+    title: "Get a signed webhook",
+    body: "For bind and issue events. <code>async: true</code> returns 202; a signed webhook brings a <code>downloadUrl</code>.",
+    out: "POST …/generate async",
+    back: [
+      { y: 62, label: "202 { id }", tone: "ink" },
+      { y: 102, label: "webhook · Necodoc-Signature", tone: "warn" },
+    ],
+  },
+  {
+    tag: "C",
+    eyebrow: "Batch",
+    title: "Renewal runs",
+    body: "Up to 10,000 rows per batch. Progress, cancel, and one ZIP or one combined packet at the end.",
+    out: "POST …/batch [rows]",
+    poll: "GET /batches/:id",
+    back: [{ y: 102, label: "…/zip · …/packet", tone: "brand" }],
+  },
+] as const;
+const tone = { brand: "#2f6bff", ink: "#3f4668", warn: "#b07a12" } as const;
+---
+
+<Layout
+  title="Architecture · necodoc"
+  description="necodoc's reference architecture: a stateless API and render workers from one image, your Postgres and your object storage, inside your trust boundary."
+  page="architecture"
+>
+  <PageHero
+    crumb="Architecture"
+    eyebrow="Architecture"
+    title="An API and render workers, on a Postgres and a bucket you run."
+    toc={[
+      { href: "#reference", label: "Reference architecture" },
+      { href: "#components", label: "Components" },
+      { href: "#deploy", label: "Deployment" },
+      { href: "#integrate", label: "Integration patterns" },
+      { href: "#data", label: "What goes where" },
+      { href: "#scaling", label: "Scaling and HA" },
+      { href: "#observe", label: "Observability" },
+      { href: "#limits", label: "Known limits" },
+    ]}
+  >
+    necodoc is one container image that runs as a stateless API or as render workers. Durable state lives in a Postgres
+    and a bucket you already operate. This page is the reference for your architecture review.
+  </PageHero>
+
+  <section id="reference" class="tight">
+    <div class="wrap">
+      <ReferenceArchitecture download />
+      <p class="caption">
+        Matches <a class="tlink" href={spec("features/self-hosting")}>Self-hosting</a> and
+        <a class="tlink" href={devdocs("self-hosting/roles-and-scaling")}>Roles and scaling</a>.
+      </p>
+    </div>
+  </section>
+
+  <section id="components" class="alt">
+    <div class="wrap split">
+      <aside>
+        <p class="eyebrow">Components</p>
+        <h2>What runs, and what holds state.</h2>
+        <p>Only Postgres and object storage hold state. Everything necodoc runs can be killed and replaced.</p>
+      </aside>
+      <table class="spec">
+        <thead><tr><th>Component</th><th>Does</th><th>Scales by</th><th>State</th></tr></thead>
+        <tbody>
+          <tr><td>API<br /><span class="k">ROLE=api</span></td><td>Serves <code>/api/v1</code> and the web app; authenticates keys and sessions; validates data against the template's fields; enqueues renders; issues signed download links.</td><td>Replicas behind your load balancer</td><td>None</td></tr>
+          <tr><td>Render worker<br /><span class="k">ROLE=worker</span></td><td>Claims render jobs, runs headless Chromium for designed and HTML documents, stamps overlays with pdf-lib, applies PDF/A, PDF/UA and certification, writes the PDF.</td><td>Replicas; <span class="k">RENDER_CONCURRENCY</span> slots each; KEDA on queue depth</td><td>None. A job on a lost worker retries.</td></tr>
+          <tr><td>Postgres</td><td>Templates and immutable versions, users and keys, generation log, append-only audit log, and the job queue (pg-boss).</td><td>Your database tier. This is the throughput ceiling.</td><td>All durable records</td></tr>
+          <tr><td>Object storage</td><td>Generated PDFs and uploaded assets. Any S3-compatible bucket (AWS S3, MinIO, Wasabi, Cloudflare R2), Azure Blob, or a shared disk.</td><td>Your storage service</td><td>PDF bytes</td></tr>
+          <tr><td>Identity provider</td><td>Sign-in for people over OIDC, SAML 2.0 or a trusted header; IdP groups map to necodoc roles.</td><td>Yours</td><td>Yours</td></tr>
+          <tr><td>Single process<br /><span class="k">ROLE=all</span></td><td>API and worker in one process, for evaluation and small installs on Compose.</td><td>Not meant to</td><td>None</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section id="deploy">
+    <div class="wrap">
+      <SectionHead eyebrow="Deployment" title="Start on one host. Split the roles when you need to.">
+        The same image and environment variables in every option. Nothing calls home, so it runs without outbound internet.
+      </SectionHead>
+      <div class="cards">
+        {
+          deploy.map((d) => (
+            <div class="card">
+              <span class="ic"><Icon name={d.icon} weight="duotone" /></span>
+              <h3>{d.title}</h3>
+              <p set:html={d.body} />
+              <pre class="code mini">{d.code}</pre>
+              <span class="foot">{d.foot}</span>
+            </div>
+          ))
+        }
+      </div>
+      <Limit label="Today:">
+        the chart passes <code>helm lint</code>, <code>helm template</code> and kubeconform but hasn't been verified on a
+        live cluster, and there's no published image registry yet, so you build the images.
+      </Limit>
+    </div>
+  </section>
+
+  <section id="integrate" class="alt">
+    <div class="wrap">
+      <SectionHead eyebrow="Integration patterns" title="Your core system posts data and gets a PDF or a webhook.">
+        No packaged connector. A versioned REST API described by OpenAPI 3.1, a JSON Schema per template version, and
+        generated SDKs for TypeScript, Python, .NET and Java.
+      </SectionHead>
+      <div class="cards">
+        {
+          patterns.map((p) => (
+            <div class="card">
+              <p class="eyebrow"><span class="n">{p.tag}</span>{p.eyebrow}</p>
+              <h3>{p.title}</h3>
+              <p set:html={p.body} />
+              <svg class="seq" viewBox="0 0 300 120" role="img" aria-label={`Sequence: ${p.out}, then ${p.back.map((b) => b.label).join(", then ")}`}>
+                <g font-family="Fragment Mono" font-size="10" fill="#5b6285"><text x="10" y="12">your system</text><text x="200" y="12">necodoc</text></g>
+                <path d="M40 20V115M230 20V115" stroke="#d3d7ea" stroke-width="1.5" />
+                <path d="M40 38H224" stroke="#3f4668" stroke-width="1.5" />
+                <path d="M224 34L230 38L224 42z" fill="#3f4668" />
+                <text x="50" y="32" font-family="Fragment Mono" font-size="10" fill="#0c1233">{p.out}</text>
+                {"poll" in p && (
+                  <>
+                    <path d="M40 70H224" stroke="#3f4668" stroke-width="1.5" stroke-dasharray="2 3" />
+                    <text x="50" y="64" font-family="Fragment Mono" font-size="10" fill="#0c1233">{p.poll}</text>
+                  </>
+                )}
+                {p.back.map((b) => (
+                  <>
+                    <path d={`M230 ${b.y}H46`} stroke={tone[b.tone]} stroke-width="1.5" stroke-dasharray={b.tone === "warn" ? "5 4" : undefined} />
+                    <path d={`M46 ${b.y - 4}L40 ${b.y}L46 ${b.y + 4}z`} fill={tone[b.tone]} />
+                    <text x="226" y={b.y - 6} text-anchor="end" font-family="Fragment Mono" font-size="10" fill={tone[b.tone]}>{b.label}</text>
+                  </>
+                ))}
+              </svg>
+            </div>
+          ))
+        }
+      </div>
+
+      <div class="worked">
+        <div>
+          <p class="eyebrow">Worked pattern <span class="example" style="margin:0">example, not a connector</span></p>
+          <h2>A policy admin system issuing a bond.</h2>
+          <ol class="flow">
+            <li><span>Your PAS emits an issue event for the bond</span><code>your code</code></li>
+            <li><span>Your integration layer maps policy data to the template's JSON Schema</span><code>GET …/schema</code></li>
+            <li><span>It posts the data with the policy number as <code>subject</code></span><code>POST …/generate</code></li>
+            <li><span>necodoc validates, renders and logs it; 422 lists every bad field</span><code>necodoc</code></li>
+            <li><span>The PDF, or a webhook with a signed link, comes back to your DMS</span><code>your code</code></li>
+          </ol>
+        </div>
+        <div>
+          <pre class="code" aria-label="curl example"><span class="c"># Issue a bond from published version 3 of a template</span>
+curl https://necodoc.internal.example/api/v1/templates/$TEMPLATE/versions/3/generate \
+  -H <span class="s">"x-api-key: $NECODOC_KEY"</span> \
+  -H <span class="s">"content-type: application/json"</span> \
+  -d <span class="s">'&#123;
+    "subject": "BND-2026-004518",
+    "response": "json",
+    "data": &#123;
+      "principal": "Northwind Construction Ltd.",
+      "obligee": "City of Hamilton, Public Works",
+      "bond_amount": 2450000,
+      "effective_date": "2026-11-02"
+    &#125;
+  &#125;'</span>
+
+<span class="c"># 200</span>
+&#123; <span class="k2">"id"</span>: <span class="s">"9f1c…"</span>, <span class="k2">"pageCount"</span>: 3, <span class="k2">"downloadUrl"</span>: <span class="s">"https://…?sig=…"</span> &#125;</pre>
+          <p class="caption">
+            Every response carries <span class="k">X-Request-Id</span>. Errors are JSON with <span class="k">code</span> and
+            <span class="k">fieldErrors</span>: 401 bad key, 403 scope or IP, 422 invalid data, 429 rate limit with
+            Retry-After. <a class="tlink" href={links.apiReference}>API reference ↗</a>
+          </p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="data">
+    <div class="wrap split">
+      <aside>
+        <p class="eyebrow">Data flows</p>
+        <h2>What goes where.</h2>
+        <p>Everything stays in your account except what you send out on purpose. AI is the only third party, and it's off by default.</p>
+      </aside>
+      <table class="spec">
+        <thead><tr><th>Data</th><th>Stored in</th><th>Leaves your boundary</th></tr></thead>
+        <tbody>
+          <tr><td>Templates, versions, snippets, themes</td><td>Your Postgres</td><td>No</td></tr>
+          <tr><td>Input data for each PDF</td><td>Your Postgres (generation log), with a retention period you set</td><td>No</td></tr>
+          <tr><td>Generated PDFs, assets</td><td>Your bucket, blob container or disk, in your region</td><td>Only through signed, expiring links you issue</td></tr>
+          <tr><td>Logs, metrics, traces</td><td>Your log shipper, Prometheus, OTLP collector. Field values are never logged.</td><td>No</td></tr>
+          <tr><td>Webhook payloads</td><td>Sent to endpoints you configure</td><td>Yes, to your URLs, HMAC-SHA256 signed</td></tr>
+          <tr><td>Signing packages</td><td>Your Postgres; fetched by your e-sign integration</td><td>Only if your code sends them on</td></tr>
+          <tr><td>Draft templates, form page images</td><td>Sent to Anthropic's API for the AI assistant and field detection</td><td><span class="pill warn">Only if ANTHROPIC_KEY is set</span></td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section id="scaling" class="alt">
+    <div class="wrap">
+      <SectionHead eyebrow="Scaling and availability" title="Month-end is a replica count.">
+        Measured on one machine by the <a class="tlink" href="/performance/">benchmark</a>. Your numbers depend on your
+        Postgres and your nodes; rerun it on them.
+      </SectionHead>
+      <Stats>
+        {
+          [1, 2, 4, 8].map((n) => (
+            <Stat value={docsPerMinute(n)} label={`docs/min, ${n} worker${n > 1 ? "s" : ""}`}>
+              JSON batch of <BenchValue value={env.batchRows} /> rows
+            </Stat>
+          ))
+        }
+      </Stats>
+      <Provenance />
+      <div style="margin-top:48px">
+        <Stops
+          items={[
+            { icon: "arrows-split", title: "Interactive before batch.", body: "Renders from people and sync API calls take priority over batch rows, so a renewal run doesn't slow a form fill." },
+            { icon: "arrow-counter-clockwise", title: "Lost jobs retry.", body: "A job on a killed worker is picked up by another. Invalid batch rows fail alone; the rest continue." },
+            { icon: "hard-drives", title: "Postgres is the ceiling.", body: "It carries the queue as well as the data. Size it for both; we don't claim unlimited workers." },
+            { icon: "heartbeat", title: "Health you can probe.", body: "Health and readiness endpoints on every process; Admin › System lists each API and worker heartbeat." },
+          ]}
+        />
+      </div>
+    </div>
+  </section>
+
+  <section id="observe">
+    <div class="wrap">
+      <Pillar eyebrow="Observability" title="Plugs into the monitoring you run.">
+        <Checks
+          items={[
+            "Structured JSON logs on stdout; field values never logged",
+            "Prometheus <code>/metrics</code> on <code>METRICS_PORT</code>: HTTP, render, queue depth and age, worker slots",
+            "OpenTelemetry traces with the standard <code>OTEL_*</code> variables; not loaded unless set",
+            "One request id from the API call to the worker to the log entry",
+          ]}
+        />
+        <Proof
+          links={[
+            { label: "Observability spec", href: spec("features/observability") },
+            { label: "Monitoring guide ↗", href: devdocs("self-hosting/observability") },
+          ]}
+        />
+        <Screenshot slot="media" src={system} alt="Admin System page: workers online, queue, error rate and p50 render time, and process heartbeats" />
+      </Pillar>
+    </div>
+  </section>
+
+  <section id="limits" class="alt tight">
+    <div class="wrap">
+      <SectionHead eyebrow="Known limits" title="Stated here so your review doesn't have to find them." />
+      <Stops
+        items={[
+          { icon: "plugs", title: "No packaged core-system connectors.", body: "Guidewire, Duck Creek and Majesco integrate over the REST API." },
+          { icon: "globe", title: "One Postgres per install.", body: "So one region per install; run one per region if residency requires it." },
+          { icon: "package", title: "No published images yet.", body: "Operators build them from source. SDKs aren't on package registries yet either." },
+          { icon: "cube", title: "Helm not yet verified on a live cluster.", body: "OpenShift isn't tested." },
+        ]}
+      />
+    </div>
+  </section>
+
+  <section class="night grid-bg on-night tight">
+    <div class="wrap band">
+      <div>
+        <p class="eyebrow">Take it to your review board</p>
+        <h2>The architecture review pack: one PDF, made with necodoc.</h2>
+      </div>
+      <div class="cta-row"><a class="btn next" href={links.quickstart}>Run it in 10 minutes</a><a class="btn ghost" href={links.reviewPack}>Review pack</a></div>
+    </div>
+  </section>
+</Layout>
+
+<style>
+  pre.mini { margin-top: 18px; font-size: 12.5px; padding: 16px 18px; }
+  .seq { margin-top: 18px; width: 100%; height: auto; }
+  .worked { display: grid; grid-template-columns: 420px 1fr; gap: 56px; margin-top: 72px; }
+  .worked > * { min-width: 0; }
+  .worked h2 { font-size: 28px; }
+  .flow { list-style: none; padding: 0; margin: 22px 0 0; counter-reset: f; }
+  .flow li { counter-increment: f; display: grid; grid-template-columns: 30px 1fr; gap: 4px 10px; padding: 14px 0; border-top: 1px solid var(--hair); }
+  .flow li::before { content: counter(f, decimal-leading-zero); font: 13px var(--mono); color: var(--brand-ink); grid-row: span 2; padding-top: 3px; }
+  .flow span { font-weight: 600; }
+  .flow > li > code { color: var(--ink-3); font-size: 12px; }
+  .band { display: flex; align-items: center; gap: 40px; flex-wrap: wrap; }
+  .band > div:first-child { flex: 1; min-width: 300px; }
+  .band h2 { font-size: 34px; }
+  .band .cta-row { margin: 0; }
+  @media (max-width: 1100px) { .worked { grid-template-columns: 1fr; } }
+</style>

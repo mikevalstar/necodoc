@@ -1,10 +1,10 @@
 ---
+import { Image } from "astro:assets";
 // A product screenshot, framed. `crop` shows a window onto a larger shot: `height` is the
 // window, `zoom` the image width as a share of the frame, `x`/`y` shift it (CSS lengths).
 // `tray` puts it in the cobalt PDF tray with the mark's ears, as the app does; the site
 // uses the ears only there (ADR 0042).
 import type { ImageMetadata } from "astro";
-import { Image } from "astro:assets";
 
 type Props = {
   src: ImageMetadata;

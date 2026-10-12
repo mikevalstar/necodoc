@@ -232,6 +232,13 @@ buys credibility.
 | Docs | Links out to the developer docs site ([ADR 0026](../adrs/0026-astro-starlight-for-the-developer-docs-site.md)) |
 | Français | The site in fr-CA, at least Home and Insurance; a bilingual product with an English-only site undercuts pillar 4 |
 
+Built pages (W3): Home, Insurance, Architecture, Security and governance,
+Performance and a `/fr/` placeholder, in [apps/web/src/pages](../../apps/web/src/pages/index.astro).
+Benchmark numbers are imported from the W2 JSON by
+[bench.ts](../../apps/web/src/lib/bench.ts) and show as placeholders when it's
+missing. Design decisions and open questions:
+[design/website](../../design/website/README.md).
+
 ## Reference architecture
 
 What the Architecture page diagram shows, matching

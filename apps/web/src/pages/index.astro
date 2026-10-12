@@ -12,8 +12,8 @@ import Limit from "../components/Limit.astro";
 import Pillar from "../components/Pillar.astro";
 import Proof from "../components/Proof.astro";
 import Provenance from "../components/Provenance.astro";
-import ReferenceArchitecture from "../components/ReferenceArchitecture.astro";
 import Reel from "../components/Reel.astro";
+import ReferenceArchitecture from "../components/ReferenceArchitecture.astro";
 import Screenshot from "../components/Screenshot.astro";
 import SectionHead from "../components/SectionHead.astro";
 import Stat from "../components/Stat.astro";
@@ -24,21 +24,87 @@ import { docsPerMinute, roundTrip } from "../lib/bench";
 import { links, spec } from "../lib/links";
 
 const jobs = [
-  { id: "surety", icon: "seal-check", title: "Surety bonds on obligee forms", body: "Municipal, provincial and state forms filled on the obligee's own PDF, with signer boxes for principal, surety and attorney-in-fact.", foot: "overlay · signing package" },
-  { id: "coi", icon: "certificate", title: "Certificates of insurance", body: "Issued from the broker portal or your policy system, from a template the business owns.", foot: "designed template · API" },
-  { id: "packets", icon: "stack", title: "Policy packets", body: "Declarations, wordings and endorsements combined into one PDF, in the order you set.", foot: "combine · PDF/A-2" },
-  { id: "renewals", icon: "arrows-clockwise", title: "Bulk renewals", body: "Ten thousand renewal notices from one JSON or CSV batch, queued behind interactive work.", foot: "batch · workers" },
-  { id: "claims", icon: "envelope-simple-open", title: "Claims letters", body: "Conditional sections and shared clauses, so the wording an adjuster sends is the wording legal approved.", foot: "fields · snippets · review" },
-  { id: "bilingual", icon: "translate", title: "French-first, bilingual output", body: "English and fr-CA from one template, for Québec contracts of adhesion and bilingual national programmes.", foot: "localization · Bill 96" },
+  {
+    id: "surety",
+    icon: "seal-check",
+    title: "Surety bonds on obligee forms",
+    body: "Municipal, provincial and state forms filled on the obligee's own PDF, with signer boxes for principal, surety and attorney-in-fact.",
+    foot: "overlay · signing package",
+  },
+  {
+    id: "coi",
+    icon: "certificate",
+    title: "Certificates of insurance",
+    body: "Issued from the broker portal or your policy system, from a template the business owns.",
+    foot: "designed template · API",
+  },
+  {
+    id: "packets",
+    icon: "stack",
+    title: "Policy packets",
+    body: "Declarations, wordings and endorsements combined into one PDF, in the order you set.",
+    foot: "combine · PDF/A-2",
+  },
+  {
+    id: "renewals",
+    icon: "arrows-clockwise",
+    title: "Bulk renewals",
+    body: "Ten thousand renewal notices from one JSON or CSV batch, queued behind interactive work.",
+    foot: "batch · workers",
+  },
+  {
+    id: "claims",
+    icon: "envelope-simple-open",
+    title: "Claims letters",
+    body: "Conditional sections and shared clauses, so the wording an adjuster sends is the wording legal approved.",
+    foot: "fields · snippets · review",
+  },
+  {
+    id: "bilingual",
+    icon: "translate",
+    title: "French-first, bilingual output",
+    body: "English and fr-CA from one template, for Québec contracts of adhesion and bilingual national programmes.",
+    foot: "localization · Bill 96",
+  },
 ];
 
 const questions = [
-  { q: "Deployment fit", title: "Does it run where we run things?", body: "Containers: a Helm chart for Kubernetes, or Docker Compose on one VM. One Postgres, managed or not, in your account.", link: { label: "Self-hosting", href: spec("features/self-hosting") } },
-  { q: "Identity", title: "Does it use our IdP?", body: "Entra ID, Auth0 or SiteMinder over OIDC, SAML 2.0 or a trusted header, with IdP groups mapped to roles. Systems use scoped, expiring, IP-restricted keys.", link: { label: "Single sign-on", href: spec("features/single-sign-on") } },
-  { q: "Data residency", title: "Where does policyholder data go?", body: "Your Postgres and your bucket, blob container or disk, in your region. With AI off, which is the default, nothing leaves.", link: { label: "Data flows", href: "/architecture/#data" } },
-  { q: "Change control", title: "Who changed the bond wording?", body: "Published versions are immutable. Review is its own permission. The audit log is append-only and keeps before and after diffs.", link: { label: "Audit and review", href: "/security/#audit" } },
-  { q: "Scale and availability", title: "What happens at month-end?", body: "Stateless API and workers scale out. Jobs are queued with priorities; a job on a killed worker retries on another.", link: { label: "Scaling and HA", href: "/architecture/#scaling" } },
-  { q: "Vendor risk · OSFI B-10", title: "What's our exit plan?", body: "MIT source you can fork, standard Postgres, PDFs in your storage. No third party holds your data, because there isn't one.", link: { label: "Source on GitHub", href: links.github } },
+  {
+    q: "Deployment fit",
+    title: "Does it run where we run things?",
+    body: "Containers: a Helm chart for Kubernetes, or Docker Compose on one VM. One Postgres, managed or not, in your account.",
+    link: { label: "Self-hosting", href: spec("features/self-hosting") },
+  },
+  {
+    q: "Identity",
+    title: "Does it use our IdP?",
+    body: "Entra ID, Auth0 or SiteMinder over OIDC, SAML 2.0 or a trusted header, with IdP groups mapped to roles. Systems use scoped, expiring, IP-restricted keys.",
+    link: { label: "Single sign-on", href: spec("features/single-sign-on") },
+  },
+  {
+    q: "Data residency",
+    title: "Where does policyholder data go?",
+    body: "Your Postgres and your bucket, blob container or disk, in your region. With AI off, which is the default, nothing leaves.",
+    link: { label: "Data flows", href: "/architecture/#data" },
+  },
+  {
+    q: "Change control",
+    title: "Who changed the bond wording?",
+    body: "Published versions are immutable. Review is its own permission. The audit log is append-only and keeps before and after diffs.",
+    link: { label: "Audit and review", href: "/security/#audit" },
+  },
+  {
+    q: "Scale and availability",
+    title: "What happens at month-end?",
+    body: "Stateless API and workers scale out. Jobs are queued with priorities; a job on a killed worker retries on another.",
+    link: { label: "Scaling and HA", href: "/architecture/#scaling" },
+  },
+  {
+    q: "Vendor risk · OSFI B-10",
+    title: "What's our exit plan?",
+    body: "MIT source you can fork, standard Postgres, PDFs in your storage. No third party holds your data, because there isn't one.",
+    link: { label: "Source on GitHub", href: links.github },
+  },
 ];
 ---
 
@@ -69,7 +135,7 @@ const questions = [
         <Screenshot
           src={overlay}
           alt="The overlay editor: the Oregon Construction Contractors Board commercial surety bond with fields drawn on the page and a live preview of the filled PDF."
-          tray={{ title: "Overlay editor", note: "example template, not a customer" }}
+          tray={{ title: "Overlay editor", note: "Oregon CCB commercial surety bond" }}
           crop={{ height: 500 }}
           loading="eager"
         />
@@ -116,9 +182,7 @@ const questions = [
 
   <section class="alt">
     <div class="wrap">
-      <SectionHead eyebrow="What it does" title="Three things insurance document teams rarely get in one product.">
-        Each claim links to the spec that defines it. Where a feature stops, it says so beside the claim.
-      </SectionHead>
+      <SectionHead eyebrow="What it does" title="What it does differently." />
 
       <Pillar num="01" eyebrow="Overlay" title="Fill the forms you already have.">
         <p>
@@ -137,7 +201,7 @@ const questions = [
         <Screenshot slot="media" src={overlay} alt="Overlay editor: fields drawn on the board's PDF" crop={{ height: 520, zoom: 165, x: "-14%", y: "-60px" }} />
       </Pillar>
 
-      <Pillar num="02" eyebrow="Speed and scale-out" title="Fast, and you add workers, not licences." flip>
+      <Pillar num="02" eyebrow="Speed and scale-out" title="Month-end is a few more workers." flip>
         <p>
           Renders run as queued jobs on worker processes. Month-end is a replica count, and every render records where its
           time went.
@@ -186,8 +250,8 @@ const questions = [
   <section>
     <div class="wrap">
       <SectionHead eyebrow="Reference architecture" title="One drawing your review board can check line by line.">
-        Two process roles from one image, your Postgres and your storage. Anything that leaves the boundary is optional and
-        off until you configure it.
+        One image runs as the API or as a render worker. State lives in your Postgres and your bucket. The dashed arrows at
+        the bottom are optional, and stay off until you configure them.
       </SectionHead>
       <ReferenceArchitecture />
       <p class="cta-row" style="margin-top:28px"><a class="tlink" href="/architecture/">Deployment options, integration patterns and data flows →</a></p>
@@ -218,8 +282,7 @@ const questions = [
   <section>
     <div class="wrap">
       <SectionHead eyebrow="For carriers" title="The documents you issue every day.">
-        Each one has a worked example on the Insurance page, labelled as an example. We don't show customer logos or quotes
-        we don't have.
+        The Insurance page walks through each one with a worked example.
       </SectionHead>
       <div class="cards">
         {
@@ -256,7 +319,7 @@ const questions = [
 
   <section class="night grid-bg on-night">
     <div class="wrap">
-      <SectionHead eyebrow="Evaluate it yourself" title="No sales call. Four things an architect can do alone." stack />
+      <SectionHead eyebrow="Evaluate it yourself" title="You can evaluate it without talking to us." stack />
       <div class="steps">
         <a class="first" href={links.quickstart}><b>Run it</b><p>Docker Compose on a laptop or one VM: Postgres, API, a worker and the app.</p><span class="go">Quick start →</span></a>
         <a href={links.docs}><b>Read the docs</b><p>Self-hosting, roles and scaling, and the OpenAPI reference.</p><span class="go">Developer docs ↗</span></a>
