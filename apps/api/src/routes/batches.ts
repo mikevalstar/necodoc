@@ -257,14 +257,17 @@ export const batchRoutes = new Hono<AppEnv>()
     // Rows already running finish; queued rows never start (the worker skips cancelled rows).
     await db.transaction(async (tx) => {
       await recordAudit({ action: "batch.cancelled", target: { id, name: found.name } }, tx);
-      await tx
-        .update(batch)
-        .set({ cancelledAt: new Date() })
-        .where(and(eq(batch.id, id), isNull(batch.cancelledAt)));
-      await tx
+      const cancelled = await tx
         .update(generation)
         .set({ status: "cancelled", finishedAt: new Date() })
-        .where(and(eq(generation.batchId, id), eq(generation.status, "queued")));
+        .where(and(eq(generation.batchId, id), eq(generation.status, "queued")))
+        .returning({ id: generation.id });
+      // A batch whose rows all finished meanwhile stays completed.
+      if (cancelled.length > 0)
+        await tx
+          .update(batch)
+          .set({ cancelledAt: new Date() })
+          .where(and(eq(batch.id, id), isNull(batch.cancelledAt)));
     });
     await completeBatch(id);
     const [summary] = await batchSummaries(eq(batch.id, id));

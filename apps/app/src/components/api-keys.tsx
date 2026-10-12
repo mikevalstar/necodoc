@@ -11,15 +11,15 @@ import {
   MAX_RATE_LIMIT_PER_MINUTE,
   type Role,
 } from "@necodoc/shared";
-import { DotsThreeIcon, WarningIcon } from "@phosphor-icons/react";
+import { CheckIcon, CopyIcon, DotsThreeIcon, KeyIcon, WarningIcon } from "@phosphor-icons/react";
 import { queryOptions, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
 import type { InferResponseType } from "hono/client";
-import { useState } from "react";
+import { type ReactNode, useRef, useState } from "react";
 import { toast } from "sonner";
 import { z } from "zod";
-import { CopyButton } from "@/components/copy-button";
 import { ErrorAlert, useAppForm } from "@/components/form";
+import { EmptyState } from "@/components/page";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import {
   AlertDialog,
@@ -52,13 +52,13 @@ import {
 } from "@/components/ui/dropdown-menu";
 import {
   Field,
+  FieldDescription,
   FieldError,
   FieldGroup,
   FieldLabel,
   FieldLegend,
   FieldSet,
 } from "@/components/ui/field";
-import { Input } from "@/components/ui/input";
 import { NativeSelect, NativeSelectOption } from "@/components/ui/native-select";
 import {
   Table,
@@ -87,14 +87,14 @@ export const apiKeysQuery = (query: KeyQuery) =>
 
 export type ApiKeyRow = InferResponseType<(typeof api)["api-keys"]["$get"], 200>[number];
 
-const statusBadge: Record<
-  ApiKeyStatus,
-  { label: string; variant: "secondary" | "outline" | "destructive" }
-> = {
-  active: { label: "Active", variant: "secondary" },
-  expired: { label: "Expired", variant: "outline" },
-  revoked: { label: "Revoked", variant: "destructive" },
+const statusBadge: Record<ApiKeyStatus, { label: string; variant: "ok" | "secondary" | "bad" }> = {
+  active: { label: "Active", variant: "ok" },
+  expired: { label: "Expired", variant: "secondary" },
+  revoked: { label: "Revoked", variant: "bad" },
 };
+
+/** Scope pills shown per row before the rest collapse into "+N", so the table fits a tablet. */
+const SCOPES_SHOWN = 2;
 
 const expiresSoon = (key: ApiKeyRow) =>
   key.status === "active" &&
@@ -103,21 +103,40 @@ const expiresSoon = (key: ApiKeyRow) =>
 
 type Action = { kind: "rotate" | "revoke"; key: ApiKeyRow };
 
-/** The key list with rotate and revoke. `showOwner` for the admin list across owners. */
+/**
+ * The key list with rotate and revoke. `showOwner` for the admin list across owners. With no keys
+ * it renders `empty` (the caller's EmptyState, usually with a create action) instead of the table.
+ */
 export function ApiKeyTable({
   keys,
   showOwner,
   canRotate,
+  empty,
 }: {
   keys: readonly ApiKeyRow[] | undefined;
   showOwner?: boolean;
   /** Admins can revoke anyone's key but only rotate service accounts' (and their own). */
   canRotate: (key: ApiKeyRow) => boolean;
+  empty?: ReactNode;
 }) {
   const [action, setAction] = useState<Action | null>(null);
   const [secret, setSecret] = useState<{ key: string; name: string } | null>(null);
   const close = () => setAction(null);
   const isAdmin = useQuery(meQuery).data?.user.roles.includes("admin") === true;
+  if (keys?.length === 0)
+    return (
+      empty ?? (
+        <EmptyState
+          icon={KeyIcon}
+          title="No API keys yet"
+          description={
+            <>
+              A key lets a script or another system call <code>/api/v1</code>.
+            </>
+          }
+        />
+      )
+    );
   return (
     <>
       <Table>
@@ -126,10 +145,10 @@ export function ApiKeyTable({
             <TableHead>Name</TableHead>
             {showOwner && <TableHead>Owner</TableHead>}
             <TableHead>Scopes</TableHead>
-            <TableHead className="hidden md:table-cell">Created</TableHead>
+            <TableHead className="hidden lg:table-cell">Created</TableHead>
             <TableHead>Expires</TableHead>
             <TableHead className="hidden lg:table-cell">Last used</TableHead>
-            <TableHead className="text-right">Requests</TableHead>
+            <TableHead className="hidden text-right xl:table-cell">Requests</TableHead>
             <TableHead>Status</TableHead>
             <TableHead className="w-0">
               <span className="sr-only">Actions</span>
@@ -141,9 +160,9 @@ export function ApiKeyTable({
             <TableRow key={key.id}>
               <TableCell>
                 <div className="font-medium">{key.name}</div>
-                <div className="font-mono text-xs text-muted-foreground">{key.start}…</div>
+                <div className="font-mono text-xs text-ink-3">{key.start}…</div>
                 {key.ipAllowlist.length > 0 && (
-                  <div className="text-xs text-muted-foreground" title={key.ipAllowlist.join(", ")}>
+                  <div className="text-xs text-ink-3" title={key.ipAllowlist.join(", ")}>
                     {key.ipAllowlist.length} allowed address{key.ipAllowlist.length > 1 && "es"}
                   </div>
                 )}
@@ -161,7 +180,7 @@ export function ApiKeyTable({
                   ) : (
                     key.ownerName
                   )}
-                  <div className="text-xs text-muted-foreground">
+                  <div className="text-xs text-ink-3">
                     {key.ownerIsService ? "Service account" : "Person"}
                     {key.ownerDisabled && " · disabled"}
                   </div>
@@ -169,19 +188,29 @@ export function ApiKeyTable({
               )}
               <TableCell>
                 <div className="flex max-w-64 flex-wrap gap-1">
-                  {key.scopes.map((scope) => (
-                    <Badge key={scope} variant="outline" className="font-mono text-[0.7rem]">
+                  {key.scopes.slice(0, SCOPES_SHOWN).map((scope) => (
+                    <Badge key={scope} variant="secondary" className="font-mono text-[0.7rem]">
                       {scope}
                     </Badge>
                   ))}
+                  {key.scopes.length > SCOPES_SHOWN && (
+                    <Badge
+                      variant="secondary"
+                      className="text-[0.7rem]"
+                      title={key.scopes.slice(SCOPES_SHOWN).join(", ")}
+                    >
+                      +{key.scopes.length - SCOPES_SHOWN}
+                      <span className="sr-only">: {key.scopes.slice(SCOPES_SHOWN).join(", ")}</span>
+                    </Badge>
+                  )}
                 </div>
                 {key.templateIds.length > 0 && (
-                  <div className="text-xs text-muted-foreground">
+                  <div className="text-xs text-ink-3">
                     {key.templateIds.length} template{key.templateIds.length > 1 && "s"} only
                   </div>
                 )}
               </TableCell>
-              <TableCell className="hidden tabular-nums md:table-cell">
+              <TableCell className="hidden tabular-nums lg:table-cell">
                 {dayjs(key.createdAt).format("YYYY-MM-DD")}
               </TableCell>
               <TableCell className="tabular-nums">
@@ -191,35 +220,35 @@ export function ApiKeyTable({
                     title={dayjs(key.expiresAt).format("YYYY-MM-DD HH:mm")}
                   >
                     {expiresSoon(key) && (
-                      <WarningIcon className="size-4 text-amber-600" aria-label="Expires soon" />
+                      <WarningIcon className="size-4 text-warn" aria-label="Expires soon" />
                     )}
                     {dayjs(key.expiresAt).fromNow()}
                   </span>
                 ) : (
-                  <span className="text-muted-foreground">Never</span>
+                  <span className="text-ink-3">Never</span>
                 )}
               </TableCell>
               <TableCell className="hidden lg:table-cell">
                 {key.lastUsedAt ? (
                   <>
                     {dayjs(key.lastUsedAt).fromNow()}
-                    <div className="font-mono text-xs text-muted-foreground">{key.lastUsedIp}</div>
+                    <div className="font-mono text-xs text-ink-3">{key.lastUsedIp}</div>
                   </>
                 ) : (
-                  <span className="text-muted-foreground">Never</span>
+                  <span className="text-ink-3">Never</span>
                 )}
               </TableCell>
-              <TableCell className="text-right tabular-nums">
+              <TableCell className="hidden text-right tabular-nums xl:table-cell">
                 {key.requests.toLocaleString()}
               </TableCell>
               <TableCell>
                 {key.status === "active" && key.ownerDisabled ? (
                   // The key itself is fine, but its owner is disabled, so every call gets 401.
-                  <Badge variant="outline" title="Its owner is disabled; calls get 401">
+                  <Badge variant="warn" dot title="Its owner is disabled; calls get 401">
                     Owner disabled
                   </Badge>
                 ) : (
-                  <Badge variant={statusBadge[key.status].variant}>
+                  <Badge variant={statusBadge[key.status].variant} dot>
                     {statusBadge[key.status].label}
                   </Badge>
                 )}
@@ -276,16 +305,6 @@ export function ApiKeyTable({
               </TableCell>
             </TableRow>
           ))}
-          {keys?.length === 0 && (
-            <TableRow>
-              <TableCell
-                colSpan={showOwner ? 9 : 8}
-                className="py-8 text-center text-muted-foreground"
-              >
-                No API keys yet. A key lets a script or another system call <code>/api/v1</code>.
-              </TableCell>
-            </TableRow>
-          )}
         </TableBody>
       </Table>
       {action?.kind === "rotate" && (
@@ -299,13 +318,77 @@ export function ApiKeyTable({
         />
       )}
       {action?.kind === "revoke" && <RevokeDialog apiKey={action.key} onClose={close} />}
-      {secret && <SecretDialog secret={secret} onClose={() => setSecret(null)} />}
+      {secret && <KeySecretDialog secret={secret} onClose={() => setSecret(null)} />}
     </>
   );
 }
 
-/** The secret, once. */
+/**
+ * A secret shown once (API keys, webhook signing secrets). Copy is the main action; closing before
+ * copying asks first, since the secret can't be shown again.
+ */
 export function SecretDialog({
+  title,
+  description,
+  secret,
+  copyLabel,
+  onClose,
+}: {
+  title: string;
+  description: ReactNode;
+  secret: string;
+  copyLabel: string;
+  onClose: () => void;
+}) {
+  const [copied, setCopied] = useState(false);
+  const [confirming, setConfirming] = useState(false);
+  const copyRef = useRef<HTMLButtonElement>(null);
+  const copy = async () => {
+    try {
+      await navigator.clipboard.writeText(secret);
+      setCopied(true);
+      setConfirming(false);
+    } catch {
+      toast.error("Couldn't copy", { description: "Select the text and copy it yourself." });
+    }
+  };
+  const close = () => (copied || confirming ? onClose() : setConfirming(true));
+  return (
+    <Dialog open onOpenChange={(open) => !open && close()}>
+      <DialogContent initialFocus={copyRef}>
+        <DialogHeader>
+          <DialogTitle>{title}</DialogTitle>
+          <DialogDescription>{description}</DialogDescription>
+        </DialogHeader>
+        <pre
+          className="rounded-lg bg-tint px-3 py-2.5 font-mono text-xs break-all whitespace-pre-wrap select-all"
+          // A manual select-and-copy counts too.
+          onCopy={() => setCopied(true)}
+        >
+          {secret}
+        </pre>
+        <p className="flex items-start gap-2 text-sm font-medium text-warn" role="alert">
+          <WarningIcon className="mt-0.5 size-4 shrink-0" />
+          {confirming
+            ? "You haven't copied it. Close anyway? It can't be shown again."
+            : "You won't see this again once you close this dialog."}
+        </p>
+        <DialogFooter>
+          <Button variant={confirming ? "destructive" : "outline"} onClick={close}>
+            {confirming ? "Close without copying" : "Done"}
+          </Button>
+          <Button ref={copyRef} onClick={copy}>
+            {copied ? <CheckIcon weight="bold" /> : <CopyIcon />}
+            {copied ? "Copied" : copyLabel}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+/** The SecretDialog for a new or rotated key. */
+function KeySecretDialog({
   secret,
   onClose,
 }: {
@@ -313,27 +396,17 @@ export function SecretDialog({
   onClose: () => void;
 }) {
   return (
-    <Dialog open onOpenChange={(open) => !open && onClose()}>
-      <DialogContent>
-        <DialogHeader>
-          <DialogTitle>Copy your key</DialogTitle>
-          <DialogDescription>
-            {secret.name}: this is the only time it's shown. Store it in your secret manager; if
-            it's lost, rotate or make a new one.
-          </DialogDescription>
-        </DialogHeader>
-        <Input
-          readOnly
-          className="font-mono text-xs"
-          value={secret.key}
-          onFocus={(e) => e.target.select()}
-        />
-        <DialogFooter>
-          <CopyButton text={secret.key} label="Copy key" />
-          <DialogClose render={<Button />}>Done</DialogClose>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+    <SecretDialog
+      title="Copy your key"
+      description={
+        <>
+          {secret.name}: store it in your secret manager. If it's lost, rotate it or make a new one.
+        </>
+      }
+      secret={secret.key}
+      copyLabel="Copy key"
+      onClose={onClose}
+    />
   );
 }
 
@@ -341,6 +414,17 @@ const useInvalidateKeys = () => {
   const queryClient = useQueryClient();
   return () => queryClient.invalidateQueries({ queryKey: ["api-keys"] });
 };
+
+/** When the old key stops after a rotation: the overlap end, or its own expiry if sooner (as the API does). */
+function oldKeyStops(apiKey: ApiKeyRow, overlapHours: number) {
+  if (overlapHours === 0) return "The old key stops working as soon as you rotate.";
+  const overlapEnd = dayjs().add(overlapHours, "hour");
+  const end =
+    apiKey.expiresAt && dayjs(apiKey.expiresAt).isBefore(overlapEnd)
+      ? dayjs(apiKey.expiresAt)
+      : overlapEnd;
+  return `The old key stops working ${end.format("ddd D MMM, HH:mm")} (${end.fromNow()}).`;
+}
 
 function RotateDialog({
   apiKey,
@@ -388,6 +472,7 @@ function RotateDialog({
             <NativeSelectOption value="168">7 days</NativeSelectOption>
             <NativeSelectOption value="720">30 days</NativeSelectOption>
           </NativeSelect>
+          <FieldDescription>{oldKeyStops(apiKey, overlapHours)}</FieldDescription>
         </Field>
         <ErrorAlert error={rotate.error} />
         <DialogFooter>
@@ -553,7 +638,7 @@ export function CreateKeyDialog({
                           />
                           <FieldLabel htmlFor={`scope-${scope}`} className="font-normal">
                             <span className="font-mono text-xs">{scope}</span>
-                            <span className="text-muted-foreground">{apiScopes[scope].label}</span>
+                            <span className="text-ink-3">{apiScopes[scope].label}</span>
                           </FieldLabel>
                         </Field>
                       );
@@ -584,9 +669,7 @@ export function CreateKeyDialog({
               {(field) => (
                 <FieldSet>
                   <FieldLegend variant="label">Templates (optional)</FieldLegend>
-                  <p className="text-sm text-muted-foreground">
-                    None ticked: every published template.
-                  </p>
+                  <p className="text-sm text-ink-3">None ticked: every published template.</p>
                   <div className="grid max-h-40 gap-2 overflow-y-auto">
                     {published.map((template) => (
                       <Field key={template.id} orientation="horizontal">
@@ -665,7 +748,7 @@ export function CreateKeyButton(props: { ownerId?: string; ownerRoles: readonly 
           }}
         />
       )}
-      {secret && <SecretDialog secret={secret} onClose={() => setSecret(null)} />}
+      {secret && <KeySecretDialog secret={secret} onClose={() => setSecret(null)} />}
     </>
   );
 }

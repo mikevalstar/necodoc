@@ -4,18 +4,19 @@ import {
   type WebhookDeliveryStatus,
   webhookEventSchema,
 } from "@necodoc/shared";
-import { DotsThreeIcon } from "@phosphor-icons/react";
+import { DotsThreeIcon, WebhooksLogoIcon } from "@phosphor-icons/react";
 import { queryOptions, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import type { InferResponseType } from "hono/client";
 import { useState } from "react";
 import { toast } from "sonner";
 import { z } from "zod";
-import type { ApiKeyRow } from "@/components/api-keys";
+import { type ApiKeyRow, SecretDialog } from "@/components/api-keys";
 import { ConfirmDialog } from "@/components/confirm-dialog";
-import { CopyButton } from "@/components/copy-button";
 import { ErrorAlert, useAppForm } from "@/components/form";
+import { EmptyState, ListSkeleton } from "@/components/page";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
   Dialog,
@@ -41,7 +42,6 @@ import {
   FieldLegend,
   FieldSet,
 } from "@/components/ui/field";
-import { Input } from "@/components/ui/input";
 import { NativeSelect, NativeSelectOption } from "@/components/ui/native-select";
 import { Switch } from "@/components/ui/switch";
 import {
@@ -74,10 +74,10 @@ const eventLabels: Record<z.infer<typeof webhookEventSchema>, string> = {
   "batch.completed": "Batch completed",
 };
 
-const deliveryBadge: Record<WebhookDeliveryStatus, "secondary" | "outline" | "destructive"> = {
-  success: "secondary",
-  pending: "outline",
-  failed: "destructive",
+const deliveryBadge: Record<WebhookDeliveryStatus, "ok" | "run" | "bad"> = {
+  success: "ok",
+  pending: "run",
+  failed: "bad",
 };
 
 function scopeLabel(hook: Webhook) {
@@ -125,94 +125,106 @@ export function WebhookSection({
       toast.success("Test event queued", { description: "Open Deliveries to see how it went." }),
   });
   return (
-    <section className="space-y-3">
-      <div className="flex flex-wrap items-center justify-between gap-2">
+    <Card className="gap-0 py-0">
+      <div className="flex flex-wrap items-center gap-3 border-b border-hair px-4 py-3.5">
         <div>
-          <h2 className="text-lg font-semibold">Webhooks</h2>
-          <p className="text-sm text-muted-foreground">
+          <h2 className="font-heading text-[17px] font-bold tracking-tight">Webhooks</h2>
+          <p className="text-sm text-ink-3">
             Signed HTTPS POSTs when generations and batches finish.
           </p>
         </div>
-        <Button variant="outline" onClick={() => setCreating(true)}>
-          Add webhook
-        </Button>
+        {hooks.data && hooks.data.length > 0 && (
+          <Button variant="outline" className="ml-auto" onClick={() => setCreating(true)}>
+            Add webhook
+          </Button>
+        )}
       </div>
-      <ErrorAlert error={hooks.error ?? toggle.error ?? test.error} />
-      <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead>URL</TableHead>
-            <TableHead>Fires for</TableHead>
-            <TableHead>Events</TableHead>
-            <TableHead>Enabled</TableHead>
-            <TableHead className="w-0">
-              <span className="sr-only">Actions</span>
-            </TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {hooks.data?.map((hook) => (
-            <TableRow key={hook.id}>
-              <TableCell className="max-w-72">
-                <div className="truncate font-mono text-xs" title={hook.url}>
-                  {hook.url}
-                </div>
-                {hook.description && (
-                  <div className="text-xs text-muted-foreground">{hook.description}</div>
-                )}
-              </TableCell>
-              <TableCell className="text-sm">{scopeLabel(hook)}</TableCell>
-              <TableCell>
-                <div className="flex flex-wrap gap-1">
-                  {hook.events.map((event) => (
-                    <Badge key={event} variant="outline" className="font-mono text-[0.7rem]">
-                      {event}
-                    </Badge>
-                  ))}
-                </div>
-              </TableCell>
-              <TableCell>
-                <Switch
-                  aria-label={`Enabled: ${hook.url}`}
-                  checked={hook.enabled}
-                  disabled={toggle.isPending}
-                  onCheckedChange={() => toggle.mutate(hook)}
-                />
-              </TableCell>
-              <TableCell>
-                <DropdownMenu>
-                  <DropdownMenuTrigger
-                    render={
-                      <Button
-                        variant="ghost"
-                        size="icon-sm"
-                        aria-label={`Actions for ${hook.url}`}
-                      />
-                    }
-                  >
-                    <DotsThreeIcon weight="bold" />
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end">
-                    <DropdownMenuItem onClick={() => setLog(hook)}>Deliveries</DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => test.mutate(hook)}>Send test</DropdownMenuItem>
-                    <DropdownMenuSeparator />
-                    <DropdownMenuItem variant="destructive" onClick={() => setDeleting(hook)}>
-                      Delete…
-                    </DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
-              </TableCell>
-            </TableRow>
-          ))}
-          {hooks.data?.length === 0 && (
+      {(hooks.error ?? toggle.error ?? test.error) && (
+        <div className="px-4 pt-4">
+          <ErrorAlert error={hooks.error ?? toggle.error ?? test.error} />
+        </div>
+      )}
+      {hooks.isPending ? (
+        <ListSkeleton className="p-4" rows={2} />
+      ) : hooks.data?.length === 0 ? (
+        <EmptyState
+          className="m-4"
+          icon={WebhooksLogoIcon}
+          title="No webhooks yet"
+          description="Add one to be told when generations and batches finish, instead of polling."
+          action={<Button onClick={() => setCreating(true)}>Add webhook</Button>}
+        />
+      ) : (
+        <Table>
+          <TableHeader>
             <TableRow>
-              <TableCell colSpan={5} className="py-8 text-center text-muted-foreground">
-                No webhooks yet. Add one to be told when generations and batches finish.
-              </TableCell>
+              <TableHead>URL</TableHead>
+              <TableHead className="hidden lg:table-cell">Fires for</TableHead>
+              <TableHead>Events</TableHead>
+              <TableHead>Enabled</TableHead>
+              <TableHead className="w-0">
+                <span className="sr-only">Actions</span>
+              </TableHead>
             </TableRow>
-          )}
-        </TableBody>
-      </Table>
+          </TableHeader>
+          <TableBody>
+            {hooks.data?.map((hook) => (
+              <TableRow key={hook.id}>
+                <TableCell className="max-w-72">
+                  <div className="truncate font-mono text-xs" title={hook.url}>
+                    {hook.url}
+                  </div>
+                  {hook.description && <div className="text-xs text-ink-3">{hook.description}</div>}
+                  <div className="text-xs text-ink-3 lg:hidden">{scopeLabel(hook)}</div>
+                </TableCell>
+                <TableCell className="hidden text-sm lg:table-cell">{scopeLabel(hook)}</TableCell>
+                <TableCell>
+                  <div className="flex flex-wrap gap-1">
+                    {hook.events.map((event) => (
+                      <Badge key={event} variant="secondary" className="font-mono text-[0.7rem]">
+                        {event}
+                      </Badge>
+                    ))}
+                  </div>
+                </TableCell>
+                <TableCell>
+                  <Switch
+                    aria-label={`Enabled: ${hook.url}`}
+                    checked={hook.enabled}
+                    disabled={toggle.isPending}
+                    onCheckedChange={() => toggle.mutate(hook)}
+                  />
+                </TableCell>
+                <TableCell>
+                  <DropdownMenu>
+                    <DropdownMenuTrigger
+                      render={
+                        <Button
+                          variant="ghost"
+                          size="icon-sm"
+                          aria-label={`Actions for ${hook.url}`}
+                        />
+                      }
+                    >
+                      <DotsThreeIcon weight="bold" />
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                      <DropdownMenuItem onClick={() => setLog(hook)}>Deliveries</DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => test.mutate(hook)}>
+                        Send test
+                      </DropdownMenuItem>
+                      <DropdownMenuSeparator />
+                      <DropdownMenuItem variant="destructive" onClick={() => setDeleting(hook)}>
+                        Delete…
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      )}
       {creating && (
         <CreateWebhookDialog
           ownerId={ownerId}
@@ -226,7 +238,15 @@ export function WebhookSection({
           }}
         />
       )}
-      {secret && <WebhookSecretDialog secret={secret} onClose={() => setSecret(null)} />}
+      {secret && (
+        <SecretDialog
+          title="Copy the signing secret"
+          description="Your endpoint uses it to check the Necodoc-Signature header. To get a new one, delete the webhook and add it again."
+          secret={secret}
+          copyLabel="Copy secret"
+          onClose={() => setSecret(null)}
+        />
+      )}
       {log && <DeliveriesDialog hook={log} onClose={() => setLog(null)} />}
       {deleting && (
         <ConfirmDialog
@@ -239,7 +259,7 @@ export function WebhookSection({
           onClose={() => setDeleting(null)}
         />
       )}
-    </section>
+    </Card>
   );
 }
 
@@ -376,7 +396,7 @@ function CreateWebhookDialog({
                     ))}
                   </NativeSelect>
                   {!canTemplateWebhooks && (
-                    <p className="text-xs text-muted-foreground">
+                    <p className="text-xs text-ink-3">
                       A template alone (any key, any source) needs the editor role.
                     </p>
                   )}
@@ -392,32 +412,6 @@ function CreateWebhookDialog({
             </Button>
           </DialogFooter>
         </form>
-      </DialogContent>
-    </Dialog>
-  );
-}
-
-function WebhookSecretDialog({ secret, onClose }: { secret: string; onClose: () => void }) {
-  return (
-    <Dialog open onOpenChange={(open) => !open && onClose()}>
-      <DialogContent>
-        <DialogHeader>
-          <DialogTitle>Copy the signing secret</DialogTitle>
-          <DialogDescription>
-            Your endpoint uses it to check the Necodoc-Signature header. It's shown once; to get a
-            new one, delete the webhook and add it again.
-          </DialogDescription>
-        </DialogHeader>
-        <Input
-          readOnly
-          className="font-mono text-xs"
-          value={secret}
-          onFocus={(e) => e.target.select()}
-        />
-        <DialogFooter>
-          <CopyButton text={secret} label="Copy secret" />
-          <DialogClose render={<Button />}>Done</DialogClose>
-        </DialogFooter>
       </DialogContent>
     </Dialog>
   );
@@ -456,7 +450,7 @@ function DeliveriesDialog({ hook, onClose }: { hook: Webhook; onClose: () => voi
                 </TableCell>
                 <TableCell className="font-mono text-xs">{delivery.event}</TableCell>
                 <TableCell>
-                  <Badge variant={deliveryBadge[delivery.status]} className="capitalize">
+                  <Badge variant={deliveryBadge[delivery.status]} dot className="capitalize">
                     {delivery.status}
                   </Badge>
                 </TableCell>
@@ -467,9 +461,7 @@ function DeliveriesDialog({ hook, onClose }: { hook: Webhook; onClose: () => voi
                         {dayjs(attempt.at).format("HH:mm:ss")} ·{" "}
                         {attempt.status === null ? "no response" : `HTTP ${attempt.status}`} ·{" "}
                         {attempt.ms} ms
-                        {attempt.error && (
-                          <span className="text-muted-foreground"> · {attempt.error}</span>
-                        )}
+                        {attempt.error && <span className="text-ink-3"> · {attempt.error}</span>}
                       </li>
                     ))}
                   </ol>
@@ -478,7 +470,7 @@ function DeliveriesDialog({ hook, onClose }: { hook: Webhook; onClose: () => voi
             ))}
             {deliveries.data?.length === 0 && (
               <TableRow>
-                <TableCell colSpan={4} className="text-center text-muted-foreground">
+                <TableCell colSpan={4} className="text-center text-ink-3">
                   Nothing sent yet.
                 </TableCell>
               </TableRow>

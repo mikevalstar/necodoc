@@ -44,6 +44,7 @@ import {
   NativeSelectOption,
 } from "@/components/ui/native-select";
 import { api, ok, previewPdf } from "@/lib/api";
+import { usePageCrumb } from "@/lib/breadcrumb";
 import { assetsQuery, themesQuery } from "@/lib/queries";
 import { useSaveShortcut } from "@/lib/save-shortcut";
 import { cn } from "@/lib/utils";
@@ -102,6 +103,7 @@ function ThemeEditor({ theme }: { theme: Theme }) {
   const queryClient = useQueryClient();
   const duplicate = useDuplicateTheme();
   const [deleting, setDeleting] = useState(false);
+  usePageCrumb(theme.name);
 
   const save = useMutation({
     mutationFn: async (json: ThemeValues) =>

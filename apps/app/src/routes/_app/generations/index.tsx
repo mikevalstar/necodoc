@@ -274,7 +274,7 @@ const allColumns = column.columns([
     cell: ({ row: { original } }) =>
       original.batchId ? (
         <Link to="/batches/$id" params={{ id: original.batchId }} className="hover:underline">
-          Row {original.batchRow === null ? "?" : original.batchRow + 1}
+          Row {original.batchRow ?? "?"}
         </Link>
       ) : (
         "—"

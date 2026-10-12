@@ -314,7 +314,7 @@ export const faq: readonly FaqEntry[] = [
     group: "Render",
     what: "necodoc turns HTML and CSS into a PDF with a real browser engine (Chromium), so flexbox, grid, tables that break across pages and web fonts all work. The Render page, the theme preview and every future template use this same renderer, so a preview is exactly the PDF you get.",
     howTo:
-      "Open Render, write HTML (and optional CSS), pick a page size, orientation and margins, then press Render. Turn on Preview to try things without adding an entry to the generation log.",
+      "Open Render, write HTML (and optional CSS), pick a theme, page size, orientation and margins on Page & theme, then press Render (or ⌘/Ctrl+Enter). The bar above the PDF shows its pages, size and how long it took. Turn on Preview to try things without adding an entry to the generation log.",
     limitations: [
       "No JavaScript runs in rendered pages: no client-side charts or computed layout.",
       "Nothing is fetched from the internet. Remote images, fonts and @import URLs don't load; upload them as assets or inline them as data: URLs.",
@@ -358,7 +358,7 @@ export const faq: readonly FaqEntry[] = [
     group: "Themes",
     what: "A theme is a named house style: body and heading fonts, sizes, line height, text, heading, accent and link colours, and table borders, shading and padding, plus free CSS for anything else. Three built-in starters (Plain, Formal serif, Modern sans) can be duplicated but not edited. Bundled fonts: Noto Sans, Inter, Noto Serif and JetBrains Mono; uploaded font assets work too.",
     howTo:
-      "Open Themes, duplicate a starter, then change its settings and free CSS. The sample PDF on the right updates as you type. Pick the theme on the Render page to use it.",
+      "Open Themes, duplicate a starter, then change its settings and free CSS. The sample PDF beside (or above) the settings updates as you type. Pick the theme on the Render page to use it.",
     limitations: [
       "Free CSS is unrestricted and can break layout; check the preview.",
       "Remote @import and font URLs don't load.",
@@ -532,7 +532,7 @@ export const faq: readonly FaqEntry[] = [
     group: "Generations",
     what: "Generate many documents from one published template at once: one PDF per CSV row (in the app) or JSON row (API). The batch shows progress (done, failed, total), each row is an entry in the generation log, rows with invalid data fail alone with their field errors, and batch rows queue behind interactive renders. Download everything as a ZIP of PDFs or as one combined packet PDF.",
     howTo:
-      "Open Batches › Run batch, pick a template, upload a CSV, check which column fills which field, and queue it. Open the batch to watch progress, cancel the remaining rows, or download. API: POST /api/v1/templates/:id/versions/:version/batch with `{ rows: [...] }` (JSON only; CSV upload is in the app), then GET /api/v1/batches/:id for progress and …/zip or …/packet to download.",
+      "Open Batches › Run batch, pick a template, upload a CSV, check which column fills which field (required fields without a column are flagged), and queue it. Open the batch to watch progress, list just the failed rows with their errors, cancel the remaining rows, or download. API: POST /api/v1/templates/:id/versions/:version/batch with `{ rows: [...] }` (JSON only; CSV upload is in the app), then GET /api/v1/batches/:id for progress and …/zip or …/packet to download.",
     limitations: [
       "Up to 10,000 rows and 20 MB of CSV or JSON per batch.",
       "Batches always use the latest published version in the app (the API takes any version).",

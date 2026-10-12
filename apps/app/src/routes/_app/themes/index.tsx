@@ -137,14 +137,14 @@ function Themes() {
           <>
             <section aria-labelledby="own-themes" className="space-y-3">
               <h2 id="own-themes" className="font-heading text-lg font-bold">
-                Your themes
+                Custom themes
               </h2>
               {own.length ? (
                 <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">{own.map(card)}</div>
               ) : (
                 <EmptyState
                   icon={PaletteIcon}
-                  title="No themes of your own yet"
+                  title="No custom themes yet"
                   description={
                     canCreate
                       ? "Duplicate a starter below, then change its fonts and colours."
@@ -159,7 +159,7 @@ function Themes() {
                   Starters
                 </h2>
                 <p className="text-sm text-ink-3">
-                  Built in and read-only. Duplicate one to edit it.
+                  Built in and read-only.{canCreate && " Duplicate one to edit it."}
                 </p>
               </div>
               <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">{starters.map(card)}</div>
@@ -219,7 +219,7 @@ function Swatches({ settings }: { settings: ThemeSettings }) {
         <li
           key={label}
           title={`${label} ${color}`}
-          className="size-5 rounded-full shadow-[inset_0_0_0_1px_rgb(0_0_0/0.15)]"
+          className="size-5 rounded-full shadow-[inset_0_0_0_1px_rgb(0_0_0/0.15)] dark:shadow-[inset_0_0_0_1px_rgb(255_255_255/0.3)]"
           style={{ background: color }}
         >
           <span className="sr-only">

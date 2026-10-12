@@ -154,6 +154,8 @@ function TextareaField({
           rows={rows}
           spellCheck={!mono}
           className={cn(mono && "font-mono text-xs")}
+          // field-sizing-content ignores `rows`, so keep it as the minimum height.
+          style={{ minHeight: `calc(${rows}lh + 1.25rem)` }}
           value={field.state.value}
           onChange={(e) => field.handleChange(e.target.value)}
           onBlur={onBlur}
@@ -174,7 +176,7 @@ function ColorField({ label }: { label: string }) {
           <input
             type="color"
             aria-label={`${label} swatch`}
-            className="h-8 w-10 shrink-0 cursor-pointer rounded-lg border border-input bg-transparent p-1"
+            className="h-10 w-10 shrink-0 cursor-pointer rounded-lg border border-input bg-transparent p-1"
             value={/^#[0-9a-f]{6}$/i.test(field.state.value) ? field.state.value : "#000000"}
             onChange={(e) => field.handleChange(e.target.value)}
           />

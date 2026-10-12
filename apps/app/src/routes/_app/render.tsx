@@ -301,7 +301,7 @@ function RenderPlayground() {
                 }
               >
                 {(errorTabs) => (
-                  <div className="flex flex-wrap items-center gap-x-4 gap-y-3 px-4 pt-4">
+                  <div className="flex flex-wrap items-center gap-x-4 gap-y-3 px-5 pt-5">
                     <TabsList className="max-w-full overflow-x-auto">
                       {tabs.map((tab) => {
                         const invalid = errorTabs.split(",").includes(tab.value);

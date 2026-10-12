@@ -70,29 +70,33 @@ function ApiKeys() {
         </div>
         {keys.isPending ? (
           <ListSkeleton className="p-4" rows={3} />
-        ) : keys.data?.length === 0 ? (
-          <EmptyState
-            className="m-4"
-            icon={KeyIcon}
-            title="No API keys yet"
-            description={
-              <>
-                A key lets a script or another system call <code>/api/v1</code> as you. The secret
-                is shown once, when you create it.
-              </>
-            }
-            action={<CreateKeyButton ownerRoles={me.user.roles} />}
-          />
         ) : (
-          keys.data && <ApiKeyTable keys={keys.data} canRotate={() => true} />
+          keys.data && (
+            <ApiKeyTable
+              keys={keys.data}
+              canRotate={() => true}
+              empty={
+                <EmptyState
+                  className="m-4"
+                  icon={KeyIcon}
+                  title="No API keys yet"
+                  description={
+                    <>
+                      A key lets a script or another system call <code>/api/v1</code> as you. The
+                      secret is shown once, when you create it.
+                    </>
+                  }
+                  action={<CreateKeyButton ownerRoles={me.user.roles} />}
+                />
+              }
+            />
+          )
         )}
       </Card>
-      <Card className="px-4 py-4">
-        <WebhookSection
-          keys={keys.data}
-          canTemplateWebhooks={hasPermission(me.user.roles, { document: ["edit"] })}
-        />
-      </Card>
+      <WebhookSection
+        keys={keys.data}
+        canTemplateWebhooks={hasPermission(me.user.roles, { document: ["edit"] })}
+      />
     </Page>
   );
 }
