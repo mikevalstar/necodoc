@@ -1,0 +1,1407 @@
+{
+  "kind": "designed",
+  "name": "Oregon Contractor License Bond",
+  "description": "A surety bond for Oregon construction contractors, filed in favor of the Construction Contractors Board (CCB) to support the contractor's license under ORS Chapter 701. The contractor or their surety agent fills it in, entering the contractor, surety, bond number, penal sum, and dates. The license endorsement chosen is cited in the bond's conditions. Turning on the co-principal option makes a second party jointly and severally bound and adds a second signature block.",
+  "sections": [
+    {
+      "title": "Principal (contractor)",
+      "fields": [
+        {
+          "key": "principal_name",
+          "type": "text",
+          "label": "Principal legal name",
+          "required": true
+        },
+        {
+          "key": "principal_address",
+          "type": "long_text",
+          "label": "Principal address",
+          "required": true
+        },
+        {
+          "key": "ccb_license_number",
+          "type": "text",
+          "label": "CCB license number",
+          "required": true
+        },
+        {
+          "key": "license_type",
+          "type": "choice",
+          "label": "License endorsement",
+          "options": [
+            {
+              "label": "Residential General Contractor",
+              "value": "Residential General Contractor"
+            },
+            {
+              "label": "Residential Specialty Contractor",
+              "value": "Residential Specialty Contractor"
+            },
+            {
+              "label": "Commercial General Contractor Level 1",
+              "value": "Commercial General Contractor Level 1"
+            },
+            {
+              "label": "Commercial General Contractor Level 2",
+              "value": "Commercial General Contractor Level 2"
+            },
+            {
+              "label": "Commercial Specialty Contractor",
+              "value": "Commercial Specialty Contractor"
+            }
+          ],
+          "multiple": false,
+          "required": true
+        },
+        {
+          "key": "principal_signatory",
+          "type": "text",
+          "label": "Principal signatory name",
+          "required": true
+        },
+        {
+          "key": "principal_signatory_title",
+          "type": "text",
+          "label": "Principal signatory title",
+          "required": false
+        }
+      ],
+      "description": "The licensed contractor who is bonded."
+    },
+    {
+      "title": "Co-principal",
+      "fields": [
+        {
+          "key": "has_co_principal",
+          "help": "Turn on to name a co-principal and add a second principal signature block.",
+          "type": "boolean",
+          "label": "Add a co-principal",
+          "default": false,
+          "required": false
+        },
+        {
+          "key": "co_principal_name",
+          "type": "text",
+          "label": "Co-principal legal name",
+          "showIf": {
+            "op": "equals",
+            "field": "has_co_principal",
+            "value": true
+          },
+          "required": true
+        },
+        {
+          "key": "co_principal_address",
+          "type": "long_text",
+          "label": "Co-principal address",
+          "showIf": {
+            "op": "equals",
+            "field": "has_co_principal",
+            "value": true
+          },
+          "required": true
+        },
+        {
+          "key": "co_principal_signatory",
+          "type": "text",
+          "label": "Co-principal signatory name",
+          "showIf": {
+            "op": "equals",
+            "field": "has_co_principal",
+            "value": true
+          },
+          "required": true
+        },
+        {
+          "key": "co_principal_signatory_title",
+          "type": "text",
+          "label": "Co-principal signatory title",
+          "showIf": {
+            "op": "equals",
+            "field": "has_co_principal",
+            "value": true
+          },
+          "required": false
+        }
+      ],
+      "description": "Optional second principal who is jointly bound under the bond."
+    },
+    {
+      "title": "Surety",
+      "fields": [
+        {
+          "key": "surety_name",
+          "type": "text",
+          "label": "Surety company name",
+          "required": true
+        },
+        {
+          "key": "surety_address",
+          "type": "long_text",
+          "label": "Surety address",
+          "required": true
+        },
+        {
+          "key": "attorney_in_fact",
+          "type": "text",
+          "label": "Attorney-in-fact name",
+          "required": true
+        }
+      ],
+      "description": "The surety company issuing the bond."
+    },
+    {
+      "title": "Obligee",
+      "fields": [
+        {
+          "key": "obligee_name",
+          "type": "text",
+          "label": "Obligee name",
+          "default": "State of Oregon, Construction Contractors Board",
+          "required": true
+        },
+        {
+          "key": "obligee_address",
+          "type": "long_text",
+          "label": "Obligee address",
+          "required": false
+        }
+      ],
+      "description": "The party protected by the bond."
+    },
+    {
+      "title": "Bond terms",
+      "fields": [
+        {
+          "key": "bond_number",
+          "type": "text",
+          "label": "Bond number",
+          "required": true
+        },
+        {
+          "key": "penal_sum",
+          "min": 0,
+          "help": "Total amount of the bond.",
+          "type": "number",
+          "label": "Penal sum (USD)",
+          "decimals": 2,
+          "required": true
+        },
+        {
+          "key": "effective_date",
+          "type": "date",
+          "label": "Effective date",
+          "required": true
+        },
+        {
+          "key": "execution_date",
+          "type": "date",
+          "label": "Date executed",
+          "required": true
+        }
+      ]
+    }
+  ],
+  "sampleData": {
+    "penal_sum": 20000,
+    "bond_number": "OR-CLB-2025-004817",
+    "surety_name": "Harbour Surety Company",
+    "license_type": "Residential General Contractor",
+    "obligee_name": "State of Oregon, Construction Contractors Board",
+    "effective_date": "2025-07-01",
+    "execution_date": "2025-06-20",
+    "principal_name": "Cascade Ridge Builders LLC",
+    "surety_address": "900 SW Fifth Avenue, Suite 1200\nPortland, OR 97204",
+    "obligee_address": "Salem, Oregon",
+    "attorney_in_fact": "Robert J. Hargrove",
+    "has_co_principal": true,
+    "co_principal_name": "Whitfield Holdings Inc.",
+    "principal_address": "4821 SE Hawthorne Blvd\nPortland, OR 97215",
+    "ccb_license_number": "123456",
+    "principal_signatory": "Dana M. Whitfield",
+    "co_principal_address": "1550 NW Overton Street, Suite 300\nPortland, OR 97209",
+    "co_principal_signatory": "Thomas A. Whitfield",
+    "principal_signatory_title": "Managing Member",
+    "co_principal_signatory_title": "President"
+  },
+  "themeId": null,
+  "page": {
+    "size": "Letter",
+    "margins": {
+      "top": 20,
+      "left": 20,
+      "right": 20,
+      "bottom": 20
+    },
+    "orientation": "portrait"
+  },
+  "content": {
+    "css": "",
+    "body": {
+      "type": "doc",
+      "content": [
+        {
+          "type": "heading",
+          "attrs": {
+            "level": 1,
+            "textAlign": "center"
+          },
+          "content": [
+            {
+              "text": "Oregon Contractor License Bond",
+              "type": "text"
+            }
+          ]
+        },
+        {
+          "type": "paragraph",
+          "attrs": {
+            "textAlign": "center"
+          },
+          "content": [
+            {
+              "text": "Bond No. ",
+              "type": "text",
+              "marks": [
+                {
+                  "type": "bold"
+                }
+              ]
+            },
+            {
+              "type": "mergeField",
+              "attrs": {
+                "field": "bond_number",
+                "filter": null
+              },
+              "marks": [
+                {
+                  "type": "bold"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "table",
+          "content": [
+            {
+              "type": "tableRow",
+              "attrs": {
+                "repeat": null
+              },
+              "content": [
+                {
+                  "type": "tableCell",
+                  "attrs": {
+                    "colspan": 1,
+                    "rowspan": 1
+                  },
+                  "content": [
+                    {
+                      "type": "paragraph",
+                      "attrs": {
+                        "textAlign": null
+                      },
+                      "content": [
+                        {
+                          "text": "Principal",
+                          "type": "text",
+                          "marks": [
+                            {
+                              "type": "bold"
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "type": "tableCell",
+                  "attrs": {
+                    "colspan": 1,
+                    "rowspan": 1
+                  },
+                  "content": [
+                    {
+                      "type": "paragraph",
+                      "attrs": {
+                        "textAlign": null
+                      },
+                      "content": [
+                        {
+                          "type": "mergeField",
+                          "attrs": {
+                            "field": "principal_name",
+                            "filter": null
+                          },
+                          "marks": [
+                            {
+                              "type": "bold"
+                            }
+                          ]
+                        }
+                      ]
+                    },
+                    {
+                      "type": "paragraph",
+                      "attrs": {
+                        "textAlign": null
+                      },
+                      "content": [
+                        {
+                          "type": "mergeField",
+                          "attrs": {
+                            "field": "principal_address",
+                            "filter": {
+                              "name": "lines"
+                            }
+                          }
+                        }
+                      ]
+                    },
+                    {
+                      "type": "paragraph",
+                      "attrs": {
+                        "textAlign": null
+                      },
+                      "content": [
+                        {
+                          "text": "CCB License No. ",
+                          "type": "text"
+                        },
+                        {
+                          "type": "mergeField",
+                          "attrs": {
+                            "field": "ccb_license_number",
+                            "filter": null
+                          },
+                          "marks": [
+                            {
+                              "type": "bold"
+                            }
+                          ]
+                        },
+                        {
+                          "text": " (",
+                          "type": "text"
+                        },
+                        {
+                          "type": "mergeField",
+                          "attrs": {
+                            "field": "license_type",
+                            "filter": null
+                          }
+                        },
+                        {
+                          "text": ")",
+                          "type": "text"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "conditionalSection",
+                      "attrs": {
+                        "condition": {
+                          "op": "equals",
+                          "field": "has_co_principal",
+                          "value": true
+                        }
+                      },
+                      "content": [
+                        {
+                          "type": "paragraph",
+                          "attrs": {
+                            "textAlign": null
+                          },
+                          "content": [
+                            {
+                              "text": "Co-principal: ",
+                              "type": "text"
+                            },
+                            {
+                              "type": "mergeField",
+                              "attrs": {
+                                "field": "co_principal_name",
+                                "filter": null
+                              },
+                              "marks": [
+                                {
+                                  "type": "bold"
+                                }
+                              ]
+                            }
+                          ]
+                        },
+                        {
+                          "type": "paragraph",
+                          "attrs": {
+                            "textAlign": null
+                          },
+                          "content": [
+                            {
+                              "type": "mergeField",
+                              "attrs": {
+                                "field": "co_principal_address",
+                                "filter": {
+                                  "name": "lines"
+                                }
+                              }
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "tableRow",
+              "attrs": {
+                "repeat": null
+              },
+              "content": [
+                {
+                  "type": "tableCell",
+                  "attrs": {
+                    "colspan": 1,
+                    "rowspan": 1
+                  },
+                  "content": [
+                    {
+                      "type": "paragraph",
+                      "attrs": {
+                        "textAlign": null
+                      },
+                      "content": [
+                        {
+                          "text": "Surety",
+                          "type": "text",
+                          "marks": [
+                            {
+                              "type": "bold"
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "type": "tableCell",
+                  "attrs": {
+                    "colspan": 1,
+                    "rowspan": 1
+                  },
+                  "content": [
+                    {
+                      "type": "paragraph",
+                      "attrs": {
+                        "textAlign": null
+                      },
+                      "content": [
+                        {
+                          "type": "mergeField",
+                          "attrs": {
+                            "field": "surety_name",
+                            "filter": null
+                          },
+                          "marks": [
+                            {
+                              "type": "bold"
+                            }
+                          ]
+                        }
+                      ]
+                    },
+                    {
+                      "type": "paragraph",
+                      "attrs": {
+                        "textAlign": null
+                      },
+                      "content": [
+                        {
+                          "type": "mergeField",
+                          "attrs": {
+                            "field": "surety_address",
+                            "filter": {
+                              "name": "lines"
+                            }
+                          }
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "tableRow",
+              "attrs": {
+                "repeat": null
+              },
+              "content": [
+                {
+                  "type": "tableCell",
+                  "attrs": {
+                    "colspan": 1,
+                    "rowspan": 1
+                  },
+                  "content": [
+                    {
+                      "type": "paragraph",
+                      "attrs": {
+                        "textAlign": null
+                      },
+                      "content": [
+                        {
+                          "text": "Obligee",
+                          "type": "text",
+                          "marks": [
+                            {
+                              "type": "bold"
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "type": "tableCell",
+                  "attrs": {
+                    "colspan": 1,
+                    "rowspan": 1
+                  },
+                  "content": [
+                    {
+                      "type": "paragraph",
+                      "attrs": {
+                        "textAlign": null
+                      },
+                      "content": [
+                        {
+                          "type": "mergeField",
+                          "attrs": {
+                            "field": "obligee_name",
+                            "filter": null
+                          },
+                          "marks": [
+                            {
+                              "type": "bold"
+                            }
+                          ]
+                        }
+                      ]
+                    },
+                    {
+                      "type": "conditionalSection",
+                      "attrs": {
+                        "condition": {
+                          "op": "is_set",
+                          "field": "obligee_address"
+                        }
+                      },
+                      "content": [
+                        {
+                          "type": "paragraph",
+                          "attrs": {
+                            "textAlign": null
+                          },
+                          "content": [
+                            {
+                              "type": "mergeField",
+                              "attrs": {
+                                "field": "obligee_address",
+                                "filter": {
+                                  "name": "lines"
+                                }
+                              }
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "tableRow",
+              "attrs": {
+                "repeat": null
+              },
+              "content": [
+                {
+                  "type": "tableCell",
+                  "attrs": {
+                    "colspan": 1,
+                    "rowspan": 1
+                  },
+                  "content": [
+                    {
+                      "type": "paragraph",
+                      "attrs": {
+                        "textAlign": null
+                      },
+                      "content": [
+                        {
+                          "text": "Penal sum",
+                          "type": "text",
+                          "marks": [
+                            {
+                              "type": "bold"
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "type": "tableCell",
+                  "attrs": {
+                    "colspan": 1,
+                    "rowspan": 1
+                  },
+                  "content": [
+                    {
+                      "type": "paragraph",
+                      "attrs": {
+                        "textAlign": null
+                      },
+                      "content": [
+                        {
+                          "type": "mergeField",
+                          "attrs": {
+                            "field": "penal_sum",
+                            "filter": {
+                              "name": "currency",
+                              "currency": "USD"
+                            }
+                          },
+                          "marks": [
+                            {
+                              "type": "bold"
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "tableRow",
+              "attrs": {
+                "repeat": null
+              },
+              "content": [
+                {
+                  "type": "tableCell",
+                  "attrs": {
+                    "colspan": 1,
+                    "rowspan": 1
+                  },
+                  "content": [
+                    {
+                      "type": "paragraph",
+                      "attrs": {
+                        "textAlign": null
+                      },
+                      "content": [
+                        {
+                          "text": "Effective date",
+                          "type": "text",
+                          "marks": [
+                            {
+                              "type": "bold"
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "type": "tableCell",
+                  "attrs": {
+                    "colspan": 1,
+                    "rowspan": 1
+                  },
+                  "content": [
+                    {
+                      "type": "paragraph",
+                      "attrs": {
+                        "textAlign": null
+                      },
+                      "content": [
+                        {
+                          "type": "mergeField",
+                          "attrs": {
+                            "field": "effective_date",
+                            "filter": {
+                              "name": "date",
+                              "format": "MMMM D, YYYY"
+                            }
+                          }
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "paragraph",
+          "attrs": {
+            "textAlign": null
+          },
+          "content": [
+            {
+              "text": "KNOW ALL PERSONS BY THESE PRESENTS, that the Principal and the Surety named above are held and firmly bound unto the Obligee on the following terms:",
+              "type": "text"
+            }
+          ]
+        },
+        {
+          "type": "conditionalSection",
+          "attrs": {
+            "condition": {
+              "op": "equals",
+              "field": "has_co_principal",
+              "value": true
+            }
+          },
+          "content": [
+            {
+              "type": "paragraph",
+              "attrs": {
+                "textAlign": null
+              },
+              "content": [
+                {
+                  "type": "mergeField",
+                  "attrs": {
+                    "field": "co_principal_name",
+                    "filter": null
+                  },
+                  "marks": [
+                    {
+                      "type": "bold"
+                    }
+                  ]
+                },
+                {
+                  "text": " (the \"Co-principal\") is jointly and severally bound with the Principal under this bond, and every reference below to the Principal includes the Co-principal.",
+                  "type": "text"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "orderedList",
+          "attrs": {
+            "start": 1
+          },
+          "content": [
+            {
+              "type": "listItem",
+              "content": [
+                {
+                  "type": "paragraph",
+                  "attrs": {
+                    "textAlign": null
+                  },
+                  "content": [
+                    {
+                      "text": "Obligation. ",
+                      "type": "text",
+                      "marks": [
+                        {
+                          "type": "bold"
+                        }
+                      ]
+                    },
+                    {
+                      "text": "The Principal and the Surety bind themselves, their heirs, successors and assigns, jointly and severally, to the Obligee in the penal sum of ",
+                      "type": "text"
+                    },
+                    {
+                      "type": "mergeField",
+                      "attrs": {
+                        "field": "penal_sum",
+                        "filter": {
+                          "name": "currency",
+                          "currency": "USD"
+                        }
+                      }
+                    },
+                    {
+                      "text": ".",
+                      "type": "text"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "listItem",
+              "content": [
+                {
+                  "type": "paragraph",
+                  "attrs": {
+                    "textAlign": null
+                  },
+                  "content": [
+                    {
+                      "text": "Condition. ",
+                      "type": "text",
+                      "marks": [
+                        {
+                          "type": "bold"
+                        }
+                      ]
+                    },
+                    {
+                      "text": "The Principal holds or has applied for a license as a ",
+                      "type": "text"
+                    },
+                    {
+                      "type": "mergeField",
+                      "attrs": {
+                        "field": "license_type",
+                        "filter": null
+                      }
+                    },
+                    {
+                      "text": " under ORS Chapter 701. This bond is conditioned upon the Principal's compliance with Oregon law governing licensed construction contractors and upon payment of valid claims against this bond as that law provides.",
+                      "type": "text"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "listItem",
+              "content": [
+                {
+                  "type": "paragraph",
+                  "attrs": {
+                    "textAlign": null
+                  },
+                  "content": [
+                    {
+                      "text": "Term. ",
+                      "type": "text",
+                      "marks": [
+                        {
+                          "type": "bold"
+                        }
+                      ]
+                    },
+                    {
+                      "text": "This bond takes effect on ",
+                      "type": "text"
+                    },
+                    {
+                      "type": "mergeField",
+                      "attrs": {
+                        "field": "effective_date",
+                        "filter": {
+                          "name": "date",
+                          "format": "MMMM D, YYYY"
+                        }
+                      }
+                    },
+                    {
+                      "text": " and continues in force until cancelled. The aggregate liability of the Surety shall not exceed the penal sum, regardless of the number of claims made or the number of years the bond remains in force.",
+                      "type": "text"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "listItem",
+              "content": [
+                {
+                  "type": "paragraph",
+                  "attrs": {
+                    "textAlign": null
+                  },
+                  "content": [
+                    {
+                      "text": "Cancellation. ",
+                      "type": "text",
+                      "marks": [
+                        {
+                          "type": "bold"
+                        }
+                      ]
+                    },
+                    {
+                      "text": "The Surety may cancel this bond only by written notice to the Obligee as required by Oregon law. Cancellation does not release the Surety from liability for acts or omissions of the Principal occurring before the effective date of cancellation.",
+                      "type": "text"
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "paragraph",
+          "attrs": {
+            "textAlign": null
+          },
+          "content": [
+            {
+              "text": "Signed and sealed on ",
+              "type": "text"
+            },
+            {
+              "type": "mergeField",
+              "attrs": {
+                "field": "execution_date",
+                "filter": {
+                  "name": "date",
+                  "format": "MMMM D, YYYY"
+                }
+              }
+            },
+            {
+              "text": ".",
+              "type": "text"
+            }
+          ]
+        },
+        {
+          "type": "table",
+          "content": [
+            {
+              "type": "tableRow",
+              "attrs": {
+                "repeat": null
+              },
+              "content": [
+                {
+                  "type": "tableCell",
+                  "attrs": {
+                    "colspan": 1,
+                    "rowspan": 1
+                  },
+                  "content": [
+                    {
+                      "type": "paragraph",
+                      "attrs": {
+                        "textAlign": null
+                      },
+                      "content": [
+                        {
+                          "text": "PRINCIPAL",
+                          "type": "text",
+                          "marks": [
+                            {
+                              "type": "bold"
+                            }
+                          ]
+                        }
+                      ]
+                    },
+                    {
+                      "type": "paragraph",
+                      "attrs": {
+                        "textAlign": null
+                      },
+                      "content": [
+                        {
+                          "type": "mergeField",
+                          "attrs": {
+                            "field": "principal_name",
+                            "filter": null
+                          }
+                        }
+                      ]
+                    },
+                    {
+                      "type": "paragraph",
+                      "attrs": {
+                        "textAlign": null
+                      },
+                      "content": [
+                        {
+                          "text": " ",
+                          "type": "text"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "paragraph",
+                      "attrs": {
+                        "textAlign": null
+                      },
+                      "content": [
+                        {
+                          "text": "By: ______________________________",
+                          "type": "text"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "paragraph",
+                      "attrs": {
+                        "textAlign": null
+                      },
+                      "content": [
+                        {
+                          "type": "mergeField",
+                          "attrs": {
+                            "field": "principal_signatory",
+                            "filter": null
+                          }
+                        }
+                      ]
+                    },
+                    {
+                      "type": "conditionalSection",
+                      "attrs": {
+                        "condition": {
+                          "op": "is_set",
+                          "field": "principal_signatory_title"
+                        }
+                      },
+                      "content": [
+                        {
+                          "type": "paragraph",
+                          "attrs": {
+                            "textAlign": null
+                          },
+                          "content": [
+                            {
+                              "type": "mergeField",
+                              "attrs": {
+                                "field": "principal_signatory_title",
+                                "filter": null
+                              }
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "type": "tableCell",
+                  "attrs": {
+                    "colspan": 1,
+                    "rowspan": 1
+                  },
+                  "content": [
+                    {
+                      "type": "paragraph",
+                      "attrs": {
+                        "textAlign": null
+                      },
+                      "content": [
+                        {
+                          "text": "SURETY",
+                          "type": "text",
+                          "marks": [
+                            {
+                              "type": "bold"
+                            }
+                          ]
+                        }
+                      ]
+                    },
+                    {
+                      "type": "paragraph",
+                      "attrs": {
+                        "textAlign": null
+                      },
+                      "content": [
+                        {
+                          "type": "mergeField",
+                          "attrs": {
+                            "field": "surety_name",
+                            "filter": null
+                          }
+                        }
+                      ]
+                    },
+                    {
+                      "type": "paragraph",
+                      "attrs": {
+                        "textAlign": null
+                      },
+                      "content": [
+                        {
+                          "text": " ",
+                          "type": "text"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "paragraph",
+                      "attrs": {
+                        "textAlign": null
+                      },
+                      "content": [
+                        {
+                          "text": "By: ______________________________",
+                          "type": "text"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "paragraph",
+                      "attrs": {
+                        "textAlign": null
+                      },
+                      "content": [
+                        {
+                          "type": "mergeField",
+                          "attrs": {
+                            "field": "attorney_in_fact",
+                            "filter": null
+                          }
+                        },
+                        {
+                          "text": ", Attorney-in-Fact",
+                          "type": "text"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "conditionalSection",
+          "attrs": {
+            "condition": {
+              "op": "equals",
+              "field": "has_co_principal",
+              "value": true
+            }
+          },
+          "content": [
+            {
+              "type": "table",
+              "content": [
+                {
+                  "type": "tableRow",
+                  "attrs": {
+                    "repeat": null
+                  },
+                  "content": [
+                    {
+                      "type": "tableCell",
+                      "attrs": {
+                        "colspan": 1,
+                        "rowspan": 1
+                      },
+                      "content": [
+                        {
+                          "type": "paragraph",
+                          "attrs": {
+                            "textAlign": null
+                          },
+                          "content": [
+                            {
+                              "text": "CO-PRINCIPAL",
+                              "type": "text",
+                              "marks": [
+                                {
+                                  "type": "bold"
+                                }
+                              ]
+                            }
+                          ]
+                        },
+                        {
+                          "type": "paragraph",
+                          "attrs": {
+                            "textAlign": null
+                          },
+                          "content": [
+                            {
+                              "type": "mergeField",
+                              "attrs": {
+                                "field": "co_principal_name",
+                                "filter": null
+                              }
+                            }
+                          ]
+                        },
+                        {
+                          "type": "paragraph",
+                          "attrs": {
+                            "textAlign": null
+                          },
+                          "content": [
+                            {
+                              "text": " ",
+                              "type": "text"
+                            }
+                          ]
+                        },
+                        {
+                          "type": "paragraph",
+                          "attrs": {
+                            "textAlign": null
+                          },
+                          "content": [
+                            {
+                              "text": "By: ______________________________",
+                              "type": "text"
+                            }
+                          ]
+                        },
+                        {
+                          "type": "paragraph",
+                          "attrs": {
+                            "textAlign": null
+                          },
+                          "content": [
+                            {
+                              "type": "mergeField",
+                              "attrs": {
+                                "field": "co_principal_signatory",
+                                "filter": null
+                              }
+                            }
+                          ]
+                        },
+                        {
+                          "type": "conditionalSection",
+                          "attrs": {
+                            "condition": {
+                              "op": "is_set",
+                              "field": "co_principal_signatory_title"
+                            }
+                          },
+                          "content": [
+                            {
+                              "type": "paragraph",
+                              "attrs": {
+                                "textAlign": null
+                              },
+                              "content": [
+                                {
+                                  "type": "mergeField",
+                                  "attrs": {
+                                    "field": "co_principal_signatory_title",
+                                    "filter": null
+                                  }
+                                }
+                              ]
+                            }
+                          ]
+                        }
+                      ]
+                    },
+                    {
+                      "type": "tableCell",
+                      "attrs": {
+                        "colspan": 1,
+                        "rowspan": 1
+                      },
+                      "content": [
+                        {
+                          "type": "paragraph",
+                          "attrs": {
+                            "textAlign": null
+                          },
+                          "content": [
+                            {
+                              "text": " ",
+                              "type": "text"
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "paragraph",
+          "attrs": {
+            "textAlign": null
+          }
+        }
+      ]
+    },
+    "mode": "visual",
+    "footer": {
+      "doc": {
+        "type": "doc",
+        "content": [
+          {
+            "type": "paragraph",
+            "attrs": {
+              "textAlign": "center"
+            },
+            "content": [
+              {
+                "text": "Bond No. ",
+                "type": "text"
+              },
+              {
+                "type": "mergeField",
+                "attrs": {
+                  "field": "bond_number",
+                  "filter": null
+                }
+              },
+              {
+                "text": " · Page ",
+                "type": "text"
+              },
+              {
+                "type": "mergeField",
+                "attrs": {
+                  "field": "page",
+                  "filter": null
+                }
+              },
+              {
+                "text": " of ",
+                "type": "text"
+              },
+              {
+                "type": "mergeField",
+                "attrs": {
+                  "field": "pages",
+                  "filter": null
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "height": 10
+    },
+    "header": null,
+    "output": {
+      "lang": "en",
+      "pdfa": null,
+      "pdfua": false,
+      "certify": false
+    },
+    "signers": []
+  }
+}

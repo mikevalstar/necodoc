@@ -42,7 +42,7 @@ an API restart replaced the page with an error.
   one anyway keeps the URL and shows "You don't have access to this"
   ([auth.ts](../../apps/app/src/lib/auth.ts) `requireAccess`).
 - **Instance identity**: when the deployment sets `INSTANCE_NAME` (and
-  optionally `INSTANCE_ENV`: `prod`, `staging` or `dev`), the top of the
+  optionally `INSTANCE_ENV`: `prod`, `staging`, `dev` or `demo`), the top of the
   sidebar names the instance with its environment ("Harbour Surety · prod"),
   coloured per environment so staging is never mistaken for production. The
   rail shows the name's initials; the login page shows the same label. Every

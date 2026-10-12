@@ -1,0 +1,569 @@
+{
+  "kind": "overlay",
+  "name": "Castle Pines ROW Permit Bond",
+  "description": "City of Castle Pines, Colorado right-of-way permit bond, filled on the city’s three-page form.",
+  "sections": [
+    {
+      "title": "Bond details",
+      "fields": [
+        {
+          "key": "principal_name",
+          "type": "text",
+          "label": "Principal legal name",
+          "required": false
+        },
+        {
+          "key": "principal_entity_type",
+          "type": "text",
+          "label": "Type of entity",
+          "required": false
+        },
+        {
+          "key": "principal_office_address",
+          "type": "text",
+          "label": "Principal office address",
+          "required": false
+        },
+        {
+          "key": "surety_name",
+          "type": "text",
+          "label": "Surety company",
+          "required": false
+        },
+        {
+          "key": "bond_amount_words",
+          "type": "text",
+          "label": "Bond amount in words",
+          "required": false
+        },
+        {
+          "key": "bond_amount_numeric",
+          "type": "number",
+          "label": "Bond amount (USD)",
+          "required": false
+        },
+        {
+          "key": "permit_number",
+          "type": "text",
+          "label": "ROW permit number",
+          "required": false
+        },
+        {
+          "key": "signed_day",
+          "type": "number",
+          "label": "Signed: day",
+          "required": false
+        },
+        {
+          "key": "signed_month",
+          "type": "text",
+          "label": "Signed: month",
+          "required": false
+        },
+        {
+          "key": "signed_year",
+          "type": "number",
+          "label": "Signed: year",
+          "required": false
+        },
+        {
+          "key": "principal_signature",
+          "type": "signature",
+          "label": "Principal signature",
+          "required": false
+        },
+        {
+          "key": "principal_address_line_1",
+          "type": "text",
+          "label": "Principal address",
+          "required": false
+        },
+        {
+          "key": "principal_address_line_2",
+          "type": "text",
+          "label": "Principal address (line 2)",
+          "required": false
+        },
+        {
+          "key": "surety_signature",
+          "type": "signature",
+          "label": "Surety signature",
+          "required": false
+        },
+        {
+          "key": "surety_address_line_1",
+          "type": "text",
+          "label": "Surety address",
+          "required": false
+        },
+        {
+          "key": "surety_address_line_2",
+          "type": "text",
+          "label": "Surety address (line 2)",
+          "required": false
+        }
+      ]
+    }
+  ],
+  "sampleData": {
+    "signed_day": 6,
+    "signed_year": 2026,
+    "surety_name": "Harbour Surety Company",
+    "signed_month": "October",
+    "permit_number": "2026-0417",
+    "principal_name": "Front Range Utility Contractors LLC",
+    "surety_signature": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==",
+    "bond_amount_words": "Twenty-five thousand and 00/100",
+    "bond_amount_numeric": 25000,
+    "principal_signature": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==",
+    "principal_entity_type": "Colorado limited liability company",
+    "surety_address_line_1": "1600 Broadway, Suite 900",
+    "surety_address_line_2": "Denver, CO 80202",
+    "principal_address_line_1": "7400 E Orchard Road",
+    "principal_address_line_2": "Greenwood Village, CO 80111",
+    "principal_office_address": "7400 E Orchard Road, Greenwood Village, CO 80111"
+  },
+  "themeId": null,
+  "page": {
+    "size": "Letter",
+    "margins": {
+      "top": 20,
+      "left": 20,
+      "right": 20,
+      "bottom": 20
+    },
+    "orientation": "portrait"
+  },
+  "content": {
+    "boxes": [
+      {
+        "id": "bsnvp56xr",
+        "page": 1,
+        "rect": {
+          "x": 384.67,
+          "y": 644.67,
+          "width": 132.33,
+          "height": 18
+        },
+        "type": "text",
+        "style": {
+          "font": "noto-sans",
+          "size": 11,
+          "align": "left",
+          "color": "#000000",
+          "valign": "middle",
+          "minSize": 6,
+          "autoShrink": true
+        },
+        "value": "{{ principal_name }}"
+      },
+      {
+        "id": "btpmuvvqm",
+        "page": 1,
+        "rect": {
+          "x": 72,
+          "y": 632,
+          "width": 132,
+          "height": 11.81
+        },
+        "type": "text",
+        "style": {
+          "font": "noto-sans",
+          "size": 7.5,
+          "align": "left",
+          "color": "#000000",
+          "valign": "middle",
+          "minSize": 6,
+          "autoShrink": true
+        },
+        "value": "{{ principal_entity_type }}"
+      },
+      {
+        "id": "bvlqc8mzk",
+        "page": 1,
+        "rect": {
+          "x": 72,
+          "y": 619.33,
+          "width": 214.67,
+          "height": 12.33
+        },
+        "type": "text",
+        "style": {
+          "font": "noto-sans",
+          "size": 8,
+          "align": "left",
+          "color": "#000000",
+          "valign": "middle",
+          "minSize": 6,
+          "autoShrink": true
+        },
+        "value": "{{ principal_office_address }}"
+      },
+      {
+        "id": "badugpy3i",
+        "page": 1,
+        "rect": {
+          "x": 72,
+          "y": 606.67,
+          "width": 247.67,
+          "height": 12.33
+        },
+        "type": "text",
+        "style": {
+          "font": "noto-sans",
+          "size": 8,
+          "align": "left",
+          "color": "#000000",
+          "valign": "middle",
+          "minSize": 6,
+          "autoShrink": true
+        },
+        "value": "{{ surety_name }}"
+      },
+      {
+        "id": "bkezhqbky",
+        "page": 1,
+        "rect": {
+          "x": 72,
+          "y": 581.33,
+          "width": 154.33,
+          "height": 11.85
+        },
+        "type": "text",
+        "style": {
+          "font": "noto-sans",
+          "size": 7.5,
+          "align": "left",
+          "color": "#000000",
+          "valign": "middle",
+          "minSize": 6,
+          "autoShrink": true
+        },
+        "value": "{{ bond_amount_words }}"
+      },
+      {
+        "id": "b2g8zv1sb",
+        "page": 1,
+        "rect": {
+          "x": 274,
+          "y": 581.33,
+          "width": 72,
+          "height": 11.85
+        },
+        "type": "number",
+        "style": {
+          "font": "noto-sans",
+          "size": 7.5,
+          "align": "left",
+          "color": "#000000",
+          "valign": "middle",
+          "minSize": 6,
+          "autoShrink": true
+        },
+        "value": "{{ bond_amount_numeric }}"
+      },
+      {
+        "id": "b30z806se",
+        "page": 1,
+        "rect": {
+          "x": 407.67,
+          "y": 480.33,
+          "width": 44,
+          "height": 11.71
+        },
+        "type": "text",
+        "style": {
+          "font": "noto-sans",
+          "size": 7.5,
+          "align": "left",
+          "color": "#000000",
+          "valign": "middle",
+          "minSize": 6,
+          "autoShrink": true
+        },
+        "value": "{{ permit_number }}"
+      },
+      {
+        "id": "brc0n0jbv",
+        "page": 3,
+        "rect": {
+          "x": 213.67,
+          "y": 695.33,
+          "width": 34.33,
+          "height": 18
+        },
+        "type": "number",
+        "style": {
+          "font": "noto-sans",
+          "size": 11,
+          "align": "left",
+          "color": "#000000",
+          "valign": "middle",
+          "minSize": 6,
+          "autoShrink": true
+        },
+        "value": "{{ signed_day }}"
+      },
+      {
+        "id": "bymky0cg3",
+        "page": 3,
+        "rect": {
+          "x": 270.33,
+          "y": 695.33,
+          "width": 87,
+          "height": 18
+        },
+        "type": "text",
+        "style": {
+          "font": "noto-sans",
+          "size": 11,
+          "align": "left",
+          "color": "#000000",
+          "valign": "middle",
+          "minSize": 6,
+          "autoShrink": true
+        },
+        "value": "{{ signed_month }}"
+      },
+      {
+        "id": "b0ixvivun",
+        "page": 3,
+        "rect": {
+          "x": 379,
+          "y": 695.33,
+          "width": 11.33,
+          "height": 18
+        },
+        "type": "number",
+        "style": {
+          "font": "noto-sans",
+          "size": 11,
+          "align": "left",
+          "color": "#000000",
+          "valign": "middle",
+          "minSize": 6,
+          "autoShrink": true
+        },
+        "value": "{{ signed_year }}"
+      },
+      {
+        "id": "bufaf7ydy",
+        "page": 3,
+        "rect": {
+          "x": 72,
+          "y": 644.67,
+          "width": 192.67,
+          "height": 18
+        },
+        "type": "text",
+        "style": {
+          "font": "noto-sans",
+          "size": 11,
+          "align": "left",
+          "color": "#000000",
+          "valign": "middle",
+          "minSize": 6,
+          "autoShrink": true
+        },
+        "value": "{{ principal_name }}"
+      },
+      {
+        "id": "bsmyhdhu4",
+        "page": 3,
+        "rect": {
+          "x": 90.67,
+          "y": 606.67,
+          "width": 176.33,
+          "height": 18
+        },
+        "type": "signature",
+        "value": "{{ principal_signature }}"
+      },
+      {
+        "id": "b4kf62odx",
+        "page": 3,
+        "rect": {
+          "x": 72,
+          "y": 556,
+          "width": 192.67,
+          "height": 18
+        },
+        "type": "text",
+        "style": {
+          "font": "noto-sans",
+          "size": 11,
+          "align": "left",
+          "color": "#000000",
+          "valign": "middle",
+          "minSize": 6,
+          "autoShrink": true
+        },
+        "value": "{{ principal_address_line_1 }}"
+      },
+      {
+        "id": "b3c0browk",
+        "page": 3,
+        "rect": {
+          "x": 72,
+          "y": 530.67,
+          "width": 198.33,
+          "height": 18
+        },
+        "type": "text",
+        "style": {
+          "font": "noto-sans",
+          "size": 11,
+          "align": "left",
+          "color": "#000000",
+          "valign": "middle",
+          "minSize": 6,
+          "autoShrink": true
+        },
+        "value": "{{ principal_address_line_2 }}"
+      },
+      {
+        "id": "bd86e4ims",
+        "page": 3,
+        "rect": {
+          "x": 324,
+          "y": 644.67,
+          "width": 192.67,
+          "height": 18
+        },
+        "type": "text",
+        "style": {
+          "font": "noto-sans",
+          "size": 11,
+          "align": "left",
+          "color": "#000000",
+          "valign": "middle",
+          "minSize": 6,
+          "autoShrink": true
+        },
+        "value": "{{ surety_name }}"
+      },
+      {
+        "id": "b5yub7v1x",
+        "page": 3,
+        "rect": {
+          "x": 342.67,
+          "y": 606.67,
+          "width": 176.33,
+          "height": 18
+        },
+        "type": "signature",
+        "value": "{{ surety_signature }}"
+      },
+      {
+        "id": "bvv03mo5q",
+        "page": 3,
+        "rect": {
+          "x": 324,
+          "y": 556,
+          "width": 192.67,
+          "height": 18
+        },
+        "type": "text",
+        "style": {
+          "font": "noto-sans",
+          "size": 11,
+          "align": "left",
+          "color": "#000000",
+          "valign": "middle",
+          "minSize": 6,
+          "autoShrink": true
+        },
+        "value": "{{ surety_address_line_1 }}"
+      },
+      {
+        "id": "bhao282oo",
+        "page": 3,
+        "rect": {
+          "x": 324,
+          "y": 530.67,
+          "width": 192.67,
+          "height": 18
+        },
+        "type": "text",
+        "style": {
+          "font": "noto-sans",
+          "size": 11,
+          "align": "left",
+          "color": "#000000",
+          "valign": "middle",
+          "minSize": 6,
+          "autoShrink": true
+        },
+        "value": "{{ surety_address_line_2 }}"
+      },
+      {
+        "id": "sig_principal",
+        "page": 3,
+        "rect": {
+          "x": 92,
+          "y": 608,
+          "width": 175,
+          "height": 22
+        },
+        "type": "signature",
+        "value": "",
+        "signerId": "principal",
+        "signingKind": "signature"
+      },
+      {
+        "id": "sig_aif",
+        "page": 3,
+        "rect": {
+          "x": 344,
+          "y": 608,
+          "width": 175,
+          "height": 22
+        },
+        "type": "signature",
+        "value": "",
+        "signerId": "attorney_in_fact",
+        "signingKind": "signature"
+      },
+      {
+        "id": "sig_principal_date",
+        "page": 3,
+        "rect": {
+          "x": 214,
+          "y": 697,
+          "width": 28,
+          "height": 11
+        },
+        "type": "signature",
+        "value": "",
+        "required": false,
+        "signerId": "principal",
+        "signingKind": "date_signed"
+      }
+    ],
+    "flatten": false,
+    "signers": [
+      {
+        "id": "principal",
+        "name": "{{ principal_name }}",
+        "role": "Principal",
+        "email": "permits@frontrange-utility.example",
+        "routingOrder": 1
+      },
+      {
+        "id": "surety",
+        "name": "{{ surety_name }}",
+        "role": "Surety",
+        "email": "bonds@harbour-surety.example",
+        "routingOrder": 2
+      },
+      {
+        "id": "attorney_in_fact",
+        "name": "Margaret L. Chen",
+        "role": "Attorney-in-fact",
+        "email": "mchen@harbour-surety.example",
+        "routingOrder": 2
+      }
+    ],
+    "sourceId": "$source:castle-pines-co-row-permit-bond.pdf"
+  }
+}

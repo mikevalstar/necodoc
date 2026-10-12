@@ -1,11 +1,11 @@
-import { type Instance, MAX_FILE_BYTES, parseRoles } from "@necodoc/shared";
+import { MAX_FILE_BYTES, parseRoles } from "@necodoc/shared";
 import { Hono } from "hono";
 import { bodyLimit } from "hono/body-limit";
 import { HTTPException } from "hono/http-exception";
 import { aiModel } from "./ai";
 import { auditScope } from "./audit";
 import { auth } from "./auth";
-import { env } from "./env";
+import { env, instance } from "./env";
 import { type AppEnv, requestId } from "./middleware";
 import { observeRequests } from "./observability/http";
 import { adminUserRoutes } from "./routes/admin-users";
@@ -70,11 +70,17 @@ const routes = app
   .route("/health", healthRoutes)
   .route("/sso", ssoRoutes)
   // Public: the login page shows it too. A label for this one installation, not a tenant.
-  .get("/instance", (c) =>
-    c.json({ name: env.INSTANCE_NAME ?? null, env: env.INSTANCE_ENV ?? null } satisfies Instance),
-  )
-  .get("/me", (c) => {
-    const user = c.get("user");
+  .get("/instance", (c) => c.json(instance))
+  .get("/me", async (c) => {
+    let user = c.get("user");
+    // ADR 0044: in the public demo, no session means "sign in as the demo user" right here.
+    if (!user && env.DEMO_MODE) {
+      const cookies = (await auth.api.demoSignIn({ returnHeaders: true })).headers.getSetCookie();
+      for (const cookie of cookies) c.header("Set-Cookie", cookie, { append: true });
+      // Read back through the new cookie: the user as every other request sees it.
+      const cookie = cookies.map((set) => set.split(";")[0]).join("; ");
+      user = (await auth.api.getSession({ headers: new Headers({ cookie }) }))?.user ?? null;
+    }
     if (!user) return c.json({ error: "Unauthorized" }, 401);
     return c.json({
       user: { ...user, roles: parseRoles(user.role) },

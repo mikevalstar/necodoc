@@ -2,9 +2,11 @@ import { serve } from "@hono/node-server";
 import { eq } from "drizzle-orm";
 import { Hono } from "hono";
 import app from "./app";
+import { auth } from "./auth";
 import { seedBuiltinThemes } from "./builtin-themes";
 import { db } from "./db";
 import { worker } from "./db/schema";
+import { ensureDemoUser } from "./demo";
 import { env, runsWorker, servesApi } from "./env";
 import { processId } from "./generate";
 import { log } from "./log";
@@ -31,6 +33,8 @@ renderLimits.maxConcurrent =
   2 * ((runsWorker ? env.RENDER_CONCURRENCY : 0) + (servesApi ? env.PREVIEW_CONCURRENCY : 0));
 
 if (servesApi) await seedBuiltinThemes();
+// docs/features/public-demo.md: the shared demo user exists before the first visitor.
+if (servesApi && env.DEMO_MODE) await ensureDemoUser(await auth.$context);
 await startQueue();
 if (runsWorker) await startWorker();
 await startHeartbeat();

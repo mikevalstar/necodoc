@@ -54,4 +54,5 @@ Add one with `okq new adr "<title>"`.
 | Python, .NET and Java SDKs generated with openapi-generator | [0041-python-net-and-java-sdks-generated-with-openapi-generator.md](0041-python-net-and-java-sdks-generated-with-openapi-generator.md) |
 | Cobalt design system with Bricolage, Figtree and Phosphor | [0042-cobalt-design-system-with-bricolage-figtree-and-phosphor.md](0042-cobalt-design-system-with-bricolage-figtree-and-phosphor.md) |
 | Remotion for the product tour reel | [0043-remotion-for-the-product-tour-reel.md](0043-remotion-for-the-product-tour-reel.md) |
+| Shared demo account signed in by a server-only Better Auth endpoint | [0044-shared-demo-account-signed-in-by-a-server-only-better-auth-endpoint.md](0044-shared-demo-account-signed-in-by-a-server-only-better-auth-endpoint.md) |
 <!-- okq:index:end -->

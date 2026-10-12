@@ -22,6 +22,7 @@ Add one with `okq new feature "<title>"`.
 | Combining PDFs into packets | [combining-pdfs-into-packets.md](combining-pdfs-into-packets.md) |
 | Command palette | [command-palette.md](command-palette.md) |
 | Competitive scope | [competitive-scope.md](competitive-scope.md) |
+| Demo data and screenshots | [demo-data-and-screenshots.md](demo-data-and-screenshots.md) |
 | Design system | [design-system.md](design-system.md) |
 | Document localization | [document-localization.md](document-localization.md) |
 | Document templates | [document-templates.md](document-templates.md) |
@@ -35,6 +36,7 @@ Add one with `okq new feature "<title>"`.
 | Performance benchmark | [performance-benchmark.md](performance-benchmark.md) |
 | Personal data masking and erasure | [personal-data-masking-and-erasure.md](personal-data-masking-and-erasure.md) |
 | Product tour reel | [product-tour-reel.md](product-tour-reel.md) |
+| Public demo | [public-demo.md](public-demo.md) |
 | Publishing and versions | [publishing-and-versions.md](publishing-and-versions.md) |
 | Render queue, batch jobs and scaling | [render-queue-batch-jobs-and-scaling.md](render-queue-batch-jobs-and-scaling.md) |
 | Review and approval | [review-and-approval.md](review-and-approval.md) |

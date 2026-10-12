@@ -21,7 +21,7 @@ import {
 } from "@tanstack/react-router";
 import { useState, useSyncExternalStore } from "react";
 import { CommandPalette, useCommandPalette } from "@/components/command-palette";
-import { InstanceBlock, initials } from "@/components/instance";
+import { DemoBanner, InstanceBlock, initials, instanceQuery } from "@/components/instance";
 import { Logo } from "@/components/logo";
 import { NotificationBell } from "@/components/notifications";
 import { OpsStatusBar, useStatusBar } from "@/components/ops-status-bar";
@@ -261,6 +261,7 @@ function AppShell() {
         </div>
       </aside>
       <div className="flex min-w-0 flex-1 flex-col">
+        <DemoBanner />
         <header className="flex h-16 shrink-0 items-center gap-2.5 px-4 sm:px-8">
           <nav aria-label="Breadcrumb" className="min-w-0">
             <ol className="flex items-center gap-1.5 font-medium whitespace-nowrap text-ink-3">
@@ -396,6 +397,8 @@ function ThemeToggle() {
 /** Your account, at the foot of the sidebar: avatar and name, opening Settings and Sign out. */
 function UserMenu({ me, rail }: { me: Me; rail: boolean }) {
   const signOut = useSignOut();
+  // The public demo signs you straight back in, so there's nothing to sign out of.
+  const demoMode = useQuery(instanceQuery).data?.demoMode ?? false;
   const roles = me.user.roles;
   return (
     <DropdownMenu>
@@ -443,11 +446,15 @@ function UserMenu({ me, rail }: { me: Me; rail: boolean }) {
             My usage
           </DropdownMenuItem>
         )}
-        <DropdownMenuSeparator />
-        <DropdownMenuItem disabled={signOut.isPending} onClick={() => signOut.mutate()}>
-          <SignOutIcon />
-          Sign out
-        </DropdownMenuItem>
+        {!demoMode && (
+          <>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem disabled={signOut.isPending} onClick={() => signOut.mutate()}>
+              <SignOutIcon />
+              Sign out
+            </DropdownMenuItem>
+          </>
+        )}
       </DropdownMenuContent>
     </DropdownMenu>
   );

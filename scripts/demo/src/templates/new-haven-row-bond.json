@@ -1,0 +1,387 @@
+{
+  "kind": "overlay",
+  "name": "New Haven Right-of-Way Bond",
+  "description": "City of New Haven, Indiana right-of-way bond for work in the public right of way.",
+  "sections": [
+    {
+      "title": "Bond details",
+      "fields": [
+        {
+          "key": "principal_name",
+          "type": "text",
+          "label": "Principal (the undersigned)",
+          "required": false
+        },
+        {
+          "key": "surety_name",
+          "type": "text",
+          "label": "Surety company",
+          "required": false
+        },
+        {
+          "key": "bond_amount_numeric",
+          "type": "number",
+          "label": "Penal sum (USD)",
+          "required": false
+        },
+        {
+          "key": "bond_period_start",
+          "type": "date",
+          "label": "Bond period starts",
+          "required": false
+        },
+        {
+          "key": "bond_period_end",
+          "type": "date",
+          "label": "Bond period ends",
+          "required": false
+        },
+        {
+          "key": "signed_day",
+          "type": "number",
+          "label": "Signed: day",
+          "required": false
+        },
+        {
+          "key": "signed_month",
+          "type": "text",
+          "label": "Signed: month",
+          "required": false
+        },
+        {
+          "key": "signed_year",
+          "type": "number",
+          "label": "Signed: year",
+          "required": false
+        },
+        {
+          "key": "power_attorney_signature",
+          "type": "signature",
+          "label": "Power of attorney signature",
+          "required": false
+        },
+        {
+          "key": "attorney_signature_right",
+          "type": "signature",
+          "label": "Attorney-in-fact signature",
+          "required": false
+        },
+        {
+          "key": "surety_signature",
+          "type": "signature",
+          "label": "Surety signature",
+          "required": false
+        },
+        {
+          "key": "principal_signature",
+          "type": "signature",
+          "label": "Principal signature",
+          "required": false
+        },
+        {
+          "key": "agency",
+          "type": "text",
+          "label": "Agency",
+          "required": false
+        },
+        {
+          "key": "telephone",
+          "type": "text",
+          "label": "Agency telephone",
+          "required": false
+        }
+      ]
+    }
+  ],
+  "sampleData": {
+    "agency": "Three Rivers Insurance Agency",
+    "telephone": "(260) 555-0192",
+    "signed_day": 6,
+    "signed_year": 26,
+    "surety_name": "Harbour Surety Company",
+    "signed_month": "October",
+    "principal_name": "Allen County Excavating Inc.",
+    "bond_period_end": "2027-10-31",
+    "surety_signature": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==",
+    "bond_period_start": "2026-11-01",
+    "bond_amount_numeric": 10000,
+    "principal_signature": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==",
+    "attorney_signature_right": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==",
+    "power_attorney_signature": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg=="
+  },
+  "themeId": null,
+  "page": {
+    "size": "Letter",
+    "margins": {
+      "top": 20,
+      "left": 20,
+      "right": 20,
+      "bottom": 20
+    },
+    "orientation": "portrait"
+  },
+  "content": {
+    "boxes": [
+      {
+        "id": "bvkcrcvl2",
+        "page": 1,
+        "rect": {
+          "x": 305.33,
+          "y": 646.67,
+          "width": 198.67,
+          "height": 18
+        },
+        "type": "text",
+        "style": {
+          "font": "noto-sans",
+          "size": 11,
+          "align": "left",
+          "color": "#000000",
+          "valign": "middle",
+          "minSize": 6,
+          "autoShrink": true
+        },
+        "value": "{{ principal_name }}"
+      },
+      {
+        "id": "bwgu3gxaq",
+        "page": 1,
+        "rect": {
+          "x": 139.33,
+          "y": 631,
+          "width": 256.67,
+          "height": 15
+        },
+        "type": "text",
+        "style": {
+          "font": "noto-sans",
+          "size": 10,
+          "align": "left",
+          "color": "#000000",
+          "valign": "middle",
+          "minSize": 6,
+          "autoShrink": true
+        },
+        "value": "{{ surety_name }}"
+      },
+      {
+        "id": "btse8c33x",
+        "page": 1,
+        "rect": {
+          "x": 367.33,
+          "y": 617.67,
+          "width": 118.33,
+          "height": 12.55
+        },
+        "type": "number",
+        "style": {
+          "font": "noto-sans",
+          "size": 8,
+          "align": "left",
+          "color": "#000000",
+          "valign": "middle",
+          "minSize": 6,
+          "autoShrink": true
+        },
+        "value": "{{ bond_amount_numeric }}"
+      },
+      {
+        "id": "b383xk8py",
+        "page": 1,
+        "rect": {
+          "x": 50.33,
+          "y": 549.33,
+          "width": 110.33,
+          "height": 12.7
+        },
+        "type": "date",
+        "style": {
+          "font": "noto-sans",
+          "size": 8.5,
+          "align": "left",
+          "color": "#000000",
+          "valign": "middle",
+          "minSize": 6,
+          "autoShrink": true
+        },
+        "value": "{{ bond_period_start | date: \"MM/DD/YYYY\" }}"
+      },
+      {
+        "id": "bwio84lpe",
+        "page": 1,
+        "rect": {
+          "x": 217.33,
+          "y": 549.33,
+          "width": 127.67,
+          "height": 12.7
+        },
+        "type": "date",
+        "style": {
+          "font": "noto-sans",
+          "size": 8.5,
+          "align": "left",
+          "color": "#000000",
+          "valign": "middle",
+          "minSize": 6,
+          "autoShrink": true
+        },
+        "value": "{{ bond_period_end | date: \"MM/DD/YYYY\" }}"
+      },
+      {
+        "id": "by5u5id2x",
+        "page": 1,
+        "rect": {
+          "x": 357.67,
+          "y": 330.33,
+          "width": 28.33,
+          "height": 18
+        },
+        "type": "number",
+        "style": {
+          "font": "noto-sans",
+          "size": 11,
+          "align": "left",
+          "color": "#000000",
+          "valign": "middle",
+          "minSize": 6,
+          "autoShrink": true
+        },
+        "value": "{{ signed_day }}"
+      },
+      {
+        "id": "bp62zznq0",
+        "page": 1,
+        "rect": {
+          "x": 408.33,
+          "y": 330.33,
+          "width": 81.67,
+          "height": 18
+        },
+        "type": "text",
+        "style": {
+          "font": "noto-sans",
+          "size": 11,
+          "align": "left",
+          "color": "#000000",
+          "valign": "middle",
+          "minSize": 6,
+          "autoShrink": true
+        },
+        "value": "{{ signed_month }}"
+      },
+      {
+        "id": "blqf465i2",
+        "page": 1,
+        "rect": {
+          "x": 505.33,
+          "y": 330.33,
+          "width": 23,
+          "height": 18
+        },
+        "type": "number",
+        "style": {
+          "font": "noto-sans",
+          "size": 11,
+          "align": "left",
+          "color": "#000000",
+          "valign": "middle",
+          "minSize": 6,
+          "autoShrink": true
+        },
+        "value": "{{ signed_year }}"
+      },
+      {
+        "id": "bzeid6i0k",
+        "page": 1,
+        "rect": {
+          "x": 50.33,
+          "y": 293,
+          "width": 165.33,
+          "height": 18
+        },
+        "type": "signature",
+        "value": "{{ power_attorney_signature }}"
+      },
+      {
+        "id": "bqo1au0dv",
+        "page": 1,
+        "rect": {
+          "x": 302.33,
+          "y": 293,
+          "width": 187.33,
+          "height": 18
+        },
+        "type": "signature",
+        "value": "{{ attorney_signature_right }}"
+      },
+      {
+        "id": "b5bx5kbhj",
+        "page": 1,
+        "rect": {
+          "x": 50.33,
+          "y": 242.33,
+          "width": 165.33,
+          "height": 18
+        },
+        "type": "signature",
+        "value": "{{ surety_signature }}"
+      },
+      {
+        "id": "byww5iuzp",
+        "page": 1,
+        "rect": {
+          "x": 302.33,
+          "y": 242.33,
+          "width": 187.33,
+          "height": 18
+        },
+        "type": "signature",
+        "value": "{{ principal_signature }}"
+      },
+      {
+        "id": "br0opzac0",
+        "page": 1,
+        "rect": {
+          "x": 90.33,
+          "y": 191.67,
+          "width": 275,
+          "height": 18
+        },
+        "type": "text",
+        "style": {
+          "font": "noto-sans",
+          "size": 11,
+          "align": "left",
+          "color": "#000000",
+          "valign": "middle",
+          "minSize": 6,
+          "autoShrink": true
+        },
+        "value": "{{ agency }}"
+      },
+      {
+        "id": "bzuh4a575",
+        "page": 1,
+        "rect": {
+          "x": 102.67,
+          "y": 166.67,
+          "width": 258.67,
+          "height": 18
+        },
+        "type": "text",
+        "style": {
+          "font": "noto-sans",
+          "size": 11,
+          "align": "left",
+          "color": "#000000",
+          "valign": "middle",
+          "minSize": 6,
+          "autoShrink": true
+        },
+        "value": "{{ telephone }}"
+      }
+    ],
+    "flatten": false,
+    "sourceId": "$source:new-haven-in-row-bond.pdf"
+  }
+}

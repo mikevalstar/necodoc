@@ -1,4 +1,5 @@
 import type { InstanceEnv } from "@necodoc/shared";
+import { WarningIcon } from "@phosphor-icons/react";
 import { queryOptions, useQuery } from "@tanstack/react-query";
 import { api, ok } from "@/lib/api";
 import { cn } from "@/lib/utils";
@@ -17,6 +18,7 @@ const envTone = {
   prod: "bg-bad-wash text-bad",
   staging: "bg-warn-wash text-warn",
   dev: "bg-ok-wash text-ok",
+  demo: "bg-run-wash text-run",
 } as const satisfies Record<InstanceEnv, string>;
 
 export const initials = (name: string) =>
@@ -89,6 +91,21 @@ export function InstanceLabel() {
     <div className="flex items-center justify-center gap-2 text-sm font-semibold text-shell-fg">
       {data.name}
       {data.env && <EnvPill env={data.env} />}
+    </div>
+  );
+}
+
+/** docs/features/public-demo.md: on every app page of a public demo, above the header. */
+export function DemoBanner() {
+  const { data } = useQuery(instanceQuery);
+  if (!data?.demoMode) return null;
+  return (
+    <div
+      role="note"
+      className="flex items-center justify-center gap-2 bg-warn-wash px-4 py-1.5 text-center text-[13px] text-ink"
+    >
+      <WarningIcon aria-hidden="true" className="size-4 shrink-0 text-warn" />
+      Public demo: anything you enter is visible to everyone and may be reset.
     </div>
   );
 }

@@ -1,0 +1,501 @@
+{
+  "kind": "overlay",
+  "name": "OR CCB Commercial Surety Bond",
+  "description": "Oregon Construction Contractors Board commercial contractor bond (Rev 08/2023), filled on the board’s own PDF. Two pages: the bond and the board’s checklist.",
+  "sections": [
+    {
+      "title": "Principal",
+      "fields": [
+        {
+          "type": "text",
+          "key": "principal_name",
+          "label": "Principal legal name",
+          "required": true,
+          "help": "Exactly as registered with the Corporation Division."
+        },
+        {
+          "type": "text",
+          "key": "ccb_number",
+          "label": "CCB number (if already issued)",
+          "required": false
+        },
+        {
+          "type": "email",
+          "key": "principal_email",
+          "label": "Principal contact email",
+          "required": false
+        }
+      ]
+    },
+    {
+      "title": "Bond",
+      "fields": [
+        {
+          "type": "text",
+          "key": "bond_number",
+          "label": "Surety bond number",
+          "required": true
+        },
+        {
+          "type": "text",
+          "key": "penal_sum",
+          "label": "Penal sum (USD)",
+          "required": true,
+          "help": "Written as on the license endorsement, e.g. 50,000.00"
+        },
+        {
+          "type": "text",
+          "key": "surety_name",
+          "label": "Surety company",
+          "required": true,
+          "default": "Harbour Surety Company"
+        }
+      ]
+    },
+    {
+      "title": "Execution",
+      "fields": [
+        {
+          "type": "text",
+          "key": "dated_day",
+          "label": "Dated: day",
+          "required": true
+        },
+        {
+          "type": "text",
+          "key": "dated_month",
+          "label": "Dated: month",
+          "required": true
+        },
+        {
+          "type": "text",
+          "key": "dated_year",
+          "label": "Dated: year (two digits)",
+          "required": true
+        },
+        {
+          "type": "text",
+          "key": "attorney_name",
+          "label": "Attorney-in-fact or agent",
+          "required": true
+        },
+        {
+          "type": "text",
+          "key": "attorney_title",
+          "label": "Title",
+          "required": false
+        },
+        {
+          "type": "email",
+          "key": "attorney_email",
+          "label": "Attorney-in-fact email",
+          "required": false
+        },
+        {
+          "type": "text",
+          "key": "agency_address",
+          "label": "Agency address and phone",
+          "required": false
+        },
+        {
+          "type": "text",
+          "key": "agency_city_state_zip",
+          "label": "Agency city, state, ZIP",
+          "required": false
+        }
+      ]
+    }
+  ],
+  "sampleData": {
+    "principal_name": "Willamette Valley Commercial Builders Inc.",
+    "ccb_number": "238114",
+    "principal_email": "office@wvcb.example",
+    "bond_number": "HS-OR-0041872",
+    "penal_sum": "50,000.00",
+    "surety_name": "Harbour Surety Company",
+    "dated_day": "6th",
+    "dated_month": "October",
+    "dated_year": "26",
+    "attorney_name": "Robert J. Hargrove",
+    "attorney_title": "Attorney-in-fact",
+    "attorney_email": "rhargrove@harbour-surety.example",
+    "agency_address": "900 SW Fifth Avenue, Suite 1200 · (503) 555-0148",
+    "agency_city_state_zip": "Portland, OR 97204"
+  },
+  "themeId": null,
+  "page": {
+    "size": "Letter",
+    "margins": {
+      "top": 20,
+      "left": 20,
+      "right": 20,
+      "bottom": 20
+    },
+    "orientation": "portrait"
+  },
+  "content": {
+    "boxes": [
+      {
+        "id": "b25tg3j0m",
+        "page": 1,
+        "rect": {
+          "x": 151.32,
+          "y": 670.56,
+          "width": 82.56,
+          "height": 11.760000000000105
+        },
+        "type": "text",
+        "style": {
+          "font": "noto-sans",
+          "size": 7.5,
+          "align": "left",
+          "color": "#000000",
+          "valign": "middle",
+          "minSize": 6,
+          "autoShrink": true
+        },
+        "value": "{{ ccb_number }}",
+        "acroField": "COMMERCIAL SURETY BOND"
+      },
+      {
+        "id": "byra2ory2",
+        "page": 1,
+        "rect": {
+          "x": 422.28,
+          "y": 670.56,
+          "width": 153.84000000000003,
+          "height": 11.760000000000105
+        },
+        "type": "text",
+        "style": {
+          "font": "noto-sans",
+          "size": 7.5,
+          "align": "left",
+          "color": "#000000",
+          "valign": "middle",
+          "minSize": 6,
+          "autoShrink": true
+        },
+        "value": "{{ bond_number }}",
+        "acroField": "Surety companys bond"
+      },
+      {
+        "id": "bqsony8al",
+        "page": 1,
+        "rect": {
+          "x": 36,
+          "y": 646.32,
+          "width": 456.48,
+          "height": 11.759999999999991
+        },
+        "type": "text",
+        "style": {
+          "font": "noto-sans",
+          "size": 7.5,
+          "align": "left",
+          "color": "#000000",
+          "valign": "middle",
+          "minSize": 6,
+          "autoShrink": true
+        },
+        "value": "{{ principal_name }}",
+        "acroField": "CCB  if already issued"
+      },
+      {
+        "id": "b92hyygbd",
+        "page": 1,
+        "rect": {
+          "x": 41.52,
+          "y": 595.8,
+          "width": 181.56,
+          "height": 11.6400000000001
+        },
+        "type": "text",
+        "style": {
+          "font": "noto-sans",
+          "size": 7.5,
+          "align": "left",
+          "color": "#000000",
+          "valign": "middle",
+          "minSize": 6,
+          "autoShrink": true
+        },
+        "value": "{{ penal_sum }}",
+        "acroField": "endorsement and as a condition of the license is required by ORS Chapter 701 to furnish a bond in the penal sum of"
+      },
+      {
+        "id": "b0cckjmpf",
+        "page": 1,
+        "rect": {
+          "x": 36,
+          "y": 558.96,
+          "width": 473.04,
+          "height": 11.759999999999991
+        },
+        "type": "text",
+        "style": {
+          "font": "noto-sans",
+          "size": 7.5,
+          "align": "left",
+          "color": "#000000",
+          "valign": "middle",
+          "minSize": 6,
+          "autoShrink": true
+        },
+        "value": "{{ surety_name }}",
+        "acroField": "Surety subject to the conditions stated in this bond"
+      },
+      {
+        "id": "bs02uxcol",
+        "page": 1,
+        "rect": {
+          "x": 138.48,
+          "y": 533.64,
+          "width": 197.88000000000002,
+          "height": 11.759999999999991
+        },
+        "type": "text",
+        "style": {
+          "font": "noto-sans",
+          "size": 7.5,
+          "align": "left",
+          "color": "#000000",
+          "valign": "middle",
+          "minSize": 6,
+          "autoShrink": true
+        },
+        "value": "{{ penal_sum }}",
+        "acroField": "hereby binds itself its respective heirs personal representatives administrators successors and assigns to pay to the State"
+      },
+      {
+        "id": "byvj8wrtx",
+        "page": 1,
+        "rect": {
+          "x": 83.76,
+          "y": 230.16,
+          "width": 110.04,
+          "height": 11.759999999999991
+        },
+        "type": "text",
+        "style": {
+          "font": "noto-sans",
+          "size": 7.5,
+          "align": "left",
+          "color": "#000000",
+          "valign": "middle",
+          "minSize": 6,
+          "autoShrink": true
+        },
+        "value": "{{ dated_day }}",
+        "acroField": "Surety represents and warrants that it is authorized to transact surety business in the State of Oregon"
+      },
+      {
+        "id": "bqztvgpxw",
+        "page": 1,
+        "rect": {
+          "x": 224.28,
+          "y": 230.16,
+          "width": 104.52000000000001,
+          "height": 11.759999999999991
+        },
+        "type": "text",
+        "style": {
+          "font": "noto-sans",
+          "size": 7.5,
+          "align": "left",
+          "color": "#000000",
+          "valign": "middle",
+          "minSize": 6,
+          "autoShrink": true
+        },
+        "value": "{{ dated_month }}",
+        "acroField": "20"
+      },
+      {
+        "id": "bldoplyhi",
+        "page": 1,
+        "rect": {
+          "x": 345.36,
+          "y": 230.16,
+          "width": 38.51999999999998,
+          "height": 11.759999999999991
+        },
+        "type": "text",
+        "style": {
+          "font": "noto-sans",
+          "size": 7.5,
+          "align": "left",
+          "color": "#000000",
+          "valign": "middle",
+          "minSize": 6,
+          "autoShrink": true
+        },
+        "value": "{{ dated_year }}",
+        "acroField": "undefined"
+      },
+      {
+        "id": "bphaw1brf",
+        "page": 1,
+        "rect": {
+          "x": 66,
+          "y": 199.32,
+          "width": 214.44,
+          "height": 11.76000000000002
+        },
+        "type": "text",
+        "style": {
+          "font": "noto-sans",
+          "size": 7.5,
+          "align": "left",
+          "color": "#000000",
+          "valign": "middle",
+          "minSize": 6,
+          "autoShrink": true
+        },
+        "value": "{{ surety_name }}",
+        "acroField": "SURETY"
+      },
+      {
+        "id": "b9pbvtmil",
+        "page": 1,
+        "rect": {
+          "x": 33.84,
+          "y": 136.08,
+          "width": 247.43999999999997,
+          "height": 11.759999999999991
+        },
+        "type": "text",
+        "style": {
+          "font": "noto-sans",
+          "size": 7.5,
+          "align": "left",
+          "color": "#000000",
+          "valign": "middle",
+          "minSize": 6,
+          "autoShrink": true
+        },
+        "value": "{{ attorney_name }}",
+        "acroField": "As ATTORNEYINFACT"
+      },
+      {
+        "id": "bjbvyg3fr",
+        "page": 1,
+        "rect": {
+          "x": 33.84,
+          "y": 110.76,
+          "width": 247.43999999999997,
+          "height": 11.759999999999991
+        },
+        "type": "text",
+        "style": {
+          "font": "noto-sans",
+          "size": 7.5,
+          "align": "left",
+          "color": "#000000",
+          "valign": "middle",
+          "minSize": 6,
+          "autoShrink": true
+        },
+        "value": "{{ attorney_title }}",
+        "acroField": "Printed Name of Attorneyinfact or Agent"
+      },
+      {
+        "id": "b998s3npr",
+        "page": 1,
+        "rect": {
+          "x": 33.84,
+          "y": 85.56,
+          "width": 247.43999999999997,
+          "height": 11.759999999999991
+        },
+        "type": "text",
+        "style": {
+          "font": "noto-sans",
+          "size": 7.5,
+          "align": "left",
+          "color": "#000000",
+          "valign": "middle",
+          "minSize": 6,
+          "autoShrink": true
+        },
+        "value": "{{ agency_address }}",
+        "acroField": "Title"
+      },
+      {
+        "id": "b1mlwi4eo",
+        "page": 1,
+        "rect": {
+          "x": 33.84,
+          "y": 60.24,
+          "width": 247.43999999999997,
+          "height": 11.759999999999998
+        },
+        "type": "text",
+        "style": {
+          "font": "noto-sans",
+          "size": 7.5,
+          "align": "left",
+          "color": "#000000",
+          "valign": "middle",
+          "minSize": 6,
+          "autoShrink": true
+        },
+        "value": "{{ agency_city_state_zip }}",
+        "acroField": "Agency Address"
+      },
+      {
+        "id": "sig_aif",
+        "page": 1,
+        "rect": {
+          "x": 54,
+          "y": 174,
+          "width": 222,
+          "height": 22
+        },
+        "type": "signature",
+        "value": "",
+        "signerId": "attorney_in_fact",
+        "signingKind": "signature"
+      },
+      {
+        "id": "sig_aif_name",
+        "page": 1,
+        "rect": {
+          "x": 36,
+          "y": 140.5,
+          "width": 244,
+          "height": 11.5
+        },
+        "type": "signature",
+        "value": "",
+        "signerId": "attorney_in_fact",
+        "signingKind": "full_name"
+      }
+    ],
+    "flatten": false,
+    "signers": [
+      {
+        "id": "principal",
+        "name": "{{ principal_name }}",
+        "role": "Principal",
+        "email": "{{ principal_email }}",
+        "routingOrder": 1
+      },
+      {
+        "id": "surety",
+        "name": "{{ surety_name }}",
+        "role": "Surety",
+        "email": "bonds@harbour-surety.example",
+        "routingOrder": 2
+      },
+      {
+        "id": "attorney_in_fact",
+        "name": "{{ attorney_name }}",
+        "role": "Attorney-in-fact",
+        "email": "{{ attorney_email }}",
+        "routingOrder": 2
+      }
+    ],
+    "sourceId": "$source:or-ccb-commercial-contractor-bond.pdf"
+  }
+}

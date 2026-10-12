@@ -258,6 +258,8 @@ Benchmark numbers are imported from the W2 JSON by
 [bench.ts](../../apps/web/src/lib/bench.ts) and show as placeholders when it's
 missing. Design decisions and open questions:
 [design/website](../../design/website/README.md).
+Screenshots on the site come from a seeded demo instance and are retaken by
+script, never edited: [Demo data and screenshots](demo-data-and-screenshots.md).
 
 ## Reference architecture
 

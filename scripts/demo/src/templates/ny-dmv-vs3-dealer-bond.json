@@ -1,0 +1,675 @@
+{
+  "kind": "overlay",
+  "name": "NY DMV VS-3 Dealer Bond",
+  "description": "New York DMV VS-3 motor vehicle dealer surety bond. The DMV’s fillable PDF: answers go into its own form fields.",
+  "sections": [
+    {
+      "title": "Bond details",
+      "fields": [
+        {
+          "key": "facility_number",
+          "type": "text",
+          "label": "DMV facility number",
+          "required": false
+        },
+        {
+          "key": "bond_number",
+          "type": "text",
+          "label": "Bond number",
+          "required": false
+        },
+        {
+          "key": "undersigned",
+          "type": "text",
+          "label": "Dealer name",
+          "required": false
+        },
+        {
+          "key": "full_dealer",
+          "type": "text",
+          "label": "Full dealer address",
+          "required": false
+        },
+        {
+          "key": "safety_name",
+          "type": "text",
+          "label": "Surety name",
+          "required": false
+        },
+        {
+          "key": "safety_address",
+          "type": "text",
+          "label": "Surety address",
+          "required": false
+        },
+        {
+          "key": "state1",
+          "type": "choice",
+          "label": "Surety state of incorporation",
+          "options": [
+            {
+              "label": "AL",
+              "value": "AL"
+            },
+            {
+              "label": "AK",
+              "value": "AK"
+            },
+            {
+              "label": "AZ",
+              "value": "AZ"
+            },
+            {
+              "label": "AR",
+              "value": "AR"
+            },
+            {
+              "label": "CA",
+              "value": "CA"
+            },
+            {
+              "label": "CO",
+              "value": "CO"
+            },
+            {
+              "label": "CT",
+              "value": "CT"
+            },
+            {
+              "label": "DE",
+              "value": "DE"
+            },
+            {
+              "label": "DC",
+              "value": "DC"
+            },
+            {
+              "label": "FL",
+              "value": "FL"
+            },
+            {
+              "label": "GA",
+              "value": "GA"
+            },
+            {
+              "label": "HI",
+              "value": "HI"
+            },
+            {
+              "label": "ID",
+              "value": "ID"
+            },
+            {
+              "label": "IL",
+              "value": "IL"
+            },
+            {
+              "label": "IN",
+              "value": "IN"
+            },
+            {
+              "label": "IA",
+              "value": "IA"
+            },
+            {
+              "label": "KS",
+              "value": "KS"
+            },
+            {
+              "label": "KY",
+              "value": "KY"
+            },
+            {
+              "label": "LA",
+              "value": "LA"
+            },
+            {
+              "label": "ME",
+              "value": "ME"
+            },
+            {
+              "label": "MD",
+              "value": "MD"
+            },
+            {
+              "label": "MA",
+              "value": "MA"
+            },
+            {
+              "label": "MI",
+              "value": "MI"
+            },
+            {
+              "label": "MN",
+              "value": "MN"
+            },
+            {
+              "label": "MS",
+              "value": "MS"
+            },
+            {
+              "label": "MO",
+              "value": "MO"
+            },
+            {
+              "label": "MT",
+              "value": "MT"
+            },
+            {
+              "label": "NE",
+              "value": "NE"
+            },
+            {
+              "label": "NV",
+              "value": "NV"
+            },
+            {
+              "label": "NH",
+              "value": "NH"
+            },
+            {
+              "label": "NJ",
+              "value": "NJ"
+            },
+            {
+              "label": "NM",
+              "value": "NM"
+            },
+            {
+              "label": "NY",
+              "value": "NY"
+            },
+            {
+              "label": "NC",
+              "value": "NC"
+            },
+            {
+              "label": "ND",
+              "value": "ND"
+            },
+            {
+              "label": "OH",
+              "value": "OH"
+            },
+            {
+              "label": "OK",
+              "value": "OK"
+            },
+            {
+              "label": "OR",
+              "value": "OR"
+            },
+            {
+              "label": "PA",
+              "value": "PA"
+            },
+            {
+              "label": "RI",
+              "value": "RI"
+            },
+            {
+              "label": "SC",
+              "value": "SC"
+            },
+            {
+              "label": "SD",
+              "value": "SD"
+            },
+            {
+              "label": "TN",
+              "value": "TN"
+            },
+            {
+              "label": "TX",
+              "value": "TX"
+            },
+            {
+              "label": "UT",
+              "value": "UT"
+            },
+            {
+              "label": "VA",
+              "value": "VA"
+            },
+            {
+              "label": "VT",
+              "value": "VT"
+            },
+            {
+              "label": "WA",
+              "value": "WA"
+            },
+            {
+              "label": "WV",
+              "value": "WV"
+            },
+            {
+              "label": "WI",
+              "value": "WI"
+            },
+            {
+              "label": "WY",
+              "value": "WY"
+            }
+          ],
+          "multiple": false,
+          "required": false
+        },
+        {
+          "key": "bond_amount",
+          "type": "text",
+          "label": "Bond amount in words",
+          "required": false
+        },
+        {
+          "key": "dollars",
+          "type": "text",
+          "label": "Bond amount (USD)",
+          "required": false
+        },
+        {
+          "key": "bond_commence",
+          "type": "date",
+          "label": "Term commences",
+          "required": false
+        },
+        {
+          "key": "seals",
+          "type": "text",
+          "label": "Sealed: day",
+          "required": false,
+          "maxLength": 2
+        },
+        {
+          "key": "seals_day",
+          "type": "text",
+          "label": "Sealed: month",
+          "required": false
+        },
+        {
+          "key": "seals_year",
+          "type": "text",
+          "label": "Sealed: year",
+          "required": false,
+          "maxLength": 4
+        },
+        {
+          "key": "print_name_principal",
+          "type": "text",
+          "label": "Principal signatory (print)",
+          "required": false
+        },
+        {
+          "key": "print_name_surety",
+          "type": "text",
+          "label": "Surety signatory (print)",
+          "required": false
+        }
+      ]
+    }
+  ],
+  "sampleData": {
+    "seals": "6th",
+    "state1": "NY",
+    "dollars": "20,000.00",
+    "seals_day": "October",
+    "seals_year": "26",
+    "bond_amount": "Twenty thousand",
+    "bond_number": "HS-NY-0093301",
+    "full_dealer": "410 Route 9W, Newburgh, NY 12550",
+    "safety_name": "Harbour Surety Company",
+    "undersigned": "Hudson Valley Motor Group LLC",
+    "bond_commence": "2026-11-01",
+    "safety_address": "One Liberty Plaza, 23rd Floor, New York, NY 10006",
+    "facility_number": "7104558",
+    "print_name_surety": "Margaret L. Chen",
+    "print_name_principal": "Daniel R. Kowalski"
+  },
+  "themeId": null,
+  "page": {
+    "size": "Letter",
+    "margins": {
+      "top": 20,
+      "left": 20,
+      "right": 20,
+      "bottom": 20
+    },
+    "orientation": "portrait"
+  },
+  "content": {
+    "boxes": [
+      {
+        "id": "bl08tn2x4",
+        "page": 1,
+        "rect": {
+          "x": 468.8,
+          "y": 710.25,
+          "width": 121.39600000000002,
+          "height": 17.692999999999984
+        },
+        "type": "text",
+        "style": {
+          "font": "noto-sans",
+          "size": 11,
+          "align": "left",
+          "color": "#000000",
+          "valign": "middle",
+          "minSize": 6,
+          "autoShrink": true
+        },
+        "value": "{{ facility_number }}",
+        "acroField": "Facility Number"
+      },
+      {
+        "id": "bx973q2g7",
+        "page": 1,
+        "rect": {
+          "x": 469.6,
+          "y": 695.948,
+          "width": 123.27599999999995,
+          "height": 14.25
+        },
+        "type": "text",
+        "style": {
+          "font": "noto-sans",
+          "size": 9.5,
+          "align": "left",
+          "color": "#000000",
+          "valign": "middle",
+          "minSize": 6,
+          "autoShrink": true
+        },
+        "value": "{{ bond_number }}",
+        "acroField": "Bond Number"
+      },
+      {
+        "id": "beri7hfrd",
+        "page": 1,
+        "rect": {
+          "x": 123.901,
+          "y": 672.492,
+          "width": 469.27500000000003,
+          "height": 19.968000000000075
+        },
+        "type": "text",
+        "style": {
+          "font": "noto-sans",
+          "size": 11,
+          "align": "left",
+          "color": "#000000",
+          "valign": "middle",
+          "minSize": 6,
+          "autoShrink": true
+        },
+        "value": "{{ undersigned }}",
+        "acroField": "Undersigned"
+      },
+      {
+        "id": "bsc2cyvrk",
+        "page": 1,
+        "rect": {
+          "x": 34.2962,
+          "y": 650.771,
+          "width": 555.2608,
+          "height": 20.139999999999986
+        },
+        "type": "text",
+        "style": {
+          "font": "noto-sans",
+          "size": 11,
+          "align": "left",
+          "color": "#000000",
+          "valign": "middle",
+          "minSize": 6,
+          "autoShrink": true
+        },
+        "value": "{{ full_dealer }}",
+        "acroField": "Full Dealer"
+      },
+      {
+        "id": "bc84jc57w",
+        "page": 1,
+        "rect": {
+          "x": 124.499,
+          "y": 600.876,
+          "width": 464.697,
+          "height": 21.788999999999987
+        },
+        "type": "text",
+        "style": {
+          "font": "noto-sans",
+          "size": 11,
+          "align": "left",
+          "color": "#000000",
+          "valign": "middle",
+          "minSize": 6,
+          "autoShrink": true
+        },
+        "value": "{{ safety_name }}",
+        "acroField": "Safety Name"
+      },
+      {
+        "id": "bkx4kzysj",
+        "page": 1,
+        "rect": {
+          "x": 32.2296,
+          "y": 577.666,
+          "width": 559.5594,
+          "height": 22.001999999999953
+        },
+        "type": "text",
+        "style": {
+          "font": "noto-sans",
+          "size": 11,
+          "align": "left",
+          "color": "#000000",
+          "valign": "middle",
+          "minSize": 6,
+          "autoShrink": true
+        },
+        "value": "{{ safety_address }}",
+        "acroField": "Safety Address"
+      },
+      {
+        "id": "bndfi90et",
+        "page": 1,
+        "rect": {
+          "x": 433.169,
+          "y": 559.944,
+          "width": 159.466,
+          "height": 19.615999999999985
+        },
+        "type": "text",
+        "style": {
+          "font": "noto-sans",
+          "size": 11,
+          "align": "left",
+          "color": "#000000",
+          "valign": "middle",
+          "minSize": 6,
+          "autoShrink": true
+        },
+        "value": "{{ state1 }}",
+        "acroField": "State1"
+      },
+      {
+        "id": "b0vza4xvl",
+        "page": 1,
+        "rect": {
+          "x": 117.999,
+          "y": 432.125,
+          "width": 291.32399999999996,
+          "height": 16.107000000000028
+        },
+        "type": "text",
+        "style": {
+          "font": "noto-sans",
+          "size": 10.5,
+          "align": "left",
+          "color": "#000000",
+          "valign": "middle",
+          "minSize": 6,
+          "autoShrink": true
+        },
+        "value": "{{ bond_amount }}",
+        "acroField": "Bond Amount"
+      },
+      {
+        "id": "bgrnj3g1r",
+        "page": 1,
+        "rect": {
+          "x": 458.686,
+          "y": 430.69,
+          "width": 108.25900000000007,
+          "height": 15.379000000000019
+        },
+        "type": "text",
+        "style": {
+          "font": "noto-sans",
+          "size": 10,
+          "align": "left",
+          "color": "#000000",
+          "valign": "middle",
+          "minSize": 6,
+          "autoShrink": true
+        },
+        "value": "{{ dollars }}",
+        "acroField": "Dollars"
+      },
+      {
+        "id": "bf2kragfx",
+        "page": 1,
+        "rect": {
+          "x": 195,
+          "y": 416.625,
+          "width": 149.25,
+          "height": 16.107000000000028
+        },
+        "type": "date",
+        "style": {
+          "font": "noto-sans",
+          "size": 10.5,
+          "align": "left",
+          "color": "#000000",
+          "valign": "middle",
+          "minSize": 6,
+          "autoShrink": true
+        },
+        "value": "{{ bond_commence | date: \"MM/DD/YYYY\" }}",
+        "acroField": "Bond commence"
+      },
+      {
+        "id": "bjnb8m7n8",
+        "page": 1,
+        "rect": {
+          "x": 390.319,
+          "y": 150.4,
+          "width": 51.000999999999976,
+          "height": 19.147999999999996
+        },
+        "type": "text",
+        "style": {
+          "font": "noto-sans",
+          "size": 11,
+          "align": "left",
+          "color": "#000000",
+          "valign": "middle",
+          "minSize": 6,
+          "autoShrink": true
+        },
+        "value": "{{ seals }}",
+        "acroField": "Seals on"
+      },
+      {
+        "id": "b86koymc7",
+        "page": 1,
+        "rect": {
+          "x": 471.751,
+          "y": 149.738,
+          "width": 123.75,
+          "height": 17.693000000000012
+        },
+        "type": "text",
+        "style": {
+          "font": "noto-sans",
+          "size": 11,
+          "align": "left",
+          "color": "#000000",
+          "valign": "middle",
+          "minSize": 6,
+          "autoShrink": true
+        },
+        "value": "{{ seals_day }}",
+        "acroField": "Seals on Day of"
+      },
+      {
+        "id": "b1dfa5zqt",
+        "page": 1,
+        "rect": {
+          "x": 73.4991,
+          "y": 133.562,
+          "width": 69.7499,
+          "height": 19.940999999999974
+        },
+        "type": "text",
+        "style": {
+          "font": "noto-sans",
+          "size": 11,
+          "align": "left",
+          "color": "#000000",
+          "valign": "middle",
+          "minSize": 6,
+          "autoShrink": true
+        },
+        "value": "{{ seals_year }}",
+        "acroField": "Seals on year of"
+      },
+      {
+        "id": "bjucgxg77",
+        "page": 1,
+        "rect": {
+          "x": 269.123,
+          "y": 133.761,
+          "width": 283.75000000000006,
+          "height": 17.693000000000012
+        },
+        "type": "text",
+        "style": {
+          "font": "noto-sans",
+          "size": 11,
+          "align": "left",
+          "color": "#000000",
+          "valign": "middle",
+          "minSize": 6,
+          "autoShrink": true
+        },
+        "value": "{{ print_name_principal }}",
+        "acroField": "Print Name Principal"
+      },
+      {
+        "id": "b6pmb4epr",
+        "page": 1,
+        "rect": {
+          "x": 269.123,
+          "y": 80.0208,
+          "width": 283.75000000000006,
+          "height": 17.693000000000012
+        },
+        "type": "text",
+        "style": {
+          "font": "noto-sans",
+          "size": 11,
+          "align": "left",
+          "color": "#000000",
+          "valign": "middle",
+          "minSize": 6,
+          "autoShrink": true
+        },
+        "value": "{{ print_name_surety }}",
+        "acroField": "Print Name Surety"
+      }
+    ],
+    "flatten": false,
+    "sourceId": "$source:ny-dmv-vs3-dealer-bond.pdf"
+  }
+}

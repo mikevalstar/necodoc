@@ -8,12 +8,14 @@ export const processRoleSchema = z.enum(["api", "worker", "all"]);
 export type ProcessRole = z.infer<typeof processRoleSchema>;
 
 /** docs/features/app-shell-and-navigation.md (instance identity): the sidebar and login label. */
-export const instanceEnvSchema = z.enum(["prod", "staging", "dev"]);
+export const instanceEnvSchema = z.enum(["prod", "staging", "dev", "demo"]);
 export type InstanceEnv = z.infer<typeof instanceEnvSchema>;
 /** GET /api/instance (public). Null name: not configured, nothing shown. */
 export const instanceSchema = z.object({
   name: z.string().nullable(),
   env: instanceEnvSchema.nullable(),
+  /** docs/features/public-demo.md: signed in automatically, no sign-in or sign out. */
+  demoMode: z.boolean(),
 });
 export type Instance = z.infer<typeof instanceSchema>;
 

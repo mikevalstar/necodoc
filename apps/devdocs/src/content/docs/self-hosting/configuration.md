@@ -32,7 +32,7 @@ A label at the top of the app's sidebar and on the login page, so people can tel
 | Variable | Default | Description |
 | --- | --- | --- |
 | `INSTANCE_NAME` | unset | The installation's name, e.g. `Harbour Surety` (up to 60 characters). Unset hides the label. |
-| `INSTANCE_ENV` | unset | `prod`, `staging` or `dev`, shown after the name in red, amber or green. |
+| `INSTANCE_ENV` | unset | `prod`, `staging`, `dev` or `demo`, shown after the name in red, amber, green or blue. |
 
 ## Logs, metrics and traces
 
@@ -70,6 +70,7 @@ AI features ([AI template assistant](/guides/ai-template-assistant/), AI field d
 | Variable | Default | Description |
 | --- | --- | --- |
 | `AUTH_PASSWORD_ENABLED` | `true` | `false` hides and refuses email/password sign-in and registration. Needs at least one SSO provider. |
+| `DEMO_MODE` | `false` | Public demo only. Every visitor is signed in as one shared admin, `demo@necodocs.com` (created on start), with a banner saying the data is public. Turns off password sign-in, registration, SSO and sign out. Never set it on an installation with real data. |
 | `SSO_PROVIDERS` | none | Comma-separated SSO provider ids. Each reads `SSO_<ID>_*`: `TYPE` (`oidc`, `saml`, `header`), `LABEL`, `ROLE_MAP`, `DEFAULT_ROLES`, `LINK_EXISTING`, `EMAIL_DOMAINS`, plus the protocol's settings. Full list and IdP guides: [Single sign-on](/self-hosting/sso/). |
 
 ## Storage

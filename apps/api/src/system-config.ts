@@ -1,7 +1,7 @@
 import type { SystemConfig } from "@necodoc/shared";
 import { hostOf } from "./addresses";
 import { certifier } from "./certifier";
-import { env, ssoProviders } from "./env";
+import { env, instance, passwordEnabled, ssoProviders } from "./env";
 import { tracingEnabled } from "./observability/tracing";
 import { chromiumVersion } from "./render/browser";
 import { certificateInfo } from "./render/certify";
@@ -37,12 +37,12 @@ export async function systemConfig(): Promise<SystemConfig> {
   ]);
   const { OTEL_EXPORTER_OTLP_TRACES_ENDPOINT, OTEL_EXPORTER_OTLP_ENDPOINT } = process.env;
   return {
-    instance: { name: env.INSTANCE_NAME ?? null, env: env.INSTANCE_ENV ?? null },
+    instance,
     role: env.ROLE,
     chromium,
     ai: { enabled: !!env.ANTHROPIC_KEY, model: env.AI_MODEL },
     auth: {
-      password: env.AUTH_PASSWORD_ENABLED,
+      password: passwordEnabled,
       trustedHeader: ssoProviders.some((p) => p.type === "header"),
       sso: ssoProviders.map(({ id, label, type }) => ({ id, label, type })),
     },

@@ -44,7 +44,9 @@ Rules:
 - Every number comes from the [benchmark](performance-benchmark.md) results
   file at render time, never typed.
 - Visuals are real app screens or Cobalt recreations, with clean demo data
-  (no test-named templates). Insurer customers are not named.
+  (no test-named templates). Insurer customers are not named. The screens are
+  captured from the seeded demo instance by `pnpm demo:screens`
+  ([Demo data and screenshots](demo-data-and-screenshots.md)).
 - Captions are burned in, large and high-contrast, and also shipped as a VTT
   track. Calm motion: pans, zooms, highlights; nothing flashes.
 - The site never autoplays it. The poster shows until someone presses play,
@@ -62,5 +64,4 @@ Rules:
 
 ## Open questions
 
-- Recapturing screenshots after UI changes is manual; worth scripting if the
-  UI keeps moving.
+- None yet.

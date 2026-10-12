@@ -15,7 +15,8 @@ import {
 import { auditAfter, auditBefore } from "./auth-audit";
 import { db } from "./db";
 import { user } from "./db/schema";
-import { env } from "./env";
+import { demoSession } from "./demo";
+import { env, passwordEnabled } from "./env";
 import { ssoDisabledPaths, ssoPlugins, ssoTrustedOrigins } from "./sso";
 import { activeAdminIds, isServiceAccount } from "./users";
 
@@ -29,8 +30,8 @@ export const auth = betterAuth({
   // Failed SSO callbacks land on the login page, which shows the error.
   onAPIError: { errorURL: `${env.BETTER_AUTH_URL.replace(/\/$/, "")}/login` },
   // No email provider yet: no verification, no reset-by-email. Admins set passwords.
-  // ADR 0031: off for SSO-only installs.
-  emailAndPassword: { enabled: env.AUTH_PASSWORD_ENABLED },
+  // ADR 0031: off for SSO-only installs and the public demo.
+  emailAndPassword: { enabled: passwordEnabled },
   // ADR 0029: keys are created and changed only through routes/api-keys.ts, which call the
   // plugin server-side; its own HTTP endpoints would bypass scopes and revocation.
   disabledPaths: [
@@ -75,6 +76,8 @@ export const auth = betterAuth({
       enableSessionForAPIKeys: false,
     }),
     ...ssoPlugins,
+    // ADR 0044: server-only (never on HTTP); GET /api/me calls it in DEMO_MODE.
+    demoSession(),
   ],
   databaseHooks: {
     // Service accounts never get a session: not by password (they have none), not by

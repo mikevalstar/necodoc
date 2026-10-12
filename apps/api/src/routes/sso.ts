@@ -7,7 +7,7 @@ import { recordAudit } from "../audit";
 import { auth } from "../auth";
 import { db } from "../db";
 import { account } from "../db/schema";
-import { env, ssoProviders } from "../env";
+import { passwordEnabled, ssoProviders } from "../env";
 import { log } from "../log";
 import { type AppEnv, clientIp, requireRole } from "../middleware";
 import { trustedHeaderIdentity } from "../sso-config";
@@ -21,7 +21,7 @@ export const ssoRoutes = new Hono<AppEnv>()
   // Public: the login page asks before anyone is signed in.
   .get("/options", (c) =>
     c.json({
-      password: env.AUTH_PASSWORD_ENABLED,
+      password: passwordEnabled,
       providers: ssoProviders.map(({ id, label, type }) => ({ id, label, type })),
     } satisfies SignInOptions),
   )

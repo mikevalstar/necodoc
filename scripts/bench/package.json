@@ -4,7 +4,8 @@
   "private": true,
   "type": "module",
   "exports": {
-    "./schema": "./src/schema.ts"
+    "./schema": "./src/schema.ts",
+    "./stack": "./src/stack.ts"
   },
   "scripts": {
     "bench": "tsx src/run.ts",

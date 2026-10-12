@@ -16,3 +16,6 @@ apps/api/data
 
 # Process logs from `pnpm bench --keep-logs`
 scripts/bench/results/logs
+
+# The demo instance's private Postgres, outputs and logs (docs/features/demo-data-and-screenshots.md)
+.demo

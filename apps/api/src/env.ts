@@ -1,4 +1,4 @@
-import { instanceEnvSchema, processRoleSchema } from "@necodoc/shared";
+import { type Instance, instanceEnvSchema, processRoleSchema } from "@necodoc/shared";
 import { z } from "zod";
 import { parseSsoProviders } from "./sso-config";
 import { storageEnvSchema } from "./storage/config";
@@ -10,6 +10,11 @@ export const env = z
     BETTER_AUTH_URL: z.url(),
     /** ADR 0031: `false` hides and refuses email/password sign-in and sign-up (SSO only). */
     AUTH_PASSWORD_ENABLED: z.stringbool().default(true),
+    /**
+     * docs/features/public-demo.md: every visitor is signed in as one shared demo admin; password
+     * sign-in, sign-up and SSO are off. Only for a public demo instance.
+     */
+    DEMO_MODE: z.stringbool().default(false),
     PORT: z.coerce.number().default(3000),
     /** ADR 0020: `api` serves HTTP, `worker` renders queued jobs, `all` does both. */
     ROLE: processRoleSchema.default("all"),
@@ -72,10 +77,22 @@ export const env = z
 export const storageConfig = storageEnvSchema.parse(process.env);
 
 /** ADR 0031: identity providers from SSO_PROVIDERS and SSO_<ID>_* (src/sso-config.ts). */
-export const ssoProviders = parseSsoProviders(process.env, env.BETTER_AUTH_URL);
-if (!env.AUTH_PASSWORD_ENABLED && !ssoProviders.length) {
+/** The public demo ignores them: nobody signs in there (docs/features/public-demo.md). */
+export const ssoProviders = env.DEMO_MODE
+  ? []
+  : parseSsoProviders(process.env, env.BETTER_AUTH_URL);
+/** Password sign-in and sign-up. */
+export const passwordEnabled = env.AUTH_PASSWORD_ENABLED && !env.DEMO_MODE;
+if (!env.AUTH_PASSWORD_ENABLED && !env.DEMO_MODE && !ssoProviders.length) {
   throw new Error("AUTH_PASSWORD_ENABLED=false needs at least one provider in SSO_PROVIDERS");
 }
 
 export const servesApi = env.ROLE !== "worker";
 export const runsWorker = env.ROLE !== "api";
+
+/** GET /api/instance and the System page: which installation this is. */
+export const instance: Instance = {
+  name: env.INSTANCE_NAME ?? null,
+  env: env.INSTANCE_ENV ?? null,
+  demoMode: env.DEMO_MODE,
+};

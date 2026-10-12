@@ -1,0 +1,912 @@
+{
+  "kind": "designed",
+  "name": "Surety Bond Certificate",
+  "description": "Performance bond certificate with schedule of obligees and rider clauses.",
+  "sections": [
+    {
+      "title": "Bond details",
+      "fields": [
+        {
+          "key": "bond_number",
+          "help": "As printed on the bond, e.g. SB-204518",
+          "type": "text",
+          "label": "Bond number",
+          "pattern": "SB-\\d{6}",
+          "required": true
+        },
+        {
+          "key": "principal",
+          "type": "text",
+          "label": "Principal",
+          "required": true
+        },
+        {
+          "key": "principal_address",
+          "type": "long_text",
+          "label": "Principal address",
+          "required": false
+        },
+        {
+          "key": "obligee",
+          "type": "text",
+          "label": "Obligee",
+          "required": true
+        },
+        {
+          "key": "effective_date",
+          "type": "date",
+          "label": "Effective date",
+          "required": true
+        },
+        {
+          "key": "bond_amount",
+          "min": 0,
+          "type": "number",
+          "label": "Bond amount",
+          "decimals": 2,
+          "required": true
+        },
+        {
+          "key": "bond_type",
+          "type": "choice",
+          "label": "Bond type",
+          "default": "Performance bond",
+          "options": [
+            {
+              "label": "Performance bond",
+              "value": "Performance bond"
+            },
+            {
+              "label": "Payment bond",
+              "value": "Payment bond"
+            },
+            {
+              "label": "Bid bond",
+              "value": "Bid bond"
+            }
+          ],
+          "multiple": false,
+          "required": false
+        },
+        {
+          "key": "surety_company",
+          "type": "text",
+          "label": "Surety company",
+          "default": "Harbour Surety Company",
+          "required": false
+        }
+      ]
+    },
+    {
+      "title": "Schedule",
+      "fields": [
+        {
+          "key": "covered_contracts",
+          "type": "group",
+          "label": "Covered contracts",
+          "fields": [
+            {
+              "key": "contract_number",
+              "type": "text",
+              "label": "Contract number",
+              "required": false
+            },
+            {
+              "key": "description",
+              "type": "text",
+              "label": "Description",
+              "required": false
+            },
+            {
+              "key": "contract_value",
+              "type": "number",
+              "label": "Contract value",
+              "decimals": 2,
+              "required": false
+            }
+          ],
+          "required": true
+        },
+        {
+          "key": "include_rider",
+          "type": "boolean",
+          "label": "Include rider",
+          "required": false
+        },
+        {
+          "key": "rider_wording",
+          "type": "long_text",
+          "label": "Rider wording",
+          "showIf": {
+            "op": "is_set",
+            "field": "include_rider"
+          },
+          "required": true
+        }
+      ]
+    },
+    {
+      "title": "Signing",
+      "fields": [
+        {
+          "key": "attorney_in_fact",
+          "type": "text",
+          "label": "Attorney-in-fact",
+          "required": false
+        },
+        {
+          "key": "signature",
+          "type": "signature",
+          "label": "Signature",
+          "required": true
+        }
+      ]
+    }
+  ],
+  "sampleData": {
+    "obligee": "City of Hamilton, Public Works Department",
+    "bond_type": "Performance bond",
+    "principal": "Northwind Construction Ltd.",
+    "signature": "data:image/png;base64,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",
+    "bond_amount": 2450000,
+    "bond_number": "SB-204518",
+    "include_rider": true,
+    "rider_wording": "The Surety consents to the extension of the completion date to June 30, 2027.\nAll other terms and conditions of the bond remain unchanged.",
+    "effective_date": "2026-11-02",
+    "attorney_in_fact": "Margaret L. Chen",
+    "covered_contracts": [
+      {
+        "description": "Main Street watermain replacement, phase 2",
+        "contract_value": 1250000,
+        "contract_number": "PW-2026-114"
+      },
+      {
+        "description": "Bayfront park storm sewer outfall",
+        "contract_value": 640000,
+        "contract_number": "PW-2026-131"
+      },
+      {
+        "description": "Barton Street resurfacing and curb works",
+        "contract_value": 385500.5,
+        "contract_number": "PW-2026-147"
+      },
+      {
+        "description": "Pumping station 7 electrical upgrade",
+        "contract_value": 174499.5,
+        "contract_number": "PW-2026-152"
+      }
+    ],
+    "principal_address": "1200 Harbour Street, Suite 400\nToronto, ON M5J 2T5"
+  },
+  "themeId": "00000000-0000-4000-8000-000000000002",
+  "page": {
+    "size": "Letter",
+    "margins": {
+      "top": 20,
+      "left": 20,
+      "right": 20,
+      "bottom": 20
+    },
+    "orientation": "portrait"
+  },
+  "content": {
+    "css": ".necodoc-band { display: flex; align-items: center; gap: 4mm; font-size: 8pt; color: #374151; }\n.necodoc-band img { height: 14mm; width: auto; }\n.necodoc-band p { margin: 0; flex: 1; }\ntd p, th p { margin: 0; }\ntable.signatures { width: 100%; margin-top: 16mm; border: none; }\ntable.signatures td { width: 50%; border: none; padding: 0 6mm 0 0; vertical-align: bottom; }\ntable.signatures tr + tr td { border-top: 0.6pt solid #111; padding-top: 2mm; }",
+    "body": {
+      "type": "doc",
+      "content": [
+        {
+          "type": "heading",
+          "attrs": {
+            "level": 1,
+            "textAlign": "center"
+          },
+          "content": [
+            {
+              "text": "Certificate of Surety Bond (Ontario)",
+              "type": "text"
+            }
+          ]
+        },
+        {
+          "type": "paragraph",
+          "attrs": {
+            "textAlign": "center"
+          },
+          "content": [
+            {
+              "text": "Bond No. ",
+              "type": "text"
+            },
+            {
+              "type": "mergeField",
+              "attrs": {
+                "field": "bond_number",
+                "filter": null
+              }
+            },
+            {
+              "text": "  ·  Effective ",
+              "type": "text"
+            },
+            {
+              "type": "mergeField",
+              "attrs": {
+                "field": "effective_date",
+                "filter": {
+                  "name": "date",
+                  "format": "MMM D, YYYY"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "type": "paragraph",
+          "attrs": {
+            "textAlign": "justify"
+          },
+          "content": [
+            {
+              "text": "KNOW ALL PERSONS BY THESE PRESENTS, that ",
+              "type": "text"
+            },
+            {
+              "type": "mergeField",
+              "attrs": {
+                "field": "principal",
+                "filter": null
+              }
+            },
+            {
+              "text": ", as Principal, and Harbour Surety Company, a corporation licensed to transact surety business in the Province of Ontario, as Surety, are held and firmly bound unto ",
+              "type": "text"
+            },
+            {
+              "type": "mergeField",
+              "attrs": {
+                "field": "obligee",
+                "filter": null
+              }
+            },
+            {
+              "text": ", as Obligee, in the penal sum of ",
+              "type": "text"
+            },
+            {
+              "type": "mergeField",
+              "attrs": {
+                "field": "bond_amount",
+                "filter": {
+                  "name": "currency",
+                  "currency": "CAD"
+                }
+              }
+            },
+            {
+              "text": ", for the payment of which sum the Principal and the Surety bind themselves, their heirs, executors, administrators, successors and assigns, jointly and severally.",
+              "type": "text"
+            }
+          ]
+        },
+        {
+          "type": "paragraph",
+          "attrs": {
+            "textAlign": "justify"
+          },
+          "content": [
+            {
+              "text": "This bond is issued as a ",
+              "type": "text"
+            },
+            {
+              "type": "mergeField",
+              "attrs": {
+                "field": "bond_type",
+                "filter": {
+                  "name": "upcase"
+                }
+              }
+            },
+            {
+              "text": " for the contracts listed in the schedule below. The Surety's aggregate liability under this bond shall not exceed the penal sum stated above, regardless of the number of contracts covered.",
+              "type": "text"
+            }
+          ]
+        },
+        {
+          "type": "heading",
+          "attrs": {
+            "level": 2,
+            "textAlign": "left"
+          },
+          "content": [
+            {
+              "text": "Schedule of covered contracts",
+              "type": "text"
+            }
+          ]
+        },
+        {
+          "type": "table",
+          "content": [
+            {
+              "type": "tableRow",
+              "attrs": {
+                "repeat": null
+              },
+              "content": [
+                {
+                  "type": "tableHeader",
+                  "attrs": {
+                    "colspan": 1,
+                    "rowspan": 1
+                  },
+                  "content": [
+                    {
+                      "type": "paragraph",
+                      "attrs": {
+                        "textAlign": null
+                      },
+                      "content": [
+                        {
+                          "text": "Contract",
+                          "type": "text"
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "type": "tableHeader",
+                  "attrs": {
+                    "colspan": 1,
+                    "rowspan": 1
+                  },
+                  "content": [
+                    {
+                      "type": "paragraph",
+                      "attrs": {
+                        "textAlign": null
+                      },
+                      "content": [
+                        {
+                          "text": "Description",
+                          "type": "text"
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "type": "tableHeader",
+                  "attrs": {
+                    "colspan": 1,
+                    "rowspan": 1
+                  },
+                  "content": [
+                    {
+                      "type": "paragraph",
+                      "attrs": {
+                        "textAlign": null
+                      },
+                      "content": [
+                        {
+                          "text": "Contract value",
+                          "type": "text"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "tableRow",
+              "attrs": {
+                "repeat": "covered_contracts"
+              },
+              "content": [
+                {
+                  "type": "tableCell",
+                  "attrs": {
+                    "colspan": 1,
+                    "rowspan": 1
+                  },
+                  "content": [
+                    {
+                      "type": "paragraph",
+                      "attrs": {
+                        "textAlign": null
+                      },
+                      "content": [
+                        {
+                          "type": "mergeField",
+                          "attrs": {
+                            "field": "covered_contracts.contract_number",
+                            "filter": null
+                          }
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "type": "tableCell",
+                  "attrs": {
+                    "colspan": 1,
+                    "rowspan": 1
+                  },
+                  "content": [
+                    {
+                      "type": "paragraph",
+                      "attrs": {
+                        "textAlign": null
+                      },
+                      "content": [
+                        {
+                          "type": "mergeField",
+                          "attrs": {
+                            "field": "covered_contracts.description",
+                            "filter": null
+                          }
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "type": "tableCell",
+                  "attrs": {
+                    "colspan": 1,
+                    "rowspan": 1
+                  },
+                  "content": [
+                    {
+                      "type": "paragraph",
+                      "attrs": {
+                        "textAlign": null
+                      },
+                      "content": [
+                        {
+                          "type": "mergeField",
+                          "attrs": {
+                            "field": "covered_contracts.contract_value",
+                            "filter": {
+                              "name": "currency",
+                              "currency": "CAD"
+                            }
+                          }
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "paragraph",
+          "attrs": {
+            "textAlign": null
+          },
+          "content": [
+            {
+              "text": "The Principal shall faithfully perform each contract in the schedule according to its terms. Should the Principal default, the Surety shall promptly remedy the default, complete the contract, or pay the Obligee up to the penal sum.",
+              "type": "text"
+            }
+          ]
+        },
+        {
+          "type": "conditionalSection",
+          "attrs": {
+            "condition": {
+              "op": "is_set",
+              "field": "include_rider"
+            }
+          },
+          "content": [
+            {
+              "type": "heading",
+              "attrs": {
+                "level": 2,
+                "textAlign": null
+              },
+              "content": [
+                {
+                  "text": "Rider",
+                  "type": "text"
+                }
+              ]
+            },
+            {
+              "type": "paragraph",
+              "attrs": {
+                "textAlign": null
+              },
+              "content": [
+                {
+                  "type": "mergeField",
+                  "attrs": {
+                    "field": "rider_wording",
+                    "filter": {
+                      "name": "lines"
+                    }
+                  }
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "pageBreak"
+        },
+        {
+          "type": "heading",
+          "attrs": {
+            "level": 2,
+            "textAlign": null
+          },
+          "content": [
+            {
+              "text": "Conditions of this bond",
+              "type": "text",
+              "marks": [
+                {
+                  "type": "textStyle",
+                  "attrs": {
+                    "color": null
+                  }
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "orderedList",
+          "attrs": {
+            "start": 1
+          },
+          "content": [
+            {
+              "type": "listItem",
+              "content": [
+                {
+                  "type": "paragraph",
+                  "attrs": {
+                    "textAlign": null
+                  },
+                  "content": [
+                    {
+                      "text": "The Surety shall not be liable for any amount greater than the penal sum, and any payment made under this bond reduces the penal sum by that amount.",
+                      "type": "text"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "listItem",
+              "content": [
+                {
+                  "type": "paragraph",
+                  "attrs": {
+                    "textAlign": null
+                  },
+                  "content": [
+                    {
+                      "text": "No right of action shall accrue under this bond to or for the use of any person other than the Obligee named herein, or its successors and assigns.",
+                      "type": "text"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "listItem",
+              "content": [
+                {
+                  "type": "paragraph",
+                  "attrs": {
+                    "textAlign": null
+                  },
+                  "content": [
+                    {
+                      "text": "Any suit under this bond must be instituted within two years from the date on which final payment under the contract falls due.",
+                      "type": "text"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "listItem",
+              "content": [
+                {
+                  "type": "paragraph",
+                  "attrs": {
+                    "textAlign": null
+                  },
+                  "content": [
+                    {
+                      "text": "Notice of any default by the Principal shall be given to the Surety in writing within thirty days after the Obligee becomes aware of the default.",
+                      "type": "text"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "listItem",
+              "content": [
+                {
+                  "type": "paragraph",
+                  "attrs": {
+                    "textAlign": null
+                  },
+                  "content": [
+                    {
+                      "text": "Changes to the contract, extensions of time, or other forbearance granted to the Principal do not release the Surety from its obligations under this bond.",
+                      "type": "text"
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "paragraph",
+          "attrs": {
+            "textAlign": null
+          },
+          "content": [
+            {
+              "text": "Signed, sealed and dated ",
+              "type": "text"
+            },
+            {
+              "type": "mergeField",
+              "attrs": {
+                "field": "effective_date",
+                "filter": {
+                  "name": "date",
+                  "format": "MMMM D, YYYY"
+                }
+              }
+            },
+            {
+              "text": ", on behalf of Harbour Surety Company.",
+              "type": "text"
+            }
+          ]
+        },
+        {
+          "type": "rawHtml",
+          "attrs": {
+            "html": "<table class=\"signatures\">\n  <tr>\n    <td></td>\n    <td>{% if signature != blank %}<img src=\"{{ signature }}\" style=\"height:16mm\">{% endif %}</td>\n  </tr>\n  <tr>\n    <td>{{ principal }}<br><small>Principal</small></td>\n    <td>{{ attorney_in_fact }}<br><small>Attorney-in-fact, Harbour Surety Company</small></td>\n  </tr>\n</table>"
+          }
+        },
+        {
+          "type": "paragraph",
+          "attrs": {
+            "textAlign": null
+          },
+          "content": [
+            {
+              "text": "Issued in duplicate; each copy is an original.",
+              "type": "text"
+            }
+          ]
+        },
+        {
+          "type": "snippet",
+          "attrs": {
+            "snippetId": "$snippet:surety-indemnity-clause"
+          }
+        },
+        {
+          "type": "paragraph",
+          "attrs": {
+            "textAlign": null
+          },
+          "content": [
+            {
+              "text": "Principal: ",
+              "type": "text"
+            },
+            {
+              "type": "signBox",
+              "attrs": {
+                "kind": "signature",
+                "width": 60,
+                "height": 15,
+                "required": true,
+                "signerId": "principal"
+              }
+            },
+            {
+              "text": "  Date: ",
+              "type": "text"
+            },
+            {
+              "type": "signBox",
+              "attrs": {
+                "kind": "date_signed",
+                "width": 35,
+                "height": 8,
+                "required": true,
+                "signerId": "principal"
+              }
+            }
+          ]
+        },
+        {
+          "type": "paragraph",
+          "attrs": {
+            "textAlign": null
+          },
+          "content": [
+            {
+              "text": "Attorney-in-fact: ",
+              "type": "text"
+            },
+            {
+              "type": "signBox",
+              "attrs": {
+                "kind": "signature",
+                "width": 60,
+                "height": 15,
+                "required": true,
+                "signerId": "attorney_in_fact"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    "mode": "visual",
+    "footer": {
+      "doc": {
+        "type": "doc",
+        "content": [
+          {
+            "type": "paragraph",
+            "attrs": {
+              "textAlign": "right"
+            },
+            "content": [
+              {
+                "text": "Page ",
+                "type": "text"
+              },
+              {
+                "type": "mergeField",
+                "attrs": {
+                  "field": "page",
+                  "filter": null
+                }
+              },
+              {
+                "text": " of ",
+                "type": "text"
+              },
+              {
+                "type": "mergeField",
+                "attrs": {
+                  "field": "pages",
+                  "filter": null
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "height": 12,
+      "firstPage": null
+    },
+    "header": {
+      "doc": {
+        "type": "doc",
+        "content": [
+          {
+            "type": "paragraph",
+            "attrs": {
+              "textAlign": null
+            },
+            "content": [
+              {
+                "text": "Harbour Surety Company  ·  Bond ",
+                "type": "text"
+              },
+              {
+                "type": "mergeField",
+                "attrs": {
+                  "field": "bond_number",
+                  "filter": null
+                }
+              },
+              {
+                "text": "  ·  ",
+                "type": "text"
+              },
+              {
+                "type": "mergeField",
+                "attrs": {
+                  "field": "principal",
+                  "filter": null
+                }
+              },
+              {
+                "text": " ",
+                "type": "text"
+              }
+            ]
+          }
+        ]
+      },
+      "height": 24,
+      "firstPage": {
+        "type": "doc",
+        "content": [
+          {
+            "type": "image",
+            "attrs": {
+              "alt": "Logo",
+              "field": null,
+              "width": null,
+              "assetId": "$asset:harbour-logo"
+            }
+          },
+          {
+            "type": "paragraph",
+            "attrs": {
+              "textAlign": null
+            },
+            "content": [
+              {
+                "text": "Harbour Surety Company",
+                "type": "text",
+                "marks": [
+                  {
+                    "type": "bold"
+                  }
+                ]
+              },
+              {
+                "type": "hardBreak"
+              },
+              {
+                "text": "200 King Street West, Toronto, ON M5H 3T4  ·  Licensed surety, Ontario",
+                "type": "text"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "signers": [
+      {
+        "id": "principal",
+        "name": "{{ principal }}",
+        "role": "Principal",
+        "email": "contracts@northwind-construction.example",
+        "routingOrder": 1
+      },
+      {
+        "id": "attorney_in_fact",
+        "name": "{{ attorney_in_fact }}",
+        "role": "Attorney-in-fact",
+        "email": "aif@harbour-surety.example",
+        "routingOrder": 2
+      },
+      {
+        "id": "surety",
+        "name": "{{ surety_company }}",
+        "role": "Surety",
+        "email": "bonds@harbour-surety.example",
+        "routingOrder": 2
+      }
+    ]
+  }
+}
