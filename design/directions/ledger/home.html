@@ -1,0 +1,95 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><title>necodoc · Ledger · Home</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="stylesheet" href="style.css">
+<script src="../shared/data.js"></script>
+<script src="https://unpkg.com/lucide@0.460.0/dist/umd/lucide.min.js"></script>
+<script src="shell.js"></script>
+<style>
+.cols { display: grid; grid-template-columns: minmax(0, 1fr) 340px; gap: 40px; }
+.steps { list-style: none; margin: 14px 0 0; padding: 0; border-top: 1px solid var(--rule); }
+.steps li { display: grid; grid-template-columns: 34px 1fr auto; gap: 14px; align-items: baseline; padding: 11px 0; border-bottom: 1px solid var(--rule); }
+.steps .no { font: 500 24px/1 var(--serif); color: var(--ink-3); }
+.steps .done .no { color: var(--ok); }
+.steps b { font: 500 17px var(--serif); display: block; }
+.steps .done b { text-decoration: line-through; text-decoration-thickness: 1px; color: var(--ink-3); }
+.steps p { margin: 2px 0 0; color: var(--ink-2); font-size: 13.5px; }
+.sec-head { display: flex; align-items: baseline; gap: 12px; }
+.sec-head .meta { margin-left: auto; font: italic 14px var(--serif); color: var(--ink-3); }
+.progress { height: 3px; background: var(--rule); margin-top: 10px; }
+.progress i { display: block; height: 100%; width: 50%; background: var(--ink); }
+.figures { display: grid; grid-template-columns: repeat(5, 1fr); border-top: 1px solid var(--ink); border-bottom: 1px solid var(--rule); margin-top: 14px; }
+.figures div { padding: 12px 14px 12px 0; }
+.figures div + div { padding-left: 14px; border-left: 1px solid var(--rule); }
+.figures b { display: block; font: 400 30px/1.1 var(--serif); letter-spacing: -.01em; font-variant-numeric: lining-nums tabular-nums; }
+.figures b small { font-size: 15px; color: var(--ink-3); }
+.figures span { font-size: 12.5px; color: var(--ink-3); }
+.chart { margin-top: 10px; }
+.chart text { font: 11px var(--mono); fill: var(--ink-3); }
+.journal { list-style: none; margin: 12px 0 0; padding: 0; }
+.journal li { display: grid; grid-template-columns: 64px 1fr; gap: 10px; padding: 10px 0; border-bottom: 1px solid var(--rule); font-size: 13.5px; }
+.journal time { font: italic 13px var(--serif); color: var(--ink-3); text-align: right; padding-top: 1px; }
+.journal em { font: italic 14.5px var(--serif); }
+.journal small { color: var(--ink-3); display: block; }
+.memo { margin-top: 28px; background: var(--sheet); box-shadow: var(--lift); padding: 18px 20px; border-top: 3px solid var(--stamp); }
+.memo h3 { font: 500 17px var(--serif); margin: 0 0 4px; }
+.memo p { margin: 0 0 12px; color: var(--ink-2); font-size: 13.5px; }
+.memo .row { display: flex; justify-content: space-between; align-items: center; padding: 8px 0; border-top: 1px solid var(--rule); font-size: 13.5px; }
+@media (max-width: 1000px) { .cols { grid-template-columns: 1fr; } .figures { grid-template-columns: repeat(3, 1fr); } .figures div:nth-child(4) { border-left: 0; padding-left: 0; } .search { width: 200px; } .page { padding: 28px 28px; } }
+</style></head>
+<body>
+<main id="page" class="page">
+  <div class="page-head">
+    <div><div class="eyebrow">Monday, 12 October 2026</div>
+      <h1>Good morning, Mike.</h1>
+      <p class="lede">4,812 documents rendered so far today. Two templates are waiting on your review.</p></div>
+    <div class="actions"><button class="btn"><i data-lucide="upload"></i>Upload a PDF form</button><button class="btn primary"><i data-lucide="plus"></i>New template</button></div>
+  </div>
+  <div class="cols">
+    <div>
+      <section>
+        <div class="sec-head"><h2><span class="folio">§ 1</span>Get started</h2><span class="meta">2 of 4 complete</span></div>
+        <div class="progress"><i></i></div>
+        <ol class="steps" id="steps"></ol>
+      </section>
+      <section style="margin-top:34px">
+        <div class="sec-head"><h2><span class="folio">§ 2</span>Today’s press run</h2><span class="meta">renders per hour, last 24 h</span></div>
+        <div class="figures">
+          <div><b>4,812</b><span>Renders today</span></div>
+          <div><b>0.71<small> s</small></b><span>Median render</span></div>
+          <div><b>2.40<small> s</small></b><span>95th percentile</span></div>
+          <div><b>0.6<small> %</small></b><span>Failed</span></div>
+          <div><b>37</b><span>In queue · 6/8 workers</span></div>
+        </div>
+        <svg class="chart" id="chart" viewBox="0 0 760 150" width="100%" role="img" aria-label="Renders per hour over the last 24 hours, rising to 101 at 21:00"></svg>
+      </section>
+    </div>
+    <aside>
+      <div class="sec-head"><h2>Recent activity</h2><a class="meta" href="#" style="color:var(--link)">Audit log →</a></div>
+      <ul class="journal" id="journal"></ul>
+      <div class="memo">
+        <h3>Waiting on you</h3>
+        <p>Reviews requested by your publishers.</p>
+        <div class="row"><span>Castle Pines ROW Permit Bond</span><span class="stamp warn">Review</span></div>
+        <div class="row"><span>Commercial Quote Letter v6</span><span class="stamp warn">Review</span></div>
+      </div>
+    </aside>
+  </div>
+</main>
+<script>
+const D = NECO;
+document.getElementById("steps").innerHTML = D.checklist.map((s, i) => `<li class="${s.done ? "done" : ""}"><span class="no">${s.done ? "✓" : i + 1}</span><div><b>${s.title}</b><p>${s.desc}</p></div>${s.done ? '<span class="note" style="color:var(--ok)">Done</span>' : `<button class="btn sm">${i === 2 ? "Publish" : "Start"}</button>`}</li>`).join("");
+document.getElementById("journal").innerHTML = D.activity.map(a => `<li><time>${a.when}</time><div>${a.who} ${a.what} <em>${a.obj}</em>${a.meta ? `<small>${a.meta}</small>` : ""}</div></li>`).join("");
+// FT-style line chart
+const v = D.queue.spark, W = 760, H = 150, pad = 28, max = 120; // last label inset
+const x = i => pad + i * (W - pad - 10) / (v.length - 1), y = n => H - 20 - n / max * (H - 34);
+let g = "";
+[0, 40, 80, 120].forEach(t => g += `<line x1="${pad}" x2="${W}" y1="${y(t)}" y2="${y(t)}" stroke="var(--rule)" ${t ? 'stroke-dasharray="1 3"' : ""}/><text x="0" y="${y(t) + 4}">${t}</text>`);
+["00:00", "06:00", "12:00", "18:00", "23:00"].forEach((l, k) => g += `<text x="${x([0, 6, 12, 18, 23][k]) - (k === 4 ? 34 : 16)}" y="${H - 2}">${l}</text>`);
+const pts = v.map((n, i) => `${x(i)},${y(n)}`).join(" ");
+g += `<polyline points="${pts}" fill="none" stroke="var(--ink)" stroke-width="1.5"/>`;
+g += `<circle cx="${x(21)}" cy="${y(101)}" r="3.5" fill="var(--stamp)"/><text x="${x(21) - 70}" y="${y(101) - 8}" style="font:italic 13px Newsreader;fill:var(--ink-2)">peak 101 at 21:00</text>`;
+document.getElementById("chart").innerHTML = g;
+shell("My documents", "<b>Home</b>");
+</script>
+</body></html>

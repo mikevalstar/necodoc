@@ -6,7 +6,7 @@
     "useIgnoreFile": true
   },
   "files": {
-    "includes": ["**", "!**/routeTree.gen.ts", "!**/drizzle/meta", "!apps/web/public"]
+    "includes": ["**", "!**/routeTree.gen.ts", "!**/drizzle/meta", "!apps/web/public", "!design"]
   },
   "formatter": {
     "enabled": true,

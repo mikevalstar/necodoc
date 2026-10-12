@@ -1,0 +1,111 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><title>necodoc · Cobalt · Template editor</title>
+<!--HEAD:start-->
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="stylesheet" href="style.css">
+<link rel="stylesheet" href="https://unpkg.com/@phosphor-icons/web@2.1.1/src/duotone/style.css">
+<link rel="stylesheet" href="https://unpkg.com/@phosphor-icons/web@2.1.1/src/regular/style.css">
+<link rel="stylesheet" href="https://unpkg.com/@phosphor-icons/web@2.1.1/src/bold/style.css">
+<script src="../shared/data.js"></script>
+<script src="shell.js"></script>
+<!--HEAD:end-->
+<link rel="stylesheet" href="../shared/paper.css">
+<style>
+.main { overflow: hidden !important; }
+#page { display: flex; flex-direction: column; flex: 1; min-height: 0; padding: 0 24px 20px; }
+.eh { display: flex; align-items: center; gap: 12px; margin-bottom: 14px; }
+.eh h1 { font-size: 26px; white-space: nowrap; }
+.eh .saved { color: var(--ink-3); font-size: 13px; white-space: nowrap; display: inline-flex; gap: 5px; align-items: center; }
+.eh .actions { margin-left: auto; display: flex; gap: 8px; }
+.tabs { display: flex; gap: 2px; padding: 4px; border-radius: 12px; background: var(--tint); margin-bottom: 14px; align-self: flex-start; }
+.tabs a { height: 32px; padding: 0 12px; display: flex; align-items: center; gap: 6px; border-radius: 9px; font: 600 13px var(--sans); color: var(--ink-2); white-space: nowrap; }
+.tabs a.on { background: var(--surface); color: var(--ink); box-shadow: var(--shadow); }
+.tabs .n { font-size: 11px; background: var(--tint-2); padding: 0 6px; border-radius: 99px; } .tabs .n.w { background: var(--bad-wash); color: var(--bad); }
+.split { flex: 1; display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 20px; min-height: 0; }
+.ed { display: flex; flex-direction: column; min-height: 0; position: relative; }
+.tb { display: flex; align-items: center; gap: 4px; padding: 10px 12px; border-bottom: 1px solid var(--hair); }
+.tb > button { width: 34px; height: 34px; border: 0; background: none; border-radius: 9px; color: var(--ink-2); display: grid; place-items: center; }
+.tb > button.on { background: var(--tint); color: var(--ink); }
+.tb .sep { width: 1px; height: 20px; background: var(--hair); margin: 0 4px; }
+.tb .dd { height: 34px; display: flex; align-items: center; gap: 6px; padding: 0 10px; border-radius: 9px; background: var(--tint); font-weight: 600; font-size: 13px; }
+.tb .r { margin-left: auto; display: flex; gap: 6px; }
+.body { padding: 24px 36px 120px; overflow: auto; font-size: 15px; line-height: 1.85; }
+.body h3 { font: 700 23px var(--display); margin: 0; text-align: center; letter-spacing: -.01em; }
+.body .k { text-align: center; font: 700 11px var(--sans); letter-spacing: .12em; text-transform: uppercase; color: var(--ink-3); margin-bottom: 16px; }
+.body p { margin: 0 0 12px; }
+.fld { display: inline-flex; align-items: center; gap: 5px; height: 26px; padding: 0 10px 0 6px; border-radius: 99px; background: var(--brand-wash); color: var(--brand-ink); font: 600 13px var(--sans); vertical-align: 1px; white-space: nowrap; }
+.fld i { font-size: 15px; }
+.fld.sel { background: var(--brand); color: var(--on-brand); box-shadow: 0 0 0 3px color-mix(in srgb, var(--brand) 30%, transparent); }
+.cond { border-radius: 14px; background: var(--sun-wash); padding: 10px 14px 12px; margin: 4px 0 14px; }
+.cond .when { display: inline-flex; gap: 6px; align-items: center; font: 700 12px var(--sans); color: var(--sun-ink); margin-bottom: 2px; }
+.cond .when i { font-size: 15px; }
+.assist { position: absolute; left: 16px; right: 16px; bottom: 16px; display: flex; gap: 12px; align-items: center; padding: 12px 14px; border-radius: 14px; background: var(--ink); color: var(--canvas); box-shadow: var(--shadow-lg); font-size: 13.5px; }
+.assist .ic { width: 34px; height: 34px; border-radius: 10px; background: var(--sun); color: #3a2900; display: grid; place-items: center; flex: none; }
+.assist .ic i { font-size: 20px; }
+.assist b { font-weight: 700; }
+.assist .r { margin-left: auto; display: flex; gap: 6px; }
+.assist .btn.sm { height: 30px; box-shadow: none; }
+.assist .btn.ghost { background: transparent; color: var(--canvas); }
+/* the neko tray: the preview panel wears the mark's ears */
+.tray { position: relative; margin-top: 16px; background: var(--brand); border-radius: 0 0 22px 22px; display: flex; flex-direction: column; min-height: 0; }
+.dark .tray { background: #1a2a7a; }
+.tray::before, .tray::after { content: ""; position: absolute; top: -21px; width: 84px; height: 22px; background: inherit; }
+.tray::before { left: 0; clip-path: polygon(0 0, 100% 100%, 0 100%); border-top-left-radius: 6px; }
+.tray::after { right: 0; clip-path: polygon(100% 0, 100% 100%, 0 100%); }
+.tray .bar { display: flex; align-items: center; gap: 8px; padding: 6px 14px 10px; color: #fff; font-size: 13px; }
+.tray .bar .live { display: inline-flex; align-items: center; gap: 6px; font-weight: 700; }
+.tray .bar .live::before { content: ""; width: 8px; height: 8px; border-radius: 50%; background: #7cf0bd; box-shadow: 0 0 0 3px rgba(124,240,189,.25); }
+.tray .bar .chip { display: inline-flex; gap: 6px; align-items: center; height: 30px; padding: 0 10px; border-radius: 9px; background: rgba(255,255,255,.14); font-weight: 600; }
+.tray .bar .r { margin-left: auto; display: flex; gap: 4px; }
+.tray .bar button { width: 30px; height: 30px; border: 0; border-radius: 9px; background: rgba(255,255,255,.14); color: #fff; display: grid; place-items: center; }
+.tray .well { flex: 1; overflow: auto; margin: 0 10px 10px; border-radius: 0 0 14px 14px; background: color-mix(in srgb, var(--brand) 70%, #0c1233); display: flex; flex-direction: column; align-items: center; padding: 22px 0 0; }
+.dark .tray .well { background: #0f1850; }
+.tray .well .pdf-page { width: 440px; border-radius: 3px; box-shadow: 0 18px 40px -16px rgba(0,0,0,.6); flex: none; }
+.pager { position: absolute; bottom: 22px; left: 50%; transform: translateX(-50%); display: flex; gap: 6px; align-items: center; background: var(--ink); color: var(--canvas); border-radius: 99px; padding: 5px 6px 5px 14px; font: 600 12.5px var(--sans); box-shadow: var(--shadow-lg); }
+.pager span.b { width: 26px; height: 26px; display: grid; place-items: center; border-radius: 50%; background: rgba(127,127,127,.25); }
+</style></head>
+<body>
+<main id="page">
+  <div class="eh">
+    <button class="ib" aria-label="Back"><i class="ph-bold ph-arrow-left"></i></button>
+    <h1>Oregon Contractor License Bond</h1>
+    <span class="pill ok">Published v4</span><span class="pill warn plain">Draft has 6 changes</span>
+    <span class="saved"><i class="ph-duotone ph-cloud-check"></i>Saved just now</span>
+    <div class="actions">
+      <button class="btn sun"><i class="ph-duotone ph-sparkle"></i>Assistant</button>
+      <button class="btn">Submit for review</button>
+      <button class="btn primary"><i class="ph-bold ph-rocket-launch"></i>Publish v5</button>
+    </div>
+  </div>
+  <nav class="tabs" id="tabs" aria-label="Template sections"></nav>
+  <div class="split">
+    <section class="card ed" aria-label="Template content">
+      <div class="tb">
+        <span class="dd">Paragraph <i class="ph ph-caret-down"></i></span><span class="sep"></span>
+        <button class="on" aria-label="Bold"><i class="ph-bold ph-text-b"></i></button><button aria-label="Italic"><i class="ph ph-text-italic"></i></button><button aria-label="Underline"><i class="ph ph-text-underline"></i></button><span class="sep"></span>
+        <button aria-label="Justify"><i class="ph ph-text-align-justify"></i></button><button aria-label="List"><i class="ph ph-list-bullets"></i></button><button aria-label="Table"><i class="ph ph-table"></i></button>
+        <div class="r"><button class="btn sm flat"><i class="ph-duotone ph-brackets-curly"></i>Field</button><button class="btn sm flat"><i class="ph-duotone ph-git-fork"></i>Condition</button><button class="btn sm flat"><i class="ph-bold ph-plus"></i>Insert</button></div>
+      </div>
+      <div class="body">
+        <h3>Contractor License Bond</h3>
+        <div class="k">State of Oregon · Construction Contractors Board</div>
+        <p><b>KNOW ALL PERSONS BY THESE PRESENTS</b>, that we, <span class="fld sel"><i class="ph-bold ph-text-aa"></i>Principal name</span>, of <span class="fld"><i class="ph-bold ph-map-pin"></i>City</span>, as Principal, CCB License No. <span class="fld"><i class="ph-bold ph-hash"></i>CCB license</span>, and Harbour Surety Company, as Surety, are held and firmly bound unto the State of Oregon in the penal sum of <span class="fld"><i class="ph-bold ph-currency-dollar"></i>Bond amount · in words</span>.</p>
+        <div class="cond"><span class="when"><i class="ph-duotone ph-eye"></i>Shown when License class is Residential</span><p style="margin:0">The Principal has applied for a license as a <span class="fld"><i class="ph-bold ph-list"></i>License class</span> and shall comply with ORS Chapter 701.</p></div>
+        <p>This bond shall be effective from <span class="fld"><i class="ph-bold ph-calendar-blank"></i>Effective date · long</span> and shall continue in force until cancelled upon thirty (30) days’ written notice.</p>
+      </div>
+      <div class="assist" role="status"><span class="ic"><i class="ph-duotone ph-sparkle"></i></span><span><b>Assistant</b> · 2 fields aren’t asked in the guided form yet. Add them to step 1?</span><div class="r"><button class="btn sm ghost">Not now</button><button class="btn sm sun">Add fields</button></div></div>
+    </section>
+    <section class="tray" aria-label="PDF preview">
+      <div class="bar"><span class="live">Live preview</span><span class="chip"><i class="ph-duotone ph-user"></i>Northgate Builders <i class="ph ph-caret-down"></i></span><span class="chip">EN</span>
+        <div class="r"><button aria-label="Zoom out"><i class="ph-bold ph-minus"></i></button><span class="chip">80%</span><button aria-label="Zoom in"><i class="ph-bold ph-plus"></i></button><button aria-label="Download"><i class="ph-bold ph-download-simple"></i></button></div></div>
+      <div class="well" id="well"></div>
+      <div class="pager"><span>Page 1 of 2 · 0.84 s</span><span class="b"><i class="ph-bold ph-caret-up"></i></span><span class="b"><i class="ph-bold ph-caret-down"></i></span></div>
+    </section>
+  </div>
+</main>
+<script>
+document.getElementById("well").innerHTML = NECO.bondPage;
+document.getElementById("tabs").innerHTML = NECO.editorTabs.map((t, i) => `<a href="#" class="${i === 0 ? "on" : ""}">${t}${t === "Fields" ? '<span class="n">18</span>' : ""}${t === "Tests" ? '<span class="n w">1</span>' : ""}</a>`).join("");
+shell("Templates", "Templates", 'Templates <i class="ph ph-caret-right"></i> <b>Oregon Contractor License Bond</b>', { collapsed: true });
+</script>
+</body></html>

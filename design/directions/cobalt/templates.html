@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><title>necodoc · Cobalt · Templates</title>
+<!--HEAD:start-->
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="stylesheet" href="style.css">
+<link rel="stylesheet" href="https://unpkg.com/@phosphor-icons/web@2.1.1/src/duotone/style.css">
+<link rel="stylesheet" href="https://unpkg.com/@phosphor-icons/web@2.1.1/src/regular/style.css">
+<link rel="stylesheet" href="https://unpkg.com/@phosphor-icons/web@2.1.1/src/bold/style.css">
+<script src="../shared/data.js"></script>
+<script src="shell.js"></script>
+<!--HEAD:end-->
+<style>
+.tools { display: flex; gap: 12px; align-items: center; margin-bottom: 20px; }
+.tools .r { margin-left: auto; display: flex; gap: 10px; }
+.gal { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 20px; }
+.tc { overflow: hidden; display: flex; flex-direction: column; }
+.tc .th { height: 140px; background: var(--tint); display: flex; justify-content: center; align-items: flex-end; position: relative; }
+.tc .th.ov { background: color-mix(in srgb, var(--sun) 22%, var(--tint)); }
+.mini { width: 132px; height: 126px; background: #fff; border-radius: 0; box-shadow: 0 -2px 12px rgba(12,18,51,.12); padding: 16px 14px 0; position: relative; }
+.mini::before, .mini::after { content: ""; position: absolute; top: -15px; width: 40px; height: 16px; background: #fff; }
+.mini::before { left: 0; clip-path: polygon(0 100%, 0 8%, 6% 0, 100% 100%); }
+.mini::after { right: 0; clip-path: polygon(0 100%, 94% 0, 100% 8%, 100% 100%); }
+.mini i { display: block; height: 4px; border-radius: 2px; background: #d7dbe9; margin-bottom: 6px; }
+.mini i.h { height: 7px; width: 70%; background: #0c1233; margin: 0 auto 10px; }
+.mini i.f { background: #b9cbff; width: 45%; display: inline-block; }
+.mini .box { position: absolute; left: 14px; right: 50px; bottom: 22px; height: 12px; border: 1.5px solid var(--sun); border-radius: 3px; background: rgba(255,197,61,.18); }
+.tc .menu { z-index: 2; }
+.tc .eb { display: inline-flex; align-items: center; gap: 5px; font: 700 11px var(--sans); letter-spacing: .06em; text-transform: uppercase; color: var(--brand-ink); }
+.tc .eb i { font-size: 14px; }
+.tc .kind { position: absolute; top: 12px; left: 12px; display: inline-flex; gap: 6px; align-items: center; font: 600 12px var(--sans); background: var(--surface); color: var(--ink-2); padding: 4px 9px; border-radius: 99px; box-shadow: var(--shadow); }
+.tc .kind i { font-size: 14px; color: var(--brand); }
+.tc .menu { position: absolute; top: 10px; right: 10px; width: 30px; height: 30px; border-radius: 9px; background: var(--surface); display: grid; place-items: center; color: var(--ink-2); box-shadow: var(--shadow); }
+.tc .bd { padding: 14px 16px 16px; display: flex; flex-direction: column; gap: 6px; flex: 1; }
+.tc b { font: 700 15.5px/1.25 var(--display); letter-spacing: -.01em; }
+.tc p { margin: 0; color: var(--ink-3); font-size: 12.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.tc .meta { display: flex; align-items: center; gap: 8px; margin-top: 6px; font-size: 12.5px; color: var(--ink-3); }
+.tc .meta .s { margin-left: auto; font-weight: 600; color: var(--ink-2); }
+.newcard { border: 2px dashed var(--tint-2); background: transparent; box-shadow: none; display: grid; place-items: center; text-align: center; color: var(--ink-3); }
+.newcard .ic { width: 52px; height: 52px; border-radius: 16px; background: var(--brand-wash); color: var(--brand); display: grid; place-items: center; margin: 0 auto 10px; font-size: 26px; }
+.newcard .ic i { font-size: 28px; }
+.newcard b { font: 700 15.5px var(--display); color: var(--ink); display: block; }
+@media (max-width: 1000px) { .gal { grid-template-columns: repeat(2, 1fr); } }
+</style></head>
+<body>
+<main id="page" class="page">
+  <div class="phead"><div><h1>Templates</h1><p class="sub-h">Designed once, filled thousands of times. Edit the draft, publish a version.</p></div>
+    <div class="actions"><button class="btn"><i class="ph-duotone ph-file-arrow-up"></i>Upload PDF form</button><button class="btn primary"><i class="ph-bold ph-plus"></i>New template</button></div></div>
+  <div class="tools">
+    <div class="field" style="width:300px"><i class="ph ph-magnifying-glass"></i>Search templates and fields</div>
+    <div class="seg"><span class="on">All <span class="c">8</span></span><span>Published <span class="c">5</span></span><span>In review <span class="c">1</span></span><span>Drafts <span class="c">1</span></span></div>
+    <div class="r"><div class="field">Sort <b>Recently edited</b><i class="ph ph-caret-down"></i></div><div class="seg"><span class="on" aria-label="Gallery"><i class="ph-duotone ph-squares-four"></i></span><span aria-label="Table"><i class="ph ph-rows"></i></span></div></div>
+  </div>
+  <div class="gal" id="gal"></div>
+</main>
+<script>
+const st = { published: ["ok", "Published"], review: ["warn", "In review"], draft: ["mute", "Draft"], archived: ["mute", "Archived"] };
+document.getElementById("gal").innerHTML = NECO.templates.slice(0, 7).map(t => { const ov = t.kind === "PDF overlay"; return `<article class="card tc">
+  <div class="th ${ov ? "ov" : ""}"><span class="menu"><i class="ph-bold ph-dots-three"></i></span>
+    <div class="mini"><i class="h"></i><i></i><i></i><i style="width:80%"></i><i class="f"></i> <i class="f" style="width:30%"></i><i></i><i style="width:60%"></i>${ov ? '<span class="box"></span>' : ""}</div></div>
+  <div class="bd"><span class="eb"><i class="ph-duotone ph-${ov ? "stack" : "pencil-ruler"}"></i>${t.kind}</span><b>${t.name}</b><p>${t.desc}</p>
+    <div class="meta"><span class="pill ${st[t.status][0]}">${st[t.status][1]}${t.version ? " v" + t.version : ""}</span>${t.changes && t.status === "published" ? '<span class="pill warn plain">Edited</span>' : ""}<span class="s">${t.uses ? t.uses.toLocaleString() + " fills" : t.edited}</span></div></div></article>`; }).join("") +
+  `<button class="card newcard"><div><span class="ic"><i class="ph-duotone ph-plus-circle"></i></span><b>Start a template</b>Design one, or drop a PDF here</div></button>`;
+shell("Templates", "Templates", 'Templates <i class="ph ph-caret-right"></i> <b>All templates</b>');
+</script>
+</body></html>

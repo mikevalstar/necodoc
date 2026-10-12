@@ -1,0 +1,17 @@
+/* Print styling of the mock PDF page: the customer's theme, identical in every direction. */
+@import url("https://fonts.googleapis.com/css2?family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&family=Homemade+Apple&display=swap");
+.pdf-page { background:#fff; color:#111; font-family:"Source Serif 4", Georgia, serif; font-size:10.5px; line-height:1.55; padding:44px 48px 36px; aspect-ratio: 8.5 / 11; display:flex; flex-direction:column; box-sizing:border-box; }
+.pdf-page p { margin:0 0 9px; text-align:justify; hyphens:auto; }
+.pdf-page u { text-decoration:none; border-bottom:1px solid #111; padding:0 2px; }
+.pdf-head { display:flex; align-items:center; gap:12px; border-bottom:2px solid #111; padding-bottom:10px; margin-bottom:18px; }
+.pdf-seal { width:34px; height:34px; border:1.5px solid #1a3a8f; color:#1a3a8f; border-radius:50%; display:grid; place-items:center; font-weight:600; font-size:9px; letter-spacing:.08em; }
+.pdf-org { font-weight:600; font-size:13px; }
+.pdf-sub { white-space:nowrap; font-size:8.5px; color:#444; }
+.pdf-no { white-space:nowrap; margin-left:auto; text-align:right; font-size:8.5px; color:#444; }
+.pdf-no b { color:#111; font-size:10px; }
+.pdf-title { font-size:20px; text-align:center; margin:4px 0 2px; font-weight:600; letter-spacing:.01em; }
+.pdf-kicker { text-align:center; font-size:8.5px; letter-spacing:.14em; text-transform:uppercase; color:#444; margin-bottom:16px; }
+.pdf-sigs { display:grid; grid-template-columns:1fr 1fr; gap:28px; margin-top:auto; font-size:8.5px; color:#333; }
+.pdf-sigline { border-bottom:1px solid #111; height:34px; display:flex; align-items:flex-end; margin-bottom:4px; }
+.pdf-sig { font-family:"Homemade Apple", cursive; font-size:14px; color:#1a2f7a; padding-bottom:2px; }
+.pdf-foot { display:flex; justify-content:space-between; font-size:7.5px; color:#666; border-top:1px solid #bbb; padding-top:6px; margin-top:18px; }

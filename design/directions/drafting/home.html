@@ -1,0 +1,102 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><title>necodoc · Drafting · Overview</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="stylesheet" href="style.css">
+<script src="../shared/data.js"></script>
+<script src="https://unpkg.com/lucide@0.460.0/dist/umd/lucide.min.js"></script>
+<script src="shell.js"></script>
+<style>
+.setup { display: grid; grid-template-columns: 150px repeat(4, 1fr); }
+.setup > div, .setup .step { padding: 12px 14px; border-left: 1px solid var(--line); display: flex; flex-direction: column; gap: 4px; }
+.setup > div:first-child { border-left: 0 !important; justify-content: center; }
+.setup .big { font: 500 26px/1 var(--mono); }
+.setup .big small { font-size: 14px; color: var(--fg-3); }
+.setup .t { display: flex; align-items: center; gap: 8px; font-weight: 600; }
+.setup .no { width: 18px; height: 18px; border: 1px solid var(--line-2); border-radius: 2px; display: grid; place-items: center; font: 500 10.5px var(--mono); color: var(--fg-3); }
+.setup .done .no { background: var(--ok-dot); border-color: var(--ok-dot); color: #04130b; }
+.setup .done .t { color: var(--fg-2); }
+.setup p { margin: 0; color: var(--fg-3); font-size: 12px; line-height: 1.35; }
+.setup .go { margin-top: 4px; color: var(--brand-text); font-weight: 500; font-size: 12px; display: inline-flex; gap: 4px; align-items: center; }
+.bar4 { display: flex; gap: 3px; margin-top: 6px; } .bar4 i { flex: 1; height: 3px; background: var(--line-2); } .bar4 i.on { background: var(--ok-dot); }
+.kpis { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin: 10px 0; }
+.kpi { padding: 10px 12px; position: relative; overflow: hidden; }
+.kpi .v { font: 500 24px/1.1 var(--mono); margin-top: 8px; letter-spacing: -.02em; }
+.kpi .v small { font-size: 13px; color: var(--fg-3); }
+.kpi .d { font: 11.5px var(--mono); color: var(--fg-3); margin-top: 2px; }
+.kpi .d .up { color: var(--ok); } .kpi .d .w { color: var(--warn); }
+.kpi svg.sp { position: absolute; right: 10px; bottom: 10px; width: 120px; height: 36px; }
+.row { display: grid; grid-template-columns: minmax(0, 1fr) 360px; gap: 10px; }
+.chart text { font: 10.5px var(--mono); fill: var(--fg-3); }
+.legend { display: flex; gap: 12px; font: 11px var(--mono); color: var(--fg-3); }
+.legend i { display: inline-block; width: 8px; height: 8px; margin-right: 5px; border-radius: 1px; }
+.slots { display: grid; grid-template-columns: repeat(8, 1fr); gap: 4px; padding: 12px; }
+.slots div { height: 34px; border: 1px solid var(--line-2); border-radius: 2px; font: 10px var(--mono); color: var(--fg-3); padding: 3px 4px; display: flex; flex-direction: column; justify-content: space-between; }
+.slots div.busy { border-color: color-mix(in srgb, var(--brand) 60%, transparent); background: var(--brand-wash); color: var(--brand-text); }
+.slots div.busy::after { content: ""; height: 2px; background: var(--brand); width: var(--p); }
+.qrows { padding: 0 12px 12px; display: grid; gap: 6px; }
+.qrows div { display: grid; grid-template-columns: 92px 1fr 40px; gap: 8px; align-items: center; font-size: 12px; color: var(--fg-2); }
+.qrows .track { height: 6px; background: var(--sunk); border-radius: 1px; overflow: hidden; } .qrows .track i { display: block; height: 100%; background: var(--brand); }
+.qrows .n { text-align: right; font: 12px var(--mono); color: var(--fg); }
+.kv { display: grid; grid-template-columns: 1fr auto 1fr auto; gap: 8px 12px; padding: 12px; border-top: 1px solid var(--line); font: 12px var(--mono); color: var(--fg-3); }
+.kv b { color: var(--fg); font-weight: 500; text-align: right; }
+.log { font: 12px/1 var(--mono); }
+.log div { display: grid; grid-template-columns: 70px 92px 1fr auto; gap: 10px; padding: 0 12px; height: 30px; align-items: center; border-bottom: 1px solid var(--line); color: var(--fg-2); }
+.log div:last-child { border-bottom: 0; }
+.log time { color: var(--fg-3); }
+.log .tag { justify-self: start; }
+.log b { color: var(--fg); font-weight: 500; font-family: var(--sans); font-size: 12.5px; }
+.log span.who { color: var(--brand-text); }
+.wait div { display: flex; align-items: center; gap: 10px; padding: 0 12px; height: 38px; border-bottom: 1px solid var(--line); font-size: 12.5px; }
+.wait div:last-child { border-bottom: 0; }
+.wait .r { margin-left: auto; }
+@media (max-width: 1000px) { .app { grid-template-columns: 48px 0 1fr !important; } .tree { display: none; } .cmd { width: 200px; } .crumbs { display: none !important; } .status .r { display: none; } .setup { grid-template-columns: 1fr 1fr; } .setup > div:first-child { grid-column: 1 / -1; border-bottom: 1px solid var(--line); } .setup .step:nth-child(3) { border-left: 0; } .setup .step:nth-child(n+3) { border-top: 1px solid var(--line); } .kpis { grid-template-columns: 1fr 1fr; } .row { grid-template-columns: 1fr; } }
+</style></head>
+<body>
+<main id="page" class="page">
+  <div class="ph"><h1>Overview</h1><span class="lbl" style="margin-left:4px">Mon 12 Oct · 10:42 UTC</span>
+    <div class="actions"><button class="btn"><i data-lucide="upload"></i>Upload PDF form</button><button class="btn primary"><i data-lucide="plus"></i>New template<span class="k">N</span></button></div></div>
+  <section class="panel setup" aria-label="Get started">
+    <div><span class="lbl">Setup</span><span class="big">2<small>/4</small></span><div class="bar4"><i class="on"></i><i class="on"></i><i></i><i></i></div></div>
+    <div id="steps" style="display:contents"></div>
+  </section>
+  <div class="kpis">
+    <div class="panel kpi"><span class="lbl">Renders · today</span><div class="v">4,812</div><div class="d"><span class="up">▲ 12.4%</span> vs last Mon</div><svg class="sp" id="sp1"></svg></div>
+    <div class="panel kpi"><span class="lbl">Render · p50</span><div class="v">0.71<small> s</small></div><div class="d">target ≤ 1.00 s</div><svg class="sp" id="sp2"></svg></div>
+    <div class="panel kpi"><span class="lbl">Render · p95</span><div class="v">2.40<small> s</small></div><div class="d"><span class="w">▲ 0.3 s</span> since 09:00</div><svg class="sp" id="sp3"></svg></div>
+    <div class="panel kpi"><span class="lbl">Failure rate · 24 h</span><div class="v">0.60<small> %</small></div><div class="d">71 of 12,406</div><svg class="sp" id="sp4"></svg></div>
+  </div>
+  <div class="row">
+    <section class="panel"><header><h2>Throughput</h2><span class="tag">24 h</span><div class="r legend"><span><i style="background:var(--brand)"></i>success</span><span><i style="background:var(--bad-dot)"></i>failed</span><span><i style="background:var(--warn-dot);height:2px"></i>p95</span></div></header>
+      <svg class="chart" id="chart" viewBox="0 0 820 230" width="100%" role="img" aria-label="Renders per hour for 24 hours"></svg></section>
+    <section class="panel"><header><h2>Render queue</h2><div class="r"><span class="sc ok">healthy</span></div></header>
+      <div class="slots" id="slots"></div>
+      <div class="qrows"><div><span>interactive</span><span class="track"><i style="width:8%"></i></span><span class="n">3</span></div><div><span>api</span><span class="track"><i style="width:30%"></i></span><span class="n">11</span></div><div><span>batch #221</span><span class="track"><i style="width:62%"></i></span><span class="n">23</span></div></div>
+      <div class="kv"><span>oldest wait</span><b>2.31 s</b><span>avg wait</span><b>0.18 s</b><span>throughput</span><b>96 / h</b><span>retries 1 h</span><b>4</b></div></section>
+  </div>
+  <div class="row" style="margin-top:10px">
+    <section class="panel"><header><h2>Activity</h2><div class="r"><a href="#" style="color:var(--brand-text)">Audit log →</a></div></header><div class="log" id="log"></div></section>
+    <section class="panel wait"><header><h2>Waiting on you</h2><div class="r"><span class="tag w">2</span></div></header>
+      <div><i data-lucide="git-pull-request-arrow"></i>Castle Pines ROW Permit Bond<span class="r tag w">review</span></div>
+      <div><i data-lucide="git-pull-request-arrow"></i>Commercial Quote Letter v6<span class="r tag w">review</span></div>
+      <div><i data-lucide="key-round"></i>Key <span class="mono">legacy-ftp</span> expires in 3 d<span class="r tag">rotate</span></div></section>
+  </div>
+</main>
+<script>
+const D = NECO;
+document.getElementById("steps").innerHTML = D.checklist.map((s, i) => `<div class="step ${s.done ? "done" : ""}"><span class="t"><span class="no">${s.done ? "✓" : i + 1}</span>${s.title}</span><p>${s.desc}</p>${s.done ? "" : `<a class="go" href="#">${i === 2 ? "Publish a draft" : "Start"} →</a>`}</div>`).join("");
+document.getElementById("slots").innerHTML = Array.from({ length: 8 }, (_, i) => i < 6 ? `<div class="busy" style="--p:${[80, 35, 60, 15, 90, 50][i]}%">w${i + 1}</div>` : `<div>w${i + 1}<span>idle</span></div>`).join("");
+document.getElementById("log").innerHTML = [["10:30", "publish", "Priya N.", "Oregon Contractor License Bond", "v4"], ["10:16", "batch.done", "batch #219", "412 VS-3 dealer bonds", "3 fail"], ["07:41", "review.req", "Dana K.", "Castle Pines ROW Permit Bond", "2 cmt"], ["05:12", "key.rotate", "Luis A.", "agency-sync", ""], ["yday", "fill", "Mike V.", "Power of Attorney — RJ Tanaka", "pdf"]].map(([t, e, w, o, m]) => `<div><time>${t}</time><span class="tag">${e}</span><span><span class="who">${w}</span> · <b>${o}</b></span><span style="color:var(--fg-3)">${m}</span></div>`).join("");
+const spark = (id, v, color) => { const W = 120, H = 36, mx = Math.max(...v), mn = Math.min(...v); const p = v.map((n, i) => `${i * W / (v.length - 1)},${H - 2 - (n - mn) / (mx - mn || 1) * (H - 6)}`).join(" "); document.getElementById(id).innerHTML = `<polyline points="${p}" fill="none" stroke="${color}" stroke-width="1.5"/><polygon points="0,${H} ${p} ${W},${H}" fill="${color}" opacity=".12"/>`; };
+spark("sp1", D.queue.spark, "var(--brand)"); spark("sp2", [7, 8, 7, 7, 6, 7, 8, 7, 7, 7, 7, 7], "var(--brand)"); spark("sp3", [19, 20, 21, 20, 22, 21, 23, 22, 24, 24, 24, 24], "var(--warn-dot)"); spark("sp4", [5, 6, 4, 9, 7, 5, 6, 4, 6, 7, 6, 6], "var(--bad-dot)");
+// throughput bars
+const v = D.queue.spark, W = 820, H = 230, L = 34, B = 22, T = 10, mx = 120, bw = (W - L - 8) / v.length;
+const y = n => H - B - n / mx * (H - B - T);
+let g = "";
+[0, 40, 80, 120].forEach(t => g += `<line x1="${L}" x2="${W}" y1="${y(t)}" y2="${y(t)}" stroke="var(--line)"/><text x="${L - 6}" y="${y(t) + 3}" text-anchor="end">${t}</text>`);
+v.forEach((n, i) => { const f = [0, 0, 1, 0, 0, 2, 1, 0, 0, 3, 1, 0, 2, 0, 0, 1, 4, 0, 0, 1, 2, 3, 1, 0][i] * 2; const x = L + 4 + i * bw; g += `<rect x="${x}" y="${y(n)}" width="${bw - 4}" height="${y(0) - y(n)}" fill="var(--brand)" opacity=".85"/>`; if (f) g += `<rect x="${x}" y="${y(n) - f * 1.4}" width="${bw - 4}" height="${f * 1.4}" fill="var(--bad-dot)"/>`; if (i % 6 === 0) g += `<text x="${x}" y="${H - 6}">${String(i).padStart(2, "0")}:00</text>`; });
+const p95 = [60, 62, 58, 64, 61, 70, 72, 68, 66, 74, 78, 72, 70, 69, 75, 80, 88, 82, 76, 78, 84, 92, 90, 86];
+g += `<polyline points="${p95.map((n, i) => `${L + 4 + i * bw + (bw - 4) / 2},${y(n)}`).join(" ")}" fill="none" stroke="var(--warn-dot)" stroke-width="1.5" stroke-dasharray="4 2"/>`;
+document.getElementById("chart").innerHTML = g;
+shell("My documents", "", {});
+</script>
+</body></html>

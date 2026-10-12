@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><title>necodoc · Cobalt · Generations</title>
+<!--HEAD:start-->
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="stylesheet" href="style.css">
+<link rel="stylesheet" href="https://unpkg.com/@phosphor-icons/web@2.1.1/src/duotone/style.css">
+<link rel="stylesheet" href="https://unpkg.com/@phosphor-icons/web@2.1.1/src/regular/style.css">
+<link rel="stylesheet" href="https://unpkg.com/@phosphor-icons/web@2.1.1/src/bold/style.css">
+<script src="../shared/data.js"></script>
+<script src="shell.js"></script>
+<!--HEAD:end-->
+<style>
+.stats { display: grid; grid-template-columns: repeat(5, 1fr); gap: 14px; margin-bottom: 18px; }
+.stat { padding: 14px 16px; }
+.stat span { font-size: 12.5px; color: var(--ink-3); font-weight: 600; }
+.stat b { display: block; font: 800 26px/1.1 var(--display); letter-spacing: -.02em; margin-top: 4px; }
+.stat b small { font-size: 14px; color: var(--ink-3); font-weight: 600; }
+.stat.bad b { color: var(--bad); }
+.filters { display: flex; gap: 10px; align-items: center; padding: 14px 16px; border-bottom: 1px solid var(--hair); flex-wrap: wrap; }
+.chip { display: inline-flex; align-items: center; gap: 6px; height: 34px; padding: 0 8px 0 12px; border-radius: 99px; background: var(--sun-wash); color: var(--sun-ink); font: 600 13px var(--sans); }
+.chip i.x { width: 22px; height: 22px; border-radius: 50%; display: grid; place-items: center; background: rgba(0,0,0,.06); font-size: 12px; }
+.chip.add { background: transparent; box-shadow: inset 0 0 0 1.5px var(--tint-2); color: var(--ink-2); padding: 0 12px; }
+.filters .r { margin-left: auto; display: flex; gap: 8px; align-items: center; }
+.t td { height: 46px; padding: 0 10px; } .t th { padding: 0 10px; }
+.t tbody tr:first-child td { border-top-color: var(--hair); }
+.file b { font-weight: 600; } .file small { display: block; font: 11.5px var(--mono); color: var(--ink-3); margin-top: -2px; }
+.src { display: inline-flex; gap: 6px; align-items: center; color: var(--ink-2); } .src i { color: var(--brand); }
+.rt { display: inline-flex; align-items: center; gap: 10px; justify-content: flex-end; width: 100%; }
+.rt .tr { width: 80px; height: 8px; border-radius: 99px; background: var(--tint); overflow: hidden; } .rt .tr i { display: block; height: 100%; border-radius: 99px; background: var(--brand); }
+.rt .tr.slow i { background: var(--sun); }
+tr.err td { background: color-mix(in srgb, var(--bad-wash) 60%, transparent); }
+.file small.errnote { color: var(--bad); font: 600 12px var(--sans); display: flex; gap: 4px; align-items: center; margin: 0; color: var(--bad); font-size: 12.5px; font-weight: 600; }
+.foot { display: flex; align-items: center; gap: 10px; padding: 12px 16px; border-top: 1px solid var(--hair); font-size: 13px; color: var(--ink-3); }
+.foot .pg { margin-left: auto; display: flex; gap: 4px; }
+.foot .pg span { min-width: 34px; height: 34px; border-radius: 10px; display: grid; place-items: center; font-weight: 600; color: var(--ink-2); }
+.foot .pg span.on { background: var(--brand); color: var(--on-brand); }
+@media (max-width: 1000px) { .stats { grid-template-columns: repeat(3, 1fr); } .stats .stat:nth-child(n+4) { display: none; } .hide-t { display: none; } .filters .r { display: none; } .rt .tr { display: none; } }
+</style></head>
+<body>
+<main id="page" class="page">
+  <div class="phead"><div><h1>Generations</h1><p class="sub-h">Every PDF rendered, with its input and output. Previews aren’t logged.</p></div>
+    <div class="actions"><button class="btn" style="color:var(--bad)"><i class="ph-duotone ph-trash"></i>Delete matching</button><button class="btn"><i class="ph-duotone ph-download-simple"></i>Export CSV</button></div></div>
+  <div class="stats">
+    <div class="card stat"><span>In range</span><b>12,406</b></div>
+    <div class="card stat"><span>Median render</span><b>0.74<small> s</small></b></div>
+    <div class="card stat"><span>p95 render</span><b>2.41<small> s</small></b></div>
+    <div class="card stat bad"><span>Failed</span><b>71</b></div>
+    <div class="card stat"><span>In queue</span><b>37</b></div>
+  </div>
+  <section class="card">
+    <div class="filters">
+      <div class="field" style="width:230px"><i class="ph ph-magnifying-glass"></i>File, template, error or ID</div>
+      <span class="chip">Last 7 days <i class="ph-bold ph-x x"></i></span><span class="chip">Source: API, Batch <i class="ph-bold ph-x x"></i></span><span class="chip">Render over 0.5 s <i class="ph-bold ph-x x"></i></span><span class="chip add"><i class="ph-bold ph-plus"></i>Filter</span>
+      <div class="r"><div class="seg" aria-label="Density"><span aria-label="Comfortable"><i class="ph ph-rows"></i></span><span class="on" aria-label="Compact"><i class="ph-bold ph-list-dashes"></i></span></div><button class="btn sm flat" aria-label="Columns"><i class="ph-duotone ph-columns"></i></button></div>
+    </div>
+    <table class="t">
+      <thead><tr><th>Queued</th><th>Status</th><th>File</th><th class="hide-t">Template</th><th>Source</th><th class="n hide-t">Size</th><th class="n">Queue</th><th class="n">Render</th><th></th></tr></thead>
+      <tbody id="rows"></tbody></table>
+    <div class="foot"><span>Showing 1–12 of 12,406</span><span>· 50 per page</span><div class="pg"><span><i class="ph-bold ph-caret-left"></i></span><span class="on">1</span><span>2</span><span>3</span><span>…</span><span>249</span><span><i class="ph-bold ph-caret-right"></i></span></div></div>
+  </section>
+</main>
+<script>
+const st = { success: ["ok", "Done"], slow: ["warn", "Slow"], failed: ["bad", "Failed"], running: ["run", "Rendering"] };
+const sic = { API: "plugs-connected", Batch: "stack", Form: "list-checks", "Share link": "link" };
+document.getElementById("rows").innerHTML = NECO.generations.slice(0, 12).map(g => `<tr class="${g.status === "failed" ? "err" : ""}">
+  <td class="m">${g.at.slice(0, 8)}</td>
+  <td><span class="pill ${st[g.status][0]}">${st[g.status][1]}</span></td>
+  <td class="file"><b>${g.file}</b>${g.error ? `<small class="errnote"><i class="ph-duotone ph-warning-circle"></i>${g.error}</small>` : `<small>${g.id}</small>`}</td>
+  <td class="hide-t" style="color:var(--ink-2)">${g.template}</td>
+  <td><span class="src"><i class="ph-duotone ph-${sic[g.source]}"></i>${g.source}</span></td>
+  <td class="n hide-t">${g.size}</td><td class="n">${fmtS(g.queue)}</td>
+  <td class="n"><span class="rt">${fmtS(g.render)}<span class="tr ${g.status === "slow" ? "slow" : ""}"><i style="width:${g.render ? Math.min(100, g.render / 7 * 100) : 0}%"></i></span></span></td>
+  <td><button class="ib" style="width:32px;height:32px;box-shadow:none;background:none" aria-label="More"><i class="ph-bold ph-dots-three"></i></button></td></tr>`).join("");
+shell("Developers", "Generations", 'Developers <i class="ph ph-caret-right"></i> <b>Generations</b>');
+</script>
+</body></html>

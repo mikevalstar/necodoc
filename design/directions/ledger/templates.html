@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><title>necodoc · Ledger · Templates</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="stylesheet" href="style.css">
+<script src="../shared/data.js"></script>
+<script src="https://unpkg.com/lucide@0.460.0/dist/umd/lucide.min.js"></script>
+<script src="shell.js"></script>
+<style>
+.filters { display: flex; align-items: flex-end; gap: 22px; margin-bottom: 18px; }
+.thumb { width: 30px; height: 38px; background: #fff; box-shadow: 0 0 0 1px var(--rule-2), 2px 2px 0 var(--rule); position: relative; flex: none; }
+.thumb::before { content: ""; position: absolute; inset: 9px 6px auto; height: 14px; background: repeating-linear-gradient(#bbb 0 1px, transparent 1px 4px); }
+.thumb.ov::after { content: ""; position: absolute; left: 5px; right: 9px; bottom: 6px; height: 5px; border: 1px solid var(--brand); }
+.namecell { display: flex; gap: 12px; align-items: center; }
+.kind { display: inline-flex; gap: 6px; align-items: center; color: var(--ink-2); font-size: 13px; white-space: nowrap; }
+.by { color: var(--ink-3); font-size: 12.5px; display: block; }
+.count { font: italic 14px var(--serif); color: var(--ink-3); margin-left: auto; }
+.pager { display: flex; align-items: center; gap: 12px; margin-top: 14px; font: italic 14px var(--serif); color: var(--ink-3); }
+@media (max-width: 1000px) { .hide-sm { display: none; } }
+</style></head>
+<body>
+<main id="page" class="page">
+  <div class="page-head">
+    <div><div class="eyebrow">Templates · 8 on file</div>
+      <h1>Templates</h1>
+      <p class="lede">Documents designed once and filled many times. Edit the draft, publish a version.</p></div>
+    <div class="actions"><button class="btn quiet"><i data-lucide="archive"></i>Archived</button><button class="btn"><i data-lucide="upload"></i>Upload PDF form</button><button class="btn primary"><i data-lucide="plus"></i>New template</button></div>
+  </div>
+  <div class="filters">
+    <div class="field"><label>Search</label><div class="input" style="width:280px"><i data-lucide="search"></i><span class="ph">Name, description or field</span></div></div>
+    <div class="field"><label>Status</label><div class="chipset"><span class="on">All</span><span>Published</span><span>In review</span><span>Draft</span></div></div>
+    <div class="field"><label>Kind</label><div class="chipset"><span class="on">Any</span><span>Designed</span><span>PDF overlay</span></div></div>
+    <span class="count">sorted by last edited</span>
+  </div>
+  <table class="ledger">
+    <thead><tr><th style="width:38%">Template</th><th>Kind</th><th>Status</th><th class="num">Fields</th><th class="num">Pages</th><th class="num">Fills · 30 d</th><th>Last edited</th><th></th></tr></thead>
+    <tbody id="rows"></tbody>
+  </table>
+  <div class="pager">8 templates · page 1 of 1</div>
+</main>
+<script>
+const st = { published: ["ok", "Published"], review: ["warn", "In review"], draft: ["mute", "Draft"], archived: ["mute", "Archived"] };
+document.getElementById("rows").innerHTML = NECO.templates.map(t => `<tr>
+  <td class="t"><div class="namecell"><span class="thumb ${t.kind === "PDF overlay" ? "ov" : ""}"></span><div><b>${t.name}</b><small>${t.desc}</small></div></div></td>
+  <td><span class="kind"><i data-lucide="${t.kind === "PDF overlay" ? "layers" : "pen-line"}"></i>${t.kind}</span></td>
+  <td><span class="stamp ${st[t.status][0]}">${st[t.status][1]}${t.version ? " · v" + t.version : ""}</span>${t.changes && t.status === "published" ? '<div class="note">unpublished changes</div>' : ""}</td>
+  <td class="num">${t.fields}</td><td class="num">${t.pages}</td><td class="num">${t.uses.toLocaleString()}</td>
+  <td>${t.edited}<span class="by">${t.by}</span></td>
+  <td><button class="iconbtn" aria-label="More actions"><i data-lucide="ellipsis"></i></button></td></tr>`).join("");
+shell("Templates", "Templates <b>/ All templates</b>");
+</script>
+</body></html>
