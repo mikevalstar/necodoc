@@ -1,7 +1,12 @@
 import { z } from "zod";
 import { fieldSectionsSchema } from "./fields";
 import { bandSchema, pageOptionsSchema } from "./render";
-import { type DesignedContent, designedDraftSchema, visualBandSchema } from "./template";
+import {
+  createTemplateSchema,
+  type DesignedContent,
+  designedDraftSchema,
+  visualBandSchema,
+} from "./template";
 import { blockNodeSchema } from "./template-doc";
 
 // Spec: docs/features/ai-template-assistant.md, ADR 0035. The assistant's tools: their inputs
@@ -94,6 +99,12 @@ export const assistantToolOutputSchema = z.object({
 });
 export type AssistantToolOutput = z.infer<typeof assistantToolOutputSchema>;
 
+/** The answer to an applied proposal. The note stops the model reading its own change as old. */
+export const appliedOutput: AssistantToolOutput = {
+  status: "applied",
+  note: "Applied: the draft shown in your instructions now includes this change.",
+};
+
 /** The tool types useChat's messages carry (UITools in the AI SDK). */
 export type AssistantTools = {
   [K in AssistantToolName]: {
@@ -112,7 +123,8 @@ export const assistantRequestSchema = z.object({
   draft: designedDraftSchema,
 });
 
-export const suggestDescriptionSchema = z.object({ draft: z.unknown() });
+/** The draft as the author has it, so an unsaved one can be summarised. */
+export const suggestDescriptionSchema = z.object({ draft: createTemplateSchema });
 /** No version: the saved draft against the latest version. A version: it against the one before. */
 export const suggestNoteSchema = z.object({ version: z.number().int().positive().optional() });
 export const suggestionSchema = z.object({ text: z.string() });
@@ -196,7 +208,10 @@ export function applyAssistantCall(draft: DesignedDraft, call: AssistantCall): A
         ...content.body.content.slice(to),
       ];
       // The editor needs at least one block.
-      const doc = { type: "doc" as const, content: body.length ? body : [{ type: "paragraph" as const }] };
+      const doc = {
+        type: "doc" as const,
+        content: body.length ? body : [{ type: "paragraph" as const }],
+      };
       next = { ...draft, content: { ...content, body: doc } };
       parts = ["body"];
       break;

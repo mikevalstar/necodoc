@@ -12,6 +12,7 @@ import type {
   GenerationSource,
   GenerationStatus,
   NotificationKind,
+  OutputProfile,
   OverlayContent,
   PageOptions,
   PdfPage,
@@ -257,6 +258,8 @@ export const generation = pgTable(
     timings: jsonb().$type<RenderTimings>(),
     /** Signers and sign box positions (docs/features/signing-packages.md); null without any. */
     signing: jsonb().$type<SigningPackage>(),
+    /** PDF/A, PDF/UA and certification as applied (ADR 0037, ADR 0038); null without any. */
+    outputProfile: jsonb().$type<OutputProfile>(),
     /** Attempts started; above 1 means a retry after an infrastructure failure. */
     attempts: integer().default(0).notNull(),
     /** host:pid of the process that ran the last attempt. */

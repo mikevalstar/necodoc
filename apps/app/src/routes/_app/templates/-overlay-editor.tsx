@@ -25,6 +25,7 @@ import {
   ZoomOutIcon,
 } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
+import { SuggestButton, useAiEnabled } from "@/components/ai";
 import { ErrorAlert } from "@/components/form";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
@@ -34,7 +35,6 @@ import { NativeSelect, NativeSelectOption } from "@/components/ui/native-select"
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { api, ok, pdfSourceUrl } from "@/lib/api";
-import { meQuery } from "@/lib/auth";
 import type { PdfViewport } from "@/lib/pdfjs";
 import { cn } from "@/lib/utils";
 import { BoxInspector, boxTypeLabels } from "./-box-inspector";
@@ -159,7 +159,7 @@ export function OverlayEditor({
 }) {
   const source = useQuery(pdfSourceQuery(content.sourceId));
   const { doc, error: pdfError } = usePdfDocument(pdfSourceUrl(content.sourceId));
-  const aiEnabled = useQuery(meQuery).data?.capabilities.ai ?? false;
+  const aiEnabled = useAiEnabled();
   const [page, setPage] = useState(1);
   const [zoom, setZoom] = useState<number | "fit">("fit");
   const [width, setWidth] = useState(600);
@@ -666,12 +666,15 @@ export function OverlayPdfPanel({
   editable,
   onDescription,
   onContent,
+  suggestDescription,
 }: {
   description: string;
   content: OverlayContent;
   editable: boolean;
   onDescription: (description: string) => void;
   onContent: (content: OverlayContent) => void;
+  /** Set when AI is on and the user can edit. */
+  suggestDescription?: () => Promise<string>;
 }) {
   const source = useQuery(pdfSourceQuery(content.sourceId));
   const input = useRef<HTMLInputElement>(null);
@@ -683,7 +686,12 @@ export function OverlayPdfPanel({
   return (
     <fieldset disabled={!editable} className="space-y-6">
       <Field>
-        <FieldLabel htmlFor="template-description">Description</FieldLabel>
+        <div className="flex items-center justify-between gap-2">
+          <FieldLabel htmlFor="template-description">Description</FieldLabel>
+          {suggestDescription && (
+            <SuggestButton suggest={suggestDescription} onSuggested={onDescription} />
+          )}
+        </div>
         <Textarea
           id="template-description"
           rows={2}

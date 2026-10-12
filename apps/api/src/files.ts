@@ -4,6 +4,7 @@ import { MAX_FILE_BYTES } from "@necodoc/shared";
 import { eq, type SQL } from "drizzle-orm";
 import type { db } from "./db";
 import { type FileStorage, file } from "./db/schema";
+import { log } from "./log";
 import { type ByteRange, storage } from "./storage";
 import { objectKey, type StorageDriverName } from "./storage/config";
 
@@ -187,6 +188,6 @@ export async function deleteObjects(objects: ObjectRef[]) {
   try {
     await storage.delete(stored.map(activeKey));
   } catch (error) {
-    console.error(`storage: ${stored.length} objects left behind:`, error);
+    log.error({ err: error, objects: stored.length }, "storage: objects left behind");
   }
 }

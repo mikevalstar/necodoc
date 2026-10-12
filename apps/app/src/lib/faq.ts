@@ -588,6 +588,23 @@ export const faq: readonly FaqEntry[] = [
     spec: "docs/features/render-queue-batch-jobs-and-scaling.md",
   },
   {
+    feature: "Logs, metrics and traces",
+    group: "Admin",
+    what: "For your operations team's monitoring tools rather than the app. Every API and worker process writes one JSON log line per request (request id, user or API key, status, duration), per finished render (generation id, mode, pages, size, queue wait and the Liquid / Chromium / bands / stamping breakdown, or the error) and per failed queue job. With METRICS_PORT set, each process serves Prometheus metrics: request rates and durations by route, render durations by mode and status, queue depth and age per queue, worker slots in use, and Node process metrics. With an OpenTelemetry endpoint set, one render is one trace from the HTTP request through the queue into the worker, down to each Chromium pass and the storage write.",
+    howTo:
+      "Set it in the server environment, not in the app: LOG_LEVEL and LOG_FORMAT for logs, METRICS_PORT (e.g. 9464) for metrics, OTEL_EXPORTER_OTLP_ENDPOINT for traces. Examples: Datadog's agent collects the JSON logs from container output and scrapes /metrics with its OpenMetrics check (or the Helm chart's prometheus.io annotations), and takes traces over OTLP. Grafana reads logs with Alloy or Promtail into Loki, scrapes metrics into Prometheus or Mimir (the chart can create a PodMonitor) and sends traces to Tempo. Splunk collects logs with Splunk Connect for Kubernetes and metrics and traces with the Splunk OpenTelemetry Collector. Quote the X-Request-Id from an error response to find every log line for that request. The self-hosting docs list every metric and suggested alerts.",
+    limitations: [
+      "The metrics port has no password; it relies on not being reachable from outside your network.",
+      "Queue numbers are for the whole cluster and every process reports the same ones, so dashboards should take the maximum, not the sum.",
+      "Traces don't show individual database queries (apart from sign-in checks) or outgoing calls such as webhooks, AI and S3; their time shows inside the step that made them.",
+      "All rows of a batch land in the trace of the request that started it.",
+      "Request times end when the response starts, so long downloads aren't timed to the last byte.",
+      "Field values aren't written to logs. Masking for anything that does log them comes with field-level privacy settings.",
+    ],
+    access: [{ action: "Configure (server environment)", needs: "admin" }],
+    spec: "docs/features/observability.md",
+  },
+  {
     feature: "Output storage (disk, S3, Azure Blob)",
     group: "Admin",
     what: "Generated PDFs are stored by a storage driver chosen in the API's environment: a local or shared directory, any S3-compatible bucket, or Azure Blob Storage. Assets, uploaded PDFs and templates stay in the database. Admin › System shows the active driver, and the readiness check fails when a node can't write and read its storage.",
@@ -931,5 +948,42 @@ export const faq: readonly FaqEntry[] = [
     ],
     access: [{ action: "See your own usage", needs: view }],
     spec: "docs/features/analytics-dashboards.md",
+  },
+  {
+    feature: "Archival and accessible PDFs (PDF/A, PDF/UA)",
+    group: "Templates",
+    what: "A template can make PDF/A-2b or PDF/A-2u files, the archive formats records offices and courts ask for, and (designed templates) tagged PDF/UA files that screen readers can follow: headings, paragraphs, tables, lists, links and images in reading order, with headers and footers marked as page furniture. The API can ask for either on any render.",
+    howTo:
+      "Open the template's Output tab: pick a PDF/A level and, for designed templates, switch on Accessible and set the document language. Publish to apply it. API calls send an `output` object to override it per request. The generation page shows what was applied under Output.",
+    limitations: [
+      "Overlay templates only get PDF/A when the uploaded PDF embeds its fonts and has no scripts or attachments; most government forms don't embed theirs. The PDF is still made, without the PDF/A claim, and the generation says why.",
+      "PDF/UA is for designed templates and HTML renders only; overlays and packets aren't tagged.",
+      "Accessibility depends on the content: images need alt text and tables need header rows. necodoc doesn't check that for you; run a checker such as veraPDF or PAC on a sample.",
+      "Packets (combined PDFs) can be PDF/A only if every part qualifies.",
+    ],
+    access: [
+      { action: "Change a template's output settings", needs: edit },
+      { action: "Ask for them per request through the API", needs: create },
+    ],
+    spec: "docs/features/archival-accessible-and-certified-output.md",
+  },
+  {
+    feature: "Certified PDFs",
+    group: "Templates",
+    what: "Generated PDFs can carry an invisible certification signature from your organisation's certificate (PAdES, with a trusted timestamp when a timestamp server is configured). Acrobat shows who certified the document and that it hasn't changed since. Filling in form fields and signing it later, in DocuSign or another e-sign service, keep the certification valid.",
+    howTo:
+      "An administrator installs the certificate on every worker (CERTIFY_P12_PATH and CERTIFY_PASSWORD, or PEM files; CERTIFY_TSA_URL for timestamps) and restarts. Then switch on Certify in the template's Output tab, or send `output.certify` through the API. The generation page shows who certified it.",
+    limitations: [
+      "Without a certificate on the server, certified generations fail with an error rather than coming out uncertified.",
+      "Previews aren't certified.",
+      "Acrobat shows the signature as trusted only if the certificate chains to a root it trusts (for example an AATL certificate); a self-signed one shows as unknown.",
+      "Signatures are long-term only as long as the certificate: no revocation data is embedded (PAdES B-B or B-T, not B-LT).",
+      "Any change other than filling fields or signing, such as editing or merging the PDF elsewhere, breaks the certification, and so does putting a certified PDF in a packet.",
+    ],
+    access: [
+      { action: "Turn certification on for a template", needs: edit },
+      { action: "Install the certificate", needs: "admin" },
+    ],
+    spec: "docs/features/archival-accessible-and-certified-output.md",
   },
 ];

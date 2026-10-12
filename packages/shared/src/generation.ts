@@ -39,6 +39,8 @@ export const renderTimingsSchema = z.object({
   chromiumMs: z.number().int(),
   bandsMs: z.number().int(),
   stampMs: z.number().int(),
+  /** PDF/A, PDF/UA and certification; 0 on generations from before they existed. */
+  finishMs: z.number().int().default(0),
 });
 export type RenderTimings = z.infer<typeof renderTimingsSchema>;
 

@@ -6,6 +6,7 @@ import { setSessionCookie } from "better-auth/cookies";
 import { z } from "zod";
 import { recordAudit } from "./audit";
 import { env, ssoProviders } from "./env";
+import { log } from "./log";
 import {
   groupsOf,
   type HeaderIdentity,
@@ -45,7 +46,10 @@ async function provision(
   const byEmail = linked ? null : await findUser("email", who.email);
   const decision = signInDecision(provider, who.email, linked, byEmail);
   if (decision.action === "reject") {
-    console.warn(`SSO ${provider.id}: refused ${who.email} (${decision.code})`);
+    log.warn(
+      { provider: provider.id, email: who.email, code: decision.code },
+      `SSO ${provider.id}: refused ${who.email} (${decision.code})`,
+    );
     return decision;
   }
 
@@ -73,7 +77,10 @@ async function provision(
       after: { name: who.name, email: who.email, role: roles ?? [] },
       details: { via: "sso", provider: provider.id, groups: who.groups },
     });
-    console.info(`SSO ${provider.id}: created ${who.email} with roles [${roles?.join(", ")}]`);
+    log.info(
+      { provider: provider.id, email: who.email, roles },
+      `SSO ${provider.id}: created ${who.email} with roles [${roles?.join(", ")}]`,
+    );
     return { action: "link" as const, userId: created.id };
   }
 
@@ -99,7 +106,10 @@ async function provision(
       after: { role: roles },
       details: { via: "sso", provider: provider.id, groups: who.groups },
     });
-    console.info(`SSO ${provider.id}: ${who.email} roles [${current}] -> [${roles}]`);
+    log.info(
+      { provider: provider.id, email: who.email, from: current, to: roles },
+      `SSO ${provider.id}: ${who.email} roles [${current}] -> [${roles}]`,
+    );
   }
   return decision;
 }
@@ -242,7 +252,8 @@ const trustedHeader = {
 
 const headerProvider = ssoProviders.find((p) => p.type === "header");
 if (headerProvider?.type === "header") {
-  console.warn(
+  log.warn(
+    { provider: headerProvider.id },
     `\n!!! TRUSTED-HEADER SIGN-IN IS ON (SSO provider "${headerProvider.id}").\n` +
       `!!! Anyone who can reach the API from ${headerProvider.trustedProxies.join(", ")} can sign in as anyone by\n` +
       `!!! sending ${headerProvider.headers.user}. The proxy must strip that header from client requests.\n`,

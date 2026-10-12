@@ -1,6 +1,7 @@
 import { readFile } from "node:fs/promises";
 import { PDFDocument } from "@cantoo/pdf-lib";
 import type { RenderRequest, RenderTimings, SigningPackage } from "@necodoc/shared";
+import { withSpan } from "../observability/tracing";
 import { bandBody, bandCss, stampBand } from "./bands";
 import { type AssetLoader, printPdf } from "./browser";
 import { bundledFontFiles, htmlDocument, themeCss } from "./document";
@@ -10,17 +11,26 @@ import { locateSignBoxes, markSignBoxes, signingCss, signingPackage } from "./si
 
 export type RenderJob = Pick<
   RenderRequest,
-  "html" | "css" | "header" | "footer" | "page" | "data" | "partials" | "signers" | "signing"
+  | "html"
+  | "css"
+  | "header"
+  | "footer"
+  | "page"
+  | "data"
+  | "partials"
+  | "signers"
+  | "signing"
+  | "output"
 > & {
   /** The theme, already resolved from an id or a draft. */
   theme?: NonNullable<RenderRequest["themeDraft"]>;
 };
 
-/** Runs `fn`, adding its wall time to `timings[key]`. */
+/** Runs `fn` in a span (ADR 0036), adding its wall time to `timings[key]`. */
 async function timed<T>(timings: RenderTimings, key: keyof RenderTimings, fn: () => Promise<T>) {
   const started = performance.now();
   try {
-    return await fn();
+    return await withSpan(`render.${key.replace(/Ms$/, "")}`, {}, fn);
   } finally {
     timings[key] += Math.round(performance.now() - started);
   }
@@ -33,7 +43,13 @@ async function timed<T>(timings: RenderTimings, key: keyof RenderTimings, fn: ()
  * one more body pass.
  */
 export async function renderPdf(job: RenderJob, loadStoredAsset: AssetLoader) {
-  const timings: RenderTimings = { liquidMs: 0, chromiumMs: 0, bandsMs: 0, stampMs: 0 };
+  const timings: RenderTimings = {
+    liquidMs: 0,
+    chromiumMs: 0,
+    bandsMs: 0,
+    stampMs: 0,
+    finishMs: 0,
+  };
   const loadAsset: AssetLoader = async (path) => {
     const fontFile = bundledFontFiles.get(path);
     if (fontFile) return { bytes: await readFile(fontFile), mimeType: "font/woff2" };
@@ -49,11 +65,13 @@ export async function renderPdf(job: RenderJob, loadStoredAsset: AssetLoader) {
     liquid.parseAndRender(job.html, data, { globals: data }),
   );
   const sign = markSignBoxes(body);
+  const tagged = job.output?.pdfua ?? false;
+  const lang = job.output?.lang;
   const printBody = (html: string) =>
     timed(timings, "chromiumMs", () =>
       printPdf(
-        htmlDocument({ body: html, css: [...css, signingCss] }),
-        { width: layout.width, height: layout.height, margins: layout.bodyMargins },
+        htmlDocument({ body: html, css: [...css, signingCss], lang }),
+        { width: layout.width, height: layout.height, margins: layout.bodyMargins, tagged },
         loadAsset,
       ),
     );

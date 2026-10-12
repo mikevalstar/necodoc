@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { batchJsonSchema, batchSummarySchema } from "./batch";
 import { generationStatusSchema, generationSummarySchema } from "./generation";
+import { outputOptionsSchema, outputProfileSchema } from "./output";
 import { renderRequestSchema } from "./render";
 import {
   signingFormatSchema,
@@ -64,6 +65,7 @@ export const v1CombineSchema = z
   .object({
     inputs: z.array(combineInputSchema).min(1).max(100),
     filename: z.string().trim().min(1).max(200).optional(),
+    output: outputOptionsSchema.optional(),
     ...responseOptions,
   })
   .meta({ id: "CombineRequest", description: "PDFs to merge, in order. Forms are flattened." });
@@ -95,7 +97,12 @@ export const v1PendingSchema = z
   .meta({ id: "PendingGeneration" });
 
 export const v1GenerationSchema = generationSummarySchema
-  .extend({ requestId: z.string().nullable() })
+  .extend({
+    requestId: z.string().nullable(),
+    outputProfile: outputProfileSchema.nullable().meta({
+      description: "PDF/A, PDF/UA and certification as applied; null when none was asked for.",
+    }),
+  })
   .meta({ id: "Generation" });
 
 export const v1TemplateSchema = templateSummarySchema

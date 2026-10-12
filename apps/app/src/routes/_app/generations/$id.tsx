@@ -1,4 +1,4 @@
-import { isFinishedStatus } from "@necodoc/shared";
+import { isFinishedStatus, type OutputProfile } from "@necodoc/shared";
 import { queryOptions, useSuspenseQuery } from "@tanstack/react-query";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { ChevronLeftIcon, DownloadIcon } from "lucide-react";
@@ -153,6 +153,9 @@ function GenerationDetail() {
             </Link>
           </Meta>
         )}
+        {generation.outputProfile && (
+          <Meta label="Output">{outputSummary(generation.outputProfile)}</Meta>
+        )}
         <Meta label="Worker">
           <span className="font-mono text-xs break-all">{generation.workerId ?? "—"}</span>
         </Meta>
@@ -172,6 +175,7 @@ function GenerationDetail() {
           <Meta label="Chromium (body)">{formatMs(timings?.chromiumMs ?? null)}</Meta>
           <Meta label="Bands">{formatMs(timings?.bandsMs ?? null)}</Meta>
           <Meta label="Stamping">{formatMs(timings?.stampMs ?? null)}</Meta>
+          <Meta label="PDF/A, UA, certify">{formatMs(timings?.finishMs ?? null)}</Meta>
           <Meta label="Run time">{formatMs(generation.durationMs)}</Meta>
           <Meta label="Total">{formatMs(generation.totalMs)}</Meta>
         </dl>
@@ -224,6 +228,17 @@ function GenerationDetail() {
       )}
     </main>
   );
+}
+
+/** What finishing did (docs/features/archival-accessible-and-certified-output.md). */
+function outputSummary(profile: OutputProfile) {
+  const parts = [
+    profile.pdfa && `PDF/A-${profile.pdfa}`,
+    profile.pdfua && "PDF/UA-1",
+    profile.certified &&
+      `Certified by ${profile.certified.subject}${profile.certified.timestamped ? " (timestamped)" : ""}`,
+  ].filter(Boolean);
+  return parts.length ? parts.join(" · ") : "As rendered (see warnings)";
 }
 
 function Meta({ label, wide, children }: { label: string; wide?: boolean; children: ReactNode }) {

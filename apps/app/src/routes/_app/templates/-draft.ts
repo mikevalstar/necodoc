@@ -1,7 +1,10 @@
 import {
   createTemplateSchema,
   type DesignedContent,
+  type DesignedDraft,
+  type DraftPart,
   type FieldSection,
+  type OutputOptions,
   type OverlayContent,
   type PageOptions,
   previewTemplateSchema,
@@ -36,6 +39,7 @@ export type VisualContent = {
   footer: EditorBand | null;
   css: string;
   signers: Signer[];
+  output: OutputOptions;
 };
 export type EditorContent = VisualContent | CodeContent;
 
@@ -93,4 +97,41 @@ export function problemArea(path: readonly PropertyKey[]) {
     return "Content";
   }
   return String(first ?? "Draft");
+}
+
+/**
+ * Merges an applied AI proposal (docs/features/ai-template-assistant.md) into the editor's
+ * draft: only the parts it changed, so the other editors keep their content objects (and cursor).
+ */
+export function mergeApplied(
+  d: DraftValues,
+  next: DesignedDraft,
+  parts: readonly DraftPart[],
+): DraftValues {
+  if (d.kind !== "designed") return d;
+  const has = (part: DraftPart) => parts.includes(part);
+  const contentChanged = (["body", "header", "footer", "css"] as const).some(has);
+  let content: EditorContent = d.content;
+  if (contentChanged) {
+    content =
+      d.content.mode === "visual" && next.content.mode === "visual"
+        ? {
+            ...d.content,
+            ...(has("body") ? { body: next.content.body } : {}),
+            ...(has("header") ? { header: next.content.header } : {}),
+            ...(has("footer") ? { footer: next.content.footer } : {}),
+            ...(has("css") ? { css: next.content.css } : {}),
+          }
+        : next.content;
+  }
+  return {
+    ...d,
+    ...(has("name") ? { name: next.name } : {}),
+    ...(has("description") ? { description: next.description } : {}),
+    ...(has("sections") ? { sections: next.sections } : {}),
+    ...(has("sampleData") ? { sampleData: next.sampleData } : {}),
+    ...(has("themeId") ? { themeId: next.themeId } : {}),
+    ...(has("page") ? { page: next.page } : {}),
+    content,
+  };
 }

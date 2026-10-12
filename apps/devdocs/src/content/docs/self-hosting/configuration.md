@@ -25,6 +25,28 @@ The API and worker read their configuration from the environment and validate it
 | `WEBHOOK_ALLOW_LOCALHOST` | `false` | Development only. `true` lets [webhooks](/guides/webhooks/) use `http://` and loopback URLs, for a receiver on the same machine. Never set it in production. |
 | `STORAGE_REDIRECT` | `off` | `presigned` answers downloads with a redirect to a short-lived S3 presigned URL or Azure SAS instead of streaming through the API. Browsers must reach the bucket. |
 
+## Logs, metrics and traces
+
+See [Observability](/self-hosting/observability/).
+
+| Variable | Default | Description |
+| --- | --- | --- |
+| `LOG_LEVEL` | `info` | `fatal`, `error`, `warn`, `info`, `debug`, `trace` or `silent`. |
+| `LOG_FORMAT` | `json` (image), `pretty` (development) | `json` writes one object per line; `pretty` is for a terminal. |
+| `METRICS_PORT` | unset | Serves Prometheus metrics on `/metrics` on this port, on every role. No authentication: never publish it. |
+| `OTEL_EXPORTER_OTLP_ENDPOINT` | unset | Turns on OpenTelemetry tracing to this OTLP endpoint. The other standard `OTEL_*` variables (protocol, headers, sampler, service name) apply. |
+
+## Certifying PDFs
+
+Workers certify PDFs whose template or request asks for it ([Archival, accessible and certified output](/guides/archival-and-certified-output/)). Without a certificate those generations fail.
+
+| Variable | Default | Description |
+| --- | --- | --- |
+| `CERTIFY_P12_PATH` | unset | A PKCS#12 (`.p12`/`.pfx`) file with the private key and its certificate chain. |
+| `CERTIFY_CERT_PATH`, `CERTIFY_KEY_PATH` | unset | Instead of PKCS#12: PEM files, the certificate (followed by its chain) and the private key (RSA or EC P-256/384/521). |
+| `CERTIFY_PASSWORD` | unset | Opens the PKCS#12 file or an encrypted PEM key. |
+| `CERTIFY_TSA_URL` | unset | An RFC 3161 timestamp server, e.g. `http://timestamp.digicert.com`. With it signatures are PAdES B-T; without, B-B. Workers need outbound access to it. |
+
 ## Sign-in
 
 | Variable | Default | Description |

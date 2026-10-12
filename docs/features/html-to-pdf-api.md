@@ -103,6 +103,10 @@ All under `/api/v1`, authenticated with the `x-api-key` header.
   [signing package](signing-packages.md) (signers, sign box positions,
   DocuSign / Dropbox Sign / Adobe Sign JSON);
   `GET /generations/{id}/signing-package` fetches it later.
+- `output` on render, generate and combine asks for PDF/A, PDF/UA and
+  certification; on generate it overrides the template's settings field by
+  field ([Archival, accessible and certified output](archival-accessible-and-certified-output.md)).
+  A generation's `outputProfile` says what was applied.
 - Errors are JSON `{ error, code }`, plus `fieldErrors` for invalid data.
   401: missing, unknown, revoked or expired key, or a banned owner. 403: scope
   missing, owner's roles don't allow it, template not allowed, or IP not

@@ -1,4 +1,6 @@
 import { hostname } from "node:os";
+import { trace } from "@opentelemetry/api";
+import { Gauge } from "@prometheus-io/client";
 import { lt } from "drizzle-orm";
 import type { Job, JobWithMetadata } from "pg-boss";
 import { db } from "./db";
@@ -6,6 +8,9 @@ import { worker } from "./db/schema";
 import { detectFields } from "./detect/detect";
 import { env, runsWorker } from "./env";
 import { loadSourceBytes, markLost, processId, runGeneration } from "./generate";
+import { log } from "./log";
+import { logContext } from "./observability/logger";
+import { jobDuration, registry } from "./observability/metrics";
 import { boss, type DetectJobData, queues, type RenderJobData, type WebhookJobData } from "./queue";
 import { runRetention } from "./retention";
 import { deliver } from "./webhooks";
@@ -14,6 +19,59 @@ import { deliver } from "./webhooks";
 // jobs (ADR 0028), webhook deliveries (docs/features/webhooks.md), and the scheduled jobs. Every role heartbeats so Admin > System can list the cluster.
 
 let running = 0;
+
+// ADR 0036: render slots, for utilization dashboards and autoscaling.
+new Gauge({
+  name: "necodoc_worker_renders_running",
+  help: "Render jobs this process is running now.",
+  registers: [registry],
+  collect() {
+    this.set(running);
+  },
+});
+new Gauge({
+  name: "necodoc_worker_render_slots",
+  help: "Render jobs this process runs at once (RENDER_CONCURRENCY; 0 without the worker role).",
+  registers: [registry],
+  collect() {
+    this.set(runsWorker ? env.RENDER_CONCURRENCY : 0);
+  },
+});
+
+type JobLike = { id: string; data?: object; retryCount?: number };
+
+/**
+ * Wraps a queue handler: its log lines carry the queue and job id (and generation id), its time
+ * goes into `necodoc_job_duration_seconds`, and failures are logged before pg-boss retries them.
+ * pg-boss already runs it in a span continuing the trace that queued the job.
+ */
+function observed<J extends JobLike, R>(queue: string, handler: (jobs: J[]) => Promise<R>) {
+  return async (jobs: J[]) => {
+    const [job] = jobs;
+    const generationId =
+      job?.data && "generationId" in job.data && typeof job.data.generationId === "string"
+        ? job.data.generationId
+        : undefined;
+    if (generationId) trace.getActiveSpan()?.setAttribute("necodoc.generation_id", generationId);
+    const bindings = { queue, jobId: job?.id, generationId, attempt: (job?.retryCount ?? 0) + 1 };
+    const started = performance.now();
+    return logContext.run(bindings, async () => {
+      try {
+        const result = await handler(jobs);
+        jobDuration.observe({ queue, status: "completed" }, (performance.now() - started) / 1000);
+        log.debug({ durationMs: Math.round(performance.now() - started) }, `job ${queue} done`);
+        return result;
+      } catch (err) {
+        jobDuration.observe({ queue, status: "failed" }, (performance.now() - started) / 1000);
+        log.warn(
+          { err, durationMs: Math.round(performance.now() - started) },
+          `job ${queue} failed`,
+        );
+        throw err;
+      }
+    });
+  };
+}
 
 export async function startWorker() {
   await boss.work(
@@ -27,7 +85,7 @@ export async function startWorker() {
       pollingIntervalSeconds: 0.5,
       notifyPollingIntervalSeconds: 0.5,
     },
-    async ([job]: JobWithMetadata<RenderJobData>[]) => {
+    observed(queues.render, async ([job]: JobWithMetadata<RenderJobData>[]) => {
       if (!job) return;
       running++;
       try {
@@ -39,31 +97,40 @@ export async function startWorker() {
       } finally {
         running--;
       }
-    },
+    }),
   );
-  await boss.work<RenderJobData>(queues.renderLost, async (jobs) => {
-    for (const job of jobs) await markLost(job.data.generationId);
-  });
+  await boss.work<RenderJobData>(
+    queues.renderLost,
+    observed(queues.renderLost, async (jobs: Job<RenderJobData>[]) => {
+      for (const job of jobs) {
+        log.warn({ generationId: job.data.generationId }, "render lost: out of attempts");
+        await markLost(job.data.generationId);
+      }
+    }),
+  );
   await boss.work(
     queues.detectFields,
     { localConcurrency: 2 },
-    async ([job]: Job<DetectJobData>[]) => {
+    observed(queues.detectFields, async ([job]: Job<DetectJobData>[]) => {
       if (!job) return;
       const bytes = await loadSourceBytes(job.data.sourceId);
       if (!bytes) throw new Error("The PDF is gone");
       return detectFields(bytes, { known: job.data.known, signal: job.signal });
-    },
+    }),
   );
   await boss.work(
     queues.webhook,
     { localConcurrency: 4, includeMetadata: true },
-    async ([job]: JobWithMetadata<WebhookJobData>[]) => {
+    observed(queues.webhook, async ([job]: JobWithMetadata<WebhookJobData>[]) => {
       if (job) await deliver(job.data.deliveryId, job.retryCount < job.retryLimit);
-    },
+    }),
   );
-  await boss.work(queues.retention, async () => {
-    console.log("retention:", await runRetention());
-  });
+  await boss.work(
+    queues.retention,
+    observed(queues.retention, async () => {
+      log.info({ removed: await runRetention() }, "retention ran");
+    }),
+  );
   await boss.schedule(queues.retention, "17 3 * * *");
 }
 
@@ -109,7 +176,7 @@ export function startHeartbeat() {
     await db.delete(worker).where(lt(worker.lastSeen, new Date(Date.now() - 86_400_000)));
   };
   const timer = setInterval(
-    () => beat().catch((error) => console.error("heartbeat:", error)),
+    () => beat().catch((err) => log.error({ err }, "heartbeat failed")),
     HEARTBEAT_MS,
   );
   timer.unref();

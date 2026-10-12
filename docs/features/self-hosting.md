@@ -41,6 +41,9 @@ data lives, and how to get it back.
   IdP, or both, set in env ([Single sign-on](single-sign-on.md)).
 - **Health:** liveness and readiness endpoints for load balancers and
   orchestrators; readiness fails without the database, the queue or storage.
+- **Observability:** JSON logs on stdout, Prometheus metrics on a separate
+  port, opt-in OpenTelemetry traces; the chart and Compose wire them up
+  ([Observability](observability.md)).
 - **Operator documentation** (env reference, scaling, storage, backups and
   DR, upgrades, SSO setup) is in the developer docs site
   ([ADR 0026](../adrs/0026-astro-starlight-for-the-developer-docs-site.md)),

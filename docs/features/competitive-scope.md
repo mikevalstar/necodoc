@@ -40,6 +40,7 @@ anything we skip has a reason.
 | Async and batch generation | DocSpring, Anvil | [Render queue, batch jobs and scaling](render-queue-batch-jobs-and-scaling.md) |
 | Change history / audit trail | GhostDraft | [Audit log](audit-log.md) |
 | Hand off to e-sign (signers, field positions) | DocSpring, Anvil (own e-sign) | [Signing packages](signing-packages.md) |
+| PDF/A, tagged PDF/UA, certified output | Prince, DocRaptor (PDF/A, PDF/UA) | [Archival, accessible and certified output](archival-accessible-and-certified-output.md) |
 
 ## Where we aim to beat them
 

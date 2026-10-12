@@ -79,6 +79,10 @@ Mechanism: [ADR 0033](../adrs/0033-sign-boxes-located-by-anchor-text-handed-off-
 - Warnings, not failures: a box naming an unknown signer adds that signer with
   its id as the role; a box that couldn't be found is left out and said so.
 
+- **Certified PDFs.** A certified output
+  ([Archival, accessible and certified output](archival-accessible-and-certified-output.md))
+  allows form filling and signing, so providers' signatures don't break it.
+
 ## Acceptance criteria
 
 - [x] A surety bond overlay with principal, surety and attorney-in-fact signers

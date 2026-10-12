@@ -1,5 +1,11 @@
 import type { AppType } from "@necodoc/api/app";
-import type { previewTemplateSchema, RenderRequestInput } from "@necodoc/shared";
+import type {
+  AssistantTools,
+  DesignedDraft,
+  previewTemplateSchema,
+  RenderRequestInput,
+} from "@necodoc/shared";
+import { DefaultChatTransport, type UIDataTypes, type UIMessage } from "ai";
 import { hc } from "hono/client";
 import { z } from "zod";
 
@@ -134,3 +140,16 @@ export const assetFileUrl = (id: string) => `/api/assets/${id}/file`;
 export const pdfSourceUrl = (id: string) => `/api/pdf-sources/${id}/pdf`;
 export const generationPdfUrl = (id: string) => `/api/generations/${id}/pdf`;
 export const submissionPdfUrl = (id: string) => `/api/submissions/${id}/pdf`;
+
+/** A chat message with the template assistant's typed proposals (ADR 0035). */
+export type AssistantMessage = UIMessage<unknown, UIDataTypes, AssistantTools>;
+
+/**
+ * useChat's transport to POST /api/templates/:id/assistant (a UI message stream, not Hono RPC).
+ * Every turn sends the editor's current draft; `draft` throws when it isn't valid yet.
+ */
+export const assistantTransport = (id: string, draft: () => DesignedDraft) =>
+  new DefaultChatTransport<AssistantMessage>({
+    api: `/api/templates/${id}/assistant`,
+    prepareSendMessagesRequest: ({ messages }) => ({ body: { messages, draft: draft() } }),
+  });

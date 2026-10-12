@@ -137,7 +137,10 @@ export function DocEditor({
   snippetId,
   signers,
 }: {
-  /** The starting content. Later changes to it are ignored; remount (key) to load new content. */
+  /**
+   * The content. A new value that isn't what the editor last reported (the AI assistant applying
+   * a change) is loaded as one undoable step; remount (key) to start a fresh history instead.
+   */
   value: JSONContent;
   onChange: (doc: JSONContent) => void;
   sections: readonly FieldSection[];
@@ -159,6 +162,8 @@ export function DocEditor({
   const items = useRef<InsertItem[]>([]);
   const changed = useRef(onChange);
   changed.current = onChange;
+  /** The last doc reported through onChange. */
+  const emitted = useRef(value);
 
   const editor = useEditor({
     extensions: useMemo(
@@ -167,8 +172,19 @@ export function DocEditor({
     ),
     content: value,
     editable,
-    onUpdate: ({ editor: e }) => changed.current(e.getJSON()),
+    onUpdate: ({ editor: e }) => {
+      const json = e.getJSON();
+      emitted.current = json;
+      changed.current(json);
+    },
   });
+  // Outside changes (an applied AI proposal). Echoes of our own updates are skipped by identity.
+  useEffect(() => {
+    if (value === emitted.current) return;
+    emitted.current = value;
+    if (JSON.stringify(value) === JSON.stringify(editor.getJSON())) return;
+    editor.commands.setContent(value, { emitUpdate: false });
+  }, [editor, value]);
   // false: toggling editability isn't an edit, so it mustn't report a change.
   useEffect(() => editor.setEditable(editable, false), [editor, editable]);
 

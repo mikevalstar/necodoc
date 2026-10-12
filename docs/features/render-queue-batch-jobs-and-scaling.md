@@ -27,6 +27,7 @@ A month-end run of 10,000 statements must not time out or slow down someone fill
 - **Timing on every render**, stored on the generation: queue wait, Liquid, Chromium, bands, stamping/overlay, total. Shown in the generation detail and filterable/sortable in the log.
 - **Workers.** Each worker reports a heartbeat: host, process id, version, concurrency, jobs running, event-loop lag. Admin > System lists workers online and warns when there are none.
 - **Metrics (Admin > System):** renders per minute, p50/p95/p99 render time, error rate, and queue depth by priority, over selectable windows; breakdown by source and template.
+- **Operator metrics, logs and traces** for external monitoring: [Observability](observability.md).
 - **Output storage.** Workers write each PDF to the storage driver (`STORAGE_DRIVER`: disk, S3-compatible or Azure Blob, see [ADR 0023](../adrs/0023-generated-outputs-in-object-storage.md)). Every API node must reach the same storage: one bucket or container, or a shared mount for disk. Admin > System shows the active driver.
 - **Scaling** is configuration only: `ROLE` and `RENDER_CONCURRENCY` (see ADR 0020). Health endpoints report role and readiness for load balancers and orchestrators; readiness fails when the node can't write and read its storage.
 
@@ -70,4 +71,4 @@ A month-end run of 10,000 statements must not time out or slow down someone fill
 ## Open questions
 
 - Per-user quotas. (Per-key rate limits exist: [HTML to PDF API](html-to-pdf-api.md#limits-and-logging).)
-- Autoscaling hints (e.g. exposing queue depth as a Prometheus metric).
+- Autoscaling on Prometheus metrics (queue depth and age, worker slots are exported: [observability](observability.md)); the chart scales on KEDA's Postgres query today.

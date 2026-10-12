@@ -3,6 +3,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
 import { z } from "zod";
+import { SuggestButton, useAiEnabled } from "@/components/ai";
 import { ErrorAlert, useAppForm } from "@/components/form";
 import { TemplateDiffView } from "@/components/template-diff";
 import {
@@ -161,6 +162,7 @@ export function PublishDialog({
   const tests = useQuery(testRunQuery(template.id, template.updatedAt));
   const cases = useQuery(testCasesQuery(template.id));
   const [visual, setVisual] = useState(false);
+  const aiEnabled = useAiEnabled();
   const publish = useMutation({
     mutationFn: async (json: { note?: string }) =>
       (await ok(api.templates[":id"].publish.$post({ param: { id: template.id }, json }))).json(),
@@ -273,6 +275,21 @@ export function PublishDialog({
               />
             )}
           </form.AppField>
+          {aiEnabled && (
+            <SuggestButton
+              title="Sends the changes since the last version to Anthropic (Claude) and drafts the note. Edit it before publishing."
+              suggest={async () =>
+                (
+                  await (
+                    await ok(
+                      api.templates[":id"].ai.note.$post({ param: { id: template.id }, json: {} }),
+                    )
+                  ).json()
+                ).text
+              }
+              onSuggested={(text) => form.setFieldValue("note", text)}
+            />
+          )}
           <ErrorAlert error={publish.error} />
           <DialogFooter>
             <DialogClose render={<Button type="button" variant="outline" />}>Cancel</DialogClose>

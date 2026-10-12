@@ -4,6 +4,7 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { MoreHorizontalIcon, PlusIcon } from "lucide-react";
 import { useDeferredValue, useState } from "react";
 import { z } from "zod";
+import { useAiEnabled } from "@/components/ai";
 import { ErrorAlert, useAppForm } from "@/components/form";
 import { Button } from "@/components/ui/button";
 import {
@@ -22,7 +23,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Field, FieldGroup, FieldLabel } from "@/components/ui/field";
+import { Field, FieldDescription, FieldGroup, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { NativeSelect, NativeSelectOption } from "@/components/ui/native-select";
 import {
@@ -33,6 +34,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { Textarea } from "@/components/ui/textarea";
 import { api, ok } from "@/lib/api";
 import { dayjs } from "@/lib/date";
 import { templatesQuery } from "@/lib/queries";
@@ -253,14 +255,37 @@ const createSchema = z.object({
   description: z.string().max(2000),
 });
 
-type Kind = "designed" | "overlay";
+type Kind = "designed" | "overlay" | "ai";
+const kinds = ["designed", "overlay", "ai"] as const satisfies readonly Kind[];
+const isKind = (value: string): value is Kind => (kinds as readonly string[]).includes(value);
 
-/** A designed template from scratch, or an overlay template on an uploaded PDF. */
+/** What the assistant is asked when a template is created from a description. */
+const buildSchema = z
+  .string()
+  .trim()
+  .min(10, "Describe the document in a sentence or more")
+  .max(4000);
+
+/**
+ * A designed template from scratch, an overlay template on an uploaded PDF, or (AI on) a designed
+ * template the assistant builds from a description (docs/features/ai-template-assistant.md).
+ */
 function CreateTemplateDialog({ onClose }: { onClose: () => void }) {
   const queryClient = useQueryClient();
   const navigate = useNavigate();
+  const aiEnabled = useAiEnabled();
   const [kind, setKind] = useState<Kind>("designed");
   const [file, setFile] = useState<File | null>(null);
+  const [prompt, setPrompt] = useState("");
+  const build = buildSchema.safeParse(prompt);
+  const createFromDescription = useMutation({
+    mutationFn: async (_text: string) =>
+      (await ok(api.templates.$post({ json: { kind: "designed", name: "New template" } }))).json(),
+    onSuccess: async (created, text) => {
+      await queryClient.invalidateQueries({ queryKey: templatesQuery.queryKey });
+      await navigate({ to: "/templates/$id", params: { id: created.id }, search: { build: text } });
+    },
+  });
   const create = useMutation({
     mutationFn: async (json: z.infer<typeof createSchema>) => {
       if (kind === "designed") {
@@ -293,7 +318,8 @@ function CreateTemplateDialog({ onClose }: { onClose: () => void }) {
           className="space-y-4"
           onSubmit={(e) => {
             e.preventDefault();
-            form.handleSubmit();
+            if (kind !== "ai") form.handleSubmit();
+            else if (build.success) createFromDescription.mutate(build.data);
           }}
         >
           <DialogHeader>
@@ -301,7 +327,9 @@ function CreateTemplateDialog({ onClose }: { onClose: () => void }) {
             <DialogDescription>
               {kind === "designed"
                 ? "Design a document from scratch: content, header and footer, and the fields it needs."
-                : "Upload a PDF you already use, then place boxes where the answers go."}
+                : kind === "overlay"
+                  ? "Upload a PDF you already use, then place boxes where the answers go."
+                  : "Describe the document. It opens in the editor with the AI assistant proposing fields and content for you to review."}
             </DialogDescription>
           </DialogHeader>
           <FieldGroup>
@@ -310,12 +338,33 @@ function CreateTemplateDialog({ onClose }: { onClose: () => void }) {
               <NativeSelect
                 id="template-kind"
                 value={kind}
-                onChange={(e) => setKind(e.target.value === "overlay" ? "overlay" : "designed")}
+                onChange={(e) => isKind(e.target.value) && setKind(e.target.value)}
               >
                 <NativeSelectOption value="designed">Design from scratch</NativeSelectOption>
                 <NativeSelectOption value="overlay">Fill an existing PDF</NativeSelectOption>
+                {aiEnabled && (
+                  <NativeSelectOption value="ai">
+                    Describe it to the AI assistant
+                  </NativeSelectOption>
+                )}
               </NativeSelect>
             </Field>
+            {kind === "ai" && (
+              <Field>
+                <FieldLabel htmlFor="template-prompt">Describe the document</FieldLabel>
+                <Textarea
+                  id="template-prompt"
+                  rows={5}
+                  autoFocus
+                  value={prompt}
+                  placeholder="A surety bond for a contractor licence in Oregon: principal, surety and obligee, penal sum, effective date."
+                  onChange={(e) => setPrompt(e.target.value)}
+                />
+                <FieldDescription>
+                  Sent to Anthropic (Claude). Nothing is added until you apply it.
+                </FieldDescription>
+              </Field>
+            )}
             {kind === "overlay" && (
               <Field>
                 <FieldLabel htmlFor="template-pdf">PDF (up to 20 MB)</FieldLabel>
@@ -333,19 +382,31 @@ function CreateTemplateDialog({ onClose }: { onClose: () => void }) {
                 />
               </Field>
             )}
-            <form.AppField name="name">
-              {(field) => (
-                <field.TextField label="Name" autoFocus placeholder="Surety bond certificate" />
-              )}
-            </form.AppField>
-            <form.AppField name="description">
-              {(field) => <field.TextareaField label="Description (optional)" rows={3} />}
-            </form.AppField>
+            {kind !== "ai" && (
+              <>
+                <form.AppField name="name">
+                  {(field) => (
+                    <field.TextField label="Name" autoFocus placeholder="Surety bond certificate" />
+                  )}
+                </form.AppField>
+                <form.AppField name="description">
+                  {(field) => <field.TextareaField label="Description (optional)" rows={3} />}
+                </form.AppField>
+              </>
+            )}
           </FieldGroup>
-          <ErrorAlert error={create.error} />
+          <ErrorAlert error={create.error ?? createFromDescription.error} />
           <DialogFooter>
             <DialogClose render={<Button type="button" variant="outline" />}>Cancel</DialogClose>
-            <Button type="submit" disabled={create.isPending || (kind === "overlay" && !file)}>
+            <Button
+              type="submit"
+              disabled={
+                create.isPending ||
+                createFromDescription.isPending ||
+                (kind === "overlay" && !file) ||
+                (kind === "ai" && !build.success)
+              }
+            >
               {create.isPending && kind === "overlay" ? "Uploading…" : "Create and open"}
             </Button>
           </DialogFooter>

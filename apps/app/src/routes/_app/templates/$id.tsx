@@ -1,4 +1,5 @@
 import {
+  type DesignedDraft,
   designedContentSchema,
   hasPermission,
   overlayFieldProblems,
@@ -10,8 +11,10 @@ import {
 } from "@necodoc/shared";
 import { useMutation, useQuery, useQueryClient, useSuspenseQuery } from "@tanstack/react-query";
 import { createFileRoute, Link, redirect, useBlocker, useNavigate } from "@tanstack/react-router";
-import { ChevronLeftIcon, MoreHorizontalIcon, TriangleAlertIcon } from "lucide-react";
+import { ChevronLeftIcon, MoreHorizontalIcon, SparklesIcon, TriangleAlertIcon } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { z } from "zod";
+import { useAiEnabled } from "@/components/ai";
 import { HistoryPanel } from "@/components/audit";
 import { ErrorAlert } from "@/components/form";
 import { PdfFrame, usePdfPreview } from "@/components/pdf-frame";
@@ -40,6 +43,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ApiError, api, ok, previewTemplate } from "@/lib/api";
 import { dayjs } from "@/lib/date";
 import { snippetsQuery, templatesQuery } from "@/lib/queries";
+import { AssistantPanel } from "./-assistant";
 import { BandsPanel, BodyPanel, CssPanel } from "./-content-panels";
 import {
   type CommonChanges,
@@ -47,12 +51,14 @@ import {
   type DraftValues,
   draftSchema,
   type EditorContent,
+  mergeApplied,
   previewDraftSchema,
   problemArea,
   templateQuery,
   toDraftValues,
 } from "./-draft";
 import { FieldDesigner } from "./-field-designer";
+import { OutputPanel } from "./-output-panel";
 import { OverlayEditor, OverlayPdfPanel } from "./-overlay-editor";
 import { PagePanel } from "./-page-panel";
 import { ReviewStatusBadge, ReviewsPanel, reviewStateQuery, SubmitReviewDialog } from "./-review";
@@ -80,6 +86,8 @@ export const Route = createFileRoute("/_app/templates/$id")({
     );
     if (!seesDrafts) throw redirect({ to: "/templates" });
   },
+  // `build`: a description from the new-template dialog for the AI assistant to build from.
+  validateSearch: z.object({ build: z.string().max(4000).optional() }),
   loader: ({ context, params }) => context.queryClient.ensureQueryData(templateQuery(params.id)),
   component: TemplatePage,
 });
@@ -148,6 +156,27 @@ function TemplateEditor({
     return [...new Set(found.map((p) => p.message))];
   }, [draft, snippets]);
 
+  // AI (docs/features/ai-template-assistant.md): only when the API has a key and the user edits.
+  const aiEnabled = useAiEnabled() && canEdit;
+  const { build } = Route.useSearch();
+  const assistantAvailable = aiEnabled && draft.kind === "designed";
+  /** null until first opened; closing hides the panel but keeps the conversation. */
+  const [assistantOpen, setAssistantOpen] = useState<boolean | null>(build ? true : null);
+  /** An unapplied proposal the preview shows instead of the draft. */
+  const [proposal, setProposal] = useState<{ id: string; draft: DesignedDraft } | null>(null);
+  const suggestDescription = aiEnabled
+    ? async () => {
+        if (!parsed.success) throw new Error("Fix the problems listed above first.");
+        const res = await ok(
+          api.templates[":id"].ai.description.$post({
+            param: { id: template.id },
+            json: { draft: parsed.data },
+          }),
+        );
+        return (await res.json()).text;
+      }
+    : undefined;
+
   const save = useMutation({
     mutationFn: async () => {
       if (!parsed.success) throw new Error("Fix the problems listed above first.");
@@ -196,11 +225,11 @@ function TemplateEditor({
     enabled: previewing !== null,
   });
   const previewRequest = useMemo(() => {
-    const source = previewing === null ? draft : version.data;
+    const source = proposal ? proposal.draft : previewing === null ? draft : version.data;
     if (!source) return null;
     const result = previewDraftSchema.safeParse(source);
     return result.success ? { id: template.id, draft: result.data } : null;
-  }, [draft, previewing, version.data, template.id]);
+  }, [draft, previewing, version.data, template.id, proposal]);
   const preview = usePdfPreview(previewRequest, previewTemplate);
 
   const latest = versions.data?.[0];
@@ -251,6 +280,7 @@ function TemplateEditor({
   });
 
   const issues = parsed.success ? [] : parsed.error.issues.slice(0, 6);
+  const previewHeight = assistantOpen ? "h-[40svh]" : "h-[82svh]";
 
   return (
     <main className="mx-auto max-w-[96rem] space-y-4 p-4 py-6">
@@ -323,6 +353,12 @@ function TemplateEditor({
               onClick={() => setDialog("publish")}
             >
               Publish
+            </Button>
+          )}
+          {assistantAvailable && !assistantOpen && (
+            <Button variant="outline" onClick={() => setAssistantOpen(true)}>
+              <SparklesIcon />
+              Assistant
             </Button>
           )}
           <DropdownMenu>
@@ -447,6 +483,7 @@ function TemplateEditor({
             <TabsTrigger value="fields">Fields</TabsTrigger>
             <TabsTrigger value="sample">Sample data</TabsTrigger>
             <TabsTrigger value="signing">Signing</TabsTrigger>
+            <TabsTrigger value="output">Output</TabsTrigger>
             <TabsTrigger value="page">
               {draft.kind === "overlay" ? "PDF" : "Page & theme"}
             </TabsTrigger>
@@ -482,6 +519,7 @@ function TemplateEditor({
                   content={draft.content}
                   editable={canEdit}
                   onDescription={(description) => change({ description })}
+                  suggestDescription={suggestDescription}
                   onContent={(content) =>
                     setDraft((d) => (d.kind === "overlay" ? { ...d, content } : d))
                   }
@@ -508,7 +546,12 @@ function TemplateEditor({
                 />
               </TabsContent>
               <TabsContent value="page">
-                <PagePanel draft={draft} onChange={changeDesigned} editable={canEdit} />
+                <PagePanel
+                  draft={draft}
+                  onChange={changeDesigned}
+                  editable={canEdit}
+                  suggestDescription={suggestDescription}
+                />
               </TabsContent>
               <TabsContent value="css" keepMounted>
                 <CssPanel content={draft.content} onChange={setContent} editable={canEdit} />
@@ -544,6 +587,20 @@ function TemplateEditor({
               }
             />
           </TabsContent>
+          <TabsContent value="output">
+            <OutputPanel
+              output={draft.content.output}
+              kind={draft.kind}
+              editable={canEdit}
+              onChange={(output) =>
+                setDraft((d) =>
+                  d.kind === "overlay"
+                    ? { ...d, content: { ...d.content, output } }
+                    : { ...d, content: { ...d.content, output } },
+                )
+              }
+            />
+          </TabsContent>
           <TabsContent value="tests">
             <TestsPanel
               id={template.id}
@@ -559,6 +616,7 @@ function TemplateEditor({
             <VersionsPanel
               id={template.id}
               canEdit={canEdit}
+              canPublish={can("publish")}
               dirty={dirty}
               previewing={previewing}
               onPreview={setPreviewing}
@@ -568,9 +626,38 @@ function TemplateEditor({
         </Tabs>
 
         <section className="space-y-2 xl:sticky xl:top-4 xl:self-start">
+          {assistantAvailable && assistantOpen !== null && draft.kind === "designed" && (
+            <div hidden={!assistantOpen}>
+              <AssistantPanel
+                templateId={template.id}
+                draft={draft}
+                build={build}
+                onBuildSent={() =>
+                  navigate({
+                    to: "/templates/$id",
+                    params: { id: template.id },
+                    search: {},
+                    replace: true,
+                    ignoreBlocker: true,
+                  })
+                }
+                onApply={(next, parts) => setDraft((d) => mergeApplied(d, next, parts))}
+                previewing={proposal?.id ?? null}
+                onPreview={setProposal}
+                onClose={() => {
+                  setAssistantOpen(false);
+                  setProposal(null);
+                }}
+              />
+            </div>
+          )}
           <div className="flex flex-wrap items-center justify-between gap-2 text-sm text-muted-foreground">
             <span>
-              {previewing === null ? "Preview with sample data" : `Version ${previewing}`}
+              {proposal
+                ? "Preview with the proposed change"
+                : previewing === null
+                  ? "Preview with sample data"
+                  : `Version ${previewing}`}
               {preview.data &&
                 ` · ${preview.data.pageCount} ${preview.data.pageCount === 1 ? "page" : "pages"}`}
             </span>
@@ -605,9 +692,11 @@ function TemplateEditor({
             </Alert>
           )}
           {preview.data ? (
-            <PdfFrame pdf={preview.data.pdf} title="Template preview" className="h-[82svh]" />
+            <PdfFrame pdf={preview.data.pdf} title="Template preview" className={previewHeight} />
           ) : (
-            <div className="flex h-[82svh] items-center justify-center rounded-lg border text-sm text-muted-foreground">
+            <div
+              className={`flex ${previewHeight} items-center justify-center rounded-lg border text-sm text-muted-foreground`}
+            >
               {preview.error ? "The preview couldn't render." : "Rendering preview…"}
             </div>
           )}

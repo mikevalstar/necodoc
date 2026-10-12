@@ -519,6 +519,9 @@
               "required": ["id", "role"]
             }
           },
+          "output": {
+            "$ref": "#/components/schemas/OutputOptions"
+          },
           "response": {
             "default": "pdf",
             "description": "`pdf` returns the bytes; `json` returns the generation and a link.",
@@ -536,6 +539,41 @@
         },
         "required": ["html"],
         "description": "HTML (Liquid allowed) to render as a PDF."
+      },
+      "OutputOptions": {
+        "type": "object",
+        "properties": {
+          "pdfa": {
+            "default": null,
+            "description": "PDF/A-2 level (`2b` or `2u`), or null for none.",
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": ["2b", "2u"]
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "pdfua": {
+            "default": false,
+            "description": "Tagged PDF/UA-1. HTML renders only: overlays and packets have no structure to tag.",
+            "type": "boolean"
+          },
+          "certify": {
+            "default": false,
+            "description": "Certify with the server's certificate (PAdES, DocMDP: form filling and signing stay allowed).",
+            "type": "boolean"
+          },
+          "lang": {
+            "default": "en",
+            "description": "The document language (BCP 47), for screen readers.",
+            "type": "string",
+            "pattern": "^[A-Za-z]{2,3}(-[A-Za-z0-9]{2,8})*$"
+          }
+        },
+        "description": "PDF/A, PDF/UA and certification."
       },
       "SigningOptions": {
         "anyOf": [
@@ -774,6 +812,40 @@
             "default": false,
             "description": "Answer 202 with the generation id at once instead of waiting.",
             "type": "boolean"
+          },
+          "output": {
+            "type": "object",
+            "properties": {
+              "pdfa": {
+                "default": null,
+                "description": "PDF/A-2 level (`2b` or `2u`), or null for none.",
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "enum": ["2b", "2u"]
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "pdfua": {
+                "default": false,
+                "description": "Tagged PDF/UA-1. HTML renders only: overlays and packets have no structure to tag.",
+                "type": "boolean"
+              },
+              "certify": {
+                "default": false,
+                "description": "Certify with the server's certificate (PAdES, DocMDP: form filling and signing stay allowed).",
+                "type": "boolean"
+              },
+              "lang": {
+                "default": "en",
+                "description": "The document language (BCP 47), for screen readers.",
+                "type": "string",
+                "pattern": "^[A-Za-z]{2,3}(-[A-Za-z0-9]{2,8})*$"
+              }
+            }
           },
           "response": {
             "default": "pdf",
@@ -1133,6 +1205,53 @@
           },
           "requestId": {
             "type": ["string", "null"]
+          },
+          "outputProfile": {
+            "anyOf": [
+              {
+                "type": "object",
+                "properties": {
+                  "pdfa": {
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "enum": ["2b", "2u"]
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "pdfua": {
+                    "type": "boolean"
+                  },
+                  "certified": {
+                    "anyOf": [
+                      {
+                        "type": "object",
+                        "properties": {
+                          "subject": {
+                            "type": "string"
+                          },
+                          "timestamped": {
+                            "type": "boolean"
+                          }
+                        },
+                        "required": ["subject", "timestamped"]
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  }
+                },
+                "required": ["pdfa", "pdfua", "certified"]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "PDF/A, PDF/UA and certification as applied; null when none was asked for."
           }
         },
         "required": [
@@ -1163,7 +1282,8 @@
           "pageCount",
           "size",
           "hasOutput",
-          "requestId"
+          "requestId",
+          "outputProfile"
         ]
       },
       "CombineRequest": {
@@ -1210,6 +1330,9 @@
             "type": "string",
             "minLength": 1,
             "maxLength": 200
+          },
+          "output": {
+            "$ref": "#/components/schemas/OutputOptions"
           },
           "response": {
             "default": "pdf",

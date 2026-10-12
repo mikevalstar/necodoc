@@ -38,6 +38,26 @@ export const env = z
      * addresses, for a receiver on this machine. Never set it in production.
      */
     WEBHOOK_ALLOW_LOCALHOST: z.stringbool().default(false),
+    /**
+     * ADR 0038: the certificate that certifies PDFs, on every worker. A PKCS#12 file, or PEM
+     * files (certificate plus chain, and the private key). The password opens either.
+     */
+    CERTIFY_P12_PATH: z.string().min(1).optional(),
+    CERTIFY_CERT_PATH: z.string().min(1).optional(),
+    CERTIFY_KEY_PATH: z.string().min(1).optional(),
+    CERTIFY_PASSWORD: z.string().optional(),
+    /** ADR 0038: an RFC 3161 timestamp authority; certified PDFs are PAdES B-T with it, B-B without. */
+    CERTIFY_TSA_URL: z.url().optional(),
+    /** ADR 0036: pino level. */
+    LOG_LEVEL: z
+      .enum(["fatal", "error", "warn", "info", "debug", "trace", "silent"])
+      .default("info"),
+    /** ADR 0036: one JSON object per line, or readable lines for a terminal. */
+    LOG_FORMAT: z
+      .enum(["json", "pretty"])
+      .default(process.env.NODE_ENV === "production" ? "json" : "pretty"),
+    /** ADR 0036: serves Prometheus `/metrics` on this port; off when unset. Never expose it publicly. */
+    METRICS_PORT: z.coerce.number().int().min(1).max(65535).optional(),
   })
   .parse(process.env);
 

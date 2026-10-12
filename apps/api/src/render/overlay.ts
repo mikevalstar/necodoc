@@ -445,7 +445,13 @@ export async function renderOverlay(
   loadSource: SourceLoader,
   loadAsset: AssetLoader,
 ) {
-  const timings: RenderTimings = { liquidMs: 0, chromiumMs: 0, bandsMs: 0, stampMs: 0 };
+  const timings: RenderTimings = {
+    liquidMs: 0,
+    chromiumMs: 0,
+    bandsMs: 0,
+    stampMs: 0,
+    finishMs: 0,
+  };
   const warnings = new Set<string>();
   let started = performance.now();
   const lap = (key: keyof RenderTimings) => {

@@ -38,6 +38,25 @@ config:
   RENDER_WAIT_MS: "30000"
   PREVIEW_CONCURRENCY: "2"
   STORAGE_REDIRECT: "off"
+  # Logs, metrics, traces: apps/devdocs/src/content/docs/self-hosting/observability.md
+  LOG_LEVEL: info
+  LOG_FORMAT: json
+  # Traces turn on with an OTLP endpoint; other OTEL_* keys can go here too.
+  # OTEL_EXPORTER_OTLP_ENDPOINT: http://otel-collector.observability:4318
+
+# Prometheus metrics on their own port, on api and worker pods (ADR 0036). The port has no
+# authentication: don't expose it outside the cluster.
+metrics:
+  enabled: true
+  port: 9464
+  # prometheus.io/scrape, /port and /path pod annotations, for annotation-based scrape configs.
+  podAnnotations: true
+  # A Prometheus Operator PodMonitor (workers have no Service, so not a ServiceMonitor).
+  podMonitor:
+    enabled: false
+    interval: 30s
+    # Labels your Prometheus selects monitors by, e.g. { release: kube-prometheus-stack }.
+    labels: {}
 
 # Extra env entries for api, worker and migration pods (standard `env` list syntax).
 extraEnv: []

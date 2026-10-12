@@ -1,5 +1,6 @@
 import { queryOptions, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
+import { SuggestButton, useAiEnabled } from "@/components/ai";
 import { ErrorAlert } from "@/components/form";
 import {
   AlertDialog,
@@ -13,6 +14,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Textarea } from "@/components/ui/textarea";
 import { api, ok } from "@/lib/api";
 import { dayjs } from "@/lib/date";
 
@@ -41,6 +43,7 @@ export const versionQuery = (id: string, version: number) =>
 export function VersionsPanel({
   id,
   canEdit,
+  canPublish,
   dirty,
   previewing,
   onPreview,
@@ -48,6 +51,8 @@ export function VersionsPanel({
 }: {
   id: string;
   canEdit: boolean;
+  /** Publishers can write or fix a version's change note. */
+  canPublish: boolean;
   /** Unsaved edits, which a restore throws away too. */
   dirty: boolean;
   previewing: number | null;
@@ -56,6 +61,7 @@ export function VersionsPanel({
 }) {
   const versions = useQuery(versionsQuery(id));
   const [restoring, setRestoring] = useState<number | null>(null);
+  const [noting, setNoting] = useState<number | null>(null);
   if (versions.data?.length === 0) {
     return (
       <p className="text-sm text-muted-foreground">
@@ -77,7 +83,16 @@ export function VersionsPanel({
               {dayjs(v.publishedAt).format("MMM D, YYYY h:mm A")} by{" "}
               {v.publisherName ?? "a deleted user"}
             </div>
-            {v.note && <p className="whitespace-pre-wrap">{v.note}</p>}
+            {noting === v.version ? (
+              <NoteEditor
+                id={id}
+                version={v.version}
+                note={v.note ?? ""}
+                onDone={() => setNoting(null)}
+              />
+            ) : (
+              v.note && <p className="whitespace-pre-wrap">{v.note}</p>
+            )}
           </div>
           <div className="flex gap-2">
             <Button
@@ -87,6 +102,11 @@ export function VersionsPanel({
             >
               {previewing === v.version ? "Previewing" : "Preview"}
             </Button>
+            {canPublish && noting !== v.version && (
+              <Button variant="ghost" size="sm" onClick={() => setNoting(v.version)}>
+                {v.note ? "Edit note" : "Add note"}
+              </Button>
+            )}
             {canEdit && (
               <Button variant="outline" size="sm" onClick={() => setRestoring(v.version)}>
                 Restore to draft
@@ -159,5 +179,69 @@ function RestoreDialog({
         </AlertDialogFooter>
       </AlertDialogContent>
     </AlertDialog>
+  );
+}
+
+/** A version's change note, written or drafted by AI from its diff against the version before. */
+function NoteEditor({
+  id,
+  version,
+  note,
+  onDone,
+}: {
+  id: string;
+  version: number;
+  note: string;
+  onDone: () => void;
+}) {
+  const queryClient = useQueryClient();
+  const aiEnabled = useAiEnabled();
+  const [text, setText] = useState(note);
+  const save = useMutation({
+    mutationFn: async () =>
+      (
+        await ok(
+          api.templates[":id"].versions[":version"].note.$patch({
+            param: { id, version: String(version) },
+            json: { note: text.trim() || undefined },
+          }),
+        )
+      ).json(),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: versionsQuery(id).queryKey });
+      onDone();
+    },
+  });
+  return (
+    <div className="space-y-2 pt-1">
+      <Textarea
+        aria-label={`Change note for version ${version}`}
+        rows={3}
+        maxLength={2000}
+        value={text}
+        onChange={(e) => setText(e.target.value)}
+      />
+      <ErrorAlert error={save.error} />
+      <div className="flex flex-wrap items-center gap-2">
+        <Button size="sm" disabled={save.isPending} onClick={() => save.mutate()}>
+          Save note
+        </Button>
+        <Button size="sm" variant="ghost" onClick={onDone}>
+          Cancel
+        </Button>
+        {aiEnabled && (
+          <SuggestButton
+            suggest={async () =>
+              (
+                await (
+                  await ok(api.templates[":id"].ai.note.$post({ param: { id }, json: { version } }))
+                ).json()
+              ).text
+            }
+            onSuggested={setText}
+          />
+        )}
+      </div>
+    </div>
   );
 }

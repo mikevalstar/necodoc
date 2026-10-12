@@ -1,5 +1,5 @@
 import type { Condition, Field, FieldSection } from "./fields";
-import type { OutputOptions } from "./output";
+import { type OutputOptions, outputEnabled } from "./output";
 import type { Band } from "./render";
 import type { Signer } from "./signing";
 import type { DesignedContent } from "./template";
@@ -316,8 +316,7 @@ export function compileDesignedContent(
   const css = content.css ? { css: content.css } : {};
   const signers = content.signers.length ? { signers: content.signers } : {};
   // Only when something is on, so templates that never set it keep their publish fingerprint.
-  const { pdfa, pdfua, certify } = content.output;
-  const output = pdfa || pdfua || certify ? { output: content.output } : {};
+  const output = outputEnabled(content.output) ? { output: content.output } : {};
   if (content.mode === "code") {
     return {
       html: content.body,

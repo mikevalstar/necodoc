@@ -27,6 +27,7 @@ Each generation records where its time went, in milliseconds:
 | `chromiumMs` | Chromium printing the body |
 | `bandsMs` | Header and footer: their Liquid and printing |
 | `stampMs` | Loading the body PDF, stamping the bands, saving |
+| `finishMs` | PDF/A, PDF/UA and certification (with a timestamp server, its round trip) |
 | `durationMs` | Run time on the worker |
 | `totalMs` | Queued until finished |
 

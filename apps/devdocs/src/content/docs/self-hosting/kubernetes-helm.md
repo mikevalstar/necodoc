@@ -15,6 +15,7 @@ The chart is in [`deploy/helm/necodoc`](https://github.com/mikevalstar/necodoc/t
 - A migration Job that runs as a `pre-install` and `pre-upgrade` hook, before any new pod starts.
 - PodDisruptionBudgets for `api` and `worker`.
 - Optional: a CPU HorizontalPodAutoscaler or a KEDA ScaledObject for workers, and a PersistentVolumeClaim for disk storage.
+- Prometheus metrics on port 9464 of every api and worker pod, with `prometheus.io/*` annotations; optionally a Prometheus Operator `PodMonitor`. See [Observability](/self-hosting/observability/#helm).
 
 Pods run as non-root (UID 1000; nginx's 101 for the app) with a read-only root filesystem, no Linux capabilities and the `RuntimeDefault` seccomp profile. Chromium doesn't need extra privileges.
 

@@ -1,6 +1,10 @@
+import { Gauge } from "@prometheus-io/client";
 import { PgBoss } from "pg-boss";
 import { db } from "./db";
 import { env, runsWorker } from "./env";
+import { log } from "./log";
+import { registry } from "./observability/metrics";
+import { tracingEnabled } from "./observability/tracing";
 
 // ADR 0020: pg-boss on the app's Postgres (its own `pgboss` schema). Job payloads carry ids only;
 // the input lives on the generation row.
@@ -41,9 +45,48 @@ export const boss = new PgBoss({
   monitorIntervalSeconds: 10,
   // Cron runs once per cluster, on whichever process with a worker role gets there first.
   schedule: runsWorker,
+  // ADR 0036: jobs carry the trace context of whoever queued them; the worker's span continues it.
+  openTelemetry: { enabled: tracingEnabled, propagateContext: true },
 });
 
-boss.on("error", (error) => console.error("pg-boss:", error));
+boss.on("error", (err) => log.error({ err }, "pg-boss error"));
+boss.on("warning", (warning) => log.warn({ warning }, "pg-boss warning"));
+
+// ADR 0036: pg-boss's cached queue counts (refreshed every monitor pass), the same on every
+// process. Read once per scrape for both gauges (the registry collects them in parallel).
+let snapshot: { at: number; queues: ReturnType<typeof boss.getQueues> } | undefined;
+function queueSnapshot() {
+  if (!snapshot || Date.now() - snapshot.at > 1000) {
+    snapshot = { at: Date.now(), queues: boss.getQueues(Object.values(queues)) };
+  }
+  return snapshot.queues;
+}
+new Gauge({
+  name: "necodoc_queue_jobs",
+  help: "Jobs per pg-boss queue and state, cluster-wide (aggregate with max, not sum).",
+  labelNames: ["queue", "state"] as const,
+  registers: [registry],
+  async collect() {
+    if (!queueStatus.started) return;
+    for (const queue of await queueSnapshot()) {
+      for (const state of ["ready", "deferred", "active", "failed"] as const) {
+        this.set({ queue: queue.name, state }, queue[`${state}Count`]);
+      }
+    }
+  },
+});
+new Gauge({
+  name: "necodoc_queue_oldest_ready_seconds",
+  help: "How long the oldest ready job of each queue had waited, at pg-boss's last monitor pass.",
+  labelNames: ["queue"] as const,
+  registers: [registry],
+  async collect() {
+    if (!queueStatus.started) return;
+    for (const queue of await queueSnapshot()) {
+      this.set({ queue: queue.name }, queue.readyOldestSeconds ?? 0);
+    }
+  },
+});
 
 /** For readiness checks. */
 export const queueStatus = { started: false };

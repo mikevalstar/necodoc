@@ -411,7 +411,7 @@ const keyed = new Hono<AppEnv>()
     async (c) => {
       const key = c.get("apiKey");
       const { id, version } = c.req.valid("param");
-      const { data, filename, async, response, signing: asked } = c.req.valid("json");
+      const { data, filename, async, response, signing: asked, output } = c.req.valid("json");
       const signing = asked ? signingOptionsOf(asked) : undefined;
       if (!templateAllowed(key, id)) {
         return v1Error(c, 403, "template_not_allowed", "This key can't use that template");
@@ -428,7 +428,7 @@ const keyed = new Hono<AppEnv>()
       }
       const result = await generate({
         request: {
-          ...versionRequest(v, parsed.data, filename ?? v.name),
+          ...versionRequest(v, parsed.data, filename ?? v.name, output),
           ...(signing ? { signing: { anchors: signing.anchors } } : {}),
         },
         source: "api",
@@ -563,9 +563,10 @@ const keyed = new Hono<AppEnv>()
     params(idParams),
     async (c) => {
       const { id } = c.req.valid("param");
-      const [row] = await selectSummaries({ requestId: generation.requestId }).where(
-        and(eq(generation.id, id), eq(generation.userId, c.get("apiKey").owner.id)),
-      );
+      const [row] = await selectSummaries({
+        requestId: generation.requestId,
+        outputProfile: generation.outputProfile,
+      }).where(and(eq(generation.id, id), eq(generation.userId, c.get("apiKey").owner.id)));
       return row ? c.json(row, 200) : v1Error(c, 404, "not_found", "Generation not found");
     },
   )
@@ -669,7 +670,7 @@ const keyed = new Hono<AppEnv>()
     json(v1CombineSchema),
     async (c) => {
       const key = c.get("apiKey");
-      const { inputs, filename, response, async } = c.req.valid("json");
+      const { inputs, filename, response, async, output } = c.req.valid("json");
       const generationIds = inputs.flatMap((input) =>
         "generationId" in input ? [input.generationId] : [],
       );
@@ -709,7 +710,13 @@ const keyed = new Hono<AppEnv>()
         }
       }
       const result = await generate({
-        request: { kind: "combine", parts, filename: filename ?? "packet", preview: false },
+        request: {
+          kind: "combine",
+          parts,
+          filename: filename ?? "packet",
+          preview: false,
+          ...(output ? { output } : {}),
+        },
         source: "combine",
         userId: key.owner.id,
         apiKeyId: key.id,

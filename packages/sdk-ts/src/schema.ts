@@ -464,6 +464,7 @@ export interface components {
         /** @default  */
         email?: string;
       }[];
+      output?: components["schemas"]["OutputOptions"];
       /**
        * @description `pdf` returns the bytes; `json` returns the generation and a link.
        * @default pdf
@@ -476,6 +477,29 @@ export interface components {
        */
       async?: boolean;
       signing?: components["schemas"]["SigningOptions"];
+    };
+    /** @description PDF/A, PDF/UA and certification. */
+    OutputOptions: {
+      /**
+       * @description PDF/A-2 level (`2b` or `2u`), or null for none.
+       * @default null
+       */
+      pdfa?: ("2b" | "2u") | null;
+      /**
+       * @description Tagged PDF/UA-1. HTML renders only: overlays and packets have no structure to tag.
+       * @default false
+       */
+      pdfua?: boolean;
+      /**
+       * @description Certify with the server's certificate (PAdES, DocMDP: form filling and signing stay allowed).
+       * @default false
+       */
+      certify?: boolean;
+      /**
+       * @description The document language (BCP 47), for screen readers.
+       * @default en
+       */
+      lang?: string;
     };
     /** @description Answer with a signing package (JSON) instead of the PDF. `true`: DocuSign JSON, anchors kept, PDF embedded. */
     SigningOptions:
@@ -560,6 +584,28 @@ export interface components {
        * @default false
        */
       async?: boolean;
+      output?: {
+        /**
+         * @description PDF/A-2 level (`2b` or `2u`), or null for none.
+         * @default null
+         */
+        pdfa?: ("2b" | "2u") | null;
+        /**
+         * @description Tagged PDF/UA-1. HTML renders only: overlays and packets have no structure to tag.
+         * @default false
+         */
+        pdfua?: boolean;
+        /**
+         * @description Certify with the server's certificate (PAdES, DocMDP: form filling and signing stay allowed).
+         * @default false
+         */
+        certify?: boolean;
+        /**
+         * @description The document language (BCP 47), for screen readers.
+         * @default en
+         */
+        lang?: string;
+      };
       /**
        * @description `pdf` returns the bytes; `json` returns the generation and a link.
        * @default pdf
@@ -627,6 +673,15 @@ export interface components {
       size: number | null;
       hasOutput: boolean;
       requestId: string | null;
+      /** @description PDF/A, PDF/UA and certification as applied; null when none was asked for. */
+      outputProfile: {
+        pdfa: ("2b" | "2u") | null;
+        pdfua: boolean;
+        certified: {
+          subject: string;
+          timestamped: boolean;
+        } | null;
+      } | null;
     };
     /** @description PDFs to merge, in order. Forms are flattened. */
     CombineRequest: {
@@ -645,6 +700,7 @@ export interface components {
           }
       )[];
       filename?: string;
+      output?: components["schemas"]["OutputOptions"];
       /**
        * @description `pdf` returns the bytes; `json` returns the generation and a link.
        * @default pdf

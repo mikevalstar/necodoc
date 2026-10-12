@@ -51,7 +51,7 @@ export async function stampBand(
         ? offset * MM_TO_PT
         : page.getHeight() - offset * MM_TO_PT - bandPage.height;
     // Headers and footers are pagination artifacts: outside the structure tree, so a tagged
-    // body stays PDF/UA (ADR 0035). Untagged bodies ignore the marks.
+    // body stays PDF/UA (ADR 0037). Untagged bodies ignore the marks.
     page.pushOperators(beginMarkedContent("Artifact"));
     page.drawPage(bandPage, { x: 0, y });
     page.pushOperators(endMarkedContent());

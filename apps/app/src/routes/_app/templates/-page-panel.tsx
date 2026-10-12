@@ -1,6 +1,7 @@
 import { orientationSchema, type PageOptions, pageSizeSchema } from "@necodoc/shared";
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
+import { SuggestButton } from "@/components/ai";
 import {
   Field,
   FieldDescription,
@@ -23,17 +24,28 @@ export function PagePanel({
   draft,
   onChange,
   editable,
+  suggestDescription,
 }: {
   draft: DesignedDraftValues;
   onChange: (changes: Partial<DesignedDraftValues>) => void;
   editable: boolean;
+  /** Set when AI is on and the user can edit. */
+  suggestDescription?: () => Promise<string>;
 }) {
   const themes = useQuery(themesQuery);
   const setPage = (page: Partial<PageOptions>) => onChange({ page: { ...draft.page, ...page } });
   return (
     <fieldset disabled={!editable} className="space-y-6">
       <Field>
-        <FieldLabel htmlFor="template-description">Description</FieldLabel>
+        <div className="flex items-center justify-between gap-2">
+          <FieldLabel htmlFor="template-description">Description</FieldLabel>
+          {suggestDescription && (
+            <SuggestButton
+              suggest={suggestDescription}
+              onSuggested={(description) => onChange({ description })}
+            />
+          )}
+        </div>
         <Textarea
           id="template-description"
           rows={2}

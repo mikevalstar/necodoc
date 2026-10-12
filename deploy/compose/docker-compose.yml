@@ -3,6 +3,7 @@
 #   docker compose up -d --build
 #   docker compose up -d --scale worker=3          # more render workers
 #   docker compose --profile minio up -d           # S3 storage on a local MinIO (see .env.example)
+#   docker compose --profile monitoring up -d      # Prometheus :9090 and Jaeger :16686 (see .env.example)
 # Upgrades: pull or rebuild, then `docker compose up -d` (migrate runs before api and worker start).
 
 name: necodoc
@@ -102,6 +103,27 @@ services:
     depends_on:
       - minio
     restart: on-failure
+
+  # ADR 0036: for trying metrics and traces on one host. Set METRICS_PORT=9464 and
+  # OTEL_EXPORTER_OTLP_ENDPOINT=http://jaeger:4318 in .env first.
+  prometheus:
+    profiles: [monitoring]
+    image: prom/prometheus:latest
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml:ro
+    ports:
+      - "${PROMETHEUS_PORT:-9090}:9090"
+    restart: unless-stopped
+
+  jaeger:
+    profiles: [monitoring]
+    image: jaegertracing/jaeger:latest
+    environment:
+      # Jaeger v2's OTLP receivers listen on localhost unless told otherwise.
+      JAEGER_LISTEN_HOST: 0.0.0.0
+    ports:
+      - "${JAEGER_PORT:-16686}:16686"
+    restart: unless-stopped
 
 volumes:
   pgdata:

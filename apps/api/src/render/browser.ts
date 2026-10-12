@@ -16,7 +16,7 @@ export type PrintOptions = {
   width: number;
   height: number;
   margins: { top: number; right: number; bottom: number; left: number };
-  /** A tagged PDF with an outline from the headings, for PDF/UA (ADR 0035). */
+  /** A tagged PDF with an outline from the headings, for PDF/UA (ADR 0037). */
   tagged?: boolean;
 };
 

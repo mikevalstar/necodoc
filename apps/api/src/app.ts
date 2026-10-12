@@ -1,14 +1,16 @@
 import { MAX_FILE_BYTES, parseRoles } from "@necodoc/shared";
 import { Hono } from "hono";
 import { bodyLimit } from "hono/body-limit";
-import { logger } from "hono/logger";
+import { HTTPException } from "hono/http-exception";
 import { aiModel } from "./ai";
 import { auditScope } from "./audit";
 import { auth } from "./auth";
 import { type AppEnv, requestId } from "./middleware";
+import { observeRequests } from "./observability/http";
 import { analyticsRoutes } from "./routes/analytics";
 import { apiKeyRoutes } from "./routes/api-keys";
 import { assetRoutes } from "./routes/assets";
+import { assistantRoutes } from "./routes/assistant";
 import { auditRoutes } from "./routes/audit";
 import { batchRoutes, templateBatchRoutes } from "./routes/batches";
 import { fileRoutes } from "./routes/files";
@@ -33,7 +35,11 @@ import { webhookRoutes } from "./routes/webhooks";
 const app = new Hono<AppEnv>().basePath("/api");
 
 app.use(requestId);
-app.use(logger());
+// ADR 0036: request log line, metrics and server span. It logs unhandled errors, so onError only answers.
+app.use(observeRequests);
+app.onError((error, c) =>
+  error instanceof HTTPException ? error.getResponse() : c.text("Internal Server Error", 500),
+);
 
 app.use(async (c, next) => {
   const session = await auth.api.getSession({ headers: c.req.raw.headers });
@@ -76,6 +82,7 @@ const routes = app
   .route("/templates", templateRoutes)
   .route("/templates", templateBatchRoutes)
   .route("/templates", templateTestRoutes)
+  .route("/templates", assistantRoutes)
   .route("/reviews", reviewRoutes)
   .route("/notifications", notificationRoutes)
   .route("/snippets", snippetRoutes)

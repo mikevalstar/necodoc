@@ -23,6 +23,11 @@ spec:
         app.kubernetes.io/component: {{ .role }}
       annotations:
         {{- include "necodoc.checksums" $root | nindent 8 }}
+        {{- if and $root.Values.metrics.enabled $root.Values.metrics.podAnnotations }}
+        prometheus.io/scrape: "true"
+        prometheus.io/port: {{ $root.Values.metrics.port | quote }}
+        prometheus.io/path: /metrics
+        {{- end }}
     spec:
       serviceAccountName: {{ include "necodoc.serviceAccountName" $root }}
       {{- with $root.Values.imagePullSecrets }}
@@ -43,6 +48,10 @@ spec:
           ports:
             - name: http
               containerPort: 3000
+            {{- if $root.Values.metrics.enabled }}
+            - name: metrics
+              containerPort: {{ $root.Values.metrics.port }}
+            {{- end }}
           {{- include "necodoc.probes" $root | nindent 10 }}
           resources:
             {{- toYaml $v.resources | nindent 12 }}

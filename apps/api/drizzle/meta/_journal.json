@@ -127,6 +127,13 @@
       "when": 1791762951864,
       "tag": "0017_lovely_valeria_richards",
       "breakpoints": true
+    },
+    {
+      "idx": 18,
+      "version": "7",
+      "when": 1791785183776,
+      "tag": "0018_previous_jackpot",
+      "breakpoints": true
     }
   ]
 }

@@ -14,6 +14,7 @@ Add one with `okq new feature "<title>"`.
 | Admin FAQ | [admin-faq.md](admin-faq.md) |
 | AI template assistant | [ai-template-assistant.md](ai-template-assistant.md) |
 | Analytics dashboards | [analytics-dashboards.md](analytics-dashboards.md) |
+| Archival, accessible and certified output | [archival-accessible-and-certified-output.md](archival-accessible-and-certified-output.md) |
 | Assets | [assets.md](assets.md) |
 | Audit log | [audit-log.md](audit-log.md) |
 | Combining PDFs into packets | [combining-pdfs-into-packets.md](combining-pdfs-into-packets.md) |
@@ -23,6 +24,7 @@ Add one with `okq new feature "<title>"`.
 | Filling out a document | [filling-out-a-document.md](filling-out-a-document.md) |
 | Generation log | [generation-log.md](generation-log.md) |
 | HTML to PDF API | [html-to-pdf-api.md](html-to-pdf-api.md) |
+| Observability | [observability.md](observability.md) |
 | PDF overlay templates | [pdf-overlay-templates.md](pdf-overlay-templates.md) |
 | Publishing and versions | [publishing-and-versions.md](publishing-and-versions.md) |
 | Render queue, batch jobs and scaling | [render-queue-batch-jobs-and-scaling.md](render-queue-batch-jobs-and-scaling.md) |

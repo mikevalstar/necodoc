@@ -36,6 +36,9 @@ export const auditActions = {
   "template.test_created": "template",
   "template.test_updated": "template",
   "template.test_deleted": "template",
+  "template.version_note_updated": "template",
+  /** An AI feature was used on the template (docs/features/ai-template-assistant.md). */
+  "template.ai_requested": "template",
 
   "theme.created": "theme",
   "theme.updated": "theme",

@@ -45,4 +45,8 @@ Add one with `okq new adr "<title>"`.
 | Append-only audit log with a request-scoped actor | [0032-append-only-audit-log-with-a-request-scoped-actor.md](0032-append-only-audit-log-with-a-request-scoped-actor.md) |
 | Sign boxes located by anchor text, handed off to e-sign providers | [0033-sign-boxes-located-by-anchor-text-handed-off-to-e-sign-providers.md](0033-sign-boxes-located-by-anchor-text-handed-off-to-e-sign-providers.md) |
 | Hand-rolled SVG charts | [0034-hand-rolled-svg-charts.md](0034-hand-rolled-svg-charts.md) |
+| AI assistant proposes changes as client-side tool calls | [0035-ai-assistant-proposes-changes-as-client-side-tool-calls.md](0035-ai-assistant-proposes-changes-as-client-side-tool-calls.md) |
+| pino logs, Prometheus metrics and opt-in OpenTelemetry traces | [0036-pino-logs-prometheus-metrics-and-opt-in-opentelemetry-traces.md](0036-pino-logs-prometheus-metrics-and-opt-in-opentelemetry-traces.md) |
+| PDF/A-2 and PDF/UA-1 by post-processing Chromium output in pdf-lib | [0037-pdf-a-2-and-pdf-ua-1-by-post-processing-chromium-output-in-pdf-lib.md](0037-pdf-a-2-and-pdf-ua-1-by-post-processing-chromium-output-in-pdf-lib.md) |
+| PAdES certification signatures built with PKI.js | [0038-pades-certification-signatures-built-with-pki-js.md](0038-pades-certification-signatures-built-with-pki-js.md) |
 <!-- okq:index:end -->

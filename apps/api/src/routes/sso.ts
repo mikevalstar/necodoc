@@ -8,6 +8,7 @@ import { auth } from "../auth";
 import { db } from "../db";
 import { account } from "../db/schema";
 import { env, ssoProviders } from "../env";
+import { log } from "../log";
 import { type AppEnv, clientIp, requireRole } from "../middleware";
 import { trustedHeaderIdentity } from "../sso-config";
 
@@ -38,7 +39,10 @@ export const ssoRoutes = new Hono<AppEnv>()
         details: { ...via, email, reason },
       });
     if (!result.ok) {
-      console.warn(`SSO ${provider.id}: refused header sign-in from ${peer} (${result.code})`);
+      log.warn(
+        { provider: provider.id, peer, code: result.code },
+        `SSO ${provider.id}: refused header sign-in from ${peer} (${result.code})`,
+      );
       await failed(null, result.code);
       return c.redirect(`/login?error=${result.code}`);
     }

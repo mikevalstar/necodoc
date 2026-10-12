@@ -41,6 +41,9 @@ data:
   {{- else }}
   {{- fail "storage.driver must be disk, s3 or azure" }}
   {{- end }}
+  {{- if .Values.metrics.enabled }}
+  METRICS_PORT: {{ .Values.metrics.port | quote }}
+  {{- end }}
   {{- range $key, $value := .Values.config }}
   {{ $key }}: {{ $value | quote }}
   {{- end }}

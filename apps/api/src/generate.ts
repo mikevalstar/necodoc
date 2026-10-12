@@ -15,6 +15,7 @@ import {
 import { and, eq, inArray, sql } from "drizzle-orm";
 import { fromDrizzle } from "pg-boss";
 import { z } from "zod";
+import { certifier } from "./certifier";
 import { db } from "./db";
 import { asset, file, generation, pdfSource, theme } from "./db/schema";
 import { env } from "./env";
@@ -27,10 +28,13 @@ import {
   writeOutput,
 } from "./files";
 import { limiter } from "./limiter";
+import { logGeneration, observeRender } from "./observability/render";
+import { withSpan } from "./observability/tracing";
 import { announceFinished, boss, priorities, queues, waitUntilFinished } from "./queue";
 import type { AssetLoader } from "./render/browser";
 import { type FileLoader, renderCombine } from "./render/combine";
 import { isInfrastructureError } from "./render/errors";
+import { finishPdf } from "./render/finish";
 import { renderOverlay, type SourceLoader } from "./render/overlay";
 import { loadPartials } from "./render/partials";
 import { type RenderJob, renderPdf } from "./render/render";
@@ -113,12 +117,28 @@ async function render(request: RenderInput) {
     : request.kind === "overlay"
       ? await renderOverlay(request, loadSourceBytes, loadStoredAsset)
       : await renderCombine(request, loadFileBytes);
-  if (rendered.pdf.byteLength > MAX_FILE_BYTES) {
+  // PDF/A, PDF/UA, certification (docs/features/archival-accessible-and-certified-output.md).
+  const finishing = performance.now();
+  const finished = await finishPdf(rendered.pdf, {
+    output: request.output,
+    tagged: !("kind" in request),
+    title: pdfFilename(request.filename).replace(/\.pdf$/, ""),
+    preview: request.preview,
+    certifier,
+  });
+  rendered.timings.finishMs = Math.round(performance.now() - finishing);
+  if (finished.pdf.byteLength > MAX_FILE_BYTES) {
     throw new Error(`The PDF is over ${MAX_FILE_BYTES / 1024 / 1024} MB`);
   }
   // Packets don't carry their parts' signing packages (docs/features/signing-packages.md).
   const signing = rendered.signing ?? null;
-  return { ...rendered, signing, warnings: [...rendered.warnings, ...(signing?.warnings ?? [])] };
+  return {
+    ...rendered,
+    pdf: finished.pdf,
+    outputProfile: finished.profile,
+    signing,
+    warnings: [...rendered.warnings, ...(signing?.warnings ?? []), ...finished.warnings],
+  };
 }
 
 export function pdfFilename(name: string | undefined) {
@@ -144,7 +164,9 @@ export type PreviewResult =
 /** In-process and unlogged, so editing never waits on the queue (ADR 0020). */
 export async function renderPreview(request: RenderInput): Promise<PreviewResult> {
   try {
-    const { pdf, pageCount, warnings } = await previewSlot(() => render(request));
+    const { pdf, pageCount, warnings } = await previewSlot(() =>
+      observeRender("preview", request, render),
+    );
     return { ok: true, pdf, pageCount, filename: pdfFilename(request.filename), warnings };
   } catch (error) {
     return { ok: false, error: errorMessage(error) };
@@ -290,7 +312,7 @@ async function finish(
   generationId: string,
   attempt: number,
   outcome: Outcome,
-  started: { at: Date; queuedAt: Date; batchId: string | null },
+  started: { at: Date; queuedAt: Date; batchId: string | null; input: RenderInput | null },
 ) {
   const finishedAt = new Date();
   const durations = {
@@ -299,6 +321,16 @@ async function finish(
     queueWaitMs: started.at.getTime() - started.queuedAt.getTime(),
     totalMs: finishedAt.getTime() - started.queuedAt.getTime(),
   };
+  logGeneration({
+    generationId,
+    request: started.input,
+    attempt,
+    workerId: processId,
+    queueWaitMs: durations.queueWaitMs,
+    durationMs: durations.durationMs,
+    totalMs: durations.totalMs,
+    outcome,
+  });
   await db
     .transaction(async (tx) => {
       if ("output" in outcome) await tx.insert(file).values(outcome.output);
@@ -312,6 +344,7 @@ async function finish(
               timings: outcome.timings,
               warnings: outcome.warnings,
               signing: outcome.signing,
+              outputProfile: outcome.outputProfile,
             }
           : { status: "error" as const, error: outcome.error };
       const [updated] = await tx
@@ -350,20 +383,30 @@ export async function runGeneration(generationId: string, attempt: number, retri
     });
   // Cancelled, deleted or already finished.
   if (!row) return;
-  const started = { at: startedAt, queuedAt: row.queuedAt, batchId: row.batchId };
+  const started = {
+    at: startedAt,
+    queuedAt: row.queuedAt,
+    batchId: row.batchId,
+    input: row.input,
+  };
   if (!row.input) {
     await finish(generationId, attempt, { error: "The input was removed by retention" }, started);
     return;
   }
   let outcome: Outcome;
   try {
-    const rendered = await render(row.input);
+    const rendered = await observeRender("generation", row.input, render);
     // Streamed to the driver (ADR 0023); the PDF itself comes out of pdf-lib whole.
-    const output = await writeOutput({
-      body: Readable.from([rendered.pdf]),
-      mimeType: "application/pdf",
-      ownerId: row.userId,
-    });
+    const output = await withSpan(
+      "storage.write",
+      { "necodoc.size": rendered.pdf.byteLength },
+      () =>
+        writeOutput({
+          body: Readable.from([rendered.pdf]),
+          mimeType: "application/pdf",
+          ownerId: row.userId,
+        }),
+    );
     outcome = { ...rendered, output };
   } catch (error) {
     if (retriesLeft && (isInfrastructureError(error) || error instanceof StorageError)) throw error;

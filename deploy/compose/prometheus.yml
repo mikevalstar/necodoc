@@ -1,0 +1,9 @@
+# ADR 0036: the `monitoring` profile's scrape config. DNS lists every scaled worker container.
+global:
+  scrape_interval: 15s
+scrape_configs:
+  - job_name: necodoc
+    dns_sd_configs:
+      - names: [api, worker]
+        type: A
+        port: 9464

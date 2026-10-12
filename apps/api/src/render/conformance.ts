@@ -6,12 +6,13 @@ import {
   PDFHexString,
   PDFName,
   PDFNumber,
+  PDFRawStream,
   PDFString,
 } from "@cantoo/pdf-lib";
 import type { PdfaLevel } from "@necodoc/shared";
 import { SRGB_ICC } from "./srgb-icc";
 
-// ADR 0035: PDF/A-2 and PDF/UA-1 by post-processing in pdf-lib. Chromium already embeds every
+// ADR 0037: PDF/A-2 and PDF/UA-1 by post-processing in pdf-lib. Chromium already embeds every
 // font (as subsets with ToUnicode maps), uses no encryption and, with `tagged: true`, writes the
 // structure tree. What's left is document-level: identification and matching metadata, an output
 // intent, a file id, annotation flags, language and title. Verified with veraPDF in
@@ -28,7 +29,12 @@ export type ConformanceOptions = {
 const PRODUCER = "necodoc";
 
 const xmlEscape = (text: string) =>
-  text.replace(/[<>&"]/g, (ch) => ({ "<": "&lt;", ">": "&gt;", "&": "&amp;", '"': "&quot;" })[ch] ?? ch);
+  text.replace(
+    /[<>&"]/g,
+    (ch) => ({ "<": "&lt;", ">": "&gt;", "&": "&amp;", '"': "&quot;" })[ch] ?? ch,
+  );
+
+const PDFUA_EXTENSION = `<rdf:Description rdf:about="" xmlns:pdfaExtension="http://www.aiim.org/pdfa/ns/extension/" xmlns:pdfaSchema="http://www.aiim.org/pdfa/ns/schema#" xmlns:pdfaProperty="http://www.aiim.org/pdfa/ns/property#"><pdfaExtension:schemas><rdf:Bag><rdf:li rdf:parseType="Resource"><pdfaSchema:schema>PDF/UA Universal Accessibility Schema</pdfaSchema:schema><pdfaSchema:namespaceURI>http://www.aiim.org/pdfua/ns/id/</pdfaSchema:namespaceURI><pdfaSchema:prefix>pdfuaid</pdfaSchema:prefix><pdfaSchema:property><rdf:Seq><rdf:li rdf:parseType="Resource"><pdfaProperty:name>part</pdfaProperty:name><pdfaProperty:valueType>Integer</pdfaProperty:valueType><pdfaProperty:category>internal</pdfaProperty:category><pdfaProperty:description>Indicates, which part of ISO 14289 standard is followed</pdfaProperty:description></rdf:li></rdf:Seq></pdfaSchema:property></rdf:li></rdf:Bag></pdfaExtension:schemas></rdf:Description>`;
 
 /** XMP whose values match the Info dictionary exactly (PDF/A-2 6.6.3). */
 function xmp({ pdfa, pdfua, title }: ConformanceOptions, date: string) {
@@ -39,6 +45,8 @@ function xmp({ pdfa, pdfua, title }: ConformanceOptions, date: string) {
     pdfua
       ? `<rdf:Description rdf:about="" xmlns:pdfuaid="http://www.aiim.org/pdfua/ns/id/"><pdfuaid:part>1</pdfuaid:part></rdf:Description>`
       : "",
+    // PDF/A only knows its own schemas: pdfuaid needs declaring as an extension (6.6.2.3.2).
+    pdfa && pdfua ? PDFUA_EXTENSION : "",
   ].join("");
   return `<?xpacket begin="\u{feff}" id="W5M0MpCehiHzreSzNTczkc9d"?>
 <x:xmpmeta xmlns:x="adobe:ns:meta/"><rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#">
@@ -56,27 +64,53 @@ const PRINT = 4;
 const NO_VIEW = 32;
 const TOGGLE_NO_VIEW = 256;
 
-/** Fonts whose program isn't in the file: PDF/A forbids them, and only a re-render can fix it. */
-export function unembeddedFonts(doc: PDFDocument) {
-  const missing = new Set<string>();
+function linkDescription(link: PDFDict) {
+  const uri = link.lookupMaybe(PDFName.of("A"), PDFDict)?.lookup(PDFName.of("URI"));
+  return uri instanceof PDFString || uri instanceof PDFHexString
+    ? `Link to ${uri.decodeText()}`
+    : "Link within this document";
+}
+
+const name = (dict: PDFDict, key: string) => dict.get(PDFName.of(key));
+
+/**
+ * Walks every object once: fixes what PDF/A-2 lets us fix in place (image interpolation, 6.2.8)
+ * and lists what it can't: fonts without their program (6.2.11.4), JavaScript (6.6.1) and
+ * attachments (6.8). Chromium output has none of these; uploaded overlay sources often do.
+ */
+export function pdfaPreflight(doc: PDFDocument) {
+  const fonts = new Set<string>();
+  let javascript = false;
+  let attachments = false;
   for (const [, object] of doc.context.enumerateIndirectObjects()) {
-    if (!(object instanceof PDFDict) || object.get(PDFName.of("Type")) !== PDFName.of("Font")) {
-      continue;
+    const dict =
+      object instanceof PDFDict ? object : object instanceof PDFRawStream ? object.dict : null;
+    if (!dict) continue;
+    if (name(dict, "Subtype") === PDFName.of("Image") && dict.has(PDFName.of("Interpolate"))) {
+      dict.delete(PDFName.of("Interpolate"));
     }
-    const subtype = object.get(PDFName.of("Subtype"));
+    if (name(dict, "S") === PDFName.of("JavaScript") || dict.has(PDFName.of("JS"))) {
+      javascript = true;
+    }
+    if (dict.has(PDFName.of("EF"))) attachments = true;
+    if (name(dict, "Type") !== PDFName.of("Font")) continue;
+    const subtype = name(dict, "Subtype");
     if (subtype === PDFName.of("Type0") || subtype === PDFName.of("Type3")) continue;
-    const descriptor = object.lookupMaybe(PDFName.of("FontDescriptor"), PDFDict);
-    const embedded = ["FontFile", "FontFile2", "FontFile3"].some((key) =>
-      descriptor?.has(PDFName.of(key)),
-    );
-    if (!embedded) missing.add(object.get(PDFName.of("BaseFont"))?.toString().slice(1) ?? "?");
+    const descriptor = dict.lookupMaybe(PDFName.of("FontDescriptor"), PDFDict);
+    if (!["FontFile", "FontFile2", "FontFile3"].some((key) => descriptor?.has(PDFName.of(key)))) {
+      fonts.add(name(dict, "BaseFont")?.toString().slice(1).replace(/#20/g, " ") ?? "unnamed");
+    }
   }
-  return [...missing];
+  const blockers: string[] = [];
+  if (fonts.size) blockers.push(`fonts it doesn't embed (${[...fonts].join(", ")})`);
+  if (javascript) blockers.push("JavaScript");
+  if (attachments) blockers.push("file attachments");
+  return blockers;
 }
 
 /**
- * Makes a PDF identify as PDF/A-2 and/or PDF/UA-1. Returns what it could claim: PDF/A is dropped
- * (with a warning) when a font isn't embedded, which happens only with uploaded overlay sources.
+ * Makes a PDF identify as PDF/A-2 and/or PDF/UA-1. Returns what it could claim: PDF/A is dropped,
+ * with a warning, when preflight finds something it can't fix.
  */
 export async function applyConformance(pdf: Uint8Array, options: ConformanceOptions) {
   const doc = await PDFDocument.load(pdf, { updateMetadata: false });
@@ -84,11 +118,9 @@ export async function applyConformance(pdf: Uint8Array, options: ConformanceOpti
   let { pdfa } = options;
   const { pdfua, lang, title } = options;
   if (pdfa) {
-    const missing = unembeddedFonts(doc);
-    if (missing.length) {
-      warnings.push(
-        `Not PDF/A: the source PDF uses fonts it doesn't embed (${missing.join(", ")})`,
-      );
+    const blockers = pdfaPreflight(doc);
+    if (blockers.length) {
+      warnings.push(`Not PDF/A: the source PDF has ${blockers.join(", ")}`);
       pdfa = null;
     }
   }
@@ -128,10 +160,16 @@ export async function applyConformance(pdf: Uint8Array, options: ConformanceOpti
     if (!annots?.size()) continue;
     // PDF/UA 7.18.3: tab order follows the structure.
     if (pdfua) page.node.set(PDFName.of("Tabs"), PDFName.of("S"));
-    if (!pdfa) continue;
     for (let i = 0; i < annots.size(); i++) {
       const annot = annots.lookup(i);
       if (!(annot instanceof PDFDict)) continue;
+      // PDF/UA 7.18.5: a link needs a description; Chromium writes none, so name its target.
+      if (pdfua && annot.get(PDFName.of("Subtype")) === PDFName.of("Link")) {
+        if (!annot.has(PDFName.of("Contents"))) {
+          annot.set(PDFName.of("Contents"), PDFHexString.fromText(linkDescription(annot)));
+        }
+      }
+      if (!pdfa) continue;
       const flags = annot.lookupMaybe(PDFName.of("F"), PDFNumber)?.asNumber() ?? 0;
       // Printable and visible (PDF/A-2 6.3.2).
       const fixed = (flags | PRINT) & ~(HIDDEN | NO_VIEW | TOGGLE_NO_VIEW);

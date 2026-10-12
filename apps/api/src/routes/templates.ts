@@ -1,9 +1,11 @@
 import { zValidator } from "@hono/zod-validator";
 import {
   createTemplateSchema,
+  defaultOutputOptions,
   fieldErrors,
   generateFromTemplateSchema,
   hasPermission,
+  type OutputOverrides,
   type Permissions,
   pageOptionsSchema,
   parseRoles,
@@ -433,6 +435,40 @@ export const templateRoutes = new Hono<AppEnv>()
     const { compiled: _compiled, ...rest } = row.version;
     return c.json({ ...rest, publisherName: row.publisherName }, 200);
   })
+  // The change note is history, not content: publishers can write or fix it later (the AI
+  // summary can draft it). The audit log keeps the old text.
+  .patch(
+    "/:id/versions/:version/note",
+    canPublish,
+    versionParam,
+    zValidator("json", publishTemplateSchema),
+    async (c) => {
+      const { id, version } = c.req.valid("param");
+      const row = await findVersion(c.get("user"), id, version);
+      if (!row) return c.json({ error: "Version not found" }, 404);
+      const note = c.req.valid("json").note || null;
+      await db.transaction(async (tx) => {
+        await tx
+          .update(templateVersion)
+          .set({ note })
+          .where(eq(templateVersion.id, row.version.id));
+        await recordAudit(
+          {
+            action: "template.version_note_updated",
+            target: { id, name: row.version.name },
+            before: { note: row.version.note },
+            after: { note },
+            details: { version: row.version.version },
+          },
+          tx,
+        );
+      });
+      const [summary] = await selectVersionSummaries().where(
+        eq(templateVersion.id, row.version.id),
+      );
+      return c.json(summary, 200);
+    },
+  )
   .get("/:id/versions/:version/schema", canView, versionParam, async (c) => {
     const { id, version } = c.req.valid("param");
     const row = await findVersion(c.get("user"), id, version);
@@ -482,7 +518,7 @@ export const templateRoutes = new Hono<AppEnv>()
         return c.json({ error: "Invalid data", fieldErrors: fieldErrors(parsed.error) }, 422);
       }
       const result = await generate({
-        request: versionRequest(v, parsed.data, body.filename ?? v.name),
+        request: versionRequest(v, parsed.data, body.filename ?? v.name, body.output),
         source: "app",
         userId: c.get("user").id,
         requestId: c.get("requestId"),
@@ -501,11 +537,17 @@ export function versionRequest(
   v: typeof templateVersion.$inferSelect,
   data: Record<string, unknown>,
   filename: string,
+  /** Per-request output settings over the version's (docs/features/archival-accessible-and-certified-output.md). */
+  overrides?: OutputOverrides,
 ): RenderInput {
   const { compiled } = v;
-  if ("kind" in compiled) return { ...compiled, data, filename, preview: false };
+  const output = overrides
+    ? { output: { ...defaultOutputOptions, ...compiled.output, ...overrides } }
+    : {};
+  if ("kind" in compiled) return { ...compiled, ...output, data, filename, preview: false };
   return {
     ...compiled,
+    ...output,
     ...(v.theme ? { themeDraft: v.theme } : {}),
     page: v.page,
     data,

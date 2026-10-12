@@ -240,6 +240,7 @@ export const generationRoutes = new Hono<AppEnv>()
       timings: generation.timings,
       requestId: generation.requestId,
       signing: generation.signing,
+      outputProfile: generation.outputProfile,
     }).where(visible(c.get("user"), c.req.valid("param").id));
     return row ? c.json(row, 200) : c.json({ error: "Generation not found" }, 404);
   })

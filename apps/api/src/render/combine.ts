@@ -43,6 +43,7 @@ export async function renderCombine(request: CombineRenderRequest, load: FileLoa
     chromiumMs: 0,
     bandsMs: 0,
     stampMs: Math.round(performance.now() - started),
+    finishMs: 0,
   };
   return { pdf, pageCount: packet.getPageCount(), timings, warnings };
 }

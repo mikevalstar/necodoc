@@ -69,12 +69,20 @@ ${css}`;
 }
 
 /** A full HTML document: bundled fonts, then base styles, theme, user CSS, then the body. */
-export function htmlDocument({ body, css }: { body: string; css: string[] }) {
+export function htmlDocument({
+  body,
+  css,
+  lang = "en",
+}: {
+  body: string;
+  css: string[];
+  lang?: string;
+}) {
   const styles = [
     bundledFontCss,
     `html, body { margin: 0; padding: 0; } body { font-family: "Noto Sans", sans-serif; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
 thead { display: table-header-group; } tr, img { break-inside: avoid; }`,
     ...css,
   ];
-  return `<!doctype html><html><head><meta charset="utf-8">${styles.map((s) => `<style>${s}</style>`).join("")}</head><body>${body}</body></html>`;
+  return `<!doctype html><html lang="${lang}"><head><meta charset="utf-8">${styles.map((s) => `<style>${s}</style>`).join("")}</head><body>${body}</body></html>`;
 }

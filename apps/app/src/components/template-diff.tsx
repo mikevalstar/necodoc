@@ -73,9 +73,12 @@ function DiffSummary({ diff }: { diff: TemplateDiff }) {
 export function StructuralDiff({
   diff,
   baseVersion,
+  caption,
 }: {
   diff: TemplateDiff;
   baseVersion: number | null;
+  /** Replaces "Saved draft compared with version N" (the assistant's proposals). */
+  caption?: string;
 }) {
   const snippets = useQuery(snippetsQuery).data;
   const snippetName = (id: string) =>
@@ -97,7 +100,8 @@ export function StructuralDiff({
   return (
     <div className="space-y-4">
       <p className="text-sm text-muted-foreground">
-        Saved draft compared with version {baseVersion}.{empty && " Nothing changed."}
+        {caption ?? `Saved draft compared with version ${baseVersion}.`}
+        {empty && " Nothing changed."}
       </p>
       {settings.length > 0 && (
         <Group title="Template">

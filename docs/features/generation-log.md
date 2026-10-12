@@ -32,8 +32,10 @@ needs counting.
   - status (success or error), error message, warnings (e.g. text cut in an
     overlay box)
   - queued at, started at, duration, and a timing breakdown (queue wait,
-    Liquid, Chromium, bands, stamping/overlay) from the
+    Liquid, Chromium, bands, stamping/overlay, finishing) from the
     [render queue](render-queue-batch-jobs-and-scaling.md)
+  - output profile: PDF/A level, PDF/UA, and who certified it, if any
+    ([Archival, accessible and certified output](archival-accessible-and-certified-output.md))
   - worker that ran it, attempt count, batch it belongs to, request id
   - page count, size
   - input payload (data or HTML)
