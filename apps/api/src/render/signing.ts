@@ -27,12 +27,13 @@ const endToken = (n: number) => `~end${n}~`;
 const TOKEN = /~(sig|end)(\d+)~/g;
 
 /**
- * Sign boxes get their layout here; the anchors are 1px transparent monospace text (Chromium keeps
- * transparent text in the PDF, but drops `opacity: 0`). Absolutely positioned, so they never move
- * anything: printing with or without them gives the same layout.
+ * Sign boxes get their layout here; the anchors are 1px monospace text at 1% alpha, which prints
+ * nothing visible. Not fully transparent: Chromium on Linux drops `color: transparent` text from
+ * the PDF (macOS keeps it), and everywhere drops `opacity: 0`. Absolutely positioned, so they never
+ * move anything: printing with or without them gives the same layout.
  */
 export const signingCss = `[data-sign] { display: inline-block; position: relative; vertical-align: bottom; break-inside: avoid; }
-.necodoc-anchor { position: absolute; font: 1px/1px "JetBrains Mono", monospace; letter-spacing: 0; white-space: nowrap; color: transparent; }
+.necodoc-anchor { position: absolute; font: 1px/1px "JetBrains Mono", monospace; letter-spacing: 0; white-space: nowrap; color: rgb(0 0 0 / 1%); }
 .necodoc-anchor-start { left: 0; top: 0; } .necodoc-anchor-end { right: 0; bottom: 0; }`;
 
 /** Opening tags with a `data-sign` attribute. Attribute values containing `>` aren't supported. */
