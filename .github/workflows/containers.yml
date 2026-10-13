@@ -1,0 +1,177 @@
+# ADR 0025 packaging: builds the four Dockerfile targets (nothing is pushed), lints the Helm chart,
+# and installs it on a kind cluster with the built images to check that migrations run, pods turn
+# ready and Chromium launches inside the shipped worker image.
+name: containers
+
+on:
+  push:
+    branches: [main]
+    paths-ignore: ["docs/**"]
+  pull_request:
+    paths-ignore: ["docs/**"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  images:
+    name: image (${{ matrix.target }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        target: [api, app, site, docs]
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
+      - uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
+        with:
+          context: .
+          target: ${{ matrix.target }}
+          push: false
+          tags: necodoc-${{ matrix.target }}:ci
+          cache-from: type=gha,scope=${{ matrix.target }}
+          cache-to: type=gha,scope=${{ matrix.target }},mode=max
+
+  helm:
+    name: helm lint
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      REQUIRED: --set secrets.DATABASE_URL=postgres://x,secrets.BETTER_AUTH_SECRET=ci-only-secret-ci-only-secret-ci-only
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: azure/setup-helm@9bc31f4ebc9c6b171d7bfbaa5d006ae7abdb4310 # v5.0.1
+        with:
+          version: v4.2.4
+      - run: helm lint deploy/helm/necodoc --strict $REQUIRED
+      # Defaults, then the s3 and azure drivers with the optional scaling and monitoring pieces.
+      - run: helm template necodoc deploy/helm/necodoc $REQUIRED > /dev/null
+      - run: |
+          helm template necodoc deploy/helm/necodoc $REQUIRED > /dev/null \
+            --set storage.driver=s3,storage.s3.bucket=b,worker.keda.enabled=true,metrics.podMonitor.enabled=true,ingress.enabled=false
+          helm template necodoc deploy/helm/necodoc $REQUIRED > /dev/null \
+            --set storage.driver=azure,storage.azure.container=c,storage.azure.account=a,worker.autoscaling.enabled=true
+
+  kind:
+    name: helm install on kind
+    needs: images
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
+      # Same cache scopes as the images job, so these are cache hits.
+      - name: Build api image
+        uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
+        with:
+          context: .
+          target: api
+          load: true
+          tags: necodoc-api:ci
+          cache-from: type=gha,scope=api
+      - name: Build app image
+        uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
+        with:
+          context: .
+          target: app
+          load: true
+          tags: necodoc-app:ci
+          cache-from: type=gha,scope=app
+      - uses: azure/setup-helm@9bc31f4ebc9c6b171d7bfbaa5d006ae7abdb4310 # v5.0.1
+        with:
+          version: v4.2.4
+      - uses: helm/kind-action@1544676c07bb3570fcb70166beaa07c4528fd4aa # v1.15.1
+        with:
+          cluster_name: necodoc
+      - run: kind load docker-image necodoc-api:ci necodoc-app:ci --name necodoc
+
+      # The chart brings no database ("Bring your own Postgres").
+      - name: Start Postgres
+        run: |
+          kubectl apply -f - <<'EOF'
+          apiVersion: apps/v1
+          kind: Deployment
+          metadata: { name: postgres }
+          spec:
+            selector: { matchLabels: { app: postgres } }
+            template:
+              metadata: { labels: { app: postgres } }
+              spec:
+                containers:
+                  - name: postgres
+                    image: postgres:18-alpine
+                    env:
+                      - { name: POSTGRES_USER, value: necodoc }
+                      - { name: POSTGRES_PASSWORD, value: necodoc }
+                      - { name: POSTGRES_DB, value: necodoc }
+                    ports: [{ containerPort: 5432 }]
+                    readinessProbe:
+                      exec: { command: [pg_isready, -U, necodoc, -d, necodoc] }
+                      periodSeconds: 2
+          ---
+          apiVersion: v1
+          kind: Service
+          metadata: { name: postgres }
+          spec:
+            selector: { app: postgres }
+            ports: [{ port: 5432 }]
+          EOF
+          kubectl rollout status deploy/postgres --timeout=180s
+
+      # One replica each: kind's local-path storage is ReadWriteOnce only, and one node holds them all.
+      - name: helm install
+        run: |
+          helm install necodoc deploy/helm/necodoc --wait --timeout 10m \
+            --set image.repository=necodoc-api,image.tag=ci,image.pullPolicy=Never \
+            --set appImage.repository=necodoc-app,appImage.tag=ci,appImage.pullPolicy=Never \
+            --set secrets.DATABASE_URL=postgres://necodoc:necodoc@postgres:5432/necodoc \
+            --set secrets.BETTER_AUTH_SECRET=ci-only-secret-ci-only-secret-ci-only \
+            --set publicUrl=http://localhost:8080,ingress.enabled=false \
+            --set storage.disk.accessMode=ReadWriteOnce,storage.disk.size=1Gi \
+            --set api.replicas=1,worker.replicas=1,app.replicas=1 \
+            --set api.pdb.enabled=false,worker.pdb.enabled=false
+
+      - name: API is ready and sees a worker
+        run: |
+          for i in $(seq 1 30); do
+            out=$(kubectl exec deploy/necodoc-api -- node -e "fetch('http://127.0.0.1:3000/api/health/ready').then(r => r.text()).then(console.log)" || true)
+            echo "$out"
+            if echo "$out" | node -e "const j = JSON.parse(require('fs').readFileSync(0, 'utf8')); process.exit(j.ready && j.workersOnline > 0 ? 0 : 1)"; then exit 0; fi
+            sleep 5
+          done
+          exit 1
+
+      # Under the chart's pod security (non-root, read-only root filesystem, /tmp an emptyDir).
+      - name: Chromium prints a PDF in the worker pod
+        run: |
+          kubectl exec deploy/necodoc-worker -- node --input-type=module -e "
+            import { chromium } from 'playwright-core';
+            const browser = await chromium.launch();
+            const page = await browser.newPage();
+            await page.setContent('<h1>necodoc</h1>');
+            const pdf = await page.pdf();
+            console.log('rendered', pdf.length, 'bytes with Chromium', browser.version());
+            await browser.close();
+            if (pdf.subarray(0, 5).toString() !== '%PDF-') throw new Error('not a PDF');
+          "
+
+      - name: The app serves and proxies /api
+        run: |
+          kubectl port-forward svc/necodoc-app 8080:80 &
+          sleep 3
+          curl -fsS http://localhost:8080/ > /dev/null
+          curl -fsS http://localhost:8080/api/health
+
+      - name: Cluster state
+        if: failure()
+        run: |
+          kubectl get pods,jobs,pvc -A
+          kubectl describe pods
+          for p in $(kubectl get pods -o name); do echo "== $p"; kubectl logs "$p" --all-containers --tail=200 || true; done

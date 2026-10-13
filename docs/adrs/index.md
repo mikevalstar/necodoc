@@ -59,4 +59,5 @@ Add one with `okq new adr "<title>"`.
 | Public demo stays a shared admin with dangerous actions blocked and in-memory limits | [0046-public-demo-stays-a-shared-admin-with-dangerous-actions-blocked-and-in-memory-limits.md](0046-public-demo-stays-a-shared-admin-with-dangerous-actions-blocked-and-in-memory-limits.md) |
 | Warm Chromium pages reused across renders | [0047-warm-chromium-pages-reused-across-renders.md](0047-warm-chromium-pages-reused-across-renders.md) |
 | API key rate limit counted per hour in Postgres | [0048-api-key-rate-limit-counted-per-hour-in-postgres.md](0048-api-key-rate-limit-counted-per-hour-in-postgres.md) |
+| GitHub Actions CI and Dependabot | [0049-github-actions-ci-and-dependabot.md](0049-github-actions-ci-and-dependabot.md) |
 <!-- okq:index:end -->
