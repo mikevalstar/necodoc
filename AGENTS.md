@@ -81,6 +81,14 @@ CI ([ADR 0049](docs/adrs/0049-github-actions-ci-and-dependabot.md)) runs all
 of the above on every push and PR, plus migration and SDK drift checks: commit
 the output of `pnpm db:generate` and `pnpm sdk:generate` with the change.
 
+## Pull requests
+
+- A PR that changes what the app looks like (`apps/app`, or rendered PDF output) shows **before
+  and after screenshots** of each affected screen in its description, same page, data and
+  viewport. In a cloud session the `run-necodoc` skill
+  ([steps](.claude/skills/run-necodoc/SKILL.md#before-and-after-screenshots-for-a-pr)) starts the
+  app, takes them and hosts them on the `pr-screenshots` branch.
+
 ## Additional tools
 - This app will be running in herder in another pane from the user
 - Agent broweser can be used to test things
