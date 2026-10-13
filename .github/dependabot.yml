@@ -1,0 +1,39 @@
+# Weekly dependency updates, grouped so a week is a handful of PRs rather than dozens.
+# cooldown: pnpm refuses packages younger than its minimumReleaseAge (pnpm-workspace.yaml), so
+# Dependabot waits a few days before proposing a release. Transitive dependencies it re-resolves
+# can still be too new; re-run CI the next day if `pnpm install` fails with
+# ERR_PNPM_MINIMUM_RELEASE_AGE_VIOLATION.
+version: 2
+updates:
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+    cooldown:
+      default-days: 3
+      semver-major-days: 7
+    open-pull-requests-limit: 10
+    groups:
+      remotion:
+        patterns: ["remotion", "@remotion/*"]
+      npm-minor-and-patch:
+        update-types: [minor, patch]
+
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+    groups:
+      actions:
+        patterns: ["*"]
+
+  - package-ecosystem: docker
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+    groups:
+      docker:
+        patterns: ["*"]

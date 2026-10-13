@@ -77,6 +77,10 @@ Rules:
 - `pnpm --filter @necodoc/api auth:generate`: regenerate Better Auth tables after changing plugins
 - shadcn components: `cd apps/app && pnpm dlx shadcn@latest add <name>`
 
+CI ([ADR 0049](docs/adrs/0049-github-actions-ci-and-dependabot.md)) runs all
+of the above on every push and PR, plus migration and SDK drift checks: commit
+the output of `pnpm db:generate` and `pnpm sdk:generate` with the change.
+
 ## Additional tools
 - This app will be running in herder in another pane from the user
 - Agent broweser can be used to test things

@@ -1,0 +1,139 @@
+# Lint, typecheck, tests (with the pinned Chromium), build, and checks that committed generated
+# code still matches its source: Drizzle migrations, the OpenAPI document and the four SDKs.
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+env:
+  # Placeholders so src/env.ts parses where the API's code is loaded; nothing is served.
+  BETTER_AUTH_SECRET: ci-only-secret-ci-only-secret-ci-only
+  BETTER_AUTH_URL: http://localhost:3000
+  OKQ_VERSION: v0.9.1
+
+jobs:
+  check:
+    name: lint, typecheck, docs
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm check
+      - run: pnpm typecheck
+      - name: Install okq
+        run: |
+          mkdir -p "$HOME/.local/bin"
+          curl -sSfL "https://github.com/mikevalstar/okq/releases/download/${OKQ_VERSION}/okq-x86_64-unknown-linux-gnu.tar.gz" \
+            | tar xz -C "$HOME/.local/bin" okq
+          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+      - run: pnpm docs:check
+
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      # The headless shell revision playwright-core pins, plus its system libraries and fonts
+      # (the same install the api image does). Render, PDF/A and signing tests need it.
+      - name: Install Chromium
+        run: pnpm --filter @necodoc/api exec playwright-core install --with-deps --only-shell chromium
+      - run: pnpm test
+
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm build
+      - name: Build left the tree clean
+        run: |
+          if [ -n "$(git status --porcelain)" ]; then
+            git status --short; git diff; exit 1
+          fi
+
+  migrations:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    services:
+      postgres:
+        image: postgres:18-alpine
+        env:
+          POSTGRES_USER: necodoc
+          POSTGRES_PASSWORD: necodoc
+          POSTGRES_DB: necodoc
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U necodoc -d necodoc"
+          --health-interval 5s --health-timeout 3s --health-retries 20
+    env:
+      DATABASE_URL: postgres://necodoc:necodoc@localhost:5432/necodoc
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Committed migrations apply to an empty database
+        run: pnpm db:migrate
+      - name: Schema has no changes missing a migration
+        run: |
+          pnpm db:generate
+          if [ -n "$(git status --porcelain)" ]; then
+            echo "::error::src/db/schema.ts changed without a migration. Run pnpm db:generate and commit apps/api/drizzle."
+            git status --short; git diff; exit 1
+          fi
+
+  generated:
+    name: OpenAPI and SDKs up to date
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+      # openapi-generator for the Python, .NET and Java SDKs (scripts/generate-sdks.ts).
+      - uses: actions/setup-java@de7274f081f381c8f8158605e0321c36c376e2e6 # v6.0.1
+        with:
+          distribution: temurin
+          java-version: "21"
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm sdk:generate
+      - name: Generated code matches the API
+        run: |
+          if [ -n "$(git status --porcelain)" ]; then
+            echo "::error::The API changed without regenerating the SDKs. Run pnpm sdk:generate and commit packages/sdk-*."
+            git status --short; git diff --stat; exit 1
+          fi
