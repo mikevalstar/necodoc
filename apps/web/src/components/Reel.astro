@@ -64,8 +64,7 @@ const chapters = video?.chapters ?? Astro.props.chapters;
     }
   </div>
   <div>
-    <p class="eyebrow">What it shows</p>
-    <ol class="chapters">
+    <ol class="chapters" aria-label="What it shows">
       {chapters.map((c) => <li><span>{c.label}</span>{c.at && <time>{c.at}</time>}</li>)}
     </ol>
   </div>
@@ -111,7 +110,7 @@ const chapters = video?.chapters ?? Astro.props.chapters;
 </script>
 
 <style>
-  .reel { display: grid; grid-template-columns: 1fr 340px; gap: 40px; align-items: stretch; }
+  .reel { display: grid; grid-template-columns: 1fr 340px; gap: 40px; align-items: start; }
   .frame { position: relative; aspect-ratio: 16 / 9; border-radius: 16px; overflow: hidden; background: var(--night); box-shadow: var(--shadow-lg); }
   .frame :global(video) { width: 100%; height: 100%; display: block; background: #000; }
   .frame :global(.poster) { position: absolute; top: 9%; left: 34%; width: 92%; height: auto; border-radius: 10px; box-shadow: 0 30px 60px -20px rgba(0,0,0,.7); }
@@ -127,7 +126,7 @@ const chapters = video?.chapters ?? Astro.props.chapters;
   .chapters li { counter-increment: c; display: grid; grid-template-columns: 34px 1fr auto; gap: 10px; padding: 14px 0; border-top: 1px solid var(--hair); align-items: baseline; }
   .chapters li:last-child { border-bottom: 1px solid var(--hair); }
   .chapters li::before { content: counter(c, decimal-leading-zero); font: 13px var(--mono); color: var(--brand-ink); }
-  .chapters span { font-weight: 600; }
+  .chapters span { font-size: 15px; font-weight: 600; line-height: 1.35; }
   .chapters time { font: 12.5px var(--mono); color: var(--ink-3); }
   .notes { font-size: 13.5px; color: var(--ink-3); margin-top: 16px; line-height: 1.5; }
   @media (max-width: 1100px) { .reel { grid-template-columns: 1fr; } }
