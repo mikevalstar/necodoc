@@ -53,3 +53,38 @@ NECODOC_EMAIL=demo@necodoc.com NECODOC_PASSWORD=harbour-demo-2026 \
 ```
 
 Then Read the PNG to look at it.
+
+## Before and after screenshots for a PR
+
+AGENTS.md asks every PR that changes the UI to show the affected screens before and after.
+
+1. **Before**, on the base commit: with the API and app running, `git stash` (or check out
+   `origin/main`), let Vite reload, and screenshot each affected page to `before-<page>.png`.
+   Seed demo data first when an empty database wouldn't show the change.
+2. **After**: restore your work (`git stash pop` / your branch) and take `after-<page>.png` with the
+   same path, account and viewport.
+3. **Host** them on the `pr-screenshots` branch (never merged), in a folder named after your PR
+   branch:
+
+   ```bash
+   B=$(git branch --show-current); W=$(mktemp -d)/shots
+   git fetch origin pr-screenshots:refs/remotes/origin/pr-screenshots
+   git worktree add --detach "$W" origin/pr-screenshots
+   mkdir -p "$W/$B" && cp before-*.png after-*.png "$W/$B/"
+   git -C "$W" add -A && git -C "$W" commit -m "Screenshots for $B"
+   git -C "$W" push origin HEAD:pr-screenshots
+   echo "https://raw.githubusercontent.com/mikevalstar/necodoc/$(git -C "$W" rev-parse --short HEAD)/$B/"
+   git worktree remove "$W"
+   ```
+
+4. **Embed** them in the PR description as a table, one row per page, under the printed URL.
+   Link by commit, not by branch name: raw.githubusercontent.com caches branch URLs for minutes
+   (404 right after a push), and a commit link keeps showing these images if the folder changes.
+
+   ```markdown
+   | Before | After |
+   | --- | --- |
+   | ![](https://raw.githubusercontent.com/mikevalstar/necodoc/<commit>/<branch>/before-templates.png) | ![](https://raw.githubusercontent.com/mikevalstar/necodoc/<commit>/<branch>/after-templates.png) |
+   ```
+
+Read each PNG before posting to check it shows the change, not a blank or loading screen.
