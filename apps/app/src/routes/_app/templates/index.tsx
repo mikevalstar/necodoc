@@ -1,4 +1,10 @@
-import { createTemplateSchema, hasPermission, type TemplateSummary } from "@necodoc/shared";
+import {
+  createTemplateSchema,
+  type DesignedFormat,
+  emptyDesignedContentFor,
+  hasPermission,
+  type TemplateSummary,
+} from "@necodoc/shared";
 import {
   ArchiveIcon,
   ArrowCounterClockwiseIcon,
@@ -48,6 +54,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Field, FieldDescription, FieldGroup, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
+import { NativeSelect, NativeSelectOption } from "@/components/ui/native-select";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
   Table,
@@ -671,6 +678,20 @@ const kindOptions = [
   },
 ] as const satisfies readonly { value: Kind; label: string; hint: string; icon: PhosphorIcon }[];
 
+/** How a designed template is written. The first is the default; add a content mode, add it here. */
+const formatOptions = [
+  {
+    value: "visual",
+    label: "Visual editor",
+    hint: "Write and lay out the document like a word processor.",
+  },
+  {
+    value: "code",
+    label: "Liquid (HTML code)",
+    hint: "Write HTML and Liquid by hand in a code editor. It can't switch to the visual editor later.",
+  },
+] as const satisfies readonly { value: DesignedFormat; label: string; hint: string }[];
+
 /** What the assistant is asked when a template is created from a description. */
 const buildSchema = z
   .string()
@@ -693,6 +714,7 @@ function CreateTemplateDialog({
   const navigate = useNavigate();
   const aiEnabled = useAiEnabled();
   const [kind, setKind] = useState<Kind>(initialKind);
+  const [format, setFormat] = useState<DesignedFormat>(formatOptions[0].value);
   const [file, setFile] = useState<File | null>(null);
   const [prompt, setPrompt] = useState("");
   const build = buildSchema.safeParse(prompt);
@@ -707,7 +729,10 @@ function CreateTemplateDialog({
   const create = useMutation({
     mutationFn: async (json: z.infer<typeof createSchema>) => {
       if (kind === "designed") {
-        return (await ok(api.templates.$post({ json: { kind: "designed", ...json } }))).json();
+        const content = emptyDesignedContentFor(format);
+        return (
+          await ok(api.templates.$post({ json: { kind: "designed", ...json, content } }))
+        ).json();
       }
       if (!file) throw new Error("Pick the PDF to fill");
       const source = await uploadPdfSource(file);
@@ -789,6 +814,26 @@ function CreateTemplateDialog({
                 />
                 <FieldDescription>
                   Sent to Anthropic (Claude). Nothing is added until you apply it.
+                </FieldDescription>
+              </Field>
+            )}
+            {kind === "designed" && (
+              <Field>
+                <FieldLabel htmlFor="template-format">Format</FieldLabel>
+                <NativeSelect
+                  id="template-format"
+                  className="w-full"
+                  value={format}
+                  onChange={(e) => setFormat(e.target.value as DesignedFormat)}
+                >
+                  {formatOptions.map((option) => (
+                    <NativeSelectOption key={option.value} value={option.value}>
+                      {option.label}
+                    </NativeSelectOption>
+                  ))}
+                </NativeSelect>
+                <FieldDescription>
+                  {formatOptions.find((option) => option.value === format)?.hint}
                 </FieldDescription>
               </Field>
             )}
