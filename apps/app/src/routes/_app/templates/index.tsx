@@ -420,24 +420,6 @@ function Templates() {
               className="grid grid-cols-[repeat(auto-fill,minmax(15rem,1fr))] gap-5"
               aria-busy={templates.isPending}
             >
-              {templates.isPending &&
-                [0, 1, 2, 3].map((i) => (
-                  <li key={i}>
-                    <Skeleton className="h-64 rounded-xl" />
-                  </li>
-                ))}
-              {rows.map((t) => (
-                <li key={t.id}>
-                  <GalleryCard
-                    template={t}
-                    seesDrafts={seesDrafts}
-                    menu={seesDrafts && actions(t, true)}
-                  />
-                </li>
-              ))}
-              {templates.isSuccess && rows.length === 0 && (
-                <li className="col-span-full py-8 text-center text-ink-3">{noMatch}</li>
-              )}
               {can("create") && !filtered && templates.isSuccess && (
                 <li>
                   <button
@@ -456,6 +438,24 @@ function Templates() {
                     </span>
                   </button>
                 </li>
+              )}
+              {templates.isPending &&
+                [0, 1, 2, 3].map((i) => (
+                  <li key={i}>
+                    <Skeleton className="h-64 rounded-xl" />
+                  </li>
+                ))}
+              {rows.map((t) => (
+                <li key={t.id}>
+                  <GalleryCard
+                    template={t}
+                    seesDrafts={seesDrafts}
+                    menu={seesDrafts && actions(t, true)}
+                  />
+                </li>
+              ))}
+              {templates.isSuccess && rows.length === 0 && (
+                <li className="col-span-full py-8 text-center text-ink-3">{noMatch}</li>
               )}
             </ul>
           )}
