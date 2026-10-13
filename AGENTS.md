@@ -107,5 +107,8 @@ Agent browsaer and herdr are both installed and available; the developer will al
   ([ADR 0009](docs/adrs/0009-biome-for-linting-and-formatting.md)).
 - `playwright-core` is pinned to the Chromium revision in the local Playwright
   cache. After bumping it, run `pnpm --filter @necodoc/api chromium:install`.
+- Claude Code cloud sessions run `.claude/hooks/session-start.sh` (Node 24 in `/opt/node24`, the
+  pinned Chromium from storage.googleapis.com, the container's Postgres, `apps/api/.env`). The
+  `run-necodoc` skill starts the app, seeds demo data and takes screenshots.
 - Workspace packages ship TS source. The API build (tsdown) inlines
   `@necodoc/*`; keep that `noExternal` rule if you add packages.

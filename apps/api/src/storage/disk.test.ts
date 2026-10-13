@@ -1,4 +1,4 @@
-import { mkdtemp, readdir, rm } from "node:fs/promises";
+import { mkdtemp, readdir, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { Readable } from "node:stream";
@@ -53,8 +53,11 @@ describe("disk driver", () => {
 
   it("passes the readiness probe on a writable directory and fails on a missing mount", async () => {
     await expect(diskDriver({ driver: "disk", dir }).check()).resolves.toBeUndefined();
+    // Under a regular file, so it fails even as root (which can create /nonexistent-mount).
+    const file = join(dir, "not-a-mount");
+    await writeFile(file, "");
     await expect(
-      diskDriver({ driver: "disk", dir: "/nonexistent-mount/necodoc" }).check(),
+      diskDriver({ driver: "disk", dir: join(file, "necodoc") }).check(),
     ).rejects.toThrow();
   });
 });
