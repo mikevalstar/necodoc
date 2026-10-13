@@ -60,7 +60,7 @@ export const designedContentSchema = z.discriminatedUnion("mode", [
 ]);
 export type DesignedContent = z.infer<typeof designedContentSchema>;
 
-export const emptyDesignedContent: DesignedContent = {
+const emptyVisualContent: Extract<DesignedContent, { mode: "visual" }> = {
   mode: "visual",
   body: { type: "doc", content: [{ type: "paragraph" }] },
   header: null,
@@ -70,6 +70,22 @@ export const emptyDesignedContent: DesignedContent = {
   output: outputOptionsSchema.parse({}),
   translations: {},
 };
+
+export const emptyDesignedContent: DesignedContent = emptyVisualContent;
+
+/** How a designed template is written, picked when it's created: one per content mode. */
+export type DesignedFormat = DesignedContent["mode"];
+
+/** A new template's starting content in each format. A new content mode must add its own. */
+const emptyContentByFormat: {
+  [F in DesignedFormat]: Extract<DesignedContent, { mode: F }>;
+} = {
+  visual: emptyVisualContent,
+  code: { ...emptyVisualContent, mode: "code", body: "", header: null, footer: null },
+};
+
+export const emptyDesignedContentFor = (format: DesignedFormat): DesignedContent =>
+  emptyContentByFormat[format];
 
 const templateName = z.string().trim().min(1, "Enter a name").max(200);
 const description = z.string().max(2000);

@@ -68,6 +68,9 @@ editor and developers a code mode, on one renderer.
   ([ADR 0024](../adrs/0024-codemirror-6-for-code-mode-and-raw-html-blocks.md)).
   Converting is one-way; the app warns first and offers to duplicate the
   template as a code copy instead.
+- **Format at creation.** A new designed template picks its format: the
+  visual editor (the default) or Liquid, which opens straight in code mode.
+  The list is built so more formats can be added.
 - **Template CSS.** Each template can add CSS after its theme, in either mode.
   It styles the body and both bands.
 - **Editor.** [Template pages](../../apps/app/src/routes/_app/templates/),
@@ -108,6 +111,8 @@ editor and developers a code mode, on one renderer.
 - [x] Template CSS applies after the theme, in the body and the bands.
 - [x] A template converted to code mode renders the same PDF as before
       conversion.
+- [x] A new designed template can start in Liquid (code mode) from the
+      create dialog; the visual editor stays the default.
 - [x] The gallery shows each template's first page; publishing or saving a
       draft (when nothing is published) updates it on the next visit, and the
       list/gallery choice survives a reload.
