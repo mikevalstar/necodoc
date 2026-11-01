@@ -115,6 +115,12 @@ namespace Necodoc.Sdk.Model
         public string? AnchorString { get; set; }
 
         /// <summary>
+        /// Gets or Sets additional properties
+        /// </summary>
+        [JsonExtensionData]
+        public Dictionary<string, JsonElement> AdditionalProperties { get; } = new Dictionary<string, JsonElement>();
+
+        /// <summary>
         /// Returns the string presentation of the object
         /// </summary>
         /// <returns>String presentation of the object</returns>
@@ -131,6 +137,7 @@ namespace Necodoc.Sdk.Model
             sb.Append("  TopLeft: ").Append(TopLeft).Append("\n");
             sb.Append("  Normalized: ").Append(Normalized).Append("\n");
             sb.Append("  AnchorString: ").Append(AnchorString).Append("\n");
+            sb.Append("  AdditionalProperties: ").Append(AdditionalProperties).Append("\n");
             sb.Append("}\n");
             return sb.ToString();
         }

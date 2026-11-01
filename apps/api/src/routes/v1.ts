@@ -290,7 +290,10 @@ const keyed = new Hono<AppEnv>()
       summary: "Render HTML to PDF",
       description:
         "HTML with Liquid (rendered with `data`), optional CSS, theme, header and footer bands, and page setup. `output.lang` is the document language: `date`, `number` and `currency` format for it, `t` looks text up in `translations`, and right-to-left languages lay out right to left. Logged in the generation log with source `api`.",
-      requestBody: { content: { "application/json": { schema: resolver(v1RenderSchema) } } },
+      requestBody: {
+        required: true,
+        content: { "application/json": { schema: resolver(v1RenderSchema) } },
+      },
       responses: signingRenderResponses,
     }),
     requireScope("render:html"),
@@ -432,7 +435,10 @@ const keyed = new Hono<AppEnv>()
       summary: "Generate a PDF from a template",
       description:
         "Validates `data` against the version's fields (422 with every field error), then renders it. `output.lang` makes the PDF in another language than the template's: formatting, the template's translations and text direction follow it.",
-      requestBody: { content: { "application/json": { schema: resolver(v1GenerateSchema) } } },
+      requestBody: {
+        required: true,
+        content: { "application/json": { schema: resolver(v1GenerateSchema) } },
+      },
       responses: {
         ...signingRenderResponses,
         ...notFound,
@@ -491,7 +497,10 @@ const keyed = new Hono<AppEnv>()
       summary: "Start a batch",
       description:
         "One document per row, queued behind interactive renders. Invalid rows fail alone with their field errors. Poll the batch, or subscribe a webhook to `batch.completed`.",
-      requestBody: { content: { "application/json": { schema: resolver(v1BatchSchema) } } },
+      requestBody: {
+        required: true,
+        content: { "application/json": { schema: resolver(v1BatchSchema) } },
+      },
       responses: {
         202: jsonBody("Queued.", v1BatchSummarySchema),
         ...notFound,
@@ -713,7 +722,10 @@ const keyed = new Hono<AppEnv>()
       summary: "Combine PDFs into a packet",
       description:
         "Merges your generations and uploaded PDFs, in order, into one PDF. Each input's form is flattened. Logged with source `combine`.",
-      requestBody: { content: { "application/json": { schema: resolver(v1CombineSchema) } } },
+      requestBody: {
+        required: true,
+        content: { "application/json": { schema: resolver(v1CombineSchema) } },
+      },
       responses: renderResponses,
     }),
     requireScope("combine:write"),

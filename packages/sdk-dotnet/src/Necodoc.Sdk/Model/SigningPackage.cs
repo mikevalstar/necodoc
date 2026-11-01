@@ -132,6 +132,12 @@ namespace Necodoc.Sdk.Model
         public SigningPackageFormats Formats { get; set; }
 
         /// <summary>
+        /// Gets or Sets additional properties
+        /// </summary>
+        [JsonExtensionData]
+        public Dictionary<string, JsonElement> AdditionalProperties { get; } = new Dictionary<string, JsonElement>();
+
+        /// <summary>
         /// Returns the string presentation of the object
         /// </summary>
         /// <returns>String presentation of the object</returns>
@@ -150,6 +156,7 @@ namespace Necodoc.Sdk.Model
             sb.Append("  PdfUrl: ").Append(PdfUrl).Append("\n");
             sb.Append("  PdfPath: ").Append(PdfPath).Append("\n");
             sb.Append("  Formats: ").Append(Formats).Append("\n");
+            sb.Append("  AdditionalProperties: ").Append(AdditionalProperties).Append("\n");
             sb.Append("}\n");
             return sb.ToString();
         }

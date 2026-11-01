@@ -41,6 +41,7 @@ class SigningBox(BaseModel):
     top_left: SigningBoxTopLeft = Field(alias="topLeft")
     normalized: SigningBoxNormalized
     anchor_string: Optional[StrictStr] = Field(description="Invisible text at the box's top-left corner, for anchor-based tab placement. Null when the PDF has none.", alias="anchorString")
+    additional_properties: Dict[str, Any] = {}
     __properties: ClassVar[List[str]] = ["id", "signerId", "kind", "required", "page", "rect", "topLeft", "normalized", "anchorString"]
 
     model_config = ConfigDict(
@@ -73,8 +74,10 @@ class SigningBox(BaseModel):
         * `None` is only added to the output dict for nullable fields that
           were set at model initialization. Other fields with value `None`
           are ignored.
+        * Fields in `self.additional_properties` are added to the output dict.
         """
         excluded_fields: Set[str] = set([
+            "additional_properties",
         ])
 
         _dict = self.model_dump(
@@ -91,6 +94,11 @@ class SigningBox(BaseModel):
         # override the default output from pydantic by calling `to_dict()` of normalized
         if self.normalized:
             _dict['normalized'] = self.normalized.to_dict()
+        # puts key-value pairs in additional_properties in the top level
+        if self.additional_properties is not None:
+            for _key, _value in self.additional_properties.items():
+                _dict[_key] = _value
+
         # set to None if anchor_string (nullable) is None
         # and model_fields_set contains the field
         if self.anchor_string is None and "anchor_string" in self.model_fields_set:
@@ -118,6 +126,11 @@ class SigningBox(BaseModel):
             "normalized": SigningBoxNormalized.from_dict(obj["normalized"]) if obj.get("normalized") is not None else None,
             "anchorString": obj.get("anchorString")
         })
+        # store additional fields in additional_properties
+        for _key in obj.keys():
+            if _key not in cls.__properties:
+                _obj.additional_properties[_key] = obj.get(_key)
+
         return _obj
 
 
