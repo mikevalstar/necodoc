@@ -70,7 +70,7 @@ ENTRYPOINT ["/usr/bin/tini", "--", "docker-entrypoint.sh"]
 CMD ["serve"]
 
 # --- app: the SPA, with /api proxied to the API ---
-FROM nginxinc/nginx-unprivileged:1.29-alpine AS app
+FROM nginxinc/nginx-unprivileged:1.31-alpine AS app
 # NGINX_ENTRYPOINT_LOCAL_RESOLVERS: the image fills NGINX_LOCAL_RESOLVERS from /etc/resolv.conf.
 ENV API_URL=http://api:3000 NGINX_ENTRYPOINT_LOCAL_RESOLVERS=1
 COPY deploy/docker/nginx.conf.template /etc/nginx/templates/default.conf.template
@@ -78,11 +78,11 @@ COPY --from=app-build /repo/apps/app/dist /usr/share/nginx/html
 EXPOSE 8080
 
 # --- site: the static marketing site ---
-FROM nginxinc/nginx-unprivileged:1.29-alpine AS site
+FROM nginxinc/nginx-unprivileged:1.31-alpine AS site
 COPY --from=site-build /repo/apps/web/dist /usr/share/nginx/html
 EXPOSE 8080
 
 # --- docs: the static developer docs (apps/devdocs) ---
-FROM nginxinc/nginx-unprivileged:1.29-alpine AS docs
+FROM nginxinc/nginx-unprivileged:1.31-alpine AS docs
 COPY --from=docs-build /repo/apps/devdocs/dist /usr/share/nginx/html
 EXPOSE 8080
