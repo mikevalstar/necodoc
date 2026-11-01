@@ -28,7 +28,7 @@ try {
   if (!signIn.ok()) throw new Error(`Sign-in failed: ${signIn.status()} ${await signIn.text()}`);
   await page.goto(new URL(path, base).href, { waitUntil: "networkidle" });
   // The SPA renders after its first queries; wait for real content, not the blank shell.
-  await page.waitForFunction(() => document.body.innerText.trim().length > 50, null, {
+  await page.waitForFunction(() => document.body.textContent.trim().length > 50, null, {
     timeout: 30_000,
   });
   await page.waitForTimeout(1000);

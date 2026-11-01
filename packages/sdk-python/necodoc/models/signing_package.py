@@ -44,6 +44,7 @@ class SigningPackage(BaseModel):
     pdf_url: StrictStr = Field(description="Signed; works without a key for 1 hour.", alias="pdfUrl")
     pdf_path: StrictStr = Field(description="`/api/v1/generations/{id}/pdf`, with a key.", alias="pdfPath")
     formats: SigningPackageFormats
+    additional_properties: Dict[str, Any] = {}
     __properties: ClassVar[List[str]] = ["signers", "boxes", "pages", "anchors", "warnings", "generationId", "filename", "pageCount", "pdfUrl", "pdfPath", "formats"]
 
     model_config = ConfigDict(
@@ -76,8 +77,10 @@ class SigningPackage(BaseModel):
         * `None` is only added to the output dict for nullable fields that
           were set at model initialization. Other fields with value `None`
           are ignored.
+        * Fields in `self.additional_properties` are added to the output dict.
         """
         excluded_fields: Set[str] = set([
+            "additional_properties",
         ])
 
         _dict = self.model_dump(
@@ -106,6 +109,11 @@ class SigningPackage(BaseModel):
         # override the default output from pydantic by calling `to_dict()` of formats
         if self.formats:
             _dict['formats'] = self.formats.to_dict()
+        # puts key-value pairs in additional_properties in the top level
+        if self.additional_properties is not None:
+            for _key, _value in self.additional_properties.items():
+                _dict[_key] = _value
+
         return _dict
 
     @classmethod
@@ -130,6 +138,11 @@ class SigningPackage(BaseModel):
             "pdfPath": obj.get("pdfPath"),
             "formats": SigningPackageFormats.from_dict(obj["formats"]) if obj.get("formats") is not None else None
         })
+        # store additional fields in additional_properties
+        for _key in obj.keys():
+            if _key not in cls.__properties:
+                _obj.additional_properties[_key] = obj.get(_key)
+
         return _obj
 
 

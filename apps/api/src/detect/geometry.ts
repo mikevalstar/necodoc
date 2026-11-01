@@ -141,7 +141,7 @@ export async function pageGeometry(
     text.some((t) => {
       if (t.str.includes("_") || BOX_GLYPHS.test(t.str)) return false;
       const ox = Math.min(r.x + r.w, t.x + t.w) - Math.max(r.x, t.x);
-      const along = r.w >= r.h ? r.w : r.h;
+      const along = Math.max(r.w, r.h);
       const cy = r.y + r.h / 2;
       return (
         ox > 0.9 * Math.min(along, r.w) && cy >= t.y - 0.5 && cy <= t.baseline + 0.12 * t.fontH

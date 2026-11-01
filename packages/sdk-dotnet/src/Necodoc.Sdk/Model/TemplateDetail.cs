@@ -123,6 +123,12 @@ namespace Necodoc.Sdk.Model
         public DateTime? PublishedAt { get; set; }
 
         /// <summary>
+        /// Gets or Sets additional properties
+        /// </summary>
+        [JsonExtensionData]
+        public Dictionary<string, JsonElement> AdditionalProperties { get; } = new Dictionary<string, JsonElement>();
+
+        /// <summary>
         /// Returns the string presentation of the object
         /// </summary>
         /// <returns>String presentation of the object</returns>
@@ -140,6 +146,7 @@ namespace Necodoc.Sdk.Model
             sb.Append("  Versions: ").Append(Versions).Append("\n");
             sb.Append("  LatestVersion: ").Append(LatestVersion).Append("\n");
             sb.Append("  PublishedAt: ").Append(PublishedAt).Append("\n");
+            sb.Append("  AdditionalProperties: ").Append(AdditionalProperties).Append("\n");
             sb.Append("}\n");
             return sb.ToString();
         }

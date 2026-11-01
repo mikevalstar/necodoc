@@ -89,7 +89,8 @@
           "size",
           "downloadUrl",
           "pdfPath"
-        ]
+        ],
+        "additionalProperties": false
       },
       "SigningPackage": {
         "type": "object",
@@ -118,7 +119,8 @@
                   "type": "number"
                 }
               },
-              "required": ["width", "height"]
+              "required": ["width", "height"],
+              "additionalProperties": false
             }
           },
           "anchors": {
@@ -174,6 +176,7 @@
                 "additionalProperties": {}
               }
             },
+            "additionalProperties": false,
             "description": "Provider JSON, as asked for in `formats`."
           }
         },
@@ -190,6 +193,7 @@
           "pdfPath",
           "formats"
         ],
+        "additionalProperties": false,
         "description": "The PDF's signers and sign boxes, for an e-sign provider."
       },
       "Signer": {
@@ -218,6 +222,7 @@
           }
         },
         "required": ["id", "role", "routingOrder", "name", "email"],
+        "additionalProperties": false,
         "description": "A signer, with name and email rendered from the data."
       },
       "SigningBox": {
@@ -258,6 +263,7 @@
               }
             },
             "required": ["x", "y", "width", "height"],
+            "additionalProperties": false,
             "description": "PDF points in the page's user space, origin bottom-left (what pdf-lib uses)."
           },
           "topLeft": {
@@ -277,6 +283,7 @@
               }
             },
             "required": ["x", "y", "width", "height"],
+            "additionalProperties": false,
             "description": "Points (pixels at 72 dpi) from the top-left of the page as displayed (DocuSign, Dropbox Sign, Adobe Sign)."
           },
           "normalized": {
@@ -296,6 +303,7 @@
               }
             },
             "required": ["x", "y", "width", "height"],
+            "additionalProperties": false,
             "description": "Fractions (0..1) of the displayed page, origin top-left."
           },
           "anchorString": {
@@ -313,7 +321,8 @@
           "topLeft",
           "normalized",
           "anchorString"
-        ]
+        ],
+        "additionalProperties": false
       },
       "PendingGeneration": {
         "type": "object",
@@ -328,7 +337,8 @@
             "enum": ["queued", "running", "success", "error", "cancelled"]
           }
         },
-        "required": ["generationId", "status"]
+        "required": ["generationId", "status"],
+        "additionalProperties": false
       },
       "Error": {
         "type": "object",
@@ -357,7 +367,8 @@
             "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
           }
         },
-        "required": ["error", "code"]
+        "required": ["error", "code"],
+        "additionalProperties": false
       },
       "RenderRequest": {
         "type": "object",
@@ -721,7 +732,8 @@
           "createdAt",
           "updatedAt",
           "languages"
-        ]
+        ],
+        "additionalProperties": false
       },
       "TemplateDetail": {
         "type": "object",
@@ -818,7 +830,8 @@
                   "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
                 }
               },
-              "required": ["id", "templateId", "version", "note", "publisherName", "publishedAt"]
+              "required": ["id", "templateId", "version", "note", "publisherName", "publishedAt"],
+              "additionalProperties": false
             }
           }
         },
@@ -833,7 +846,8 @@
           "updatedAt",
           "languages",
           "versions"
-        ]
+        ],
+        "additionalProperties": false
       },
       "JsonSchema": {
         "type": "object",
@@ -1029,7 +1043,8 @@
           "createdAt",
           "cancelledAt",
           "finishedAt"
-        ]
+        ],
+        "additionalProperties": false
       },
       "BatchRequest": {
         "type": "object",
@@ -1291,7 +1306,8 @@
                             "type": "boolean"
                           }
                         },
-                        "required": ["subject", "timestamped"]
+                        "required": ["subject", "timestamped"],
+                        "additionalProperties": false
                       },
                       {
                         "type": "null"
@@ -1299,7 +1315,8 @@
                     ]
                   }
                 },
-                "required": ["pdfa", "pdfua", "certified"]
+                "required": ["pdfa", "pdfua", "certified"],
+                "additionalProperties": false
               },
               {
                 "type": "null"
@@ -1338,7 +1355,8 @@
           "hasOutput",
           "requestId",
           "outputProfile"
-        ]
+        ],
+        "additionalProperties": false
       },
       "CombineRequest": {
         "type": "object",
@@ -1418,14 +1436,14 @@
         "summary": "Render HTML to PDF",
         "description": "HTML with Liquid (rendered with `data`), optional CSS, theme, header and footer bands, and page setup. `output.lang` is the document language: `date`, `number` and `currency` format for it, `t` looks text up in `translations`, and right-to-left languages lay out right to left. Logged in the generation log with source `api`.",
         "requestBody": {
+          "required": true,
           "content": {
             "application/json": {
               "schema": {
                 "$ref": "#/components/schemas/RenderRequest"
               }
             }
-          },
-          "required": true
+          }
         },
         "responses": {
           "200": {
@@ -1822,14 +1840,14 @@
         "summary": "Generate a PDF from a template",
         "description": "Validates `data` against the version's fields (422 with every field error), then renders it. `output.lang` makes the PDF in another language than the template's: formatting, the template's translations and text direction follow it.",
         "requestBody": {
+          "required": true,
           "content": {
             "application/json": {
               "schema": {
                 "$ref": "#/components/schemas/GenerateRequest"
               }
             }
-          },
-          "required": true
+          }
         },
         "responses": {
           "200": {
@@ -1988,14 +2006,14 @@
         "summary": "Start a batch",
         "description": "One document per row, queued behind interactive renders. Invalid rows fail alone with their field errors. Poll the batch, or subscribe a webhook to `batch.completed`.",
         "requestBody": {
+          "required": true,
           "content": {
             "application/json": {
               "schema": {
                 "$ref": "#/components/schemas/BatchRequest"
               }
             }
-          },
-          "required": true
+          }
         },
         "responses": {
           "202": {
@@ -2587,7 +2605,8 @@
                       "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
                     }
                   },
-                  "required": ["url", "expiresAt"]
+                  "required": ["url", "expiresAt"],
+                  "additionalProperties": false
                 }
               }
             }
@@ -2664,7 +2683,6 @@
           }
         ],
         "requestBody": {
-          "required": false,
           "content": {
             "application/json": {
               "schema": {
@@ -2679,7 +2697,8 @@
                 }
               }
             }
-          }
+          },
+          "required": false
         }
       }
     },
@@ -2822,14 +2841,14 @@
         "summary": "Combine PDFs into a packet",
         "description": "Merges your generations and uploaded PDFs, in order, into one PDF. Each input's form is flattened. Logged with source `combine`.",
         "requestBody": {
+          "required": true,
           "content": {
             "application/json": {
               "schema": {
                 "$ref": "#/components/schemas/CombineRequest"
               }
             }
-          },
-          "required": true
+          }
         },
         "responses": {
           "200": {

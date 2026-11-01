@@ -29,12 +29,15 @@ export async function startTracing(resource: {
   // Traces only: metrics go to Prometheus and logs to stdout unless the operator asks otherwise.
   env.OTEL_METRICS_EXPORTER ??= "none";
   env.OTEL_LOGS_EXPORTER ??= "none";
-  const { NodeSDK, resources } = await import("@opentelemetry/sdk-node");
+  const [{ NodeSDK }, { defaultResource, resourceFromAttributes }] = await Promise.all([
+    import("@opentelemetry/sdk-node"),
+    import("@opentelemetry/resources"),
+  ]);
   const sdk = new NodeSDK({
     serviceName: env.OTEL_SERVICE_NAME ? undefined : resource.service,
     // OTEL_RESOURCE_ATTRIBUTES still wins over these.
-    resource: resources.defaultResource().merge(
-      resources.resourceFromAttributes({
+    resource: defaultResource().merge(
+      resourceFromAttributes({
         "service.version": resource.version,
         "service.instance.id": resource.instance,
       }),
