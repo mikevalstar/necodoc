@@ -18,6 +18,13 @@ updates:
       # @types/node follows the Node major we run (.nvmrc, Dockerfile). Bump both together.
       - dependency-name: "@types/node"
         versions: [">=25"]
+      # apps/web and apps/devdocs stay on TS 6 because astro check doesn't support TS 7 yet
+      # (ADR 0010). Remove this once it does. Until then it also holds back TS 8 everywhere.
+      - dependency-name: "typescript"
+        update-types: ["version-update:semver-major"]
+      # Only here to satisfy hono-openapi's peers. Follow its range (^0.3.x) rather than run ahead.
+      - dependency-name: "@standard-community/standard-json"
+        versions: [">=0.4"]
     groups:
       remotion:
         patterns: ["remotion", "@remotion/*"]
