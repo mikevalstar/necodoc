@@ -14,6 +14,10 @@ updates:
       default-days: 3
       semver-major-days: 7
     open-pull-requests-limit: 10
+    ignore:
+      # @types/node follows the Node major we run (.nvmrc, Dockerfile). Bump both together.
+      - dependency-name: "@types/node"
+        versions: [">=25"]
     groups:
       remotion:
         patterns: ["remotion", "@remotion/*"]
