@@ -64,7 +64,7 @@
     "@standard-schema/spec": "^1.1.0",
     "@types/json-schema": "^7.0.15",
     "ai": "^7.0.157",
-    "asn1js": "^3.1.0",
+    "asn1js": "^4.0.0",
     "better-auth": "^1.7.14",
     "bwip-js": "^4.11.4",
     "dayjs": "^1.11.23",
