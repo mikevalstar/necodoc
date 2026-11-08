@@ -78,7 +78,7 @@
     "pg-boss": "^12.38.0",
     "pino": "^10.4.0",
     "pino-pretty": "^13.2.0",
-    "pkijs": "^3.4.3",
+    "pkijs": "^4.0.1",
     "playwright-core": "~1.64.1",
     "postgres": "^3.4.9",
     "zod": "^4.6.7"
